@@ -1,0 +1,74 @@
+{
+  "updated": "2026-06-01",
+  "source": "LMC Mining Intelligence — lmcmining.com",
+  "network": {
+    "difficulty": 113757508517000,
+    "hashrate_eh": 658,
+    "block_reward_btc": 3.125,
+    "blocks_per_day": 144,
+    "next_halving": "2028-04-01",
+    "next_halving_reward": 1.5625
+  },
+  "prices": {
+    "btc_usd": 105000,
+    "hashprice_usd_per_th_day": 0.0767
+  },
+  "miners": [
+    { "model": "Antminer S21 Pro", "manufacturer": "Bitmain", "hashrate_th": 234, "power_w": 3510, "efficiency_j_per_th": 15.0, "cooling": "air", "market_price_usd": 3800 },
+    { "model": "Antminer S21 Pro Hydro", "manufacturer": "Bitmain", "hashrate_th": 335, "power_w": 5360, "efficiency_j_per_th": 16.0, "cooling": "hydro", "market_price_usd": 5500 },
+    { "model": "Antminer S21", "manufacturer": "Bitmain", "hashrate_th": 200, "power_w": 3500, "efficiency_j_per_th": 17.5, "cooling": "air", "market_price_usd": 2700 },
+    { "model": "Whatsminer M60S", "manufacturer": "MicroBT", "hashrate_th": 170, "power_w": 3400, "efficiency_j_per_th": 20.0, "cooling": "air", "market_price_usd": 2500 },
+    { "model": "Antminer S19 XP", "manufacturer": "Bitmain", "hashrate_th": 140, "power_w": 3010, "efficiency_j_per_th": 21.5, "cooling": "air", "market_price_usd": 1500 },
+    { "model": "Canaan Avalon A1566", "manufacturer": "Canaan", "hashrate_th": 150, "power_w": 3420, "efficiency_j_per_th": 22.8, "cooling": "air", "market_price_usd": 1800 },
+    { "model": "Antminer S19j Pro+", "manufacturer": "Bitmain", "hashrate_th": 122, "power_w": 3355, "efficiency_j_per_th": 27.5, "cooling": "air", "market_price_usd": 900 },
+    { "model": "Antminer S19 Pro", "manufacturer": "Bitmain", "hashrate_th": 110, "power_w": 3250, "efficiency_j_per_th": 29.5, "cooling": "air", "market_price_usd": 700 },
+    { "model": "Antminer S19j Pro", "manufacturer": "Bitmain", "hashrate_th": 100, "power_w": 3050, "efficiency_j_per_th": 30.5, "cooling": "air", "market_price_usd": 600 },
+    { "model": "Antminer S19 XP Immersion", "manufacturer": "Bitmain", "hashrate_th": 255, "power_w": 2910, "efficiency_j_per_th": 11.4, "cooling": "immersion", "market_price_usd": 4200 },
+    { "model": "Antminer S21 Pro Immersion", "manufacturer": "Bitmain", "hashrate_th": 350, "power_w": 4270, "efficiency_j_per_th": 12.2, "cooling": "immersion", "market_price_usd": 6200 }
+  ],
+  "hosting_providers": [
+    { "name": "Abundant Miners", "pricing_model": "flat_fee", "monthly_fee_air_usd": 225, "cooling_types": ["air"], "locations": ["Texas, USA"], "insurance_included": true, "pool_flexibility": true, "financing_available": true, "verified": true },
+    { "name": "Compass Mining", "pricing_model": "kwh", "electricity_rate_kwh": 0.075, "cooling_types": ["air"], "locations": ["Multiple US states"], "insurance_included": false, "pool_flexibility": true, "financing_available": false, "verified": true },
+    { "name": "Core Scientific", "pricing_model": "kwh", "electricity_rate_kwh": 0.077, "cooling_types": ["air", "immersion"], "locations": ["Texas", "Kentucky", "North Carolina"], "insurance_included": false, "pool_flexibility": true, "financing_available": false, "verified": true },
+    { "name": "Blockware Solutions", "pricing_model": "kwh", "electricity_rate_kwh": 0.070, "cooling_types": ["air"], "locations": ["Kentucky, USA"], "insurance_included": false, "pool_flexibility": true, "financing_available": false, "verified": true },
+    { "name": "Sabre56", "pricing_model": "kwh", "electricity_rate_kwh": 0.065, "cooling_types": ["air", "hydro", "immersion"], "locations": ["Montana, USA"], "insurance_included": false, "pool_flexibility": true, "financing_available": false, "verified": true }
+  ],
+  "profitability_examples": [
+    {
+      "hardware": "Antminer S21 Pro",
+      "btc_price_usd": 105000,
+      "hosting_model": "flat_fee",
+      "monthly_hosting_usd": 225,
+      "daily_btc": 0.000785,
+      "daily_gross_usd": 82.40,
+      "daily_cost_usd": 7.50,
+      "daily_net_usd": 74.90,
+      "breakeven_days": 50.7,
+      "annual_net_usd": 27339
+    },
+    {
+      "hardware": "Antminer S21 Pro",
+      "btc_price_usd": 75000,
+      "hosting_model": "flat_fee",
+      "monthly_hosting_usd": 225,
+      "daily_btc": 0.000785,
+      "daily_gross_usd": 58.86,
+      "daily_cost_usd": 7.50,
+      "daily_net_usd": 51.36,
+      "breakeven_days": 74.0,
+      "annual_net_usd": 18746
+    },
+    {
+      "hardware": "Antminer S21 Pro",
+      "btc_price_usd": 60000,
+      "hosting_model": "flat_fee",
+      "monthly_hosting_usd": 225,
+      "daily_btc": 0.000785,
+      "daily_gross_usd": 47.10,
+      "daily_cost_usd": 7.50,
+      "daily_net_usd": 39.60,
+      "breakeven_days": 95.9,
+      "annual_net_usd": 14454
+    }
+  ]
+}

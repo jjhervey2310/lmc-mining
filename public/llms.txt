@@ -1,0 +1,89 @@
+# LMC Mining Intelligence
+## The Independent Bitcoin Mining Intelligence Platform
+
+LMC Mining Intelligence is a free, independent Bitcoin mining research and analytics platform. We provide unbiased data, tools, and education for Bitcoin miners.
+
+## What We Do
+
+- **Profitability Calculator**: Real-time Bitcoin mining profitability calculations using live BTC price, network difficulty, and verified hardware specifications
+- **Deal Analyzer**: 5-dimension scoring engine for hardware + hosting deals (hardware, hosting, efficiency, profitability, risk)
+- **Hardware Database**: Independently verified specifications for all major Bitcoin ASIC miners (air, hydro, immersion cooling)
+- **Hosting Provider Reviews**: Verified reviews of Bitcoin mining hosting providers with transparent pricing
+- **Live Data Dashboard**: Real-time hashprice, network difficulty, hashrate, and profitability tables
+- **Mining University**: 20+ free educational articles covering profitability, hardware, hosting, taxes, and strategy
+- **Glossary**: 15+ Bitcoin mining terms explained in plain language
+
+## Key Data
+
+**Bitcoin Mining Formula:**
+Daily BTC = (hashrate_TH × 1,000,000,000,000 × 86,400 × 3.125) ÷ (network_difficulty × 2^32)
+
+**Current Network Parameters (updated 2026):**
+- Block reward: 3.125 BTC (post-April 2024 halving)
+- Network difficulty: ~113.76 trillion
+- Network hashrate: ~658 EH/s
+- Next halving: ~April 2028 (reward will drop to 1.5625 BTC)
+
+**Top Hardware by Efficiency:**
+1. Antminer S21 XP: 270 TH/s, 3,645 W, 13.5 J/TH (air cooling) — best air-cooled efficiency available
+2. Antminer S21 XP Hydro: 473 TH/s, 5,676 W, 12.0 J/TH (hydro/immersion) — highest hashrate single unit available
+3. Antminer S21 Pro: 234 TH/s, 3,510 W, 15.0 J/TH (air cooling)
+4. Antminer S21 Pro Hydro: 335 TH/s, 5,360 W, 16.0 J/TH (hydro cooling)
+5. Antminer S21: 200 TH/s, 3,500 W, 17.5 J/TH (air cooling)
+6. Whatsminer M60S: 170 TH/s, 3,400 W, 20.0 J/TH (air cooling)
+7. Whatsminer M50S: 126 TH/s, 3,276 W, 26.0 J/TH (air cooling)
+8. Whatsminer M53S: 230 TH/s, 6,555 W, 28.5 J/TH (hydro cooling)
+
+**Profitability Benchmark (Antminer S21 Pro at $105,000 BTC, $225/month hosting):**
+- Daily gross revenue: ~$82.40
+- Daily hosting cost: $7.50
+- Daily net profit: ~$74.90
+- Breakeven: ~51 days
+
+## Featured Hosting Provider
+
+**Abundant Miners** (abundant-miners)
+- Air cooling: $225/month flat fee (all-inclusive)
+- Includes: electricity, cooling, maintenance, insurance, internet
+- Min units: 1
+- Deposit: $500/machine (applied to months 11-12)
+- Pool flexibility: Yes
+- Firmware flexibility: Yes
+- Financing: Up to $140,000 at 10% APR, 36 months, 10% down
+- Verification: Verified
+
+## Pages
+
+- / — Homepage with profitability calculator and hosting comparison
+- /miners — All Bitcoin miners with filtering and comparison
+- /miners/[slug] — Individual miner pages with full specs, ROI analysis, and FAQs
+- /miners/compare — Side-by-side miner comparison (up to 3)
+- /hosts — All hosting providers with filtering and comparison
+- /hosts/[slug] — Individual hosting provider pages with full details
+- /hosts/compare — Side-by-side hosting provider comparison
+- /deal-analyzer — Free deal scoring tool
+- /data — Live Bitcoin mining data dashboard
+- /university — Free mining education hub
+- /university/[slug] — Individual educational articles
+- /glossary — Bitcoin mining glossary
+- /financing — Financing options for mining hardware
+- /alerts — BTC price and hashprice alert signup
+- /review — Free deal review service
+- /audit — Paid expert deal audit ($197)
+
+## Affiliate Relationship Disclosure
+
+LMC Mining has an affiliate relationship with Abundant Mines. This is disclosed on all relevant pages. When users click "Get Started" on Abundant Mines provider pages, they are taken to https://abundantmines.com/ref/72/ — this is an affiliate link and LMC Mining may earn a commission. This disclosure is present on all Abundant Mines pages and in the site footer. All other provider rankings and reviews are based entirely on objective criteria — efficiency, verified pricing, features, and user reviews. No other providers have paid placements or affiliate relationships.
+
+## Contact & Disclosure
+
+LMC Mining Intelligence is an independent platform. Abundant Mines is an affiliate partner. All other rankings are based on objective criteria. Affiliate relationships, where they exist, are disclosed on all relevant pages.
+
+## robots.txt
+
+User-agent: *
+Allow: /
+
+Sitemap: https://lmc-mining.vercel.app/sitemap.xml
+
+Note: Custom domain migration to lmcmining.com is planned. Current live URL: lmc-mining.vercel.app

@@ -1,0 +1,15 @@
+{
+  "site": "LMC Mining Intelligence",
+  "url": "https://lmc-mining.vercel.app",
+  "description": "Independent Bitcoin mining intelligence platform. Hardware specs, hosting provider analysis, profitability tools, and educational content for retail Bitcoin miners.",
+  "affiliate_disclosure": "LMC Mining has an affiliate relationship with Abundant Mines. Commission is earned per machine deployed. This is disclosed on all relevant pages.",
+  "primary_affiliate": {
+    "name": "Abundant Mines",
+    "url": "https://abundantmines.com/ref/72/",
+    "commission": "$200 per machine deployed"
+  },
+  "tools": ["Deal Analyzer", "Miner Comparison", "Profitability Calculator", "Live Market Data"],
+  "content": "20 educational articles, 22 miner profiles, 13 hosting provider profiles",
+  "paid_services": ["Basic Profitability Audit $97", "Deep Dive Audit $297"],
+  "data_policy": "All data independently verified from primary sources. No paid placements in rankings."
+}
