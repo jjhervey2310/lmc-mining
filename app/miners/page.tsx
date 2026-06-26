@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { MINERS_DATA } from '@/lib/data'
 
 export const metadata: Metadata = {
-  title: 'Bitcoin ASIC Miner Comparison 2026 — Hashrate, Efficiency, Price',
+  title: 'Bitcoin ASIC Miner Comparison 2026 â Hashrate, Efficiency, Price',
   description:
     'Compare Bitcoin ASIC miners by hashrate, power consumption, efficiency (J/TH), cooling type, and estimated price. Click ROI to prefill our calculator with any miner.',
   openGraph: {
@@ -22,21 +22,21 @@ const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa
 const COOLING_LABELS: Record<string, string> = { air: 'Air', hydro: 'Hydro', immersion: 'Immersion' }
 
 function getMinerImage(name: string): string {
-  // Bitmain Antminer S21 series — check XP before Pro before plain S21
-  if (name.includes('S21 XP'))  return '/miners/antminer-s21-xp.png'
-  if (name.includes('S21 Pro')) return '/miners/antminer-s21-pro.png'
-  if (name.includes('S21'))     return '/miners/antminer-s21.png'
+  // Bitmain Antminer S21 series — official shop.bitmain.com product images
+  if (name.includes('S21 XP'))  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2024/06/28/13/4c2af89a-8fec-42b1-9ff1-905375e027ee_540.jpg'
+  if (name.includes('S21 Pro')) return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2024/06/26/16/f5e9564a-3815-4345-be61-219e5f78cfcc.jpg'
+  if (name.includes('S21'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
   // Bitmain Antminer S19 series
-  if (name.includes('S19 XP'))  return '/miners/antminer-s19-xp.png'
-  if (name.includes('S19'))     return '/miners/antminer-s19.png'
-  // MicroBT Whatsminer
-  if (name.includes('M60') || name.includes('M53S')) return '/miners/whatsminer-m60s.png'
-  if (name.includes('M53'))     return '/miners/whatsminer-m53s.png'
-  if (name.includes('M50'))     return '/miners/whatsminer-m50s.png'
+  if (name.includes('S19 XP'))  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2022/08/18/11/9a7adec5-373c-45f4-b476-09a3977f2b7b_540.jpg'
+  if (name.includes('S19'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/08/03/22/c17af66b-1048-4853-a7e1-fc479143d0eb_540.jpg'
+  // MicroBT Whatsminer — using S21 image as placeholder (microbt.com SPA inaccessible)
+  if (name.includes('M60') || name.includes('M53S')) return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
+  if (name.includes('M53'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
+  if (name.includes('M50'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2022/08/18/11/9a7adec5-373c-45f4-b476-09a3977f2b7b_540.jpg'
   // Canaan Avalon
-  if (name.includes('Avalon'))  return '/miners/canaan-avalon.png'
+  if (name.includes('Avalon'))  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
   // Generic fallback
-  return '/miners/asic-miner.png'
+  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
 }
 
 const breadcrumbSchema = {
@@ -71,7 +71,7 @@ export default function MinersPage() {
         </p>
       </div>
 
-      {/* Miner cards — image left, specs right */}
+      {/* Miner cards â image left, specs right */}
       <div className="space-y-4">
         {miners.map((m, i) => {
           const eff = m.efficiency_j_per_th ?? (m.power_watts / m.default_hashrate_th)
@@ -82,7 +82,7 @@ export default function MinersPage() {
               className="miner-card rounded-xl overflow-hidden flex"
               style={{ background: CARD_BG, border: i === 0 ? '1px solid rgba(247,147,26,0.3)' : `1px solid ${BORDER}` }}
             >
-              {/* Miner image — product shot on neutral background */}
+              {/* Miner image â product shot on neutral background */}
               <div className="relative w-28 sm:w-44 shrink-0 self-stretch min-h-[120px]" style={{ background: '#1a1a1a' }}>
                 <Image
                   src={getMinerImage(m.name)}
@@ -137,7 +137,7 @@ export default function MinersPage() {
                   </div>
                   <div>
                     <div className="text-gray-500">Est. Price</div>
-                    <div className="text-white font-mono">{m.market_price_usd ? `$${m.market_price_usd.toLocaleString()}` : '—'}</div>
+                    <div className="text-white font-mono">{m.market_price_usd ? `$${m.market_price_usd.toLocaleString()}` : 'â'}</div>
                   </div>
                 </div>
 
@@ -146,7 +146,7 @@ export default function MinersPage() {
                   className="inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap"
                   style={{ background: 'rgba(247,147,26,0.12)', color: ORANGE, border: '1px solid rgba(247,147,26,0.25)' }}
                 >
-                  Calculate ROI →
+                  Calculate ROI â
                 </Link>
               </div>
             </div>
@@ -156,9 +156,9 @@ export default function MinersPage() {
 
       {/* Efficiency legend */}
       <div className="mt-6 flex flex-wrap gap-4 text-xs text-gray-500">
-        <div className="flex items-center gap-1.5"><span style={{ color: '#00d4aa' }}>●</span> Under 18 J/TH — highly efficient</div>
-        <div className="flex items-center gap-1.5"><span style={{ color: '#fbbf24' }}>●</span> 18–25 J/TH — competitive</div>
-        <div className="flex items-center gap-1.5"><span style={{ color: '#ff4757' }}>●</span> Over 25 J/TH — thin margins at standard hosting</div>
+        <div className="flex items-center gap-1.5"><span style={{ color: '#00d4aa' }}>â</span> Under 18 J/TH â highly efficient</div>
+        <div className="flex items-center gap-1.5"><span style={{ color: '#fbbf24' }}>â</span> 18â25 J/TH â competitive</div>
+        <div className="flex items-center gap-1.5"><span style={{ color: '#ff4757' }}>â</span> Over 25 J/TH â thin margins at standard hosting</div>
       </div>
 
       {/* CTAs */}
@@ -169,7 +169,7 @@ export default function MinersPage() {
             Click ROI next to any miner to prefill the calculator with its specs. Add your hosting cost and BTC price to see exact numbers.
           </p>
           <Link href="/calculator" className="text-sm font-bold px-5 py-2.5 rounded-lg inline-block" style={{ background: ORANGE, color: '#000' }}>
-            Open Calculator →
+            Open Calculator â
           </Link>
         </div>
         <div className="rounded-2xl p-6" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
@@ -178,7 +178,7 @@ export default function MinersPage() {
             Submit your budget and goals for a free deal review. We&apos;ll recommend the right hardware for your specific situation.
           </p>
           <Link href="/review" className="text-sm font-bold px-5 py-2.5 rounded-lg inline-block" style={{ background: 'rgba(247,147,26,0.12)', color: ORANGE, border: '1px solid rgba(247,147,26,0.25)' }}>
-            Get Free Recommendation →
+            Get Free Recommendation â
           </Link>
         </div>
       </div>
@@ -189,7 +189,7 @@ export default function MinersPage() {
         <Link href="/university/best-bitcoin-miners-for-beginners" className="hover:text-white transition-colors" style={{ color: ORANGE }}>
           Best Bitcoin Miners for Beginners
         </Link>
-        {' · '}
+        {' Â· '}
         <Link href="/university/asic-miner-efficiency-explained" className="hover:text-white transition-colors" style={{ color: ORANGE }}>
           ASIC Miner Efficiency Explained
         </Link>
