@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const article = getArticleBySlug(slug)
   if (!article) return {}
   return {
-    title: `${article.title} | LMC Mining`,
+    title: `${article.title} | Lightning Mines`,
     description: article.meta_description,
     openGraph: {
       title: article.title,
@@ -74,8 +74,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     '@type': 'Article',
     headline: article.title,
     description: article.meta_description,
-    author: { '@type': 'Person', name: 'Jacob H.', jobTitle: 'Founder', worksFor: { '@type': 'Organization', name: 'LMC Mining Intelligence' } },
-    publisher: { '@type': 'Organization', name: 'LMC Mining Intelligence' },
+    author: { '@type': 'Person', name: 'Jacob H.', jobTitle: 'Founder', worksFor: { '@type': 'Organization', name: 'Lightning Mines' } },
+    publisher: { '@type': 'Organization', name: 'Lightning Mines' },
     keywords: article.tags.join(', '),
     articleSection: article.category,
     timeRequired: `PT${article.reading_time_minutes}M`,
@@ -95,9 +95,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://lmcmining.com' },
-      { '@type': 'ListItem', position: 2, name: 'Mining University', item: 'https://lmcmining.com/university' },
-      { '@type': 'ListItem', position: 3, name: article.title, item: `https://lmcmining.com/university/${article.slug}` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://lightningmines.com' },
+      { '@type': 'ListItem', position: 2, name: 'Mining University', item: 'https://lightningmines.com/university' },
+      { '@type': 'ListItem', position: 3, name: article.title, item: `https://lightningmines.com/university/${article.slug}` },
     ],
   }
 
@@ -133,7 +133,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-white">Jacob H.</div>
-                  <div className="text-xs text-gray-500">Founder, LMC Mining Intelligence · 8 years in Bitcoin mining</div>
+                  <div className="text-xs text-gray-500">Founder, Lightning Mines · 8 years in Bitcoin mining</div>
                 </div>
               </div>
               <span className="text-gray-700">·</span>
@@ -176,22 +176,22 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
           {/* End-of-article CTAs */}
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#111827', border: '1px solid #1f2937' }}>
-              <div className="text-base font-bold text-white mb-2">Run Your Own Numbers</div>
+            <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#111111', border: '1px solid #222222' }}>
+              <div className="text-base font-bold text-white mb-2">Calculate Your ROI</div>
               <p className="text-sm text-gray-400 flex-1 mb-4">
-                Use our free deal analyzer to score any hardware and hosting combination across 5 dimensions — hardware pricing, hosting cost, efficiency, profitability, and risk.
+                Use our free calculator to get exact profitability numbers for your hardware, hosting cost, and current BTC price.
               </p>
-              <Link href="/deal-analyzer" className="text-sm font-semibold px-5 py-2.5 rounded-lg text-center" style={{ background: '#00d4aa', color: '#0a0e17' }}>
-                Open the Deal Analyzer →
+              <Link href="/calculator" className="text-sm font-semibold px-5 py-2.5 rounded-lg text-center" style={{ background: '#f7931a', color: '#000' }}>
+                Open Calculator →
               </Link>
             </div>
-            <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#111827', border: '1px solid rgba(245,158,11,0.25)' }}>
-              <div className="text-base font-bold text-white mb-2">Want a professional review?</div>
+            <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#111111', border: '1px solid rgba(247,147,26,0.25)' }}>
+              <div className="text-base font-bold text-white mb-2">Get a Free Deal Review</div>
               <p className="text-sm text-gray-400 flex-1 mb-4">
-                We&apos;ll analyze your exact setup — miner, hosting contract, financing — and deliver a written profitability report within 48 hours. Done personally, not AI-generated.
+                Submit your deal and get an honest Pass / Avoid assessment within 48 hours. Completely free.
               </p>
-              <Link href="/audit" className="text-sm font-semibold px-5 py-2.5 rounded-lg text-center" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
-                Book a Profitability Audit — from $97
+              <Link href="/review" className="text-sm font-semibold px-5 py-2.5 rounded-lg text-center" style={{ background: 'rgba(247,147,26,0.12)', color: '#f7931a', border: '1px solid rgba(247,147,26,0.3)' }}>
+                Free Deal Review →
               </Link>
             </div>
           </div>
@@ -205,11 +205,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               <div className="text-sm font-semibold text-white mb-4">Free Mining Tools</div>
               <div className="space-y-2">
                 {[
-                  { label: 'Profitability Calculator', href: '/' },
-                  { label: 'Deal Analyzer', href: '/deal-analyzer' },
-                  { label: 'Miner Comparison', href: '/miners/compare' },
-                  { label: 'Host Comparison', href: '/hosts/compare' },
-                  { label: 'Live Data Dashboard', href: '/data' },
+                  { label: 'ROI Calculator', href: '/calculator' },
+                  { label: 'Compare Hosting', href: '/hosting' },
+                  { label: 'Compare Miners', href: '/miners' },
+                  { label: 'Free Deal Review', href: '/review' },
+                  { label: 'Mining Audit', href: '/audit' },
                 ].map(({ label, href }) => (
                   <Link key={href} href={href} className="flex items-center justify-between text-xs py-2 px-3 rounded-lg transition-colors hover:border-gray-600" style={{ background: '#0a0e17', border: '1px solid #1f2937', color: '#9ca3af' }}>
                     <span>{label}</span>

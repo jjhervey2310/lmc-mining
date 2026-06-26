@@ -1,15 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Bitcoin Mining Audit — Expert ROI Review',
-  description: 'Get a professional review of your mining deal from $97. Profitability analysis, hosting recommendation, 12-month ROI projection. Human analysis, not AI reports.',
-  openGraph: {
-    images: [{ url: '/api/og?title=Bitcoin+Mining+Audit&sub=Expert+ROI+Review+from+%2497', width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    images: ['/api/og?title=Bitcoin+Mining+Audit&sub=Expert+ROI+Review+from+%2497'],
-  },
+  title: 'Bitcoin Mining Audit — $97 Deal Audit & $297 Build Plan',
+  description: 'Get a professional review of your Bitcoin mining deal. $97 Mining Deal Audit or $297 Mining Build Plan. Profitability analysis, risk assessment, and go/no-go recommendation. Human analysis, 48-hour delivery.',
 }
 
 export default function AuditLayout({ children }: { children: React.ReactNode }) {

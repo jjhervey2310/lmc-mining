@@ -1,13 +1,17 @@
-export const SITE_NAME = 'LMC Mining Intelligence'
-export const SITE_TAGLINE = 'The Independent Bitcoin Mining Intelligence Platform'
+export const SITE_NAME = 'Lightning Mines'
+export const SITE_URL = 'https://lightningmines.com'
+export const SITE_TAGLINE = 'Bitcoin Mining Profitability, Hosting and Hardware Made Simple'
 export const SITE_DESCRIPTION =
-  'The independent Bitcoin mining intelligence platform. Compare miners, hosting providers, and financing options. Free profitability calculator and deal analyzer.'
+  'Lightning Mines helps you avoid bad Bitcoin mining deals. Compare hosting providers, calculate ROI, and get a free deal review before you commit capital.'
 
 export const COLORS = {
-  bg: '#0a0e17',
+  bg: '#0a0a0a',
+  card: '#111111',
+  border: '#222222',
+  orange: '#f7931a',
   profitPositive: '#00d4aa',
   negative: '#ff4757',
-  accent: '#3d7aed',
+  accent: '#f7931a',
 } as const
 
 // Bitcoin block reward (post-2024 halving)

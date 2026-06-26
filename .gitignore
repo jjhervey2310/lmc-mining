@@ -44,10 +44,10 @@ stripe_backup_code.txt
 *.pdf
 lmc-prompt-part1.md.pdf
 lmc-v2-claude-code-prompt.md.pdf
+Vercel/**
 Vercel/
-Vercel
-.claude/
-.claude
+**/.claude/**
+.claude/**
 
 # vercel
 .vercel

@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0e17;
+  --background: #0a0a0a;
   --foreground: #e2e8f0;
   --profit-positive: #00d4aa;
   --negative: #ff4757;
-  --accent: #3d7aed;
-  --card-bg: #111827;
-  --border: #1f2937;
+  --accent: #f7931a;
+  --card-bg: #111111;
+  --border: #222222;
   --muted: #6b7280;
 }
 
@@ -155,8 +155,8 @@ body {
 
 /* Gold gradient button */
 .btn-gold {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #0a0e17;
+  background: linear-gradient(135deg, #f7931a, #e07a10);
+  color: #0a0a0a;
   font-weight: 700;
   transition: opacity 0.2s, transform 0.15s;
 }
@@ -166,21 +166,21 @@ body {
   transform: translateY(-1px);
 }
 
-/* Hero gold button with glow */
+/* Orange primary button with glow */
 .btn-gold-hero {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #f7931a, #e07a10);
   color: #000000;
   font-weight: 700;
-  box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 30px rgba(247, 147, 26, 0.3);
   transition: box-shadow 0.3s ease, transform 0.15s ease;
   text-decoration: none;
 }
 
 .btn-gold-hero:hover {
-  box-shadow: 0 0 50px rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 50px rgba(247, 147, 26, 0.5);
   transform: translateY(-1px);
 }
 
