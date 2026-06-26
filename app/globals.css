@@ -227,3 +227,47 @@ body {
   display: inline-block;
   animation: chevronBounce 1.8s ease-in-out infinite;
 }
+
+/* Hero lightning flash — diagonal white streak every 8s */
+@keyframes heroLightningFlash {
+  0%     { opacity: 0; }
+  1.25%  { opacity: 1; }
+  6.25%  { opacity: 0; }
+  100%   { opacity: 0; }
+}
+
+.hero-lightning-flash {
+  animation: heroLightningFlash 8s linear infinite;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Navbar lightning bolt glow pulse — 4s loop */
+@keyframes lightningBoltPulse {
+  0%, 100% {
+    opacity: 0.4;
+    filter: drop-shadow(0 0 0px #f7931a);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px #f7931a) drop-shadow(0 0 14px rgba(247, 147, 26, 0.55));
+  }
+}
+
+.lightning-bolt-pulse {
+  animation: lightningBoltPulse 4s ease-in-out infinite;
+}
+
+/* Miner card hover — orange border */
+.miner-card {
+  transition: border-color 0.15s ease;
+}
+.miner-card:hover {
+  border-color: rgba(247, 147, 26, 0.4) !important;
+}

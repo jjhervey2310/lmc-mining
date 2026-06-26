@@ -26,7 +26,15 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="text-xl font-bold" style={{ color: '#f7931a' }}>⚡</span>
+            <svg
+              className="w-6 h-6 lightning-bolt-pulse"
+              viewBox="0 0 24 24"
+              fill="#f7931a"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
             <span className="font-bold text-white text-lg tracking-tight">Lightning Mines</span>
           </Link>
 

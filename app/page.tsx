@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
@@ -160,33 +161,49 @@ export default function HomePage() {
 
   return (
     <div style={{ background: '#0a0a0a' }}>
-      {/* Hero */}
-      <section className="max-w-5xl mx-auto px-4 pt-20 pb-16 text-center">
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6"
-          style={{ background: 'rgba(247,147,26,0.12)', color: ORANGE, border: '1px solid rgba(247,147,26,0.25)' }}
-        >
-          ⚡ Independent Bitcoin Mining Intelligence
-        </div>
+      {/* Hero — cinematic full-bleed with mining rig background */}
+      <section className="relative min-h-[600px] md:min-h-[680px] flex items-center justify-center overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1920&q=80"
+          alt="Bitcoin mining rigs in server racks"
+          fill
+          className="object-cover object-center"
+          priority
+          sizes="100vw"
+        />
+        {/* Dark overlay 60% */}
+        <div className="absolute inset-0" style={{ background: 'rgba(10,10,10,0.62)' }} />
+        {/* Lightning flash — diagonal white streak every 8s */}
+        <div className="hero-lightning-flash absolute inset-0" />
 
-        <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-          Bitcoin Mining Profitability,<br />
-          <span style={{ color: ORANGE }}>Hosting and Hardware</span><br />
-          Made Simple
-        </h1>
+        {/* Content */}
+        <div className="relative z-20 max-w-5xl mx-auto px-4 py-20 text-center">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6"
+            style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE, border: '1px solid rgba(247,147,26,0.35)' }}
+          >
+            ⚡ Independent Bitcoin Mining Intelligence
+          </div>
 
-        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed">
-          Lightning Mines helps you avoid bad Bitcoin mining deals. Free ROI calculator,
-          verified hosting comparisons, and expert deal reviews — before you commit capital.
-        </p>
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+            Bitcoin Mining Profitability,<br />
+            <span style={{ color: ORANGE }}>Hosting and Hardware</span><br />
+            Made Simple
+          </h1>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Link href="/calculator" className="btn-gold-hero text-base font-bold px-8 py-4 rounded-xl w-full sm:w-auto">
-            Calculate Mining ROI →
-          </Link>
-          <Link href="/review" className="btn-outline-hero text-base font-semibold px-8 py-4 rounded-xl w-full sm:w-auto">
-            Get a Free Deal Review
-          </Link>
+          <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed" style={{ color: 'rgba(226,232,240,0.85)' }}>
+            Lightning Mines helps you avoid bad Bitcoin mining deals. Free ROI calculator,
+            verified hosting comparisons, and expert deal reviews — before you commit capital.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link href="/calculator" className="btn-gold-hero text-base font-bold px-8 py-4 rounded-xl w-full sm:w-auto">
+              Calculate Mining ROI →
+            </Link>
+            <Link href="/review" className="btn-outline-hero text-base font-semibold px-8 py-4 rounded-xl w-full sm:w-auto">
+              Get a Free Deal Review
+            </Link>
+          </div>
         </div>
       </section>
 

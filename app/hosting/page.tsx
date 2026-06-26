@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export const metadata: Metadata = {
   title: 'Bitcoin Mining Hosting Comparison 2026 — Verified Providers',
@@ -138,31 +139,45 @@ const breadcrumbSchema = {
 
 export default function HostingPage() {
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
+    <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
-      {/* Breadcrumb */}
-      <div className="text-xs text-gray-500 mb-6">
-        <Link href="/" className="hover:text-white transition-colors">Home</Link>
-        <span className="mx-2">/</span>
-        <span>Hosting</span>
+      {/* Full-width hero banner */}
+      <div className="relative h-56 sm:h-80 overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1639762681057-408b52e7a954?w=1920&q=80"
+          alt="Bitcoin mining rigs in server racks"
+          fill
+          className="object-cover object-center"
+          priority
+          sizes="100vw"
+        />
+        <div className="absolute inset-0" style={{ background: 'rgba(10,10,10,0.68)' }} />
+        <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 max-w-6xl mx-auto left-0 right-0">
+          <div className="text-xs text-gray-500 mb-4">
+            <Link href="/" className="hover:text-white transition-colors">Home</Link>
+            <span className="mx-2">/</span>
+            <span>Hosting</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
+            Bitcoin Mining Hosting Comparison
+          </h1>
+          <p className="text-sm sm:text-base max-w-xl leading-relaxed" style={{ color: 'rgba(226,232,240,0.8)' }}>
+            Find the best hosted mining deal with verified pricing and honest reviews.
+          </p>
+        </div>
       </div>
 
-      {/* Header */}
+    <div className="max-w-6xl mx-auto px-4 py-10">
+
+      {/* Verification notice */}
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-          Bitcoin Mining Hosting Comparison
-        </h1>
-        <p className="text-gray-400 max-w-2xl mb-4">
-          Compare verified Bitcoin mining hosting providers side by side. Real pricing, power sources,
-          cooling types, minimums, and setup fees — no fabricated numbers.
-        </p>
         <div
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
           style={{ background: 'rgba(247,147,26,0.1)', color: ORANGE, border: '1px solid rgba(247,147,26,0.2)' }}
         >
-          ⚠️ Providers marked "Pending Verification" have not been independently confirmed. Verify all terms directly before committing capital.
+          ⚠️ Providers marked &quot;Pending Verification&quot; have not been independently confirmed. Verify all terms directly before committing capital.
         </div>
       </div>
 
@@ -347,5 +362,6 @@ export default function HostingPage() {
         </p>
       </div>
     </div>
+    </>
   )
 }

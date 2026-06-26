@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { MINERS_DATA } from '@/lib/data'
 
 export const metadata: Metadata = {
@@ -19,6 +20,13 @@ const BORDER = '#222222'
 
 const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa', immersion: '#a855f7' }
 const COOLING_LABELS: Record<string, string> = { air: 'Air', hydro: 'Hydro', immersion: 'Immersion' }
+
+function getMinerImage(name: string): string {
+  if (name.includes('S21 XP')) return 'https://images.unsplash.com/photo-1624996379697-f01d168b1a52?w=400&q=80'
+  if (name.includes('S19')) return 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=400&q=80'
+  if (name.includes('M60')) return 'https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&q=80'
+  return 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&q=80'
+}
 
 const breadcrumbSchema = {
   '@context': 'https://schema.org',
@@ -52,116 +60,79 @@ export default function MinersPage() {
         </p>
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden md:block overflow-x-auto rounded-2xl" style={{ border: `1px solid ${BORDER}` }}>
-        <table className="w-full text-sm">
-          <thead style={{ background: '#0a0a0a' }}>
-            <tr>
-              {['Name', 'Manufacturer', 'Hashrate', 'Power', 'Efficiency', 'Cooling', 'Est. Price', 'ROI'].map(h => (
-                <th key={h} className="text-left text-xs text-gray-500 font-medium px-4 py-3 whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {miners.map((m, i) => {
-              const eff = m.efficiency_j_per_th ?? (m.power_watts / m.default_hashrate_th)
-              const effColor = eff < 18 ? '#00d4aa' : eff < 25 ? '#fbbf24' : '#ff4757'
-              return (
-                <tr
-                  key={m.id}
-                  style={{
-                    borderTop: `1px solid ${BORDER}`,
-                    background: i === 0 ? 'rgba(247,147,26,0.03)' : 'transparent',
-                  }}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {i === 0 && (
-                        <span className="text-xs px-1.5 py-0.5 rounded font-bold" style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE }}>
-                          TOP
-                        </span>
-                      )}
-                      <Link href={`/miners/${m.slug}`} className="text-white font-semibold hover:underline" style={{ textDecorationColor: ORANGE }}>
-                        {m.name}
-                      </Link>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{m.manufacturer}</td>
-                  <td className="px-4 py-3 text-white font-mono text-xs">{m.default_hashrate_th} TH/s</td>
-                  <td className="px-4 py-3 text-gray-300 font-mono text-xs">{m.power_watts.toLocaleString()}W</td>
-                  <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: effColor }}>{eff.toFixed(1)} J/TH</td>
-                  <td className="px-4 py-3 text-xs">
-                    <span
-                      className="px-2 py-0.5 rounded-full"
-                      style={{ background: COOLING_COLORS[m.cooling_type] + '22', color: COOLING_COLORS[m.cooling_type] }}
-                    >
-                      {COOLING_LABELS[m.cooling_type]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-300 font-mono text-xs">
-                    {m.market_price_usd ? `$${m.market_price_usd.toLocaleString()}` : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/calculator?miner=${m.id}`}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap"
-                      style={{ background: 'rgba(247,147,26,0.12)', color: ORANGE, border: '1px solid rgba(247,147,26,0.25)' }}
-                    >
-                      ROI →
-                    </Link>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-4">
+      {/* Miner cards — image left, specs right */}
+      <div className="space-y-4">
         {miners.map((m, i) => {
           const eff = m.efficiency_j_per_th ?? (m.power_watts / m.default_hashrate_th)
           const effColor = eff < 18 ? '#00d4aa' : eff < 25 ? '#fbbf24' : '#ff4757'
           return (
-            <div key={m.id} className="rounded-xl p-4" style={{ background: CARD_BG, border: i === 0 ? '1px solid rgba(247,147,26,0.3)' : `1px solid ${BORDER}` }}>
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  {i === 0 && (
-                    <div className="text-xs px-2 py-0.5 rounded font-bold mb-1 inline-block" style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE }}>
-                      TOP PICK
-                    </div>
-                  )}
-                  <Link href={`/miners/${m.slug}`} className="font-semibold text-white text-sm block">{m.name}</Link>
-                  <div className="text-xs text-gray-500">{m.manufacturer}</div>
-                </div>
-                <span
-                  className="text-xs px-2 py-0.5 rounded-full"
-                  style={{ background: COOLING_COLORS[m.cooling_type] + '22', color: COOLING_COLORS[m.cooling_type] }}
-                >
-                  {COOLING_LABELS[m.cooling_type]}
-                </span>
+            <div
+              key={m.id}
+              className="miner-card rounded-xl overflow-hidden flex"
+              style={{ background: CARD_BG, border: i === 0 ? '1px solid rgba(247,147,26,0.3)' : `1px solid ${BORDER}` }}
+            >
+              {/* Miner image */}
+              <div className="relative w-28 sm:w-44 shrink-0 self-stretch min-h-[120px]">
+                <Image
+                  src={getMinerImage(m.name)}
+                  alt={m.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 112px, 176px"
+                />
+                {i === 0 && (
+                  <div
+                    className="absolute top-2 left-2 text-xs px-1.5 py-0.5 rounded font-bold z-10"
+                    style={{ background: 'rgba(247,147,26,0.92)', color: '#000' }}
+                  >
+                    TOP
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-3 gap-2 text-xs mb-3">
-                <div>
-                  <div className="text-gray-500">Hashrate</div>
-                  <div className="text-white font-mono">{m.default_hashrate_th} TH/s</div>
+
+              {/* Specs */}
+              <div className="flex-1 p-4 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
+                  <div>
+                    <Link
+                      href={`/miners/${m.slug}`}
+                      className="font-semibold text-white hover:underline text-sm sm:text-base"
+                      style={{ textDecorationColor: ORANGE }}
+                    >
+                      {m.name}
+                    </Link>
+                    <div className="text-xs text-gray-500 mt-0.5">{m.manufacturer}</div>
+                  </div>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full shrink-0"
+                    style={{ background: COOLING_COLORS[m.cooling_type] + '22', color: COOLING_COLORS[m.cooling_type] }}
+                  >
+                    {COOLING_LABELS[m.cooling_type]}
+                  </span>
                 </div>
-                <div>
-                  <div className="text-gray-500">Power</div>
-                  <div className="text-white font-mono">{m.power_watts.toLocaleString()}W</div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-xs mb-3">
+                  <div>
+                    <div className="text-gray-500">Hashrate</div>
+                    <div className="text-white font-mono font-semibold">{m.default_hashrate_th} TH/s</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Power</div>
+                    <div className="text-white font-mono">{m.power_watts.toLocaleString()}W</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Efficiency</div>
+                    <div className="font-mono font-semibold" style={{ color: effColor }}>{eff.toFixed(1)} J/TH</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Est. Price</div>
+                    <div className="text-white font-mono">{m.market_price_usd ? `$${m.market_price_usd.toLocaleString()}` : '—'}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-gray-500">Efficiency</div>
-                  <div className="font-mono font-semibold" style={{ color: effColor }}>{eff.toFixed(1)} J/TH</div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-500">
-                  {m.market_price_usd ? `Est. $${m.market_price_usd.toLocaleString()}` : '—'}
-                </div>
+
                 <Link
                   href={`/calculator?miner=${m.id}`}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                  className="inline-flex text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap"
                   style={{ background: 'rgba(247,147,26,0.12)', color: ORANGE, border: '1px solid rgba(247,147,26,0.25)' }}
                 >
                   Calculate ROI →
