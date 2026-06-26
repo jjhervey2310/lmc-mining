@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
         if (resendKey && notificationEmail) {
           const resend = new Resend(resendKey)
           await resend.emails.send({
-            from: 'LMC Mining <noreply@lightningmines.com>',
+            from: 'Lightning Mines <no-reply@lightningmines.com>',
             to: notificationEmail,
             subject: `New ${String(lead_type).replace('_', ' ')} lead: ${email}`,
             html: `

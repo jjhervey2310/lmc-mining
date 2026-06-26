@@ -159,3 +159,11 @@ ON CONFLICT (term) DO NOTHING;
 INSERT INTO mining_glossary (term, definition, extended_explanation) VALUES
 ('Immersion Cooling', 'The most advanced cooling method where miners are submerged in non-conductive dielectric fluid', 'Dramatically extends hardware lifespan, enables maximum overclocking, lowest noise. Highest upfront infrastructure cost but best long-term economics at scale.')
 ON CONFLICT (term) DO NOTHING;
+
+-- ── Lightning Mines Launch: RLS on mining_glossary ──────────────────────────
+-- Run in: https://supabase.com/dashboard/project/bngwwalucfirmcymqall/editor
+
+ALTER TABLE public.mining_glossary ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY public_read ON public.mining_glossary
+  FOR SELECT TO anon USING (true);

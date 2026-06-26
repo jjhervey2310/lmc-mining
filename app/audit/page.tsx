@@ -87,6 +87,18 @@ export default function AuditPage() {
         <span>Audit</span>
       </div>
 
+      {/* Payment links coming soon notice */}
+      <div className="rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ background: 'rgba(247,147,26,0.08)', border: '1px solid rgba(247,147,26,0.25)' }}>
+        <span className="text-lg shrink-0">⚡</span>
+        <div className="flex-1">
+          <span className="text-sm font-semibold" style={{ color: ORANGE }}>Payment links coming soon.</span>
+          <span className="text-sm text-gray-400 ml-2">Use the form below to request an audit — we&apos;ll send your payment link within a few hours.</span>
+        </div>
+        <Link href="/review" className="text-xs font-semibold px-4 py-2 rounded-lg shrink-0 transition-colors" style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE, border: '1px solid rgba(247,147,26,0.3)' }}>
+          Or get a free review →
+        </Link>
+      </div>
+
       <div className="text-center mb-10">
         <div
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4"
@@ -123,7 +135,7 @@ export default function AuditPage() {
             ))}
           </ul>
           <a
-            href="https://buy.stripe.com/placeholder-97"
+            href={process.env.NEXT_PUBLIC_STRIPE_97_URL || 'https://buy.stripe.com/placeholder97'}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full text-center text-sm font-bold py-3 rounded-xl transition-all"
@@ -162,7 +174,7 @@ export default function AuditPage() {
             ))}
           </ul>
           <a
-            href="https://buy.stripe.com/placeholder-297"
+            href={process.env.NEXT_PUBLIC_STRIPE_297_URL || 'https://buy.stripe.com/placeholder297'}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full text-center text-sm font-bold py-3 rounded-xl transition-all"

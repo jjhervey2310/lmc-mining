@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import { getEmail1Html, EMAIL2, EMAIL3, EMAIL4, EMAIL5 } from '@/lib/email-sequences'
 
-const FROM = 'LMC Mining <noreply@lightningmines.com>'
+const FROM = 'Lightning Mines <no-reply@lightningmines.com>'
 
 function getResend(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY || process.env.resend_api_key
@@ -27,7 +27,7 @@ async function send(email: string, subject: string, html: string): Promise<unkno
 // ─── Email 1 — Immediate welcome ──────────────────────────────────────────
 
 export async function sendWelcomeEmail(email: string): Promise<unknown> {
-  const spreadsheetLink = process.env.SPREADSHEET_LINK || 'https://lmc-mining.vercel.app/deal-analyzer'
+  const spreadsheetLink = process.env.SPREADSHEET_LINK || 'https://lightningmines.com/calculator'
   return send(email, '⚡ Your free Mining ROI Spreadsheet is here', getEmail1Html(spreadsheetLink))
 }
 
@@ -63,7 +63,7 @@ export async function sendDealAnalysisEmail(email: string, minerSlug: string, sc
 
   const html = `
     <div style="background:#0a0a0a;color:#ffffff;font-family:sans-serif;padding:40px;max-width:600px;margin:0 auto;">
-      <div style="color:#f59e0b;font-size:22px;font-weight:bold;margin-bottom:24px;">⚡ LMC Mining Intelligence</div>
+      <div style="color:#f59e0b;font-size:22px;font-weight:bold;margin-bottom:24px;">⚡ Lightning Mines</div>
       <h1 style="color:#ffffff;font-size:26px;margin-bottom:16px;">Your Deal Analysis Results</h1>
       <div style="background:#111111;border:1px solid #1e293b;border-radius:8px;padding:24px;margin:24px 0;text-align:center;">
         <div style="color:#94a3b8;font-size:14px;margin-bottom:8px;">OVERALL DEAL SCORE</div>
@@ -83,8 +83,8 @@ export async function sendDealAnalysisEmail(email: string, minerSlug: string, sc
       </div>
       <a href="https://buy.stripe.com/fZuaEYdeQaSEfw08kAf7i01" style="display:inline-block;background:#111111;color:#f59e0b;font-weight:bold;padding:16px 32px;border-radius:8px;text-decoration:none;margin:16px 0;border:1px solid #f59e0b;">Book a $97 Audit for Peace of Mind →</a>
       `}
-      <a href="https://lmc-mining.vercel.app/deal-analyzer" style="display:inline-block;color:#94a3b8;font-size:14px;margin-top:16px;">Run another analysis →</a>
-      <p style="color:#64748b;font-size:14px;margin-top:32px;">— Jacob H., Founder of LMC Mining Intelligence</p>
+      <a href="https://lightningmines.com/calculator" style="display:inline-block;color:#94a3b8;font-size:14px;margin-top:16px;">Run another analysis →</a>
+      <p style="color:#64748b;font-size:14px;margin-top:32px;">— Jacob H., Founder of Lightning Mines</p>
     </div>
   `
   return send(email, `Your mining deal analysis: ${score}/100 — ${verdict}`, html)
@@ -99,7 +99,7 @@ export async function sendAuditConfirmationEmail(email: string, name: string | n
 
   const html = `
     <div style="background:#0a0a0a;color:#ffffff;font-family:sans-serif;padding:40px;max-width:600px;margin:0 auto;">
-      <div style="color:#f59e0b;font-size:22px;font-weight:bold;margin-bottom:24px;">⚡ LMC Mining Intelligence</div>
+      <div style="color:#f59e0b;font-size:22px;font-weight:bold;margin-bottom:24px;">⚡ Lightning Mines</div>
       <h1 style="color:#ffffff;font-size:26px;margin-bottom:16px;">Audit Request Received</h1>
       <p style="color:#94a3b8;font-size:16px;line-height:1.6;">Hi ${name ?? 'there'}, thanks for submitting your audit request. I'll review your details and send a payment link within a few hours.</p>
       <div style="background:#111111;border:1px solid #1e293b;border-radius:8px;padding:24px;margin:24px 0;">
@@ -115,7 +115,7 @@ export async function sendAuditConfirmationEmail(email: string, name: string | n
       <p style="color:#94a3b8;font-size:14px;">Or pay now to skip the wait:</p>
       <a href="${stripeLink}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000000;font-weight:bold;padding:16px 32px;border-radius:8px;text-decoration:none;margin:8px 0;">Pay Now — ${tierLabel} →</a>
       <p style="color:#64748b;font-size:14px;margin-top:32px;">100% money-back guarantee if you don't get at least one concrete actionable insight.</p>
-      <p style="color:#64748b;font-size:14px;">— Jacob H., Founder of LMC Mining Intelligence</p>
+      <p style="color:#64748b;font-size:14px;">— Jacob H., Founder of Lightning Mines</p>
     </div>
   `
   return send(email, `Your ${tierLabel} Mining Audit request received ✓`, html)
