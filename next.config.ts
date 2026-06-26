@@ -7,10 +7,10 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'shop.bitmain.com' },
+      { protocol: 'https', hostname: 'www.microbt.com' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
     ],
   },
   async redirects() {

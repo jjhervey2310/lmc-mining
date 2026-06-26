@@ -22,10 +22,17 @@ const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa
 const COOLING_LABELS: Record<string, string> = { air: 'Air', hydro: 'Hydro', immersion: 'Immersion' }
 
 function getMinerImage(name: string): string {
-  if (name.includes('S21 XP')) return 'https://images.unsplash.com/photo-1624996379697-f01d168b1a52?w=400&q=80'
-  if (name.includes('S19')) return 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=400&q=80'
-  if (name.includes('M60')) return 'https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&q=80'
-  return 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&q=80'
+  // Bitmain Antminer S21 series — check XP before Pro before plain S21
+  if (name.includes('S21 XP'))  return 'https://shop.bitmain.com/photo/product/2024012516064630218.png'
+  if (name.includes('S21 Pro')) return 'https://shop.bitmain.com/photo/product/2023120516064630218.png'
+  if (name.includes('S21'))     return 'https://shop.bitmain.com/photo/product/2023120516064630218.png'
+  // Bitmain Antminer S19 series
+  if (name.includes('S19'))     return 'https://shop.bitmain.com/photo/product/2022032516064630218.png'
+  // MicroBT Whatsminer
+  if (name.includes('M60') || name.includes('M53')) return 'https://www.microbt.com/uploads/product/m60s.png'
+  if (name.includes('M50'))     return 'https://www.microbt.com/uploads/product/m50s.png'
+  // Fallback (Canaan Avalon and any others)
+  return 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Antminer_S9.jpg/320px-Antminer_S9.jpg'
 }
 
 const breadcrumbSchema = {
@@ -71,13 +78,13 @@ export default function MinersPage() {
               className="miner-card rounded-xl overflow-hidden flex"
               style={{ background: CARD_BG, border: i === 0 ? '1px solid rgba(247,147,26,0.3)' : `1px solid ${BORDER}` }}
             >
-              {/* Miner image */}
-              <div className="relative w-28 sm:w-44 shrink-0 self-stretch min-h-[120px]">
+              {/* Miner image — product shot on neutral background */}
+              <div className="relative w-28 sm:w-44 shrink-0 self-stretch min-h-[120px]" style={{ background: '#1a1a1a' }}>
                 <Image
                   src={getMinerImage(m.name)}
                   alt={m.name}
                   fill
-                  className="object-cover"
+                  className="object-contain p-3"
                   sizes="(max-width: 640px) 112px, 176px"
                 />
                 {i === 0 && (
