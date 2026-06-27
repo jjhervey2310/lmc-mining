@@ -30,9 +30,9 @@ function getMinerImage(name: string): string {
   if (name.includes('M70S'))    return '/miners/whatsminer-m70s.png'
   if (name.includes('M70'))     return '/miners/whatsminer-m70.png'
   if (name.includes('M60'))     return '/miners/whatsminer-m60s.png'
-  if (name.includes('M53'))     return '/miners/whatsminer-m53s.png'
+  if (name.includes('M53'))     return '/miners/whatsminer-m60s.png'
   if (name.includes('M50'))     return '/miners/whatsminer-m50s.png'
-  if (name.includes('Avalon'))  return '/miners/canaan-avalon.png'
+  if (name.includes('Avalon'))  return '/miners/canaan-avalon.jpg'
   return '/miners/asic-miner.png'
 }
 
