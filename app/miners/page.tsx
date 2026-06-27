@@ -22,17 +22,36 @@ const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa
 const COOLING_LABELS: Record<string, string> = { air: 'Air', hydro: 'Hydro', immersion: 'Immersion' }
 
 function getMinerImage(name: string): string {
-  if (name.includes('S21 XP'))  return '/miners/antminer-s21-xp.jpg'
-  if (name.includes('S21 Pro')) return '/miners/antminer-s21-pro.jpg'
-  if (name.includes('S21'))     return '/miners/antminer-s21.jpg'
-  if (name.includes('S19 XP'))  return '/miners/antminer-s19-xp.jpg'
-  if (name.includes('S19'))     return '/miners/antminer-s19j-pro.jpg'
-  if (name.includes('M70S'))    return '/miners/whatsminer-m70s.png'
-  if (name.includes('M70'))     return '/miners/whatsminer-m70.png'
-  if (name.includes('M60'))     return '/miners/whatsminer-m60s.png'
-  if (name.includes('M53'))     return '/miners/whatsminer-m60s.png'
-  if (name.includes('M50'))     return '/miners/whatsminer-m50s.png'
-  if (name.includes('Avalon'))  return '/miners/canaan-avalon.jpg'
+  // Longest/most-specific matches first to avoid prefix collisions
+  // Bitmain S21 series
+  if (name.includes('S21 XP Hydro'))       return '/miners/antminer-s21-xp-hydro.png'
+  if (name.includes('S21 XP'))             return '/miners/antminer-s21-xp.jpg'
+  if (name.includes('S21 Pro Hydro'))      return '/miners/antminer-s21-pro-hydro.png'
+  if (name.includes('S21 Pro Immersion'))  return '/miners/antminer-s21-pro-immersion.png'
+  if (name.includes('S21 Pro'))            return '/miners/antminer-s21-pro.jpg'
+  if (name.includes('S21 Hydro'))          return '/miners/antminer-s21-hydro.png'
+  if (name.includes('S21'))               return '/miners/antminer-s21.jpg'
+  // Bitmain S19 series
+  if (name.includes('S19 XP Hydro'))       return '/miners/antminer-s19-xp-hydro.png'
+  if (name.includes('S19 XP Immersion'))   return '/miners/antminer-s19-xp-immersion.png'
+  if (name.includes('S19 XP'))             return '/miners/antminer-s19-xp.jpg'
+  if (name.includes('S19 Pro+ Hydro'))     return '/miners/antminer-s19-pro-plus-hydro.png'
+  if (name.includes('S19j Pro+'))          return '/miners/antminer-s19j-pro-plus.png'
+  if (name.includes('S19j Pro'))           return '/miners/antminer-s19j-pro.jpg'
+  if (name.includes('S19 Pro'))            return '/miners/antminer-s19-pro.png'
+  // Canaan Avalon (specific model numbers)
+  if (name.includes('A1566'))              return '/miners/canaan-avalon-a1566.png'
+  if (name.includes('A1466'))              return '/miners/canaan-avalon-a1466.png'
+  if (name.includes('A1366'))              return '/miners/canaan-avalon-a1366.png'
+  if (name.includes('Avalon'))             return '/miners/canaan-avalon-a1366.png'
+  // MicroBT Whatsminer
+  if (name.includes('M70S'))               return '/miners/whatsminer-m70s.png'
+  if (name.includes('M70'))                return '/miners/whatsminer-m70.png'
+  if (name.includes('M63S'))               return '/miners/whatsminer-m63s-hydro.png'
+  if (name.includes('M60'))                return '/miners/whatsminer-m60s.png'
+  if (name.includes('M53'))                return '/miners/whatsminer-m53s-real.png'
+  if (name.includes('M50S++'))             return '/miners/whatsminer-m50s-pp-immersion.png'
+  if (name.includes('M50'))                return '/miners/whatsminer-m50s.png'
   return '/miners/asic-miner.png'
 }
 
