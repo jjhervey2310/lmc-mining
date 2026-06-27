@@ -22,13 +22,13 @@ const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa
 const COOLING_LABELS: Record<string, string> = { air: 'Air', hydro: 'Hydro', immersion: 'Immersion' }
 
 function getMinerImage(name: string): string {
-  // Bitmain Antminer S21 series — official shop.bitmain.com product images
-  if (name.includes('S21 XP'))  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2024/06/28/13/4c2af89a-8fec-42b1-9ff1-905375e027ee_540.jpg'
-  if (name.includes('S21 Pro')) return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2024/06/26/16/f5e9564a-3815-4345-be61-219e5f78cfcc.jpg'
-  if (name.includes('S21'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
+  // Bitmain Antminer S21 series
+  if (name.includes('S21 XP'))  return 'https://shop.bitmain.com/photo/product/2024062616064630218.png'
+  if (name.includes('S21 Pro')) return 'https://shop.bitmain.com/photo/product/2023120516064630218.png'
+  if (name.includes('S21'))     return 'https://shop.bitmain.com/photo/product/2023092716064630218.png'
   // Bitmain Antminer S19 series
-  if (name.includes('S19 XP'))  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2022/08/18/11/9a7adec5-373c-45f4-b476-09a3977f2b7b_540.jpg'
-  if (name.includes('S19'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/08/03/22/c17af66b-1048-4853-a7e1-fc479143d0eb_540.jpg'
+  if (name.includes('S19 XP'))  return 'https://shop.bitmain.com/photo/product/2022081816064630218.png'
+  if (name.includes('S19'))     return 'https://shop.bitmain.com/photo/product/2023080316064630218.png'
   // MicroBT Whatsminer — official AWS images
   if (name.includes('M70S'))    return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/whatsminerm70s_1766047627885.png'
   if (name.includes('M70'))     return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/whatsmineronlinem70_1766046886397.png'
@@ -36,9 +36,9 @@ function getMinerImage(name: string): string {
   if (name.includes('M53'))     return '/miners/whatsminer-m53s.png'
   if (name.includes('M50'))     return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/WhatsMineronlineM50S.png'
   // Canaan Avalon
-  if (name.includes('Avalon'))  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
+  if (name.includes('Avalon'))  return 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Antminer_S19_Pro.jpg/320px-Antminer_S19_Pro.jpg'
   // Generic fallback
-  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
+  return 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Antminer_S19_Pro.jpg/320px-Antminer_S19_Pro.jpg'
 }
 
 const breadcrumbSchema = {
