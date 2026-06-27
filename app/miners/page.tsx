@@ -22,23 +22,18 @@ const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa
 const COOLING_LABELS: Record<string, string> = { air: 'Air', hydro: 'Hydro', immersion: 'Immersion' }
 
 function getMinerImage(name: string): string {
-  // Bitmain Antminer S21 series
-  if (name.includes('S21 XP'))  return 'https://shop.bitmain.com/photo/product/2024062616064630218.png'
-  if (name.includes('S21 Pro')) return 'https://shop.bitmain.com/photo/product/2023120516064630218.png'
-  if (name.includes('S21'))     return 'https://shop.bitmain.com/photo/product/2023092716064630218.png'
-  // Bitmain Antminer S19 series
-  if (name.includes('S19 XP'))  return 'https://shop.bitmain.com/photo/product/2022081816064630218.png'
-  if (name.includes('S19'))     return 'https://shop.bitmain.com/photo/product/2023080316064630218.png'
-  // MicroBT Whatsminer — official AWS images
-  if (name.includes('M70S'))    return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/whatsminerm70s_1766047627885.png'
-  if (name.includes('M70'))     return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/whatsmineronlinem70_1766046886397.png'
-  if (name.includes('M60'))     return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/1698130453138whatsmineronlinem60s.png'
+  if (name.includes('S21 XP'))  return '/miners/antminer-s21-xp.jpg'
+  if (name.includes('S21 Pro')) return '/miners/antminer-s21-pro.jpg'
+  if (name.includes('S21'))     return '/miners/antminer-s21.jpg'
+  if (name.includes('S19 XP'))  return '/miners/antminer-s19-xp.jpg'
+  if (name.includes('S19'))     return '/miners/antminer-s19j-pro.jpg'
+  if (name.includes('M70S'))    return '/miners/whatsminer-m70s.png'
+  if (name.includes('M70'))     return '/miners/whatsminer-m70.png'
+  if (name.includes('M60'))     return '/miners/whatsminer-m60s.png'
   if (name.includes('M53'))     return '/miners/whatsminer-m53s.png'
-  if (name.includes('M50'))     return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/WhatsMineronlineM50S.png'
-  // Canaan Avalon
-  if (name.includes('Avalon'))  return 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Antminer_S19_Pro.jpg/320px-Antminer_S19_Pro.jpg'
-  // Generic fallback
-  return 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Antminer_S19_Pro.jpg/320px-Antminer_S19_Pro.jpg'
+  if (name.includes('M50'))     return '/miners/whatsminer-m50s.png'
+  if (name.includes('Avalon'))  return '/miners/canaan-avalon.png'
+  return '/miners/asic-miner.png'
 }
 
 const breadcrumbSchema = {

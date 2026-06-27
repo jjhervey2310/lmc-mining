@@ -8,10 +8,6 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'https', hostname: 'assets-www.bitmain.com.cn' },
-      { protocol: 'https', hostname: 'shop.bitmain.com' },
-      { protocol: 'https', hostname: 'aws-microbt-com-bucket.s3.us-west-2.amazonaws.com' },
-      { protocol: 'https', hostname: 'upload.wikimedia.org' },
     ],
   },
   async redirects() {
