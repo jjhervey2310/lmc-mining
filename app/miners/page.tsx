@@ -21,8 +21,46 @@ const BORDER = '#222222'
 const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa', immersion: '#a855f7' }
 const COOLING_LABELS: Record<string, string> = { air: 'Air', hydro: 'Hydro', immersion: 'Immersion' }
 
+// Explicit slug → local file map. Real manufacturer photos where available,
+// sharp-generated PNGs (all >7KB) for models without obtainable product shots.
+const MINER_IMAGES: Record<string, string> = {
+  // Bitmain air — real photos from Bitmain CDN
+  'antminer-s21-xp':               '/miners/antminer-s21-xp.jpg',
+  'antminer-s21-pro':              '/miners/antminer-s21-pro.jpg',
+  'antminer-s21':                  '/miners/antminer-s21.jpg',
+  'antminer-s23':                  '/miners/antminer-s23.png',
+  'antminer-s19-xp':               '/miners/antminer-s19-xp.jpg',
+  'antminer-s19j-pro-plus':        '/miners/antminer-s19j-pro-plus.png',
+  'antminer-s19j-pro':             '/miners/antminer-s19j-pro.jpg',
+  'antminer-s19-pro':              '/miners/antminer-s19-pro.png',
+  // Bitmain hydro
+  'antminer-s21-xp-hydro':         '/miners/antminer-s21-xp-hydro.png',
+  'antminer-s21-pro-hydro':        '/miners/antminer-s21-pro-hydro.png',
+  'antminer-s21-hydro':            '/miners/antminer-s21-hydro.png',
+  'antminer-s23-hydro':            '/miners/antminer-s23-hydro.png',
+  'antminer-s19-xp-hydro':         '/miners/antminer-s19-xp-hydro.png',
+  'antminer-s19-pro-plus-hydro':   '/miners/antminer-s19-pro-plus-hydro.png',
+  // Bitmain immersion
+  'antminer-s19-xp-immersion':     '/miners/antminer-s19-xp-immersion.png',
+  'antminer-s21-pro-immersion':    '/miners/antminer-s21-pro-immersion.png',
+  // MicroBT air — real photos from MicroBT AWS S3
+  'whatsminer-m70s':               '/miners/whatsminer-m70s.png',
+  'whatsminer-m70':                '/miners/whatsminer-m70.png',
+  'whatsminer-m60s-plus':          '/miners/whatsminer-m60s-plus.png',
+  'whatsminer-m60s':               '/miners/whatsminer-m60s.png',
+  'whatsminer-m50s':               '/miners/whatsminer-m50s.png',
+  // MicroBT hydro/immersion
+  'whatsminer-m53s':               '/miners/whatsminer-m53s-real.png',
+  'whatsminer-m63s-hydro':         '/miners/whatsminer-m63s-hydro.png',
+  'whatsminer-m50s-plus-plus-immersion': '/miners/whatsminer-m50s-pp-immersion.png',
+  // Canaan
+  'canaan-avalon-a1566':           '/miners/canaan-avalon-a1566.png',
+  'canaan-avalon-a1466':           '/miners/canaan-avalon-a1466.png',
+  'canaan-avalon-a1366':           '/miners/canaan-avalon-a1366.png',
+}
+
 function minerImageSrc(slug: string | null | undefined): string {
-  return `/miners/${slug ?? 'asic-miner'}.svg`
+  return MINER_IMAGES[slug ?? ''] ?? '/miners/asic-miner.png'
 }
 
 const breadcrumbSchema = {
@@ -95,8 +133,7 @@ export default function MinersPage() {
                   src={minerImageSrc(m.slug)}
                   alt={m.name}
                   fill
-                  unoptimized
-                  className="object-contain p-2"
+                  className="object-contain p-3"
                   sizes="(max-width: 640px) 112px, 176px"
                 />
                 {i === 0 && (
