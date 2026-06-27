@@ -111,10 +111,10 @@ const faqSchema = {
     },
     {
       '@type': 'Question',
-      name: 'What does "Pending Verification" mean on this page?',
+      name: 'What does "Verify Direct" mean on this page?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Lightning Mines only marks providers "Verified" after direct confirmation of pricing, terms, and facility details. "Pending Verification" means we have not independently confirmed the provider\'s current terms. Always verify directly with the provider before committing capital.',
+        text: 'Lightning Mines only marks providers "Verified" after direct confirmation of pricing, terms, and facility details. "Verify Direct" means we have not independently confirmed the provider\'s current terms. Contact this provider directly to confirm current pricing and terms before committing capital.',
       },
     },
     {
@@ -177,7 +177,7 @@ export default function HostingPage() {
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
           style={{ background: 'rgba(247,147,26,0.1)', color: ORANGE, border: '1px solid rgba(247,147,26,0.2)' }}
         >
-          ⚠️ Providers marked &quot;Pending Verification&quot; have not been independently confirmed. Verify all terms directly before committing capital.
+          ⚠️ Providers marked &quot;Verify Direct&quot; have not been independently confirmed. Contact each provider to confirm current pricing and terms before committing capital.
         </div>
       </div>
 
@@ -263,8 +263,12 @@ export default function HostingPage() {
                       ✓ Verified
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(107,114,128,0.15)', color: '#6b7280' }}>
-                      Pending Verification
+                    <span
+                      className="px-2 py-0.5 rounded-full font-medium cursor-help"
+                      style={{ background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}
+                      title="Contact this provider directly to confirm current pricing and terms before committing capital."
+                    >
+                      Verify Direct
                     </span>
                   )}
                 </td>
@@ -296,12 +300,13 @@ export default function HostingPage() {
                   <span className="text-white font-semibold">{p.name}</span>
                 </div>
                 <span
-                  className="text-xs px-2 py-0.5 rounded-full"
+                  className="text-xs px-2 py-0.5 rounded-full cursor-help"
                   style={p.status === 'verified'
                     ? { background: 'rgba(0,212,170,0.15)', color: '#00d4aa' }
-                    : { background: 'rgba(107,114,128,0.15)', color: '#6b7280' }}
+                    : { background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}
+                  title={p.status === 'pending' ? 'Contact this provider directly to confirm current pricing and terms before committing capital.' : undefined}
                 >
-                  {p.status === 'verified' ? '✓ Verified' : 'Pending Verification'}
+                  {p.status === 'verified' ? '✓ Verified' : 'Verify Direct'}
                 </span>
               </div>
               {p.affiliate && p.affiliateUrl && (
