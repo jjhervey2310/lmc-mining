@@ -29,10 +29,12 @@ function getMinerImage(name: string): string {
   // Bitmain Antminer S19 series
   if (name.includes('S19 XP'))  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2022/08/18/11/9a7adec5-373c-45f4-b476-09a3977f2b7b_540.jpg'
   if (name.includes('S19'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/08/03/22/c17af66b-1048-4853-a7e1-fc479143d0eb_540.jpg'
-  // MicroBT Whatsminer — using S21 image as placeholder (microbt.com SPA inaccessible)
-  if (name.includes('M60') || name.includes('M53S')) return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
-  if (name.includes('M53'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
-  if (name.includes('M50'))     return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2022/08/18/11/9a7adec5-373c-45f4-b476-09a3977f2b7b_540.jpg'
+  // MicroBT Whatsminer — official AWS images
+  if (name.includes('M70S'))    return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/whatsminerm70s_1766047627885.png'
+  if (name.includes('M70'))     return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/whatsmineronlinem70_1766046886397.png'
+  if (name.includes('M60'))     return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/1698130453138whatsmineronlinem60s.png'
+  if (name.includes('M53'))     return '/miners/whatsminer-m53s.png'
+  if (name.includes('M50'))     return 'https://aws-microbt-com-bucket.s3.us-west-2.amazonaws.com/WhatsMineronlineM50S.png'
   // Canaan Avalon
   if (name.includes('Avalon'))  return 'https://assets-www.bitmain.com.cn/shop-image-storage-s3/product/2023/09/27/14/c9685fac-d3b9-478c-9922-6c390f45bd5f.jpg'
   // Generic fallback
