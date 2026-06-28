@@ -9,23 +9,23 @@ export const AFFILIATES = {
   },
   abundant_mines: {
     name: "Abundant Mines",
-    url: "TBD",
+    url: null,
     type: "hosting",
-    commission: "TBD",
+    commission: null,
     disclosure: "LMC operator at this facility"
   },
   simple_mining: {
     name: "Simple Mining",
-    url: "TBD",
+    url: null,
     type: "hosting",
     commission: "2%"
   }
 };
 
 export function getAffiliateLink(provider: string) {
-  return (AFFILIATES as Record<string, { url?: string; disclosure?: string }>)[provider]?.url || null;
+  return (AFFILIATES as Record<string, { url?: string | null; disclosure?: string | null }>)[provider]?.url || null;
 }
 
 export function getDisclosure(provider: string) {
-  return (AFFILIATES as Record<string, { url?: string; disclosure?: string }>)[provider]?.disclosure || null;
+  return (AFFILIATES as Record<string, { url?: string | null; disclosure?: string | null }>)[provider]?.disclosure || null;
 }

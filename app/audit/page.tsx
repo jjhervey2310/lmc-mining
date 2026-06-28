@@ -135,7 +135,7 @@ export default function AuditPage() {
             ))}
           </ul>
           <a
-            href={process.env.NEXT_PUBLIC_STRIPE_97_URL || 'https://buy.stripe.com/placeholder97'}
+            href={process.env.NEXT_PUBLIC_STRIPE_97_URL || '#inquiry'}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full text-center text-sm font-bold py-3 rounded-xl transition-all"
@@ -174,7 +174,7 @@ export default function AuditPage() {
             ))}
           </ul>
           <a
-            href={process.env.NEXT_PUBLIC_STRIPE_297_URL || 'https://buy.stripe.com/placeholder297'}
+            href={process.env.NEXT_PUBLIC_STRIPE_297_URL || '#inquiry'}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full text-center text-sm font-bold py-3 rounded-xl transition-all"
@@ -193,6 +193,7 @@ export default function AuditPage() {
       </div>
 
       {/* Inquiry form */}
+      <div id="inquiry" />
       {submitted ? (
         <div className="rounded-2xl p-10 text-center mb-12" style={{ background: CARD_BG, border: '1px solid rgba(0,212,170,0.4)' }}>
           <div className="text-4xl mb-4">✓</div>
