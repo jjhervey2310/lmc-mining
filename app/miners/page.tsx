@@ -22,36 +22,34 @@ const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa
 const COOLING_LABELS: Record<string, string> = { air: 'Air', hydro: 'Hydro', immersion: 'Immersion' }
 
 const MINER_IMAGES: Record<string, string> = {
-  // Bitmain — real photos (Bitmain CDN) + copies for variants
-  'antminer-s21-xp':                    '/miners/antminer-s21-xp.jpg',
-  'antminer-s21-pro':                   '/miners/antminer-s21-pro.jpg',
-  'antminer-s21':                       '/miners/antminer-s21.jpg',
-  'antminer-s23':                       '/miners/antminer-s23.jpg',
-  'antminer-s19-xp':                    '/miners/antminer-s19-xp.jpg',
-  'antminer-s19j-pro-plus':             '/miners/antminer-s19j-pro-plus.jpg',
-  'antminer-s19j-pro':                  '/miners/antminer-s19j-pro.jpg',
-  'antminer-s19-pro':                   '/miners/antminer-s19-pro.jpg',
-  'antminer-s21-xp-hydro':              '/miners/antminer-s21-xp-hydro.jpg',
-  'antminer-s21-pro-hydro':             '/miners/antminer-s21-pro-hydro.jpg',
-  'antminer-s21-hydro':                 '/miners/antminer-s21-hydro.jpg',
-  'antminer-s23-hydro':                 '/miners/antminer-s23-hydro.jpg',
-  'antminer-s19-xp-hydro':              '/miners/antminer-s19-xp-hydro.jpg',
-  'antminer-s19-pro-plus-hydro':        '/miners/antminer-s19-pro-plus-hydro.jpg',
-  'antminer-s19-xp-immersion':          '/miners/antminer-s19-xp-immersion.jpg',
-  'antminer-s21-pro-immersion':         '/miners/antminer-s21-pro-immersion.jpg',
-  // MicroBT — real photos (MicroBT AWS S3) + copies for variants
-  'whatsminer-m70s':                    '/miners/whatsminer-m70s.jpg',
-  'whatsminer-m70':                     '/miners/whatsminer-m70.jpg',
-  'whatsminer-m60s-plus':               '/miners/whatsminer-m60s-plus.jpg',
-  'whatsminer-m60s':                    '/miners/whatsminer-m60s.jpg',
-  'whatsminer-m50s':                    '/miners/whatsminer-m50s.jpg',
-  'whatsminer-m53s':                    '/miners/whatsminer-m53s.jpg',
-  'whatsminer-m63s-hydro':              '/miners/whatsminer-m63s-hydro.jpg',
-  'whatsminer-m50s-plus-plus-immersion': '/miners/whatsminer-m50s-plus-plus-immersion.jpg',
-  // Canaan
-  'canaan-avalon-a1566':                '/miners/canaan-avalon-a1566.jpg',
-  'canaan-avalon-a1466':                '/miners/canaan-avalon-a1466.jpg',
-  'canaan-avalon-a1366':                '/miners/canaan-avalon-a1366.jpg',
+  // Bitmain — base model real photos
+  'antminer-s21-xp':                     '/miners/antminer-s21-xp.jpg',
+  'antminer-s21-xp-hydro':               '/miners/antminer-s21-xp.jpg',
+  'antminer-s21-xp-immersion':           '/miners/antminer-s21-xp.jpg',
+  'antminer-s21-pro':                    '/miners/antminer-s21-pro.jpg',
+  'antminer-s21-pro-hydro':              '/miners/antminer-s21-pro.jpg',
+  'antminer-s21-pro-immersion':          '/miners/antminer-s21-pro.jpg',
+  'antminer-s21':                        '/miners/antminer-s21.jpg',
+  'antminer-s21-hydro':                  '/miners/antminer-s21.jpg',
+  'antminer-s23':                        '/miners/antminer-s21.jpg',
+  'antminer-s23-hydro':                  '/miners/antminer-s21.jpg',
+  'antminer-s19-xp':                     '/miners/antminer-s19-xp.jpg',
+  'antminer-s19-xp-hydro':               '/miners/antminer-s19-xp.jpg',
+  'antminer-s19-xp-immersion':           '/miners/antminer-s19-xp.jpg',
+  'antminer-s19-pro-plus-hydro':         '/miners/antminer-s19-xp.jpg',
+  'antminer-s19j-pro':                   '/miners/antminer-s19j-pro.jpg',
+  'antminer-s19j-pro-plus':              '/miners/antminer-s19j-pro.jpg',
+  'antminer-s19-pro':                    '/miners/antminer-s19j-pro.jpg',
+  // MicroBT — base model real photos
+  'whatsminer-m70s':                     '/miners/whatsminer-m70s.jpg',
+  'whatsminer-m70':                      '/miners/whatsminer-m70.jpg',
+  'whatsminer-m60s':                     '/miners/whatsminer-m60s.jpg',
+  'whatsminer-m60s-plus':                '/miners/whatsminer-m60s.jpg',
+  'whatsminer-m63s-hydro':               '/miners/whatsminer-m60s.jpg',
+  'whatsminer-m50s':                     '/miners/whatsminer-m50s.jpg',
+  'whatsminer-m53s':                     '/miners/whatsminer-m50s.jpg',
+  'whatsminer-m50s-plus-plus-immersion': '/miners/whatsminer-m50s.jpg',
+  // Canaan — no real product photo available; falls back to asic-miner.jpg
 }
 
 function minerImageSrc(slug: string | null | undefined): string {
@@ -70,11 +68,7 @@ const breadcrumbSchema = {
 export default function MinersPage() {
   const miners = MINERS_DATA
     .filter(m => m.is_active)
-    .sort((a, b) => {
-      const effA = a.efficiency_j_per_th ?? (a.power_watts / a.default_hashrate_th)
-      const effB = b.efficiency_j_per_th ?? (b.power_watts / b.default_hashrate_th)
-      return effA - effB
-    })
+    .sort((a, b) => b.default_hashrate_th - a.default_hashrate_th)
 
   const itemListSchema = {
     '@context': 'https://schema.org',
