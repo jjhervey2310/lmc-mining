@@ -49,7 +49,10 @@ const MINER_IMAGES: Record<string, string> = {
   'whatsminer-m50s':                     '/miners/whatsminer-m50s.jpg',
   'whatsminer-m53s':                     '/miners/whatsminer-m50s.jpg',
   'whatsminer-m50s-plus-plus-immersion': '/miners/whatsminer-m50s.jpg',
-  // Canaan — no real product photo available; falls back to asic-miner.jpg
+  // Canaan
+  'canaan-avalon-a1566':                 '/miners/antminer-s21.jpg',
+  'canaan-avalon-a1466':                 '/miners/antminer-s21.jpg',
+  'canaan-avalon-a1366':                 '/miners/antminer-s21.jpg',
 }
 
 function minerImageSrc(slug: string | null | undefined): string {
