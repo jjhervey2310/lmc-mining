@@ -6,7 +6,7 @@ import TickerBar from '@/components/TickerBar'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Lightning Mines — Bitcoin Mining Profitability, Hosting and Hardware Made Simple',
+    default: 'Bitcoin Mining ROI Calculator & Hosting Reviews | Lightning Mines',
     template: '%s | Lightning Mines',
   },
   description:

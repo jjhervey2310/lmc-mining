@@ -13,7 +13,7 @@ export const ARTICLES: ArticleData[] = [
   {
     slug: 'is-bitcoin-mining-profitable-2026',
     title: 'Is Bitcoin Mining Profitable in 2026? An Honest Analysis',
-    meta_description: 'Is Bitcoin mining profitable in 2026? Real numbers: S21 Pro nets ~$74/day at $105k BTC with $225/month hosting. Full analysis, stress tests, and 2028 halving impact.',
+    meta_description: 'Honest analysis of Bitcoin mining profitability in 2026. Real S21 Pro numbers, breakeven scenarios, difficulty growth, and who should not mine.',
     category: 'Profitability',
     tags: ['profitability', 'roi', 'beginners', '2026'],
     reading_time_minutes: 15,

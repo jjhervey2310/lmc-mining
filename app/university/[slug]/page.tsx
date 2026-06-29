@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ARTICLES, getArticleBySlug } from '@/lib/articles'
 import type { Metadata } from 'next'
+import ArticleEmailCapture from '@/components/ArticleEmailCapture'
 
 export async function generateStaticParams() {
   return ARTICLES.map(a => ({ slug: a.slug }))
@@ -160,6 +161,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             } as React.CSSProperties}
             dangerouslySetInnerHTML={{ __html: addInternalLinks(article.content) }}
           />
+
+          <ArticleEmailCapture />
 
           {/* FAQ Section */}
           <div className="mt-12 rounded-2xl p-6" style={{ background: '#111827', border: '1px solid #1f2937' }}>

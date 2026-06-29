@@ -348,9 +348,18 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
           <div className="rounded-2xl p-5" style={{ background: '#00d4aa15', border: '1px solid #00d4aa30' }}>
             <h3 className="font-semibold text-white mb-2">Run the Numbers</h3>
             <p className="text-sm text-gray-400 mb-4">Use our full profitability calculator pre-filled with {miner.name} specs.</p>
-            <Link href={`/?miner=${miner.slug}`} className="block text-center text-sm font-semibold py-2.5 rounded-lg" style={{ background: '#00d4aa', color: '#0a0e17' }}>
-              Open Calculator
+            <Link href={`/?miner=${miner.slug}`} className="block text-center text-sm font-semibold py-2.5 rounded-lg mb-2" style={{ background: '#00d4aa', color: '#0a0e17' }}>
+              Calculate ROI
             </Link>
+            <a
+              href="https://www.kaboomracks.com/?ref=lightningmines"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center text-sm font-semibold py-2.5 rounded-lg transition-opacity hover:opacity-80"
+              style={{ background: 'transparent', color: '#f7931a', border: '1px solid rgba(247,147,26,0.4)' }}
+            >
+              Buy This Miner →
+            </a>
           </div>
 
           {/* Compatible Hosts */}
