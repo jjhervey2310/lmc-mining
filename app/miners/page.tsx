@@ -29,17 +29,17 @@ const MINER_IMAGES: Record<string, string> = {
   // Bitmain S21 Pro
   'antminer-s21-pro':                    '/miners/antminer-s21-pro.jpg',
   'antminer-s21-pro-hydro':              '/miners/antminer-s21-pro-hydro.jpg',
-  'antminer-s21-pro-immersion':          '/miners/antminer-s21-pro.jpg',
+  'antminer-s21-pro-immersion':          '/miners/antminer-s21-pro-immersion.jpg',
   // Bitmain S21
   'antminer-s21':                        '/miners/antminer-s21.jpg',
   'antminer-s21-hydro':                  '/miners/antminer-s21-hydro.jpg',
   // Bitmain S23
-  'antminer-s23':                        '/miners/antminer-s23-hydro.jpg',
+  'antminer-s23':                        '/miners/antminer-s23.jpg',
   'antminer-s23-hydro':                  '/miners/antminer-s23-hydro.jpg',
   // Bitmain S19 XP
   'antminer-s19-xp':                     '/miners/antminer-s19-xp.jpg',
   'antminer-s19-xp-hydro':               '/miners/antminer-s19-xp-hydro.jpg',
-  'antminer-s19-xp-immersion':           '/miners/antminer-s19-xp-hydro.jpg',
+  'antminer-s19-xp-immersion':           '/miners/antminer-s19-xp-immersion.jpg',
   // Bitmain S19 Pro
   'antminer-s19-pro-plus-hydro':         '/miners/antminer-s19-pro-plus-hydro.jpg',
   'antminer-s19j-pro':                   '/miners/antminer-s19j-pro.jpg',
@@ -55,7 +55,7 @@ const MINER_IMAGES: Record<string, string> = {
   // MicroBT M50S
   'whatsminer-m50s':                     '/miners/whatsminer-m50s.jpg',
   'whatsminer-m53s':                     '/miners/whatsminer-m53s.jpg',
-  'whatsminer-m50s-plus-plus-immersion': '/miners/whatsminer-m50s.jpg',
+  'whatsminer-m50s-plus-plus-immersion': '/miners/whatsminer-m50s-plus-plus-immersion.jpg',
   // Canaan
   'canaan-avalon-a1566':                 '/miners/canaan-avalon-a1566.jpg',
   'canaan-avalon-a1466':                 '/miners/canaan-avalon-a1466.jpg',
