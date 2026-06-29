@@ -19,8 +19,13 @@ const STATIC_ITEMS = [
   'No Paid Rankings · No Sponsored Content',
 ]
 
+function calcHashprice(price: number, difficulty: number): number {
+  return (2.7e20 * price) / (difficulty * 4294967296)
+}
+
 export default function TickerBar() {
   const [btcPrice, setBtcPrice] = useState<string | null>(null)
+  const [hashprice, setHashprice] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -29,7 +34,12 @@ export default function TickerBar() {
         const r = await fetch('/api/btc-price')
         const d = await r.json()
         if (!cancelled && d.price) {
-          setBtcPrice(`$${Number(d.price).toLocaleString()}`)
+          const price = Number(d.price)
+          setBtcPrice(`$${price.toLocaleString()}`)
+          if (d.difficulty) {
+            const hp = calcHashprice(price, Number(d.difficulty))
+            setHashprice(`$${hp.toFixed(2)}/PH/day`)
+          }
         }
       } catch {
         // silent — show items without price
@@ -41,9 +51,10 @@ export default function TickerBar() {
   }, [])
 
   const items = [
-    btcPrice ? `BTC Price: ${btcPrice}` : 'BTC: Loading...',
+    btcPrice ? `BTC: ${btcPrice}` : 'BTC: Loading...',
+    hashprice ? `Hashprice: ${hashprice}` : null,
     ...STATIC_ITEMS,
-  ]
+  ].filter(Boolean) as string[]
 
   const all = [...items, ...items]
 

@@ -8,6 +8,14 @@ const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
 const BORDER = '#222222'
 
+const HALVING_DATE = new Date('2028-04-15T00:00:00Z')
+function daysToHalving() {
+  return Math.max(0, Math.ceil((HALVING_DATE.getTime() - Date.now()) / 86400000))
+}
+function calcHashprice(price: number, difficulty: number): number {
+  return (2.7e20 * price) / (difficulty * 4294967296)
+}
+
 const TRUST_STATS = [
   { value: 'Free', label: 'ROI Calculator' },
   { value: '48hr', label: 'Deal Review' },
@@ -130,6 +138,7 @@ function ROIPreview({ btcPrice }: { btcPrice: number | null }) {
 
 export default function HomePage() {
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
+  const [difficulty, setDifficulty] = useState<number | null>(null)
   const [email, setEmail] = useState('')
   const [emailSubmitted, setEmailSubmitted] = useState(false)
   const [emailSubmitting, setEmailSubmitting] = useState(false)
@@ -137,7 +146,10 @@ export default function HomePage() {
   useEffect(() => {
     fetch('/api/btc-price')
       .then(r => r.json())
-      .then(d => { if (d.price) setBtcPrice(Number(d.price)) })
+      .then(d => {
+      if (d.price) setBtcPrice(Number(d.price))
+      if (d.difficulty) setDifficulty(Number(d.difficulty))
+    })
       .catch(() => {})
   }, [])
 
@@ -247,6 +259,41 @@ export default function HomePage() {
                 <div className="text-sm text-gray-500">{s.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Live Market Data — hashprice widget */}
+      <section className="border-b" style={{ borderColor: BORDER }}>
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            {[
+              { label: 'BTC Price', value: btcPrice ? `$${btcPrice.toLocaleString()}` : '—', live: true },
+              {
+                label: 'Hashprice',
+                value: btcPrice && difficulty ? `$${calcHashprice(btcPrice, difficulty).toFixed(2)}/PH/day` : '—',
+                live: true,
+              },
+              {
+                label: 'Network Hashrate',
+                value: difficulty ? `~${(difficulty * 4294967296 / 600 / 1e18).toFixed(0)} EH/s` : '—',
+                live: true,
+              },
+              { label: 'Next Halving', value: `~${daysToHalving()} days`, live: false },
+            ].map(s => (
+              <div key={s.label} className="rounded-xl p-4 text-center" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <span className="text-xs text-gray-500">{s.label}</span>
+                  {s.live && <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#00d4aa', display: 'inline-block' }} />}
+                </div>
+                <div className="font-bold font-mono text-sm" style={{ color: ORANGE }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <Link href="/profitable" className="text-xs hover:underline" style={{ color: ORANGE }}>
+              Is Bitcoin mining profitable right now? →
+            </Link>
           </div>
         </div>
       </section>

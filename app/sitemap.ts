@@ -22,6 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/deal-analyzer`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE_URL}/hosts`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE_URL}/data`, lastModified: NOW, changeFrequency: 'daily', priority: 0.75 },
+    { url: `${BASE_URL}/profitable`, lastModified: NOW, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE_URL}/best-bitcoin-mining-hosting`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE_URL}/compare/antminer-s21-xp-vs-s21-pro`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${BASE_URL}/compare/abundant-mines-vs-compass-mining`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.75 },
