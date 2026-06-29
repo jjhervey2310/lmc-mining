@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { href: '/tools', label: 'Tools' },
   { href: '/financing', label: 'Financing' },
   { href: '/glossary', label: 'Glossary' },
+  { href: '/profitable', label: 'Profitability' },
 ]
 
 export default function Navbar() {
