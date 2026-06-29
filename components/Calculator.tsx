@@ -25,7 +25,8 @@ export default function Calculator() {
   const [hashrateOverride, setHashrateOverride] = useState('')
   const [powerOverride, setPowerOverride] = useState('')
   const [monthlyFee, setMonthlyFee] = useState('')
-  const [electricityRate, setElectricityRate] = useState('0.12')
+  const [electricityRate, setElectricityRate] = useState('0.10')
+  const [electricityFromProvider, setElectricityFromProvider] = useState(false)
   const [purchasePrice, setPurchasePrice] = useState('')
 
   useEffect(() => {
@@ -51,6 +52,9 @@ export default function Calculator() {
       )
     : providers
 
+  const pricedProviders = filteredProviders.filter((p) => p.pricing_status !== 'contact_required')
+  const quoteProviders = filteredProviders.filter((p) => p.pricing_status === 'contact_required')
+
   const handleMinerChange = useCallback(
     (minerId: string) => {
       const miner = miners.find((m) => m.id === parseInt(minerId)) || null
@@ -75,6 +79,10 @@ export default function Calculator() {
         } else {
           setMonthlyFee('')
         }
+        if (primary?.electricity_rate_kwh) {
+          setElectricityRate(String(primary.electricity_rate_kwh))
+          setElectricityFromProvider(true)
+        }
       }
     },
     [miners, providers]
@@ -92,6 +100,12 @@ export default function Calculator() {
             ? provider.monthly_fee_hydro
             : provider.monthly_fee_immersion
         setMonthlyFee(fee ? String(fee) : '')
+        if (provider.electricity_rate_kwh) {
+          setElectricityRate(String(provider.electricity_rate_kwh))
+          setElectricityFromProvider(true)
+        } else {
+          setElectricityFromProvider(false)
+        }
       }
     },
     [providers, selectedMiner]
@@ -110,7 +124,7 @@ export default function Calculator() {
           cooling_type: selectedMiner?.cooling_type || 'air',
           provider: selectedProvider,
           monthly_hosting_fee: effectiveMonthlyFee,
-          electricity_rate_kwh: parseFloat(electricityRate) || 0.12,
+          electricity_rate_kwh: parseFloat(electricityRate) || 0.10,
           miner_purchase_price: parseFloat(purchasePrice) || null,
           btc_price: liveData.price,
           network_difficulty: liveData.difficulty,
@@ -199,28 +213,19 @@ export default function Calculator() {
             disabled={loadingData}
           >
             <option value="">Choose a provider...</option>
-            {filteredProviders.map((p) => {
-              const isCompatible =
-                !selectedMiner ||
-                !p.supported_cooling ||
-                p.supported_cooling.includes(selectedMiner.cooling_type)
+            {pricedProviders.map((p) => {
               const isAbundantForHydroImmersion =
-                p.is_primary &&
-                selectedMiner &&
-                selectedMiner.cooling_type !== 'air'
-
+                p.is_primary && selectedMiner && selectedMiner.cooling_type !== 'air'
               return (
                 <option
                   key={p.id}
                   value={p.id}
-                  disabled={!isCompatible}
                   style={isAbundantForHydroImmersion ? { color: '#6b7280' } : {}}
                 >
                   {p.name}
                   {p.is_primary ? ' ⭐ #1 Rated' : ''}
                   {isAbundantForHydroImmersion ? ` — Hydro/Immersion ~${p.hydro_immersion_available_date}` : ''}
                   {p.verification_status === 'pending_verification' ? ' ⏳' : ''}
-                  {p.pricing_status === 'contact_required' ? ' (Contact for Pricing)' : ''}
                 </option>
               )
             })}
@@ -238,12 +243,57 @@ export default function Calculator() {
               )}
             </div>
           )}
+          {quoteProviders.length > 0 && (
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: '#1f2937' }}>
+              <p className="text-xs text-gray-500 mb-2">Need a custom quote from these providers?</p>
+              <div className="flex flex-wrap gap-2">
+                {quoteProviders.map((p) => (
+                  <a
+                    key={p.id}
+                    href="/review"
+                    className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                    style={{ background: '#1f2937', color: '#9ca3af', border: '1px solid #374151' }}
+                  >
+                    {p.name} — Request Quote →
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Electricity rate — always visible */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Electricity Rate ($/kWh)
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          className="w-full max-w-xs rounded-lg px-3 py-2.5 text-sm font-mono"
+          style={{
+            background: electricityFromProvider ? '#0d1f17' : '#1f2937',
+            color: '#e2e8f0',
+            border: electricityFromProvider ? '1px solid rgba(0,212,170,0.4)' : '1px solid #374151',
+          }}
+          value={electricityRate}
+          onChange={(e) => {
+            setElectricityRate(e.target.value)
+            setElectricityFromProvider(false)
+          }}
+        />
+        <p className="text-xs mt-1.5" style={{ color: electricityFromProvider ? '#00d4aa' : '#6b7280' }}>
+          {electricityFromProvider
+            ? `Auto-filled from ${selectedProvider?.name}. Type to override.`
+            : 'Enter your rate or select a provider above to auto-fill.'}
+        </p>
       </div>
 
       {/* Auto-filled & overridable fields */}
       {selectedMiner && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-lg" style={{ background: '#111827', border: '1px solid #1f2937' }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 rounded-lg" style={{ background: '#111827', border: '1px solid #1f2937' }}>
           <div>
             <label className="block text-xs text-gray-400 mb-1">Hashrate (TH/s)</label>
             <input
@@ -268,28 +318,13 @@ export default function Calculator() {
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">Hosting $/mo</label>
-            {selectedProvider?.pricing_status === 'contact_required' ? (
-              <div className="text-xs text-yellow-400 py-1.5">Contact for Pricing</div>
-            ) : (
-              <input
-                type="number"
-                className="w-full rounded px-2 py-1.5 text-sm font-mono"
-                style={{ background: '#1f2937', color: '#e2e8f0', border: '1px solid #374151' }}
-                placeholder="Monthly fee"
-                value={monthlyFee}
-                onChange={(e) => setMonthlyFee(e.target.value)}
-              />
-            )}
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Home Electricity ($/kWh)</label>
             <input
               type="number"
-              step="0.01"
               className="w-full rounded px-2 py-1.5 text-sm font-mono"
               style={{ background: '#1f2937', color: '#e2e8f0', border: '1px solid #374151' }}
-              value={electricityRate}
-              onChange={(e) => setElectricityRate(e.target.value)}
+              placeholder="Monthly fee"
+              value={monthlyFee}
+              onChange={(e) => setMonthlyFee(e.target.value)}
             />
           </div>
         </div>
