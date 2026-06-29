@@ -1,5 +1,5 @@
 interface VerificationBadgeProps {
-  status: 'verified' | 'pending_verification'
+  status: 'verified' | 'pending' | 'contact_only' | 'unresponsive' | 'pending_verification'
   date?: string | null
   size?: 'sm' | 'md'
 }
@@ -15,6 +15,30 @@ export default function VerificationBadge({ status, date, size = 'sm' }: Verific
       >
         <span>✓</span>
         <span>Verified{date ? ` ${new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : ''}</span>
+      </span>
+    )
+  }
+
+  if (status === 'contact_only') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 ${textSize} font-medium px-2 py-0.5 rounded-full`}
+        style={{ background: '#818cf820', color: '#818cf8', border: '1px solid #818cf840' }}
+      >
+        <span>✉</span>
+        <span>Contact for Pricing</span>
+      </span>
+    )
+  }
+
+  if (status === 'unresponsive') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 ${textSize} font-medium px-2 py-0.5 rounded-full`}
+        style={{ background: '#ff475720', color: '#ff4757', border: '1px solid #ff475740' }}
+      >
+        <span>✗</span>
+        <span>Unresponsive</span>
       </span>
     )
   }

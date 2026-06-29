@@ -7,7 +7,15 @@ import { HostingProvider } from '@/lib/types'
 
 function VerificationBadge({ status }: { status: string }) {
   if (status === 'verified') return <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#00d4aa15', color: '#00d4aa' }}>✓ Verified</span>
-  return <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#fbbf2415', color: '#fbbf24' }}>Pending</span>
+  if (status === 'contact_only') return <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#818cf815', color: '#818cf8' }}>✉ Contact for Pricing</span>
+  return <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#fbbf2415', color: '#fbbf24' }}>⏳ Pending</span>
+}
+
+function priceLabel(p: HostingProvider): string {
+  if (p.flatMonthly) return `$${p.flatMonthly}/mo flat`
+  if (p.rateMin && p.rateMax && p.rateMin !== p.rateMax) return `$${p.rateMin}–$${p.rateMax}/kWh`
+  if (p.rateMin) return `$${p.rateMin}/kWh`
+  return 'Contact required'
 }
 
 function ProviderCard({ p, featured }: { p: HostingProvider; featured?: boolean }) {
@@ -20,14 +28,14 @@ function ProviderCard({ p, featured }: { p: HostingProvider; featured?: boolean 
       )}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <Link href={`/hosts/${p.slug}`} className="text-lg font-bold text-white hover:text-[#00d4aa] transition-colors">{p.name}</Link>
+          <Link href={`/hosts/${p.id}`} className="text-lg font-bold text-white hover:text-[#00d4aa] transition-colors">{p.name}</Link>
           <div className="flex flex-wrap gap-1.5 mt-1.5">
-            {p.supported_cooling?.map(c => (
+            {p.cooling.map(c => (
               <span key={c} className="text-xs px-1.5 py-0.5 rounded capitalize" style={{ background: '#1f2937', color: '#9ca3af' }}>{c}</span>
             ))}
           </div>
         </div>
-        <VerificationBadge status={p.verification_status} />
+        <VerificationBadge status={p.verificationStatus} />
       </div>
 
       {p.description && <p className="text-sm text-gray-400 mb-4">{p.description}</p>}
@@ -35,47 +43,41 @@ function ProviderCard({ p, featured }: { p: HostingProvider; featured?: boolean 
       <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
         <div className="rounded-lg p-2.5" style={{ background: '#0a0e17' }}>
           <div className="text-gray-500 mb-0.5">Pricing</div>
-          <div className="text-white font-semibold">
-            {p.monthly_fee_air ? `$${p.monthly_fee_air}/mo flat` : p.electricity_rate_kwh ? `$${p.electricity_rate_kwh}/kWh` : 'Contact required'}
-          </div>
+          <div className="text-white font-semibold">{priceLabel(p)}</div>
         </div>
         <div className="rounded-lg p-2.5" style={{ background: '#0a0e17' }}>
-          <div className="text-gray-500 mb-0.5">Locations</div>
-          <div className="text-white font-semibold">{p.locations?.slice(0, 2).join(', ') ?? '—'}</div>
+          <div className="text-gray-500 mb-0.5">Location</div>
+          <div className="text-white font-semibold">{p.facilityLocations.slice(0, 2).join(', ') || '—'}</div>
         </div>
         <div className="rounded-lg p-2.5" style={{ background: '#0a0e17' }}>
           <div className="text-gray-500 mb-0.5">Min. Units</div>
-          <div className="text-white font-semibold">{p.min_units ?? '—'}</div>
+          <div className="text-white font-semibold">{p.minMachines ?? '—'}</div>
         </div>
         <div className="rounded-lg p-2.5" style={{ background: '#0a0e17' }}>
           <div className="text-gray-500 mb-0.5">Financing</div>
-          <div className="font-semibold" style={{ color: p.financing_available ? '#00d4aa' : '#6b7280' }}>
-            {p.financing_available ? 'Available' : 'No'}
+          <div className="font-semibold" style={{ color: p.financingAvailable ? '#00d4aa' : '#6b7280' }}>
+            {p.financingAvailable ? 'Available' : 'No'}
           </div>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5 mb-4">
-        {p.insurance_included && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#00d4aa15', color: '#00d4aa' }}>Insurance included</span>}
-        {p.pool_flexibility && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#3d7aed15', color: '#3d7aed' }}>Pool freedom</span>}
-        {p.firmware_flexibility && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#a855f715', color: '#a855f7' }}>Firmware freedom</span>}
+        {p.insuranceAvailable && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#00d4aa15', color: '#00d4aa' }}>Insurance included</span>}
+        {p.poolOptions.length > 0 && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#3d7aed15', color: '#3d7aed' }}>Pool freedom</span>}
+        {p.hiddenFees && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#f59e0b15', color: '#f59e0b' }}>Check hidden fees</span>}
       </div>
 
-      {p.rating && (
-        <div className="flex items-center gap-1.5 mb-4">
-          <div className="flex gap-0.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <span key={i} style={{ color: i < (p.rating ?? 0) ? '#fbbf24' : '#374151' }}>★</span>
-            ))}
-          </div>
-          <span className="text-xs text-gray-400">{p.user_rating ?? p.rating}/5{p.review_count ? ` (${p.review_count} reviews)` : ''}</span>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="h-1.5 rounded-full flex-1" style={{ background: '#1f2937' }}>
+          <div className="h-1.5 rounded-full" style={{ width: `${p.lightningScore}%`, background: p.lightningScore >= 80 ? '#00d4aa' : p.lightningScore >= 60 ? '#f59e0b' : '#ff4757' }} />
         </div>
-      )}
+        <span className="text-xs text-gray-400 shrink-0">{p.lightningScore}/100</span>
+      </div>
 
-      {p.best_for && <p className="text-xs text-gray-500 mb-4">{p.best_for}</p>}
+      {p.bestFor && <p className="text-xs text-gray-500 mb-4">{p.bestFor}</p>}
 
       <div className="flex gap-2">
-        <Link href={`/hosts/${p.slug}`} className="flex-1 text-center text-sm py-2 rounded-lg font-medium" style={{ background: featured ? '#00d4aa' : '#1f2937', color: featured ? '#0a0e17' : '#e2e8f0' }}>
+        <Link href={`/hosts/${p.id}`} className="flex-1 text-center text-sm py-2 rounded-lg font-medium" style={{ background: featured ? '#00d4aa' : '#1f2937', color: featured ? '#0a0e17' : '#e2e8f0' }}>
           View Full Profile
         </Link>
         {p.website && (
@@ -94,16 +96,16 @@ export default function HostsPage() {
   const [compareList, setCompareList] = useState<string[]>([])
 
   const sorted = useMemo(() => {
-    let list = PROVIDERS_DATA.filter(p => p.is_active)
-    if (cooling !== 'all') list = list.filter(p => p.supported_cooling?.includes(cooling as 'air' | 'hydro' | 'immersion'))
-    if (showFinancing) list = list.filter(p => p.financing_available)
-    return list.sort((a, b) => a.sort_order - b.sort_order)
+    let list = [...PROVIDERS_DATA]
+    if (cooling !== 'all') list = list.filter(p => p.cooling.includes(cooling as 'air' | 'hydro' | 'immersion'))
+    if (showFinancing) list = list.filter(p => p.financingAvailable)
+    return list.sort((a, b) => a.tier - b.tier || b.lightningScore - a.lightningScore)
   }, [cooling, showFinancing])
 
   const [featured, ...rest] = sorted
 
-  function toggleCompare(slug: string) {
-    setCompareList(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : prev.length < 2 ? [...prev, slug] : prev)
+  function toggleCompare(id: string) {
+    setCompareList(prev => prev.includes(id) ? prev.filter(s => s !== id) : prev.length < 2 ? [...prev, id] : prev)
   }
 
   return (
@@ -141,19 +143,19 @@ export default function HostsPage() {
       </div>
 
       {/* Featured provider */}
-      {featured && <div className="mb-8"><ProviderCard p={featured} featured={featured.is_primary} /></div>}
+      {featured && <div className="mb-8"><ProviderCard p={featured} featured={featured.tier === 1} /></div>}
 
       {/* Rest */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {rest.map(p => (
-          <div key={p.slug} className="relative">
+          <div key={p.id} className="relative">
             <ProviderCard p={p} />
             <button
-              onClick={() => toggleCompare(p.slug!)}
+              onClick={() => toggleCompare(p.id)}
               className="absolute top-4 right-4 text-xs px-2.5 py-1 rounded-full border transition-colors"
-              style={{ borderColor: compareList.includes(p.slug!) ? '#00d4aa' : '#374151', color: compareList.includes(p.slug!) ? '#00d4aa' : '#6b7280', background: '#0a0e17' }}
+              style={{ borderColor: compareList.includes(p.id) ? '#00d4aa' : '#374151', color: compareList.includes(p.id) ? '#00d4aa' : '#6b7280', background: '#0a0e17' }}
             >
-              {compareList.includes(p.slug!) ? '✓ Added' : 'Compare'}
+              {compareList.includes(p.id) ? '✓ Added' : 'Compare'}
             </button>
           </div>
         ))}

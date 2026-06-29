@@ -1,7 +1,5 @@
 export type CoolingType = 'air' | 'hydro' | 'immersion'
 export type SpecConfidence = 'verified' | 'pending_verification'
-export type PricingStatus = 'verified' | 'contact_required' | 'pending_verification'
-export type VerificationStatus = 'verified' | 'pending_verification'
 export type LeadType = 'deal_review' | 'hosting_match' | 'email_capture' | 'audit_inquiry'
 export type LeadStatus = 'new' | 'reviewed' | 'responded' | 'converted' | 'closed'
 
@@ -32,51 +30,59 @@ export interface Miner {
   cons?: string[] | null
 }
 
-export interface HostingProvider {
-  id: number
+export type HostingProvider = {
+  // Identity
+  id: string
   name: string
-  website: string | null
-  locations: string[] | null
-  supported_cooling: CoolingType[] | null
-  monthly_fee_air: number | null
-  monthly_fee_hydro: number | null
-  monthly_fee_immersion: number | null
-  pricing_status: PricingStatus
-  deposit_amount: number | null
-  deposit_description: string | null
-  deposit_status: 'verified' | 'unverified'
-  contract_terms: string | null
-  contract_status: 'verified' | 'unverified'
-  key_features: string[] | null
-  affiliate_program_available: boolean
-  affiliate_url: string | null
-  affiliate_commission: string | null
-  is_primary: boolean
-  verification_status: VerificationStatus
-  verification_source_url: string | null
-  verification_date: string | null
-  rating: number | null
-  sort_order: number
-  hydro_immersion_available_date: string | null
-  is_active: boolean
-  created_at: string
-  // v2 enriched fields
-  slug?: string | null
-  electricity_rate_kwh?: number | null
-  setup_fee?: number | null
-  insurance_included?: boolean | null
-  pool_flexibility?: boolean | null
-  firmware_flexibility?: boolean | null
-  financing_available?: boolean | null
-  min_units?: number | null
-  max_units?: number | null
-  best_for?: string | null
-  uptime_guarantee?: number | null
-  user_rating?: number | null
-  review_count?: number | null
-  description?: string | null
-  pros?: string[] | null
-  cons?: string[] | null
+  tier: 1 | 2 | 3
+  country: string
+  facilityLocations: string[]
+  website: string
+  contactEmail: string
+  lastVerified: string
+
+  // Pricing (what powers the calculator)
+  rateMin: number | null
+  rateMax: number | null
+  flatMonthly: number | null
+  billingType: 'kwh' | 'flat' | 'revenue_share'
+  setupFee: number | null
+  repairPolicy: string
+  hiddenFees: string | null
+
+  // Infrastructure
+  cooling: CoolingType[]
+  powerSource: string
+  capacityMW: number | null
+  uptimePercent: number | null
+
+  // Terms
+  minMachines: number | null
+  contractLength: string
+  financingAvailable: boolean
+  insuranceAvailable: boolean
+  customerOwnedMiners: boolean
+  minerPurchaseProgram: boolean
+  poolOptions: string[]
+  kycRequired: boolean
+
+  // Commercial
+  affiliateProgram: boolean
+  affiliateRate: string | null
+  affiliateLink: string | null
+
+  // Status
+  verified: boolean
+  verificationStatus: 'verified' | 'pending' | 'contact_only' | 'unresponsive'
+
+  // Scoring
+  lightningScore: number
+
+  // Content
+  description: string
+  pros: string[]
+  cons: string[]
+  bestFor: string
 }
 
 export interface Lead {

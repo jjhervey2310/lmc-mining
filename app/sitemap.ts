@@ -38,9 +38,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
 
   const hostPages: MetadataRoute.Sitemap = PROVIDERS_DATA
-    .filter(p => p.slug)
     .map(p => ({
-      url: `${BASE_URL}/hosts/${p.slug}`,
+      url: `${BASE_URL}/hosts/${p.id}`,
       lastModified: NOW,
       changeFrequency: 'weekly' as const,
       priority: 0.8,

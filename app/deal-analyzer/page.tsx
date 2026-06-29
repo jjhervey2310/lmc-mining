@@ -69,7 +69,7 @@ function DealAnalyzerContent() {
   }, [])
 
   const selectedMiner = MINERS_DATA.find(m => m.slug === minerSlug)
-  const selectedProvider = PROVIDERS_DATA.find(p => p.slug === hostingProvider)
+  const selectedProvider = PROVIDERS_DATA.find(p => p.id === hostingProvider)
 
   function analyze() {
     if (!selectedMiner) return
@@ -77,8 +77,8 @@ function DealAnalyzerContent() {
     const btcTarget = parseFloat(targetBTC) || 0
     if (!btcTarget) { setAnalyzeError('Enter a BTC price to run the analysis.'); return }
     setAnalyzeError('')
-    const monthly = parseFloat(monthlyFee) || selectedProvider?.monthly_fee_air || 0
-    const elec = parseFloat(electricityRate) || selectedProvider?.electricity_rate_kwh || 0.07
+    const monthly = parseFloat(monthlyFee) || selectedProvider?.flatMonthly || 0
+    const elec = parseFloat(electricityRate) || selectedProvider?.rateMin || 0.07
     const dailyBTC = calcDailyBTC(selectedMiner.default_hashrate_th)
     const dailyGross = dailyBTC * btcTarget
     const dailyCost = monthly > 0 ? monthly / 30 : (selectedMiner.power_watts / 1000) * 24 * elec
@@ -270,7 +270,7 @@ function DealAnalyzerContent() {
                 <label className="text-xs text-gray-400 block mb-1">Hosting Provider</label>
                 <select value={hostingProvider} onChange={e => setHostingProvider(e.target.value)} className="w-full text-sm px-3 py-2.5 rounded-lg border border-gray-700 text-white focus:outline-none focus:border-[#00d4aa]" style={{ background: '#0a0e17' }}>
                   <option value="">— Select or type below —</option>
-                  {PROVIDERS_DATA.map(p => <option key={p.slug} value={p.slug!}>{p.name}{p.monthly_fee_air ? ` — $${p.monthly_fee_air}/mo` : p.electricity_rate_kwh ? ` — $${p.electricity_rate_kwh}/kWh` : ''}</option>)}
+                  {PROVIDERS_DATA.map(p => <option key={p.id} value={p.id}>{p.name}{p.flatMonthly ? ` — $${p.flatMonthly}/mo` : p.rateMin ? ` — $${p.rateMin}/kWh` : ''}</option>)}
                   <option value="other">Other / Not listed</option>
                 </select>
               </div>
@@ -278,11 +278,11 @@ function DealAnalyzerContent() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Monthly Hosting Fee ($)</label>
-                  <input type="number" value={monthlyFee} onChange={e => setMonthlyFee(e.target.value)} placeholder={selectedProvider?.monthly_fee_air ? String(selectedProvider.monthly_fee_air) : 'e.g. 225'} className="w-full text-sm px-3 py-2.5 rounded-lg border border-gray-700 text-white placeholder-gray-600 focus:outline-none focus:border-[#00d4aa]" style={{ background: '#0a0e17' }} />
+                  <input type="number" value={monthlyFee} onChange={e => setMonthlyFee(e.target.value)} placeholder={selectedProvider?.flatMonthly ? String(selectedProvider.flatMonthly) : 'e.g. 225'} className="w-full text-sm px-3 py-2.5 rounded-lg border border-gray-700 text-white placeholder-gray-600 focus:outline-none focus:border-[#00d4aa]" style={{ background: '#0a0e17' }} />
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Electricity Rate ($/kWh)</label>
-                  <input type="number" step="0.001" value={electricityRate} onChange={e => setElectricityRate(e.target.value)} placeholder={selectedProvider?.electricity_rate_kwh ? String(selectedProvider.electricity_rate_kwh) : '0.07'} className="w-full text-sm px-3 py-2.5 rounded-lg border border-gray-700 text-white placeholder-gray-600 focus:outline-none focus:border-[#00d4aa]" style={{ background: '#0a0e17' }} />
+                  <input type="number" step="0.001" value={electricityRate} onChange={e => setElectricityRate(e.target.value)} placeholder={selectedProvider?.rateMin ? String(selectedProvider.rateMin) : '0.07'} className="w-full text-sm px-3 py-2.5 rounded-lg border border-gray-700 text-white placeholder-gray-600 focus:outline-none focus:border-[#00d4aa]" style={{ background: '#0a0e17' }} />
                   <p className="text-xs text-gray-600 mt-0.5">Use if charged per kWh (not flat fee)</p>
                 </div>
               </div>

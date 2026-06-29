@@ -47,13 +47,11 @@ export default function Calculator() {
   )
 
   const filteredProviders = selectedMiner
-    ? providers.filter((p) =>
-        !p.supported_cooling || p.supported_cooling.includes(selectedMiner.cooling_type)
-      )
+    ? providers.filter((p) => p.cooling.includes(selectedMiner.cooling_type))
     : providers
 
-  const pricedProviders = filteredProviders.filter((p) => p.pricing_status !== 'contact_required')
-  const quoteProviders = filteredProviders.filter((p) => p.pricing_status === 'contact_required')
+  const pricedProviders = filteredProviders.filter((p) => p.rateMin !== null || p.flatMonthly !== null)
+  const quoteProviders = filteredProviders.filter((p) => p.rateMin === null && p.flatMonthly === null)
 
   const handleMinerChange = useCallback(
     (minerId: string) => {
@@ -64,23 +62,17 @@ export default function Calculator() {
         setPowerOverride('')
         // Auto-set cooling filter to match miner
         setCoolingFilter(miner.cooling_type)
-        // Auto-select primary provider compatible with this miner
-        const compatible = providers.filter(
-          (p) => !p.supported_cooling || p.supported_cooling.includes(miner.cooling_type)
-        )
-        const primary = compatible.find((p) => p.is_primary) || compatible[0] || null
+        // Auto-select tier-1 provider compatible with this miner
+        const compatible = providers.filter((p) => p.cooling.includes(miner.cooling_type))
+        const primary = compatible.find((p) => p.tier === 1) || compatible[0] || null
         setSelectedProvider(primary)
-        if (primary?.monthly_fee_air && miner.cooling_type === 'air') {
-          setMonthlyFee(String(primary.monthly_fee_air))
-        } else if (primary?.monthly_fee_hydro && miner.cooling_type === 'hydro') {
-          setMonthlyFee(String(primary.monthly_fee_hydro))
-        } else if (primary?.monthly_fee_immersion && miner.cooling_type === 'immersion') {
-          setMonthlyFee(String(primary.monthly_fee_immersion))
+        if (primary?.flatMonthly) {
+          setMonthlyFee(String(primary.flatMonthly))
         } else {
           setMonthlyFee('')
         }
-        if (primary?.electricity_rate_kwh) {
-          setElectricityRate(String(primary.electricity_rate_kwh))
+        if (primary?.rateMin) {
+          setElectricityRate(String(primary.rateMin))
           setElectricityFromProvider(true)
         }
       }
@@ -90,25 +82,19 @@ export default function Calculator() {
 
   const handleProviderChange = useCallback(
     (providerId: string) => {
-      const provider = providers.find((p) => p.id === parseInt(providerId)) || null
+      const provider = providers.find((p) => p.id === providerId) || null
       setSelectedProvider(provider)
-      if (provider && selectedMiner) {
-        const fee =
-          selectedMiner.cooling_type === 'air'
-            ? provider.monthly_fee_air
-            : selectedMiner.cooling_type === 'hydro'
-            ? provider.monthly_fee_hydro
-            : provider.monthly_fee_immersion
-        setMonthlyFee(fee ? String(fee) : '')
-        if (provider.electricity_rate_kwh) {
-          setElectricityRate(String(provider.electricity_rate_kwh))
+      if (provider) {
+        setMonthlyFee(provider.flatMonthly ? String(provider.flatMonthly) : '')
+        if (provider.rateMin) {
+          setElectricityRate(String(provider.rateMin))
           setElectricityFromProvider(true)
         } else {
           setElectricityFromProvider(false)
         }
       }
     },
-    [providers, selectedMiner]
+    [providers]
   )
 
   const effectiveHashrate = parseFloat(hashrateOverride) || selectedMiner?.default_hashrate_th || 0
@@ -213,30 +199,22 @@ export default function Calculator() {
             disabled={loadingData}
           >
             <option value="">Choose a provider...</option>
-            {pricedProviders.map((p) => {
-              const isAbundantForHydroImmersion =
-                p.is_primary && selectedMiner && selectedMiner.cooling_type !== 'air'
-              return (
-                <option
-                  key={p.id}
-                  value={p.id}
-                  style={isAbundantForHydroImmersion ? { color: '#6b7280' } : {}}
-                >
-                  {p.name}
-                  {p.is_primary ? ' ⭐ #1 Rated' : ''}
-                  {isAbundantForHydroImmersion ? ` — Hydro/Immersion ~${p.hydro_immersion_available_date}` : ''}
-                  {p.verification_status === 'pending_verification' ? ' ⏳' : ''}
-                </option>
-              )
-            })}
+            {pricedProviders.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.tier === 1 ? ' ⭐ #1 Rated' : ''}
+                {p.verificationStatus === 'pending' ? ' ⏳' : ''}
+                {p.flatMonthly ? ` — $${p.flatMonthly}/mo flat` : p.rateMin ? ` — $${p.rateMin}/kWh` : ''}
+              </option>
+            ))}
           </select>
           {selectedProvider && (
             <div className="mt-1 flex items-center gap-2">
               <VerificationBadge
-                status={selectedProvider.verification_status}
-                date={selectedProvider.verification_date}
+                status={selectedProvider.verificationStatus}
+                date={selectedProvider.lastVerified}
               />
-              {selectedProvider.is_primary && (
+              {selectedProvider.tier === 1 && (
                 <span className="text-xs" style={{ color: '#00d4aa' }}>
                   #1 Recommended for Air
                 </span>
@@ -379,11 +357,11 @@ export default function Calculator() {
               style={{ background: '#111827', border: '1px solid #1f2937' }}
             >
               <p className="text-gray-400 text-sm mb-3">
-                {selectedProvider?.pricing_status === 'contact_required'
+                {selectedProvider?.verificationStatus === 'contact_only'
                   ? `${selectedProvider.name} requires a custom quote.`
                   : 'Select a hosting provider to compare.'}
               </p>
-              {selectedProvider?.pricing_status === 'contact_required' && (
+              {selectedProvider?.verificationStatus === 'contact_only' && (
                 <a
                   href="/hosting-match"
                   className="text-sm font-semibold px-4 py-2 rounded-lg"
@@ -398,7 +376,7 @@ export default function Calculator() {
       )}
 
       {/* Abundant Miners deposit note */}
-      {selectedProvider?.is_primary && results && (
+      {selectedProvider?.tier === 1 && results && (
         <div
           className="rounded-lg px-4 py-3 text-sm"
           style={{ background: '#00d4aa10', border: '1px solid #00d4aa30', color: '#00d4aa' }}
@@ -479,7 +457,7 @@ function ResultCard({ title, subtitle, daily, monthly, annual, dailyBTC, breakev
         <p className="text-xs text-gray-400">{subtitle}</p>
         {provider && (
           <div className="mt-1">
-            <VerificationBadge status={provider.verification_status} date={provider.verification_date} />
+            <VerificationBadge status={provider.verificationStatus} date={provider.lastVerified} />
           </div>
         )}
       </div>

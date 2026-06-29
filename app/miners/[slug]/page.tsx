@@ -52,7 +52,7 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
   const difficulty = 113_757_508_517_000 // approximate current difficulty
   const dailyBTC = calcDailyBTC(miner.default_hashrate_th, difficulty)
   const dailyPower_kWh = (miner.power_watts / 1000) * 24
-  const hostingCostPerDay = compatibleProviders[0]?.monthly_fee_air ? compatibleProviders[0].monthly_fee_air / 30 : null
+  const hostingCostPerDay = compatibleProviders[0]?.flatMonthly ? compatibleProviders[0].flatMonthly / 30 : null
 
   const scenarios = [
     { label: '$75k BTC', btc: 75000 },
@@ -368,14 +368,14 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
             <p className="text-xs text-gray-500 mb-3">Providers that support {COOLING_LABELS[miner.cooling_type]}</p>
             <div className="space-y-2 mb-3">
               {compatibleProviders.slice(0, 4).map(p => (
-                <Link key={p.slug} href={`/hosts/${p.slug}`} className="flex items-center justify-between p-2.5 rounded-lg hover:border-[#00d4aa] transition-colors" style={{ background: '#0a0e17', border: '1px solid #1f2937' }}>
+                <Link key={p.id} href={`/hosts/${p.id}`} className="flex items-center justify-between p-2.5 rounded-lg hover:border-[#00d4aa] transition-colors" style={{ background: '#0a0e17', border: '1px solid #1f2937' }}>
                   <div>
                     <div className="text-sm text-white">{p.name}</div>
                     <div className="text-xs text-gray-500">
-                      {p.monthly_fee_air ? `$${p.monthly_fee_air}/mo flat` : p.electricity_rate_kwh ? `$${p.electricity_rate_kwh}/kWh` : 'Contact for pricing'}
+                      {p.flatMonthly ? `$${p.flatMonthly}/mo flat` : p.rateMin ? `$${p.rateMin}/kWh` : 'Contact for pricing'}
                     </div>
                   </div>
-                  {p.is_primary && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#00d4aa20', color: '#00d4aa' }}>#1</span>}
+                  {p.tier === 1 && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: '#00d4aa20', color: '#00d4aa' }}>#1</span>}
                 </Link>
               ))}
             </div>
