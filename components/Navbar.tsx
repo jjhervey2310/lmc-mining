@@ -13,6 +13,8 @@ const NAV_LINKS = [
   { href: '/deal-analyzer', label: 'Deal Analyzer' },
   { href: '/audit', label: 'Audit' },
   { href: '/tools', label: 'Tools' },
+  { href: '/financing', label: 'Financing' },
+  { href: '/glossary', label: 'Glossary' },
 ]
 
 export default function Navbar() {
