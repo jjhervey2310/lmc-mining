@@ -7,8 +7,8 @@ const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
 const BORDER = '#222222'
 
-const STRIPE_97_LINK = 'STRIPE_97_LINK'
-const STRIPE_297_LINK = 'STRIPE_297_LINK'
+const STRIPE_97_LINK = 'https://buy.stripe.com/fZuaEYdeQaSEfw08kAf7i01'
+const STRIPE_297_LINK = 'https://buy.stripe.com/6oU8wQfmY2m86Zu7gwf7i00'
 
 const FAQ = [
   {
