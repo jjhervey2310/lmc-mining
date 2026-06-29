@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { MINERS_DATA, PROVIDERS_DATA } from '@/lib/data'
 import { ARTICLES } from '@/lib/articles'
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lightningmines.com'
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lightningmines.com'
 const NOW = new Date()
 
 export default function sitemap(): MetadataRoute.Sitemap {
