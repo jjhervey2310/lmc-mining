@@ -42,6 +42,7 @@ env.download
 # sensitive local files
 stripe_backup_code.txt
 Miners info/
+/types.ts
 *.pdf
 lmc-prompt-part1.md.pdf
 lmc-v2-claude-code-prompt.md.pdf
