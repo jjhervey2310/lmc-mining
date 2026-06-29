@@ -52,6 +52,7 @@ export default function TickerBar() {
       className="overflow-hidden border-b"
       style={{ height: '32px', background: '#0a0a0a', borderColor: '#1a2332' }}
       aria-hidden="true"
+      suppressHydrationWarning
     >
       <div
         className="flex items-center gap-8 whitespace-nowrap animate-ticker h-full"

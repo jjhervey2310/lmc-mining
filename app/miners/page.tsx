@@ -4,12 +4,12 @@ import Image from 'next/image'
 import { MINERS_DATA } from '@/lib/data'
 
 export const metadata: Metadata = {
-  title: 'Bitcoin ASIC Miner Comparison 2025 — Hashrate, Power, and ROI',
+  title: 'Bitcoin ASIC Miner Comparison 2026 — Hashrate, Power, and ROI',
   description:
-    'Compare every major Bitcoin ASIC miner by hashrate, power consumption, efficiency (J/TH), and estimated ROI. Updated 2025 data for Antminer, Whatsminer, and Canaan.',
+    'Compare every major Bitcoin ASIC miner by hashrate, power consumption, efficiency (J/TH), and estimated ROI. Updated 2026 data for Antminer, Whatsminer, and Canaan.',
   openGraph: {
-    title: 'Bitcoin ASIC Miner Comparison 2025 | Lightning Mines',
-    description: 'Side-by-side comparison of every major Bitcoin ASIC. Hashrate, efficiency, price, and ROI calculator links. Updated 2025.',
+    title: 'Bitcoin ASIC Miner Comparison 2026 | Lightning Mines',
+    description: 'Side-by-side comparison of every major Bitcoin ASIC. Hashrate, efficiency, price, and ROI calculator links. Updated 2026.',
     type: 'website',
   },
 }
@@ -83,7 +83,7 @@ export default function MinersPage() {
   const itemListSchema = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'Bitcoin ASIC Miner Comparison 2025',
+    name: 'Bitcoin ASIC Miner Comparison 2026',
     description: 'Complete comparison of Bitcoin ASIC miners sorted by efficiency',
     numberOfItems: miners.length,
     itemListElement: miners.map((m, i) => ({
@@ -108,7 +108,7 @@ export default function MinersPage() {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Bitcoin ASIC Miner Comparison 2025</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Bitcoin ASIC Miner Comparison 2026</h1>
         <p className="text-gray-400 max-w-2xl">
           Compare every major Bitcoin ASIC by hashrate, power draw, efficiency, cooling type, and estimated price.
           Sorted best-to-worst efficiency. Click ROI to prefill our calculator with any miner&apos;s specs.
