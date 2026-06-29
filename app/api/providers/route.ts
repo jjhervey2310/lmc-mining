@@ -46,6 +46,10 @@ function mapDbRow(row: Record<string, unknown>): HostingProvider {
     verificationStatus: pricingStatus === 'contact_required' ? 'contact_only'
       : verStatus === 'verified' ? 'verified'
       : 'pending',
+    listingStatus: (['active', 'flagged', 'removed'].includes(String(row.listing_status))
+      ? String(row.listing_status)
+      : 'active') as 'active' | 'flagged' | 'removed',
+    warningFlag: row.warning_flag != null ? String(row.warning_flag) : null,
     lightningScore: row.rating != null ? Math.round(Number(row.rating) * 20) : 50,
     description: String(row.description ?? ''),
     pros: (Array.isArray(row.pros) ? row.pros : []) as string[],

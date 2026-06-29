@@ -154,7 +154,7 @@ export default function HostingPage() {
       {/* Full-width hero banner */}
       <div className="relative h-56 sm:h-80 overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1639762681057-408b52e7a954?w=1920&q=80"
+          src="/hosting-hero.jpg"
           alt="Bitcoin mining rigs in server racks"
           fill
           className="object-cover object-center"

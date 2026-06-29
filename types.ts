@@ -74,7 +74,15 @@ export type HostingProvider = {
   // Status
   verified: boolean
   verificationStatus: 'verified' | 'pending' | 'contact_only' | 'unresponsive'
+
+  // ── v2: Safety & trust ──────────────────────────────────────────────────────
+  // listingStatus: 'active' entries appear in all search/compare views.
+  // 'flagged' entries appear with a visible warning banner.
+  // 'removed' entries are hidden from public listings but kept for audit trail.
   listingStatus: 'active' | 'flagged' | 'removed'
+  // warningFlag: null for clean providers. Non-null string is displayed as a
+  // public red-banner warning on the provider detail page and in comparison tables.
+  // Only set this after documented evidence (complaints, non-payment, legal action).
   warningFlag: string | null
 
   // Scoring
