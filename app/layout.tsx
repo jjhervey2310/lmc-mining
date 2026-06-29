@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   },
   description:
     'Lightning Mines helps you avoid bad Bitcoin mining deals. Free ROI calculator, hosting comparison, hardware reviews, and expert deal review.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lightningmines.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lightningmines.com'),
   openGraph: {
     siteName: 'Lightning Mines',
     type: 'website',
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     'home vs hosted mining',
   ],
   alternates: {
-    canonical: process.env.NEXT_PUBLIC_SITE_URL || 'https://lightningmines.com',
+    canonical: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lightningmines.com',
   },
 }
 

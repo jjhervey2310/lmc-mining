@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const article = getArticleBySlug(slug)
   if (!article) return {}
   return {
-    title: `${article.title} | Lightning Mines`,
+    title: article.title,
     description: article.meta_description,
     openGraph: {
       title: article.title,
