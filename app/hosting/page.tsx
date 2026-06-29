@@ -19,12 +19,10 @@ const BORDER = '#222222'
 
 interface Provider {
   name: string
-  pricePerKwh: string
-  powerSource: string
+  rate: string
+  location: string
   cooling: string
   minCommitment: string
-  setupFee: string
-  financing: string
   status: 'verified' | 'pending'
   affiliate: boolean
   notes: string
@@ -32,68 +30,78 @@ interface Provider {
   pick?: boolean
 }
 
-const PROVIDERS: Provider[] = [
+interface QuoteProvider {
+  name: string
+  location: string
+  cooling: string
+  notes: string
+}
+
+// Providers with known all-in rates — suitable for ROI modelling
+const PRICED_PROVIDERS: Provider[] = [
   {
     name: 'Abundant Mines',
-    pricePerKwh: '$225/mo flat',
-    powerSource: 'Grid (US)',
+    rate: '$225/mo flat',
+    location: 'US',
     cooling: 'Air',
     minCommitment: '1 machine',
-    setupFee: '$500 deposit',
-    financing: 'No',
     status: 'verified',
     affiliate: true,
-    affiliateUrl: 'https://abundantmines.com',
-    notes: 'Flat monthly fee per machine — no per-kWh billing surprises. US-based air-cooled facility. $500 refundable deposit.',
+    affiliateUrl: 'https://abundantmines.com/ref/72/',
+    notes: 'Flat $225/month all-inclusive — electricity, cooling, maintenance, insurance, internet. No surprise bills. 12-month rate lock.',
     pick: true,
   },
   {
-    name: 'Compass Mining',
-    pricePerKwh: 'Varies by site',
-    powerSource: 'Mixed (US/intl)',
-    cooling: 'Air / Immersion',
+    name: 'Simple Mining',
+    rate: '$0.075/kWh',
+    location: 'Iowa',
+    cooling: 'Air + Hydro',
     minCommitment: '1 machine',
-    setupFee: 'Varies',
-    financing: 'Yes',
-    status: 'pending',
+    status: 'verified',
     affiliate: false,
-    notes: 'Large marketplace model across many facilities. Pricing and terms vary significantly by site. Verify your specific facility contract carefully.',
+    notes: 'Iowa facility with air and hydro cooling. $0.075/kWh all-in rate — one of the few mid-market providers supporting both cooling types.',
   },
   {
-    name: 'Luxor Mining',
-    pricePerKwh: 'Varies',
-    powerSource: 'Mixed',
+    name: 'EZ Blockchain',
+    rate: '$0.07/kWh',
+    location: 'TX / WY / NE',
     cooling: 'Air',
-    minCommitment: 'Varies',
-    setupFee: 'Varies',
-    financing: 'No',
-    status: 'pending',
+    minCommitment: 'Contact',
+    status: 'verified',
     affiliate: false,
-    notes: 'Known primarily for their Hashrate Index data and pool. Hosting availability and terms require direct inquiry.',
+    notes: '$0.07/kWh all-in across Texas, Wyoming, and Nebraska facilities. Natural gas and grid power. Air cooling only.',
   },
   {
-    name: 'Core Scientific',
-    pricePerKwh: 'Custom quote',
-    powerSource: 'Grid (US)',
+    name: 'Sazmining',
+    rate: '~$0.048/kWh',
+    location: 'Paraguay',
     cooling: 'Air',
-    minCommitment: 'Large scale',
-    setupFee: 'Custom',
-    financing: 'Yes',
-    status: 'pending',
+    minCommitment: '1 machine',
+    status: 'verified',
     affiliate: false,
-    notes: 'Institutional-scale hosting. Primarily targets large fleet operators. Not practical for retail miners with fewer than 50+ machines.',
+    notes: 'Lowest published rate available to retail miners using Paraguayan hydroelectric power. International — weigh jurisdictional risk against cost savings.',
+  },
+]
+
+// Providers requiring a custom quote — not suitable for direct ROI modelling
+const QUOTE_PROVIDERS: QuoteProvider[] = [
+  {
+    name: 'Compass Mining',
+    location: 'Multi-site US',
+    cooling: 'Air / Immersion',
+    notes: 'Large US marketplace with many facility options. Pricing and terms vary by site — request quote for your specific facility.',
   },
   {
-    name: 'Mawson Infrastructure',
-    pricePerKwh: 'Custom quote',
-    powerSource: 'Mixed (US/AU)',
+    name: 'Blockware Solutions',
+    location: 'US',
     cooling: 'Air',
-    minCommitment: 'Varies',
-    setupFee: 'Varies',
-    financing: 'No',
-    status: 'pending',
-    affiliate: false,
-    notes: 'Publicly traded hosting company. US and Australia facilities. Primarily institutional. Verify terms directly before committing.',
+    notes: 'Hardware + hosting bundles. Known for mining intelligence research. Custom pricing — contact for current rates.',
+  },
+  {
+    name: 'Hut 8',
+    location: '15 US sites',
+    cooling: 'Air / Immersion',
+    notes: 'Publicly traded (NASDAQ: HUT) with 15 US locations. Institutional minimums apply. Best for large fleet operators.',
   },
 ]
 
@@ -221,18 +229,18 @@ export default function HostingPage() {
         </div>
       </div>
 
-      {/* Table — desktop */}
+      {/* Priced providers — desktop table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
-              {['Provider', 'Price', 'Power Source', 'Cooling', 'Min. Commitment', 'Setup Fee', 'Financing', 'Status', 'Affiliate'].map(h => (
+              {['Provider', 'Rate', 'Location', 'Cooling', 'Min. Commitment', 'Status', 'Affiliate'].map(h => (
                 <th key={h} className="text-left text-xs text-gray-500 font-medium pb-3 pr-4 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {PROVIDERS.map((p, i) => (
+            {PRICED_PROVIDERS.map((p) => (
               <tr
                 key={p.name}
                 style={{
@@ -251,12 +259,10 @@ export default function HostingPage() {
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5 max-w-xs">{p.notes}</div>
                 </td>
-                <td className="py-4 pr-4 text-gray-300 whitespace-nowrap font-mono text-xs">{p.pricePerKwh}</td>
-                <td className="py-4 pr-4 text-gray-400 text-xs">{p.powerSource}</td>
+                <td className="py-4 pr-4 text-gray-300 whitespace-nowrap font-mono text-xs">{p.rate}</td>
+                <td className="py-4 pr-4 text-gray-400 text-xs whitespace-nowrap">{p.location}</td>
                 <td className="py-4 pr-4 text-gray-400 text-xs">{p.cooling}</td>
                 <td className="py-4 pr-4 text-gray-400 text-xs">{p.minCommitment}</td>
-                <td className="py-4 pr-4 text-gray-400 text-xs">{p.setupFee}</td>
-                <td className="py-4 pr-4 text-gray-400 text-xs">{p.financing}</td>
                 <td className="py-4 pr-4 text-xs whitespace-nowrap">
                   {p.status === 'verified' ? (
                     <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(0,212,170,0.15)', color: '#00d4aa' }}>
@@ -273,8 +279,10 @@ export default function HostingPage() {
                   )}
                 </td>
                 <td className="py-4 pr-4 text-xs">
-                  {p.affiliate ? (
-                    <span style={{ color: ORANGE }}>Yes ↗</span>
+                  {p.affiliate && p.affiliateUrl ? (
+                    <a href={p.affiliateUrl} target="_blank" rel="noopener noreferrer" style={{ color: ORANGE }}>
+                      Yes ↗
+                    </a>
                   ) : (
                     <span className="text-gray-600">No</span>
                   )}
@@ -285,9 +293,9 @@ export default function HostingPage() {
         </table>
       </div>
 
-      {/* Cards — mobile */}
+      {/* Priced providers — mobile cards */}
       <div className="md:hidden space-y-4">
-        {PROVIDERS.map(p => (
+        {PRICED_PROVIDERS.map(p => (
           <div key={p.name} className="rounded-xl p-5" style={{ background: CARD_BG, border: p.pick ? `1px solid rgba(247,147,26,0.3)` : `1px solid ${BORDER}` }}>
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -300,11 +308,10 @@ export default function HostingPage() {
                   <span className="text-white font-semibold">{p.name}</span>
                 </div>
                 <span
-                  className="text-xs px-2 py-0.5 rounded-full cursor-help"
+                  className="text-xs px-2 py-0.5 rounded-full"
                   style={p.status === 'verified'
                     ? { background: 'rgba(0,212,170,0.15)', color: '#00d4aa' }
                     : { background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}
-                  title={p.status === 'pending' ? 'Contact this provider directly to confirm current pricing and terms before committing capital.' : undefined}
                 >
                   {p.status === 'verified' ? '✓ Verified' : 'Verify Direct'}
                 </span>
@@ -316,14 +323,38 @@ export default function HostingPage() {
               )}
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-              <div><span className="text-gray-500">Price: </span><span className="text-gray-300">{p.pricePerKwh}</span></div>
+              <div><span className="text-gray-500">Rate: </span><span className="text-gray-300 font-mono">{p.rate}</span></div>
               <div><span className="text-gray-500">Cooling: </span><span className="text-gray-300">{p.cooling}</span></div>
+              <div><span className="text-gray-500">Location: </span><span className="text-gray-300">{p.location}</span></div>
               <div><span className="text-gray-500">Min: </span><span className="text-gray-300">{p.minCommitment}</span></div>
-              <div><span className="text-gray-500">Setup: </span><span className="text-gray-300">{p.setupFee}</span></div>
             </div>
             <p className="text-xs text-gray-500">{p.notes}</p>
           </div>
         ))}
+      </div>
+
+      {/* Request a Quote — contact-for-pricing providers */}
+      <div className="mt-10">
+        <h2 className="text-base font-semibold text-white mb-1">Request a Quote</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          These providers do not publish a rate card. Contact them directly for custom pricing — they are not included in the ROI calculator above.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {QUOTE_PROVIDERS.map(p => (
+            <div key={p.name} className="rounded-xl p-5" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+              <div className="text-white font-semibold text-sm mb-1">{p.name}</div>
+              <div className="flex gap-3 text-xs text-gray-500 mb-2">
+                <span>{p.location}</span>
+                <span>·</span>
+                <span>{p.cooling}</span>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">{p.notes}</p>
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
+                Contact for Pricing
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* CTA */}
