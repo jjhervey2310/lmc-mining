@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: '/hosting', label: 'Hosting' },
   { href: '/miners', label: 'Miners' },
   { href: '/university', label: 'University' },
+  { href: '/deal-analyzer', label: 'Deal Analyzer' },
   { href: '/audit', label: 'Audit' },
   { href: '/tools', label: 'Tools' },
 ]

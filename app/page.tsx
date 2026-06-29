@@ -159,8 +159,38 @@ export default function HomePage() {
     }
   }
 
+  const orgSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Lightning Mines',
+    url: 'https://www.lightningmines.com',
+    description: 'Independent Bitcoin mining intelligence — ROI calculator, hosting comparison, and deal reviews.',
+    contactPoint: {
+      '@type': 'ContactPoint',
+      email: 'contact@lightningmines.com',
+      contactType: 'customer support',
+    },
+  }
+
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Lightning Mines',
+    url: 'https://www.lightningmines.com',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: 'https://www.lightningmines.com/miners?q={search_term_string}',
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  }
+
   return (
     <div style={{ background: '#0a0a0a' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       {/* Hero — cinematic full-bleed with mining rig background */}
       <section className="relative min-h-[600px] md:min-h-[680px] flex items-center justify-center overflow-hidden">
         <Image
