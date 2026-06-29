@@ -7,6 +7,9 @@ const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
 const BORDER = '#222222'
 
+const STRIPE_97_LINK = 'STRIPE_97_LINK'
+const STRIPE_297_LINK = 'STRIPE_297_LINK'
+
 const FAQ = [
   {
     q: 'What do I get in the $97 Mining Deal Audit?',
@@ -87,18 +90,6 @@ export default function AuditPage() {
         <span>Audit</span>
       </div>
 
-      {/* Payment links coming soon notice */}
-      <div className="rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ background: 'rgba(247,147,26,0.08)', border: '1px solid rgba(247,147,26,0.25)' }}>
-        <span className="text-lg shrink-0">⚡</span>
-        <div className="flex-1">
-          <span className="text-sm font-semibold" style={{ color: ORANGE }}>Payment links coming soon.</span>
-          <span className="text-sm text-gray-400 ml-2">Use the form below to request an audit — we&apos;ll send your payment link within a few hours.</span>
-        </div>
-        <Link href="/review" className="text-xs font-semibold px-4 py-2 rounded-lg shrink-0 transition-colors" style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE, border: '1px solid rgba(247,147,26,0.3)' }}>
-          Or get a free review →
-        </Link>
-      </div>
-
       <div className="text-center mb-10">
         <div
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4"
@@ -135,11 +126,11 @@ export default function AuditPage() {
             ))}
           </ul>
           <a
-            href={process.env.NEXT_PUBLIC_STRIPE_97_URL || '#inquiry'}
+            href={STRIPE_97_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full text-center text-sm font-bold py-3 rounded-xl transition-all"
-            style={{ background: 'rgba(0,212,170,0.12)', color: '#00d4aa', border: '1px solid rgba(0,212,170,0.3)' }}
+            className="block w-full text-center text-sm font-bold py-3 rounded-xl transition-all hover:opacity-90"
+            style={{ background: ORANGE, color: '#000' }}
           >
             Book $97 Audit →
           </a>
@@ -174,10 +165,10 @@ export default function AuditPage() {
             ))}
           </ul>
           <a
-            href={process.env.NEXT_PUBLIC_STRIPE_297_URL || '#inquiry'}
+            href={STRIPE_297_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full text-center text-sm font-bold py-3 rounded-xl transition-all"
+            className="block w-full text-center text-sm font-bold py-3 rounded-xl transition-all hover:opacity-90"
             style={{ background: ORANGE, color: '#000' }}
           >
             Book $297 Build Plan →
