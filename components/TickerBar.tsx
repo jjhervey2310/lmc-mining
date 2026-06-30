@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 const HALVING_DATE = new Date('2028-04-15T00:00:00Z')
 
@@ -23,9 +24,12 @@ function calcHashprice(price: number, difficulty: number): number {
 }
 
 export default function TickerBar() {
+  const pathname = usePathname()
   const [btcPrice, setBtcPrice] = useState<string | null>(null)
   const [hashprice, setHashprice] = useState<string | null>(null)
   const [networkEH, setNetworkEH] = useState<string | null>(null)
+
+  if (pathname === '/') return null
 
   useEffect(() => {
     let cancelled = false

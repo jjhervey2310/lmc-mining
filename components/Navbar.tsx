@@ -23,6 +23,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
 
+  if (pathname === '/') return null
+
   return (
     <nav
       className="border-b sticky top-0 z-50"
