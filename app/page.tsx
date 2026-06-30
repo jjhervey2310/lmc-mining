@@ -81,10 +81,10 @@ const UNIVERSITY_PREVIEWS = [
   { slug: 'how-to-avoid-bad-mining-deals', title: 'How to Avoid Bad Mining Deals', cat: 'Red Flags', time: '9 min' },
 ]
 
-function ROIPreview({ btcPrice }: { btcPrice: number | null }) {
+function ROIPreview({ btcPrice, difficulty: difficultyProp }: { btcPrice: number | null; difficulty: number | null }) {
   const price = btcPrice || 100000
   const hashrate = 234
-  const difficulty = 113_757_508_517_000
+  const difficulty = difficultyProp || 113_757_508_517_000
   const blockReward = 3.125
   const poolFee = 0.01
   const hostingMonthly = 225
@@ -129,7 +129,7 @@ function ROIPreview({ btcPrice }: { btcPrice: number | null }) {
       </div>
 
       <p className="text-xs text-gray-600 mt-4">
-        At ${price.toLocaleString()} BTC · 113.8T difficulty · 1% pool fee · $225/mo hosting ·{' '}
+        At ${price.toLocaleString()} BTC · {(difficulty / 1e12).toFixed(1)}T difficulty · 1% pool fee · $225/mo hosting ·{' '}
         <span style={{ color: ORANGE }}>Profitability changes daily — run your own numbers.</span>
       </p>
     </div>
@@ -304,7 +304,7 @@ export default function HomePage() {
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">See What Mining Actually Earns</h2>
           <p className="text-gray-500">Live numbers. No marketing spin. Enter your own setup to get your exact ROI.</p>
         </div>
-        <ROIPreview btcPrice={btcPrice} />
+        <ROIPreview btcPrice={btcPrice} difficulty={difficulty} />
       </section>
 
       {/* How Lightning Mines Helps */}

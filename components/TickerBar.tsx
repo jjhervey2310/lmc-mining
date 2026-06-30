@@ -9,7 +9,6 @@ function getDaysToHalving() {
 }
 
 const STATIC_ITEMS = [
-  'Network Hashrate: ~800 EH/s',
   `Days to Halving: ${getDaysToHalving()}`,
   'Block Reward: 3.125 BTC',
   'Best Efficiency: 13.5 J/TH (S21 XP)',
@@ -26,6 +25,7 @@ function calcHashprice(price: number, difficulty: number): number {
 export default function TickerBar() {
   const [btcPrice, setBtcPrice] = useState<string | null>(null)
   const [hashprice, setHashprice] = useState<string | null>(null)
+  const [networkEH, setNetworkEH] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -37,8 +37,11 @@ export default function TickerBar() {
           const price = Number(d.price)
           setBtcPrice(`$${price.toLocaleString()}`)
           if (d.difficulty) {
-            const hp = calcHashprice(price, Number(d.difficulty))
+            const diff = Number(d.difficulty)
+            const hp = calcHashprice(price, diff)
             setHashprice(`$${hp.toFixed(2)}/PH/day`)
+            const eh = diff * 4294967296 / 600 / 1e18
+            setNetworkEH(`${eh.toFixed(0)} EH/s`)
           }
         }
       } catch {
@@ -53,6 +56,7 @@ export default function TickerBar() {
   const items = [
     btcPrice ? `BTC: ${btcPrice}` : 'BTC: Loading...',
     hashprice ? `Hashprice: ${hashprice}` : null,
+    networkEH ? `Network Hashrate: ${networkEH}` : null,
     ...STATIC_ITEMS,
   ].filter(Boolean) as string[]
 

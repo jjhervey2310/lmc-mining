@@ -5,13 +5,15 @@ import Link from 'next/link'
 
 type AlertType = 'btc_above' | 'btc_below' | 'hashprice_above' | 'hashprice_below'
 
-const CURRENT_HP = 0.0767
+function calcHashprice(price: number, difficulty: number): number {
+  return (2.7e20 * price) / (difficulty * 4294967296)
+}
 
 const ALERT_TYPES: { type: AlertType; label: string; unit: string; defaultVal: number; description: string }[] = [
   { type: 'btc_above', label: 'BTC Price Above', unit: '$', defaultVal: 120000, description: 'Alert when BTC rises above your target — time to evaluate selling or scaling' },
   { type: 'btc_below', label: 'BTC Price Below', unit: '$', defaultVal: 80000, description: 'Alert when BTC falls below your threshold — monitor profitability' },
-  { type: 'hashprice_above', label: 'Hashprice Above', unit: '$', defaultVal: 0.10, description: 'Alert when hashprice rises — may signal optimal expansion timing' },
-  { type: 'hashprice_below', label: 'Hashprice Below', unit: '$', defaultVal: 0.05, description: 'Alert when hashprice falls near your operating cost — risk management' },
+  { type: 'hashprice_above', label: 'Hashprice Above', unit: '$', defaultVal: 100, description: 'Alert when hashprice rises — may signal optimal expansion timing' },
+  { type: 'hashprice_below', label: 'Hashprice Below', unit: '$', defaultVal: 50, description: 'Alert when hashprice falls near your operating cost — risk management' },
 ]
 
 export default function AlertsPage() {
@@ -20,18 +22,24 @@ export default function AlertsPage() {
   const [thresholds, setThresholds] = useState<Record<AlertType, number>>({
     btc_above: 120000,
     btc_below: 80000,
-    hashprice_above: 0.10,
-    hashprice_below: 0.05,
+    hashprice_above: 100,
+    hashprice_below: 50,
   })
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [currentBTC, setCurrentBTC] = useState<number | null>(null)
+  const [currentHP, setCurrentHP] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/btc-price')
       .then(r => r.json())
-      .then(d => { if (d?.price) setCurrentBTC(Number(d.price)) })
+      .then(d => {
+        if (d?.price) setCurrentBTC(Number(d.price))
+        if (d?.price && d?.difficulty) {
+          setCurrentHP(calcHashprice(Number(d.price), Number(d.difficulty)))
+        }
+      })
       .catch(() => {})
   }, [])
 
@@ -91,7 +99,7 @@ export default function AlertsPage() {
         </div>
         <div className="rounded-xl p-4" style={{ background: '#111827', border: '1px solid #1f2937' }}>
           <div className="text-xs text-gray-500 mb-1">Current Hashprice</div>
-          <div className="text-xl font-bold font-mono" style={{ color: '#3d7aed' }}>${CURRENT_HP}/TH/day</div>
+          <div className="text-xl font-bold font-mono" style={{ color: '#3d7aed' }}>{currentHP ? `$${currentHP.toFixed(2)}/PH/day` : 'Loading...'}</div>
         </div>
       </div>
 
@@ -152,12 +160,12 @@ export default function AlertsPage() {
                             <input
                               type="number"
                               value={thresholds[at.type]}
-                              step={isHp ? 0.001 : 1000}
+                              step={isHp ? 1 : 1000}
                               onChange={e => setThresholds(prev => ({ ...prev, [at.type]: Number(e.target.value) }))}
                               className="text-sm px-2 py-1 rounded border border-gray-700 text-white w-28 focus:outline-none focus:border-[#00d4aa]"
                               style={{ background: '#0a0e17' }}
                             />
-                            {isHp && <span className="text-xs text-gray-500">/TH/day</span>}
+                            {isHp && <span className="text-xs text-gray-500">/PH/day</span>}
                           </div>
                         )}
                       </div>

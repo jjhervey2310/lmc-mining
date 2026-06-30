@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
+import { PROVIDERS_DATA } from '@/lib/data'
+import type { HostingProvider } from '@/lib/types'
 
 export const metadata: Metadata = {
   title: 'Bitcoin Mining Hosting Comparison 2026 — Verified Providers',
@@ -17,93 +19,31 @@ const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
 const BORDER = '#222222'
 
-interface Provider {
-  name: string
-  rate: string
-  location: string
-  cooling: string
-  minCommitment: string
-  status: 'verified' | 'pending'
-  affiliate: boolean
-  notes: string
-  affiliateUrl?: string
-  pick?: boolean
+function priceLabel(p: HostingProvider): string {
+  if (p.billingType === 'flat' && p.flatMonthly !== null) {
+    return `$${p.flatMonthly}/mo flat`
+  }
+  if (p.billingType === 'kwh' && p.rateMin !== null) {
+    if (p.rateMax !== null && p.rateMax !== p.rateMin) {
+      return `$${p.rateMin}–$${p.rateMax}/kWh`
+    }
+    return `$${p.rateMin}/kWh`
+  }
+  return 'Contact for pricing'
 }
 
-interface QuoteProvider {
-  name: string
-  location: string
-  cooling: string
-  notes: string
+function coolingLabel(p: HostingProvider): string {
+  return p.cooling.map(c => c[0].toUpperCase() + c.slice(1)).join(' + ')
 }
 
-// Providers with known all-in rates — suitable for ROI modelling
-const PRICED_PROVIDERS: Provider[] = [
-  {
-    name: 'Abundant Mines',
-    rate: '$225/mo flat',
-    location: 'US',
-    cooling: 'Air',
-    minCommitment: '1 machine',
-    status: 'verified',
-    affiliate: true,
-    affiliateUrl: 'https://abundantmines.com/ref/72/',
-    notes: 'Flat $225/month all-inclusive — electricity, cooling, maintenance, insurance, internet. No surprise bills. 12-month rate lock.',
-    pick: true,
-  },
-  {
-    name: 'Simple Mining',
-    rate: '$0.075/kWh',
-    location: 'Iowa',
-    cooling: 'Air + Hydro',
-    minCommitment: '1 machine',
-    status: 'verified',
-    affiliate: false,
-    notes: 'Iowa facility with air and hydro cooling. $0.075/kWh all-in rate — one of the few mid-market providers supporting both cooling types.',
-  },
-  {
-    name: 'EZ Blockchain',
-    rate: '$0.07/kWh',
-    location: 'TX / WY / NE',
-    cooling: 'Air',
-    minCommitment: 'Contact',
-    status: 'verified',
-    affiliate: false,
-    notes: '$0.07/kWh all-in across Texas, Wyoming, and Nebraska facilities. Natural gas and grid power. Air cooling only.',
-  },
-  {
-    name: 'Sazmining',
-    rate: '~$0.048/kWh',
-    location: 'Paraguay',
-    cooling: 'Air',
-    minCommitment: '1 machine',
-    status: 'verified',
-    affiliate: false,
-    notes: 'Lowest published rate available to retail miners using Paraguayan hydroelectric power. International — weigh jurisdictional risk against cost savings.',
-  },
-]
+function minLabel(p: HostingProvider): string {
+  if (p.minMachines === null) return 'Contact'
+  return `${p.minMachines} machine${p.minMachines !== 1 ? 's' : ''}`
+}
 
-// Providers requiring a custom quote — not suitable for direct ROI modelling
-const QUOTE_PROVIDERS: QuoteProvider[] = [
-  {
-    name: 'Compass Mining',
-    location: 'Multi-site US',
-    cooling: 'Air / Immersion',
-    notes: 'Large US marketplace with many facility options. Pricing and terms vary by site — request quote for your specific facility.',
-  },
-  {
-    name: 'Blockware Solutions',
-    location: 'US',
-    cooling: 'Air',
-    notes: 'Hardware + hosting bundles. Known for mining intelligence research. Custom pricing — contact for current rates.',
-  },
-  {
-    name: 'Hut 8',
-    location: '15 US sites',
-    cooling: 'Air / Immersion',
-    notes: 'Publicly traded (NASDAQ: HUT) with 15 US locations. Institutional minimums apply. Best for large fleet operators.',
-  },
-]
+const activeProviders = PROVIDERS_DATA.filter(p => p.listingStatus === 'active')
+const pricedProviders = activeProviders.filter(p => p.rateMin !== null || p.flatMonthly !== null)
+const quoteProviders = activeProviders.filter(p => p.rateMin === null && p.flatMonthly === null)
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -146,6 +86,8 @@ const breadcrumbSchema = {
 }
 
 export default function HostingPage() {
+  const topPick = pricedProviders.find(p => p.tier === 1)
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
@@ -190,44 +132,48 @@ export default function HostingPage() {
       </div>
 
       {/* Top Pick highlight */}
-      <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(247,147,26,0.06)', border: '1px solid rgba(247,147,26,0.2)' }}>
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <div
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2"
-              style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE, border: '1px solid rgba(247,147,26,0.3)' }}
-            >
-              ⚡ OUR #1 PICK
+      {topPick && (
+        <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(247,147,26,0.06)', border: '1px solid rgba(247,147,26,0.2)' }}>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <div
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2"
+                style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE, border: '1px solid rgba(247,147,26,0.3)' }}
+              >
+                ⚡ OUR #1 PICK
+              </div>
+              <h2 className="text-white text-xl font-bold">{topPick.name}</h2>
+              <p className="text-gray-400 text-sm mt-1">
+                Verified · {topPick.facilityLocations.join(', ')} · {coolingLabel(topPick)}-cooled · {priceLabel(topPick)}{topPick.setupFee ? ` · $${topPick.setupFee} deposit` : ''}
+              </p>
+              {topPick.affiliateProgram && (
+                <p className="text-xs text-gray-600 mt-2">
+                  Affiliate disclosure: Lightning Mines earns a commission when you sign up through our link.
+                  This does not affect our recommendation.
+                </p>
+              )}
             </div>
-            <h2 className="text-white text-xl font-bold">Abundant Mines</h2>
-            <p className="text-gray-400 text-sm mt-1">
-              Verified · US-based · Air-cooled · $225/month flat fee · $500 deposit
-            </p>
-            <p className="text-xs text-gray-600 mt-2">
-              Affiliate disclosure: Lightning Mines earns a commission when you sign up through our link.
-              This does not affect our recommendation.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <a
-              href="https://abundantmines.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-bold px-6 py-3 rounded-xl text-center"
-              style={{ background: ORANGE, color: '#000' }}
-            >
-              Visit Abundant Mines ↗
-            </a>
-            <Link
-              href="/calculator"
-              className="text-xs text-center py-2 rounded-lg"
-              style={{ color: ORANGE }}
-            >
-              Calculate ROI with this price →
-            </Link>
+            <div className="flex flex-col gap-2">
+              <a
+                href={topPick.affiliateLink || topPick.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-bold px-6 py-3 rounded-xl text-center"
+                style={{ background: ORANGE, color: '#000' }}
+              >
+                Visit {topPick.name} ↗
+              </a>
+              <Link
+                href="/calculator"
+                className="text-xs text-center py-2 rounded-lg"
+                style={{ color: ORANGE }}
+              >
+                Calculate ROI with this price →
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Priced providers — desktop table */}
       <div className="hidden md:block overflow-x-auto">
@@ -240,31 +186,31 @@ export default function HostingPage() {
             </tr>
           </thead>
           <tbody>
-            {PRICED_PROVIDERS.map((p) => (
+            {pricedProviders.map((p) => (
               <tr
-                key={p.name}
+                key={p.id}
                 style={{
                   borderBottom: `1px solid ${BORDER}`,
-                  background: p.pick ? 'rgba(247,147,26,0.04)' : 'transparent',
+                  background: p.tier === 1 ? 'rgba(247,147,26,0.04)' : 'transparent',
                 }}
               >
                 <td className="py-4 pr-4">
                   <div className="flex items-center gap-2">
-                    {p.pick && (
+                    {p.tier === 1 && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE }}>
                         #1
                       </span>
                     )}
                     <span className="text-white font-semibold">{p.name}</span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5 max-w-xs">{p.notes}</div>
+                  <div className="text-xs text-gray-500 mt-0.5 max-w-xs">{p.bestFor}</div>
                 </td>
-                <td className="py-4 pr-4 text-gray-300 whitespace-nowrap font-mono text-xs">{p.rate}</td>
-                <td className="py-4 pr-4 text-gray-400 text-xs whitespace-nowrap">{p.location}</td>
-                <td className="py-4 pr-4 text-gray-400 text-xs">{p.cooling}</td>
-                <td className="py-4 pr-4 text-gray-400 text-xs">{p.minCommitment}</td>
+                <td className="py-4 pr-4 text-gray-300 whitespace-nowrap font-mono text-xs">{priceLabel(p)}</td>
+                <td className="py-4 pr-4 text-gray-400 text-xs whitespace-nowrap">{p.facilityLocations.join(', ')}</td>
+                <td className="py-4 pr-4 text-gray-400 text-xs">{coolingLabel(p)}</td>
+                <td className="py-4 pr-4 text-gray-400 text-xs">{minLabel(p)}</td>
                 <td className="py-4 pr-4 text-xs whitespace-nowrap">
-                  {p.status === 'verified' ? (
+                  {p.verificationStatus === 'verified' ? (
                     <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(0,212,170,0.15)', color: '#00d4aa' }}>
                       ✓ Verified
                     </span>
@@ -279,8 +225,8 @@ export default function HostingPage() {
                   )}
                 </td>
                 <td className="py-4 pr-4 text-xs">
-                  {p.affiliate && p.affiliateUrl ? (
-                    <a href={p.affiliateUrl} target="_blank" rel="noopener noreferrer" style={{ color: ORANGE }}>
+                  {p.affiliateProgram && p.affiliateLink ? (
+                    <a href={p.affiliateLink} target="_blank" rel="noopener noreferrer" style={{ color: ORANGE }}>
                       Yes ↗
                     </a>
                   ) : (
@@ -295,12 +241,12 @@ export default function HostingPage() {
 
       {/* Priced providers — mobile cards */}
       <div className="md:hidden space-y-4">
-        {PRICED_PROVIDERS.map(p => (
-          <div key={p.name} className="rounded-xl p-5" style={{ background: CARD_BG, border: p.pick ? `1px solid rgba(247,147,26,0.3)` : `1px solid ${BORDER}` }}>
+        {pricedProviders.map(p => (
+          <div key={p.id} className="rounded-xl p-5" style={{ background: CARD_BG, border: p.tier === 1 ? `1px solid rgba(247,147,26,0.3)` : `1px solid ${BORDER}` }}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  {p.pick && (
+                  {p.tier === 1 && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(247,147,26,0.15)', color: ORANGE }}>
                       #1
                     </span>
@@ -309,26 +255,26 @@ export default function HostingPage() {
                 </div>
                 <span
                   className="text-xs px-2 py-0.5 rounded-full"
-                  style={p.status === 'verified'
+                  style={p.verificationStatus === 'verified'
                     ? { background: 'rgba(0,212,170,0.15)', color: '#00d4aa' }
                     : { background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}
                 >
-                  {p.status === 'verified' ? '✓ Verified' : 'Verify Direct'}
+                  {p.verificationStatus === 'verified' ? '✓ Verified' : 'Verify Direct'}
                 </span>
               </div>
-              {p.affiliate && p.affiliateUrl && (
-                <a href={p.affiliateUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: ORANGE, color: '#000' }}>
+              {p.affiliateProgram && p.affiliateLink && (
+                <a href={p.affiliateLink} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: ORANGE, color: '#000' }}>
                   Visit ↗
                 </a>
               )}
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-              <div><span className="text-gray-500">Rate: </span><span className="text-gray-300 font-mono">{p.rate}</span></div>
-              <div><span className="text-gray-500">Cooling: </span><span className="text-gray-300">{p.cooling}</span></div>
-              <div><span className="text-gray-500">Location: </span><span className="text-gray-300">{p.location}</span></div>
-              <div><span className="text-gray-500">Min: </span><span className="text-gray-300">{p.minCommitment}</span></div>
+              <div><span className="text-gray-500">Rate: </span><span className="text-gray-300 font-mono">{priceLabel(p)}</span></div>
+              <div><span className="text-gray-500">Cooling: </span><span className="text-gray-300">{coolingLabel(p)}</span></div>
+              <div><span className="text-gray-500">Location: </span><span className="text-gray-300">{p.facilityLocations.join(', ')}</span></div>
+              <div><span className="text-gray-500">Min: </span><span className="text-gray-300">{minLabel(p)}</span></div>
             </div>
-            <p className="text-xs text-gray-500">{p.notes}</p>
+            <p className="text-xs text-gray-500">{p.bestFor}</p>
           </div>
         ))}
       </div>
@@ -340,15 +286,15 @@ export default function HostingPage() {
           These providers do not publish a rate card. Contact them directly for custom pricing — they are not included in the ROI calculator above.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {QUOTE_PROVIDERS.map(p => (
-            <div key={p.name} className="rounded-xl p-5" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+          {quoteProviders.map(p => (
+            <div key={p.id} className="rounded-xl p-5" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
               <div className="text-white font-semibold text-sm mb-1">{p.name}</div>
               <div className="flex gap-3 text-xs text-gray-500 mb-2">
-                <span>{p.location}</span>
+                <span>{p.facilityLocations.join(', ')}</span>
                 <span>·</span>
-                <span>{p.cooling}</span>
+                <span>{coolingLabel(p)}</span>
               </div>
-              <p className="text-xs text-gray-400 mb-3">{p.notes}</p>
+              <p className="text-xs text-gray-400 mb-3">{p.bestFor}</p>
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
                 Contact for Pricing
               </span>

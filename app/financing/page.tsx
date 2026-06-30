@@ -80,11 +80,15 @@ export default function FinancingPage() {
   const [termMonths, setTermMonths] = useState(36)
   const [unitsForHosting, setUnitsForHosting] = useState(10)
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
+  const [difficulty, setDifficulty] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/btc-price')
       .then(r => r.json())
-      .then(d => { if (d?.price) setBtcPrice(Number(d.price)) })
+      .then(d => {
+        if (d?.price) setBtcPrice(Number(d.price))
+        if (d?.difficulty) setDifficulty(Number(d.difficulty))
+      })
       .catch(() => {})
   }, [])
 
@@ -95,9 +99,9 @@ export default function FinancingPage() {
   const totalCost = hardwareCost + totalInterest
   const monthlyHosting = unitsForHosting * 225
 
-  const DIFFICULTY = 113_757_508_517_000
+  const liveDifficulty = difficulty || 113_757_508_517_000
   const hashrateTH = unitsForHosting * 234
-  const dailyBtc = (hashrateTH * 1e12 * 86400 * 3.125) / (DIFFICULTY * Math.pow(2, 32))
+  const dailyBtc = (hashrateTH * 1e12 * 86400 * 3.125) / (liveDifficulty * Math.pow(2, 32))
   const dailyGross = btcPrice ? dailyBtc * btcPrice : null
   const dailyCostTotal = (monthlyHosting / 30) + (monthlyPayment / 30)
   const dailyNet = dailyGross !== null ? dailyGross - dailyCostTotal : null
