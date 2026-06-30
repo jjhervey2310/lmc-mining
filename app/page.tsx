@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import DifficultyWidget from '@/components/DifficultyWidget'
+import HashpriceChart from '@/components/HashpriceChart'
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
@@ -299,10 +300,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Difficulty Adjustment */}
+      {/* Difficulty Adjustment + Hashprice History */}
       <section className="border-b" style={{ borderColor: BORDER }}>
         <div className="max-w-5xl mx-auto px-4 py-6">
-          <DifficultyWidget />
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            <div className="lg:col-span-2">
+              <DifficultyWidget />
+            </div>
+            <div className="lg:col-span-3">
+              <HashpriceChart />
+            </div>
+          </div>
         </div>
       </section>
 

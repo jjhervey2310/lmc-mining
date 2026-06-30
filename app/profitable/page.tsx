@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import DifficultyWidget from '@/components/DifficultyWidget'
+import HashpriceChart from '@/components/HashpriceChart'
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
@@ -180,8 +181,13 @@ export default function ProfitabilityPage() {
           </div>
         )}
 
-        <div className="mb-8">
-          <DifficultyWidget />
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-8">
+          <div className="lg:col-span-2">
+            <DifficultyWidget />
+          </div>
+          <div className="lg:col-span-3">
+            <HashpriceChart />
+          </div>
         </div>
 
         {/* Disclaimer */}
