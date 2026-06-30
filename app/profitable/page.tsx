@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import DifficultyWidget from '@/components/DifficultyWidget'
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
@@ -178,6 +179,10 @@ export default function ProfitabilityPage() {
             ))}
           </div>
         )}
+
+        <div className="mb-8">
+          <DifficultyWidget />
+        </div>
 
         {/* Disclaimer */}
         <div className="rounded-xl p-5 mb-8" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>

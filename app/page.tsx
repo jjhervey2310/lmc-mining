@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import DifficultyWidget from '@/components/DifficultyWidget'
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
@@ -295,6 +296,13 @@ export default function HomePage() {
               Is Bitcoin mining profitable right now? →
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Difficulty Adjustment */}
+      <section className="border-b" style={{ borderColor: BORDER }}>
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <DifficultyWidget />
         </div>
       </section>
 
