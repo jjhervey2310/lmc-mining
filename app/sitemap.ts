@@ -16,6 +16,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/audit`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.85 },
     { url: `${BASE_URL}/tools`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${BASE_URL}/about`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/how-we-verify`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/financing`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/glossary`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.65 },
+    { url: `${BASE_URL}/scam-alerts`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.75 },
     { url: `${BASE_URL}/privacy`, lastModified: NOW, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${BASE_URL}/terms`, lastModified: NOW, changeFrequency: 'yearly', priority: 0.2 },
     // Legacy pages preserved but lower priority
