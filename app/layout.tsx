@@ -58,6 +58,7 @@ const FOOTER_NAV = [
   { href: '/audit', label: 'Audit' },
   { href: '/tools', label: 'Tools' },
   { href: '/about', label: 'About' },
+  { href: '/how-we-verify', label: 'How We Verify' },
 ]
 
 const UNIVERSITY_LINKS = [

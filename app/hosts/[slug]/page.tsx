@@ -101,11 +101,16 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
             </div>
           )}
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{p.name}</h1>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             {p.cooling.map(c => (
               <span key={c} className="text-xs px-2.5 py-1 rounded-full capitalize" style={{ background: '#1f2937', color: '#9ca3af' }}>{c} cooling</span>
             ))}
             {p.verificationStatus === 'verified' && <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: '#00d4aa15', color: '#00d4aa' }}>✓ Verified</span>}
+            {p.verificationStatus === 'pending' && <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>⏳ Pending</span>}
+            {p.verificationStatus === 'contact_only' && <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>✉ Contact for Pricing</span>}
+            <Link href="/how-we-verify" className="text-xs hover:text-white transition-colors" style={{ color: '#6b7280' }}>
+              What does this mean?
+            </Link>
           </div>
         </div>
         {p.website && (
