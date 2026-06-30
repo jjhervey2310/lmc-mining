@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 const FINANCING_OPTIONS = [
   {
@@ -123,8 +124,10 @@ export default function FinancingPage() {
       <h1 className="text-3xl font-bold text-white mb-3">Bitcoin Mining Financing</h1>
       <p className="text-gray-400 mb-10">Finance your mining hardware to scale faster. Calculate monthly payments and model ROI with and without financing.</p>
 
+      <AffiliateDisclosure />
+
       {/* Financing Options */}
-      <div className="space-y-5 mb-12">
+      <div className="space-y-5 mb-12 mt-6">
         <h2 className="text-lg font-bold text-white">Verified Financing Options</h2>
         {FINANCING_OPTIONS.map(opt => (
           <div key={opt.provider} className="rounded-2xl p-6" style={{ background: '#111827', border: `1px solid ${opt.highlight ? '#00d4aa' : '#1f2937'}` }}>

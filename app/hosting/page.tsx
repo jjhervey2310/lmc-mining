@@ -3,6 +3,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { PROVIDERS_DATA } from '@/lib/data'
 import type { HostingProvider } from '@/lib/types'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
+import MethodologyCallout from '@/components/MethodologyCallout'
 
 export const metadata: Metadata = {
   title: 'Bitcoin Mining Hosting Comparison 2026 — Verified Providers',
@@ -88,10 +90,25 @@ const breadcrumbSchema = {
 export default function HostingPage() {
   const topPick = pricedProviders.find(p => p.tier === 1)
 
+  const itemListSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Bitcoin Mining Hosting Providers 2026',
+    description: 'Verified Bitcoin mining hosting providers compared by price, location, and cooling type',
+    numberOfItems: activeProviders.length,
+    itemListElement: activeProviders.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: p.name,
+      url: `https://lightningmines.com/hosts/${p.id}`,
+    })),
+  }
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
 
       {/* Full-width hero banner */}
       <div className="relative h-56 sm:h-80 overflow-hidden">
@@ -121,8 +138,11 @@ export default function HostingPage() {
 
     <div className="max-w-6xl mx-auto px-4 py-10">
 
+      <MethodologyCallout context="hosting" />
+      <AffiliateDisclosure />
+
       {/* Verification notice */}
-      <div className="mb-8">
+      <div className="mb-8 mt-4">
         <div
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
           style={{ background: 'rgba(247,147,26,0.1)', color: ORANGE, border: '1px solid rgba(247,147,26,0.2)' }}

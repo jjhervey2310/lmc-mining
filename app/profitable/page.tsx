@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import DifficultyWidget from '@/components/DifficultyWidget'
 import HashpriceChart from '@/components/HashpriceChart'
+import MethodologyCallout from '@/components/MethodologyCallout'
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
@@ -66,8 +67,36 @@ export default function ProfitabilityPage() {
       })
     : null
 
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'Is Bitcoin mining profitable right now?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Bitcoin mining profitability depends on three variables: hardware efficiency (J/TH), hosting cost ($/kWh or flat fee), and BTC price. With S21-generation hardware at 15 J/TH and $225/month flat hosting, an Antminer S21 Pro is profitable above approximately $32,000 BTC.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is hashprice and why does it matter?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Hashprice is the daily revenue per petahash of mining power, expressed in USD. It combines BTC price and network difficulty into a single number. When hashprice is above your daily power cost per PH, you are profitable. It changes daily as both price and difficulty fluctuate.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is the cheapest hosting rate available?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Competitive hosted mining rates in 2026 range from $0.05/kWh to $0.10/kWh, or flat monthly fees of $225-275 per machine. Abundant Miners offers $225/month flat fee using Columbia River hydroelectric power, which is the most competitive verified flat-fee rate we have found.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'How does network difficulty affect profitability?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Network difficulty adjusts every ~2,016 blocks (approximately two weeks). When more miners join the network, difficulty rises and each miner earns less BTC per unit of hashrate. In bull markets, difficulty typically grows 15-25% annually, which is why multi-month profitability projections must account for difficulty growth.' },
+      },
+    ],
+  }
+
   return (
     <div style={{ background: '#0a0a0a', minHeight: '100vh' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <div className="max-w-4xl mx-auto px-4 py-10">
 
         <div className="text-xs text-gray-500 mb-6">
@@ -189,6 +218,8 @@ export default function ProfitabilityPage() {
             <HashpriceChart />
           </div>
         </div>
+
+        <MethodologyCallout context="profitability" />
 
         {/* Disclaimer */}
         <div className="rounded-xl p-5 mb-8" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>

@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MINERS_DATA } from '@/lib/data'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
+import MethodologyCallout from '@/components/MethodologyCallout'
 
 export const metadata: Metadata = {
   title: 'Bitcoin ASIC Miner Comparison 2026 — Hashrate, Power, and ROI',
@@ -100,6 +102,7 @@ export default function MinersPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
 
       {/* Breadcrumb */}
+
       <div className="text-xs text-gray-500 mb-6">
         <Link href="/" className="hover:text-white transition-colors">Home</Link>
         <span className="mx-2">/</span>
@@ -107,13 +110,16 @@ export default function MinersPage() {
       </div>
 
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Bitcoin ASIC Miner Comparison 2026</h1>
         <p className="text-gray-400 max-w-2xl">
           Compare every major Bitcoin ASIC by hashrate, power draw, efficiency, cooling type, and estimated price.
           Sorted best-to-worst efficiency. Click ROI to prefill our calculator with any miner&apos;s specs.
         </p>
       </div>
+
+      <MethodologyCallout context="miners" />
+      <AffiliateDisclosure />
 
       {/* Miner cards — image left, specs right */}
       <div className="space-y-4">

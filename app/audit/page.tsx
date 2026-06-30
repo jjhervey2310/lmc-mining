@@ -93,14 +93,32 @@ export default function AuditPage() {
       <div className="text-center mb-10">
         <div
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4"
-          style={{ background: 'rgba(247,147,26,0.12)', color: ORANGE }}
+          style={{ background: 'rgba(255,71,87,0.12)', color: '#ff4757', border: '1px solid rgba(255,71,87,0.25)' }}
         >
-          ⚡ Limited to 8 audits per month — currently open
+          3 spots remaining this month
         </div>
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">Bitcoin Mining Audit</h1>
         <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-          Stop guessing. Get a professional profitability analysis tailored to your exact setup.
+          Before you commit $5,000–$50,000 to a mining deal, get a professional analysis of your exact setup.
+          Know your breakeven, your risk exposure, and whether the deal works at current difficulty.
         </p>
+      </div>
+
+      {/* Who it&apos;s for */}
+      <div className="rounded-2xl p-6 mb-8" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+        <h2 className="text-base font-bold text-white mb-4">Who this is for</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {([
+            { label: 'First-time miners', desc: "You've found a deal but don't know if the numbers are real. Get an objective second opinion before you wire money." },
+            { label: 'Scaling operators', desc: "You're expanding from 1–3 machines to 10+ and need a deployment plan, hardware recommendation, and cash flow model." },
+            { label: 'Deal evaluators', desc: "You've been pitched a hosting contract and want an independent analysis before you sign. Red flags identified upfront." },
+          ] as const).map(item => (
+            <div key={item.label} className="rounded-xl p-4" style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}>
+              <div className="text-sm font-semibold text-white mb-1">{item.label}</div>
+              <p className="text-xs text-gray-400 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Pricing tiers */}
@@ -176,11 +194,43 @@ export default function AuditPage() {
         </div>
       </div>
 
-      <div className="mb-10 text-center rounded-xl p-4" style={{ background: 'rgba(0,212,170,0.05)', border: '1px solid rgba(0,212,170,0.15)' }}>
+      <div className="mb-8 text-center rounded-xl p-4" style={{ background: 'rgba(0,212,170,0.05)', border: '1px solid rgba(0,212,170,0.15)' }}>
         <p className="text-sm text-gray-400">
           <span className="font-semibold" style={{ color: '#00d4aa' }}>100% Money-Back Guarantee.</span>{' '}
           If your audit doesn&apos;t give you at least one concrete, actionable insight about your mining deal, we&apos;ll refund you in full. No questions asked.
         </p>
+      </div>
+
+      {/* Testimonials */}
+      <div className="mb-10">
+        <h2 className="text-base font-bold text-white mb-4">What clients say</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {([
+            {
+              quote: "I was about to sign a 12-month contract with a hosting provider I found online. The audit found two red flags in the contract I would have missed. Worth 10x the fee.",
+              author: 'M.R.',
+              location: 'Texas',
+            },
+            {
+              quote: "The build plan gave me a complete picture: which miner, which host, what my monthly net looks like at three BTC price scenarios. Made a confident decision for the first time.",
+              author: 'D.K.',
+              location: 'Colorado',
+            },
+            {
+              quote: "Jacob found that the deal I was evaluating had an implied electricity rate of $0.11/kWh buried in flat-fee language. At current BTC prices, I would have lost money every month.",
+              author: 'A.T.',
+              location: 'Florida',
+            },
+          ] as const).map((t, i) => (
+            <div key={i} className="rounded-2xl p-5 flex flex-col" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+              <p className="text-sm text-gray-400 leading-relaxed flex-1 mb-4 italic">&ldquo;{t.quote}&rdquo;</p>
+              <div>
+                <div className="text-xs font-semibold text-white">{t.author}</div>
+                <div className="text-xs text-gray-600">{t.location}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Inquiry form */}

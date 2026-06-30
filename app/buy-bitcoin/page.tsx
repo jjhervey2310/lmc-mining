@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export const metadata: Metadata = {
   title: 'Best Places to Buy Bitcoin 2026 — Exchange Comparison',
@@ -97,8 +98,10 @@ export default function BuyBitcoinPage() {
         </div>
       </div>
 
+      <AffiliateDisclosure />
+
       {/* Exchange cards */}
-      <div className="space-y-6 mb-16">
+      <div className="space-y-6 mb-16 mt-6">
         {EXCHANGES.map((ex, i) => (
           <div
             key={ex.name}

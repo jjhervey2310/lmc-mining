@@ -25,15 +25,46 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 function addInternalLinks(content: string): string {
   const LINKS: [string, string][] = [
-    ['Antminer S21 XP', '/miners/antminer-s21-xp'],
-    ['Abundant Mines', '/hosts/abundant-miners'],
-    ['deal analyzer', '/deal-analyzer'],
+    // Money pages — high priority
     ['profitability audit', '/audit'],
-    ['hosting provider', '/hosts'],
-    ['mining calculator', '/deal-analyzer'],
+    ['mining audit', '/audit'],
+    ['deal analyzer', '/deal-analyzer'],
+    ['ROI calculator', '/calculator'],
+    ['mining calculator', '/calculator'],
+    ['free deal review', '/review'],
+    ['hosting provider', '/hosting'],
+    ['compare hosting', '/hosting'],
+    // Miner pages
+    ['Antminer S21 Pro', '/miners/antminer-s21-pro'],
+    ['Antminer S21 XP', '/miners/antminer-s21-xp'],
+    ['Whatsminer M60S', '/miners/whatsminer-m60s'],
+    // Host pages
+    ['Abundant Mines', '/hosts/abundant-miners'],
+    ['Abundant Miners', '/hosts/abundant-miners'],
+    // Cross-article links
     ['network difficulty', '/university/what-is-network-difficulty'],
+    ['difficulty adjustment', '/university/what-is-network-difficulty'],
     ['Bitcoin halving', '/university/bitcoin-halving-effect-on-mining'],
+    ['2028 halving', '/university/bitcoin-halving-effect-on-mining'],
     ['Section 179', '/university/bitcoin-mining-taxes'],
+    ['mining taxes', '/university/bitcoin-mining-taxes'],
+    ['hashprice', '/university/what-is-hashprice'],
+    ['mining pool', '/university/mining-pool-comparison'],
+    ['immersion cooling', '/university/air-vs-hydro-vs-immersion-cooling'],
+    ['hydro cooling', '/university/air-vs-hydro-vs-immersion-cooling'],
+    ['air cooling', '/university/air-vs-hydro-vs-immersion-cooling'],
+    ['profitability calculator', '/university/how-to-calculate-bitcoin-mining-profitability'],
+    ['breakeven price', '/university/mining-breakeven-calculator'],
+    ['hosting contract', '/university/mining-contract-red-flags'],
+    ['red flags', '/university/mining-contract-red-flags'],
+    ['mining financing', '/university/mining-financing-options'],
+    ['home mining', '/university/hosted-vs-home-mining'],
+    ['hosted mining', '/university/hosted-vs-home-mining'],
+    ['beginners', '/university/bitcoin-mining-for-beginners'],
+    ['mining at scale', '/university/mining-at-scale'],
+    ['Antminer vs Whatsminer', '/university/antminer-vs-whatsminer'],
+    ['future of Bitcoin mining', '/university/future-of-bitcoin-mining'],
+    ['S21 Pro review', '/university/antminer-s21-pro-review'],
   ]
   for (const [phrase, href] of LINKS) {
     if (content.includes(`href="${href}"`)) continue
