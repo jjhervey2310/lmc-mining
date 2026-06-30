@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Calculator from '@/components/Calculator'
+import BreakevenWidget from '@/components/BreakevenWidget'
 
 export const metadata: Metadata = {
   title: 'Bitcoin Mining ROI Calculator — Free Profitability Tool',
@@ -94,6 +95,11 @@ export default function CalculatorPage() {
 
       {/* Calculator */}
       <Calculator />
+
+      {/* Breakeven widget */}
+      <div className="mt-10">
+        <BreakevenWidget />
+      </div>
 
       {/* FAQ */}
       <div className="mt-16">

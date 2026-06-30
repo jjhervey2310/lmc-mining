@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Miner, HostingProvider, CoolingType } from '@/lib/types'
+import { Miner, HostingProvider, CoolingType, CalculatorResults } from '@/lib/types'
 import { calculateMiningProfitability, formatBTC, formatUSD, formatDays } from '@/lib/calculator'
 import VerificationBadge from './VerificationBadge'
 
@@ -375,6 +375,9 @@ export default function Calculator() {
         </div>
       )}
 
+      {/* Difficulty stress test */}
+      {results && <StressTest results={results} />}
+
       {/* Abundant Miners deposit note */}
       {selectedProvider?.tier === 1 && results && (
         <div
@@ -425,6 +428,78 @@ export default function Calculator() {
           Get a Free Deal Review →
         </a>
       </div>
+    </div>
+  )
+}
+
+const STRESS_INCREMENTS = [10, 20, 30, 40]
+
+function StressTest({ results }: { results: CalculatorResults }) {
+  const [open, setOpen] = useState(false)
+  const showHosted = results.daily_hosted_cost !== null
+
+  const rows = STRESS_INCREMENTS.map(pct => {
+    const factor = 1 / (1 + pct / 100)
+    const newGross = results.daily_gross_revenue_usd * factor
+    const homeNet = newGross - results.daily_home_electricity_cost
+    const hostedNet = showHosted ? newGross - results.daily_hosted_cost! : null
+    return { pct, homeNet, hostedNet }
+  })
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #374151' }}>
+      <button
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:opacity-90"
+        style={{ background: '#1f2937', color: '#e2e8f0' }}
+        onClick={() => setOpen(o => !o)}
+      >
+        <span>⚡ Stress Test at Higher Difficulty</span>
+        <span className="text-gray-400 text-xs">{open ? '▲ Hide' : '▼ Show'}</span>
+      </button>
+      {open && (
+        <div className="p-4" style={{ background: '#111827' }}>
+          <p className="text-xs text-gray-500 mb-4">
+            Revenue scales inversely with difficulty. Power and hosting costs are held constant.
+            Use this to stress-test your deal before signing a contract.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr style={{ borderBottom: '1px solid #374151' }}>
+                  <th className="text-left pb-2 pr-4 text-gray-400 font-medium">Difficulty</th>
+                  {showHosted ? (
+                    <>
+                      <th className="text-right pb-2 pr-4 text-gray-400 font-medium">Daily (Hosted)</th>
+                      <th className="text-right pb-2 pr-4 text-gray-400 font-medium">Monthly</th>
+                      <th className="text-right pb-2 text-gray-400 font-medium">Annual</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="text-right pb-2 pr-4 text-gray-400 font-medium">Daily (Home)</th>
+                      <th className="text-right pb-2 pr-4 text-gray-400 font-medium">Monthly</th>
+                      <th className="text-right pb-2 text-gray-400 font-medium">Annual</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(row => {
+                  const net = showHosted ? row.hostedNet! : row.homeNet
+                  const c = net >= 0 ? '#00d4aa' : '#ff4757'
+                  return (
+                    <tr key={row.pct} style={{ borderBottom: '1px solid #1f2937' }}>
+                      <td className="py-2 pr-4 font-mono text-gray-300">+{row.pct}%</td>
+                      <td className="py-2 pr-4 text-right font-mono" style={{ color: c }}>{formatUSD(net)}</td>
+                      <td className="py-2 pr-4 text-right font-mono" style={{ color: c }}>{formatUSD(net * 30)}</td>
+                      <td className="py-2 text-right font-mono" style={{ color: c }}>{formatUSD(net * 365)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

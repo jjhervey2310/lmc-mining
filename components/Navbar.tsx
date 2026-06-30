@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { href: '/financing', label: 'Financing' },
   { href: '/glossary', label: 'Glossary' },
   { href: '/profitable', label: 'Profitability' },
+  { href: '/scam-alerts', label: 'Scam Alerts' },
 ]
 
 export default function Navbar() {
