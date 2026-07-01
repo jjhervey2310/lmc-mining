@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import ElectricalArc from '@/components/ElectricalArc'
+import dynamic from 'next/dynamic'
+const ElectricalArc = dynamic(() => import('@/components/ElectricalArc'), { ssr: false })
 import MiningBackground from '@/components/MiningBackground'
 
 const NAV_LINKS = [
