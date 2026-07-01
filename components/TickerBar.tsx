@@ -29,8 +29,6 @@ export default function TickerBar() {
   const [hashprice, setHashprice] = useState<string | null>(null)
   const [networkEH, setNetworkEH] = useState<string | null>(null)
 
-  if (pathname === '/') return null
-
   useEffect(() => {
     let cancelled = false
     async function fetchPrice() {
@@ -56,6 +54,8 @@ export default function TickerBar() {
     const iv = setInterval(fetchPrice, 60_000)
     return () => { cancelled = true; clearInterval(iv) }
   }, [])
+
+  if (pathname === '/') return null
 
   const items = [
     btcPrice ? `BTC: ${btcPrice}` : 'BTC: Loading...',
