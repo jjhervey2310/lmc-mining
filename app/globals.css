@@ -272,61 +272,72 @@ body {
   border-color: rgba(247, 147, 26, 0.4) !important;
 }
 
-/* ─── Electrical arc animations ─────────────────────────────────────────── */
+/* ─── Mining background ──────────────────────────────────────────────────── */
 
-@keyframes electricFlash {
-  0%,  100%         { opacity: 0; }
-  0.5%              { opacity: 0.85; }
-  1%                { opacity: 0.6; }
-  2%                { opacity: 0.9; }
-  3%                { opacity: 0; }
+.mining-bg-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+  animation: bgBreath 22s ease-in-out infinite alternate;
+  z-index: 0;
+}
+@keyframes bgBreath {
+  from { transform: scale(1); }
+  to   { transform: scale(1.04); }
+}
+.mining-bg-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 75% 65% at 50% 42%, transparent 25%, rgba(8,8,8,0.45) 65%, rgba(8,8,8,0.82) 100%);
+  pointer-events: none;
+}
+.mining-bg-bottom-fade {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent, #0a0a0a);
+  pointer-events: none;
 }
 
-.electrical-arc-overlay { position: absolute; inset: 0; z-index: 8; }
+/* ─── Cable glow ─────────────────────────────────────────────────────────── */
 
-.arc { opacity: 0; }
+.cable-glow {
+  position: absolute;
+  border-radius: 4px;
+  filter: blur(8px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.cable-glow-v1 { left:15%; top:8%; bottom:8%; width:6px; background:linear-gradient(to bottom,transparent 5%,rgba(247,147,26,0.9) 35%,rgba(247,120,20,0.7) 65%,transparent 95%); animation:cableFlicker1 4.1s ease-in-out infinite; }
+.cable-glow-v2 { left:38%; top:12%; bottom:12%; width:5px; background:linear-gradient(to bottom,transparent 8%,rgba(80,160,255,0.8) 40%,rgba(60,140,255,0.6) 70%,transparent 92%); animation:cableFlicker2 6.3s ease-in-out infinite; filter:blur(10px); }
+.cable-glow-v3 { left:63%; top:5%; bottom:5%; width:6px; background:linear-gradient(to bottom,transparent 3%,rgba(247,147,26,0.85) 30%,rgba(230,110,15,0.65) 70%,transparent 97%); animation:cableFlicker3 5.0s ease-in-out infinite; }
+.cable-glow-v4 { left:84%; top:15%; bottom:15%; width:4px; background:linear-gradient(to bottom,transparent 10%,rgba(0,212,170,0.7) 45%,rgba(0,180,140,0.5) 75%,transparent 90%); animation:cableFlicker4 7.8s ease-in-out infinite; filter:blur(12px); }
+.cable-glow-diag { left:20%; top:35%; width:28%; height:5px; background:linear-gradient(to right,transparent,rgba(247,147,26,0.6) 40%,rgba(80,160,255,0.5) 70%,transparent); transform:rotate(-6deg); animation:cableFlicker2 8.5s ease-in-out infinite 1.2s; filter:blur(6px); }
 
-.arc-1 { animation: electricFlash 9s ease-in-out infinite 0s; }
-.arc-2 { animation: electricFlash 11s ease-in-out infinite 2.4s; }
-.arc-3 { animation: electricFlash 8s ease-in-out infinite 5.1s; }
-.arc-4 { animation: electricFlash 12s ease-in-out infinite 7.3s; }
-.arc-5 { animation: electricFlash 10s ease-in-out infinite 3.8s; }
-
-/* ─── Cable glow animations ──────────────────────────────────────────────── */
-
-@keyframes cableGlowPulse {
-  0%, 100% {
-    opacity: 0.08;
-    box-shadow: 0 0 4px 1px rgba(247,180,50,0.3);
-    background: rgba(247,180,50,0.5);
-  }
-  50% {
-    opacity: 0.22;
-    box-shadow: 0 0 10px 3px rgba(247,180,50,0.5), 0 0 20px 6px rgba(247,147,26,0.15);
-    background: rgba(255,220,100,0.7);
-  }
+@keyframes cableFlicker1 {
+  0%,100%{opacity:0.75} 12%{opacity:1} 28%{opacity:0.5} 45%{opacity:0.95} 60%{opacity:0.6} 74%{opacity:0.15} 77%{opacity:0.9} 90%{opacity:0.7}
+}
+@keyframes cableFlicker2 {
+  0%,100%{opacity:0.55} 20%{opacity:0.85} 45%{opacity:0.35} 65%{opacity:0.9} 80%{opacity:0.45}
+}
+@keyframes cableFlicker3 {
+  0%,100%{opacity:0.65} 15%{opacity:0.9} 35%{opacity:0.4} 50%{opacity:0.1} 53%{opacity:0.85} 75%{opacity:0.7}
+}
+@keyframes cableFlicker4 {
+  0%,100%{opacity:0.4} 30%{opacity:0.7} 60%{opacity:0.25} 80%{opacity:0.6}
 }
 
-@keyframes cableGlowPulseBlue {
-  0%, 100% {
-    opacity: 0.06;
-    box-shadow: 0 0 4px 1px rgba(100,200,255,0.2);
-    background: rgba(100,200,255,0.4);
-  }
-  50% {
-    opacity: 0.18;
-    box-shadow: 0 0 10px 3px rgba(100,200,255,0.4), 0 0 20px 6px rgba(100,200,255,0.15);
-    background: rgba(180,230,255,0.6);
-  }
-}
+/* ─── Lightning button strike ────────────────────────────────────────────── */
 
-.cable-glow { border-radius: 2px; }
-.cable-glow-1 { animation: cableGlowPulse 6s ease-in-out infinite 0s; }
-.cable-glow-2 { animation: cableGlowPulseBlue 7.5s ease-in-out infinite 1.8s; }
-.cable-glow-3 { animation: cableGlowPulse 5.2s ease-in-out infinite 3.3s; }
-.cable-glow-4 { animation: cableGlowPulseBlue 8s ease-in-out infinite 0.9s; }
-.cable-glow-5 { animation: cableGlowPulse 6.8s ease-in-out infinite 4.5s; }
-.cable-glow-6 { animation: cableGlowPulseBlue 9s ease-in-out infinite 2.1s; }
+.lightning-btn { cursor: pointer; }
+.lightning-strike { animation: boltFlash 0.6s ease-out forwards; pointer-events: none; }
+@keyframes boltFlash {
+  0%   { opacity:1;   transform:scale(1) translateY(0); }
+  40%  { opacity:0.9; transform:scale(1.15) translateY(-4px); }
+  100% { opacity:0;   transform:scale(0.7) translateY(-12px); }
+}
 
 /* ─── Landing page headline animation ───────────────────────────────────── */
 
