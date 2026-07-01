@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import DifficultyWidget from '@/components/DifficultyWidget'
-import HashpriceChart from '@/components/HashpriceChart'
+import dynamic from 'next/dynamic'
+const DifficultyWidget = dynamic(() => import('@/components/DifficultyWidget'), { ssr: false })
+const HashpriceChart = dynamic(() => import('@/components/HashpriceChart'), { ssr: false })
 import MethodologyCallout from '@/components/MethodologyCallout'
 
 const ORANGE = '#f7931a'

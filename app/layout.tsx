@@ -3,6 +3,7 @@ import './globals.css'
 import Navbar from '@/components/Navbar'
 import EmailCapture from '@/components/EmailCapture'
 import TickerBar from '@/components/TickerBar'
+import ExitIntent from '@/components/ExitIntent'
 
 export const metadata: Metadata = {
   title: {
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col" style={{ background: '#0a0a0a', color: '#e2e8f0' }}>
         <TickerBar />
         <Navbar />
+        <ExitIntent />
         <main className="flex-1 pb-16 md:pb-0">{children}</main>
 
         <footer className="border-t mt-16" style={{ borderColor: '#222222' }}>

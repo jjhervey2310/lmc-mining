@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import DifficultyWidget from '@/components/DifficultyWidget'
-import HashpriceChart from '@/components/HashpriceChart'
+import dynamic from 'next/dynamic'
+const DifficultyWidget = dynamic(() => import('@/components/DifficultyWidget'), { ssr: false })
+const HashpriceChart = dynamic(() => import('@/components/HashpriceChart'), { ssr: false })
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
