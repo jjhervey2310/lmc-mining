@@ -33,7 +33,7 @@ function drawPath(ctx: CanvasRenderingContext2D, pts: Pt[], opacity: number, wid
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.shadowColor = color
-  ctx.shadowBlur = width * 8
+  ctx.shadowBlur = width * 10
   ctx.stroke()
   ctx.shadowBlur = 0
 }
@@ -63,41 +63,61 @@ export default function ElectricalArc() {
     const arcs: Arc[] = []
     let lastFire = 0
     let nextIn = rand(2000, 5000)
+    let flashStart = -1
+    const FLASH_MS = 75
     let raf = 0
 
     function spawn() {
       const W = canvas!.width
       const H = canvas!.height
+      // Zones: from/to in opposite quadrants so bolts travel far across the screen
       const zones: [Pt, Pt][] = [
-        [{ x: rand(0, W * 0.15), y: rand(0, H * 0.25) }, { x: rand(W * 0.05, W * 0.3), y: rand(H * 0.05, H * 0.4) }],
-        [{ x: rand(W * 0.85, W), y: rand(0, H * 0.25) }, { x: rand(W * 0.7, W * 0.95), y: rand(H * 0.05, H * 0.4) }],
-        [{ x: rand(0, W * 0.15), y: rand(H * 0.7, H) }, { x: rand(W * 0.05, W * 0.3), y: rand(H * 0.55, H * 0.95) }],
-        [{ x: rand(W * 0.85, W), y: rand(H * 0.7, H) }, { x: rand(W * 0.65, W * 0.95), y: rand(H * 0.55, H * 0.95) }],
-        [{ x: 0, y: rand(H * 0.25, H * 0.75) }, { x: rand(W * 0.05, W * 0.2), y: rand(H * 0.2, H * 0.8) }],
-        [{ x: W, y: rand(H * 0.25, H * 0.75) }, { x: rand(W * 0.8, W * 0.95), y: rand(H * 0.2, H * 0.8) }],
+        [{ x: rand(0, W * 0.1),  y: rand(0, H * 0.15)       }, { x: rand(W * 0.5, W * 0.95), y: rand(H * 0.55, H)        }],
+        [{ x: rand(W * 0.9, W),  y: rand(0, H * 0.15)       }, { x: rand(W * 0.05, W * 0.5), y: rand(H * 0.55, H)        }],
+        [{ x: rand(0, W * 0.1),  y: rand(H * 0.85, H)       }, { x: rand(W * 0.5, W * 0.95), y: rand(0, H * 0.45)        }],
+        [{ x: rand(W * 0.9, W),  y: rand(H * 0.85, H)       }, { x: rand(W * 0.05, W * 0.5), y: rand(0, H * 0.45)        }],
+        [{ x: 0,                  y: rand(H * 0.15, H * 0.85)}, { x: rand(W * 0.55, W * 0.98), y: rand(H * 0.05, H * 0.95)}],
+        [{ x: W,                  y: rand(H * 0.15, H * 0.85)}, { x: rand(W * 0.02, W * 0.45), y: rand(H * 0.05, H * 0.95)}],
+        [{ x: rand(W * 0.1, W * 0.9), y: 0                  }, { x: rand(W * 0.05, W * 0.95), y: rand(H * 0.5, H)        }],
       ]
       const [from, to] = zones[Math.floor(Math.random() * zones.length)]
-      const chaos = rand(25, 60)
-      const trunk = buildPath(from, to, Math.floor(rand(7, 15)), chaos)
+      const chaos = rand(45, 100)
+      const trunk = buildPath(from, to, Math.floor(rand(14, 24)), chaos)
       const branches: Pt[][] = [trunk]
-      const numBranches = Math.floor(rand(1, 4))
+      const numBranches = Math.floor(rand(3, 7))
       for (let b = 0; b < numBranches; b++) {
         const origin = trunk[Math.floor(rand(1, trunk.length - 1))]
         const angle = rand(0, Math.PI * 2)
-        const len = rand(30, 100)
+        const len = rand(100, 280)
         const end: Pt = { x: origin.x + Math.cos(angle) * len, y: origin.y + Math.sin(angle) * len }
-        branches.push(buildPath(origin, end, Math.floor(rand(3, 7)), chaos * 0.5))
+        branches.push(buildPath(origin, end, Math.floor(rand(6, 12)), chaos * 0.6))
       }
-      arcs.push({ paths: branches, start: performance.now(), duration: rand(140, 320) })
+      arcs.push({ paths: branches, start: performance.now(), duration: rand(180, 380) })
+      flashStart = performance.now()
     }
 
     function loop(now: number) {
       ctx!.clearRect(0, 0, canvas!.width, canvas!.height)
+
       if (now - lastFire > nextIn) {
         spawn()
         lastFire = now
         nextIn = rand(4500, 6500)
       }
+
+      // Brief screen-wide illumination flash when a bolt fires
+      if (flashStart > 0) {
+        const fp = (now - flashStart) / FLASH_MS
+        if (fp < 1) {
+          ctx!.globalAlpha = (1 - fp) * 0.07
+          ctx!.fillStyle = 'rgba(200,230,255,1)'
+          ctx!.fillRect(0, 0, canvas!.width, canvas!.height)
+        } else {
+          flashStart = -1
+        }
+        ctx!.globalAlpha = 1
+      }
+
       for (let i = arcs.length - 1; i >= 0; i--) {
         const arc = arcs[i]
         const elapsed = now - arc.start
@@ -105,11 +125,15 @@ export default function ElectricalArc() {
         const p = elapsed / arc.duration
         let base = p < 0.12 ? p / 0.12 : p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4
         if (p > 0.12 && p < 0.6 && Math.random() > 0.88) base *= 0.25
-        const op = base * 0.28
+        const op = base * 0.65
         arc.paths.forEach((path, idx) => {
           const isTrunk = idx === 0
-          drawPath(ctx!, path, op * 0.35, isTrunk ? 5 : 3, 'rgba(160,220,255,1)')
-          drawPath(ctx!, path, op, isTrunk ? 1.5 : 0.9, 'rgba(230,245,255,1)')
+          // Wide ambient halo
+          drawPath(ctx!, path, op * 0.14, isTrunk ? 18 : 9,   'rgba(120,195,255,1)')
+          // Mid glow body
+          drawPath(ctx!, path, op * 0.45, isTrunk ? 10 : 5,   'rgba(160,220,255,1)')
+          // Bright electric core
+          drawPath(ctx!, path, op * 0.90, isTrunk ? 3.5 : 1.8, 'rgba(235,248,255,1)')
         })
       }
       raf = requestAnimationFrame(loop)
