@@ -1,8 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
-const ElectricalArc = dynamic(() => import('@/components/ElectricalArc'), { ssr: false })
 import MiningBackground from '@/components/MiningBackground'
 
 const NAV_LINKS = [
@@ -19,8 +17,6 @@ export default function LandingShell() {
       overlay={0.74}
       className="min-h-screen flex flex-col"
     >
-      <ElectricalArc />
-
       {/* Minimal nav */}
       <nav className="relative z-20 flex items-center justify-between px-6 md:px-12 py-6">
         <div className="flex items-center gap-2">

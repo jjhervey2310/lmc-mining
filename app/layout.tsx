@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar'
 import EmailCapture from '@/components/EmailCapture'
 import TickerBar from '@/components/TickerBar'
 import ExitIntent from '@/components/ExitIntent'
+import AmbientEffects from '@/components/AmbientEffects'
 
 export const metadata: Metadata = {
   title: {
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col" style={{ background: '#0a0a0a', color: '#e2e8f0' }}>
+        <AmbientEffects />
         <TickerBar />
         <Navbar />
         <ExitIntent />

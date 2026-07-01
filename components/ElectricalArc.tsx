@@ -96,7 +96,7 @@ export default function ElectricalArc() {
       if (now - lastFire > nextIn) {
         spawn()
         lastFire = now
-        nextIn = rand(8000, 12000)
+        nextIn = rand(4500, 6500)
       }
       for (let i = arcs.length - 1; i >= 0; i--) {
         const arc = arcs[i]
@@ -116,7 +116,7 @@ export default function ElectricalArc() {
     }
 
     lastFire = performance.now()
-    nextIn = rand(1500, 4000)
+    nextIn = rand(800, 2200)
     raf = requestAnimationFrame(loop)
 
     return () => {
