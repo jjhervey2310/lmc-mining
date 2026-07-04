@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const title = searchParams.get('title') || 'LMC Mining Intelligence'
+  const title = searchParams.get('title') || 'Lightning Mines'
   const subtitle = searchParams.get('sub') || 'Independent Bitcoin Mining Data'
 
   return new ImageResponse(
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
             marginBottom: '20px',
           }}
         >
-          LMC Mining Intelligence
+          Lightning Mines
         </div>
 
         {/* Title */}
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
             color: '#4b5563',
           }}
         >
-          lmcmining.com
+          lightningmines.com
         </div>
       </div>
     ),

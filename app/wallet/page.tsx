@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Best Bitcoin Hardware Wallets for Miners',
   description: 'Why Bitcoin miners need a hardware wallet, how mining payouts get exposed to theft, and which hardware wallets are the right fit for securing mining rewards.',
+  alternates: { canonical: '/wallet' },
 }
 
 export default function WalletPage() {
@@ -35,7 +36,7 @@ export default function WalletPage() {
           Ledger Hardware Wallet
         </h2>
         <p style={{ color: '#555', marginBottom: '1.5rem' }}>
-          Recommended by LMC Mining. Industry-standard cold storage for Bitcoin miners.
+          Recommended by Lightning Mines. Industry-standard cold storage for Bitcoin miners.
         </p>
         <a
           href="https://shop.ledger.com/?r=e8ab22756ddf"
@@ -56,7 +57,7 @@ export default function WalletPage() {
           Get Ledger →
         </a>
         <p style={{ fontSize: '0.85rem', color: '#777', marginTop: '0.5rem' }}>
-          Disclosure: LMC earns a commission from Ledger sales at no extra cost to you.
+          Disclosure: Lightning Mines earns a commission from Ledger sales at no extra cost to you.
         </p>
       </section>
 

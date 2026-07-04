@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/compare/antminer-s21-xp-vs-s21-pro' },
   title: 'Antminer S21 XP vs S21 Pro: Which Should You Buy in 2026?',
   description: 'Detailed comparison of the Antminer S21 XP (270 TH/s, 13.5 J/TH) vs S21 Pro (234 TH/s, 15 J/TH). Profitability, ROI, and which wins for your budget in 2026.',
 }
@@ -34,7 +35,7 @@ const articleSchema = {
   '@type': 'Article',
   headline: 'Antminer S21 XP vs S21 Pro: Which Should You Buy in 2026?',
   description: 'Detailed profitability and specs comparison of the Antminer S21 XP and S21 Pro for Bitcoin mining in 2026.',
-  author: { '@type': 'Organization', name: 'LMC Mining Intelligence' },
+  author: { '@type': 'Organization', name: 'Lightning Mines' },
 }
 
 const faqSchema = {
@@ -92,7 +93,7 @@ export default function CompareS21XPvsS21ProPage() {
           { label: 'Market Price', xp: '$5,200', pro: '$3,800', winXP: false },
           { label: 'Manufacturer', xp: 'Bitmain', pro: 'Bitmain', winXP: null },
           { label: 'Cooling Type', xp: 'Air', pro: 'Air', winXP: null },
-          { label: 'LMC Rating', xp: '9.8/10', pro: '9.5/10', winXP: true },
+          { label: 'Our Rating', xp: '9.8/10', pro: '9.5/10', winXP: true },
         ].map((row, i) => (
           <div key={row.label} className="grid grid-cols-3 py-3 px-4 text-sm items-center" style={{ background: i % 2 === 0 ? '#0d1421' : '#111827', borderTop: '1px solid #1a2332' }}>
             <div className="text-gray-400">{row.label}</div>

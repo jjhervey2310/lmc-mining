@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/compare/home-mining-vs-hosted-mining' },
   title: 'Home Mining vs Hosted Mining: The Real Cost Comparison 2026',
   description: 'Should you mine at home or use a hosting provider? Real cost breakdown including electricity, hardware, risk, and ROI for both routes in 2026.',
 }
@@ -11,7 +12,7 @@ const articleSchema = {
   '@type': 'Article',
   headline: 'Home Mining vs Hosted Mining: The Real Cost Comparison 2026',
   description: 'Detailed cost and risk breakdown of home mining versus hosted mining for Bitcoin in 2026.',
-  author: { '@type': 'Organization', name: 'LMC Mining Intelligence' },
+  author: { '@type': 'Organization', name: 'Lightning Mines' },
 }
 
 const faqSchema = {
@@ -195,7 +196,7 @@ export default function HomeVsHostedPage() {
             Run the Numbers Free
           </Link>
         </div>
-        <p className="text-xs text-gray-600 mt-3">LMC Mining earns a commission from Abundant Mines at no cost to you.</p>
+        <p className="text-xs text-gray-600 mt-3">Lightning Mines earns a commission from Abundant Mines at no cost to you.</p>
       </div>
 
       {/* FAQ */}

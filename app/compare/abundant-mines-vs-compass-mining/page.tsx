@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/compare/abundant-mines-vs-compass-mining' },
   title: 'Abundant Mines vs Compass Mining: Hosting Comparison 2026',
   description: 'Side-by-side comparison of Abundant Mines ($225/mo flat) vs Compass Mining ($0.077/kWh). Pricing, locations, power, financing, and which is better for your setup.',
 }
@@ -11,7 +12,7 @@ const articleSchema = {
   '@type': 'Article',
   headline: 'Abundant Mines vs Compass Mining: Hosting Comparison 2026',
   description: 'Independent comparison of Abundant Mines and Compass Mining for Bitcoin hosting in 2026.',
-  author: { '@type': 'Organization', name: 'LMC Mining Intelligence' },
+  author: { '@type': 'Organization', name: 'Lightning Mines' },
 }
 
 export default function AbundantVsCompassPage() {
@@ -25,7 +26,7 @@ export default function AbundantVsCompassPage() {
       </div>
 
       <div className="mb-2 text-xs font-semibold px-3 py-1 rounded-full inline-block" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
-        Affiliate disclosure: LMC Mining earns a commission from Abundant Mines. Compass Mining is not an affiliate — our comparison is independent.
+        Affiliate disclosure: Lightning Mines earns a commission from Abundant Mines. Compass Mining is not an affiliate — our comparison is independent.
       </div>
 
       <h1 className="text-3xl md:text-4xl font-bold text-white mt-4 mb-3 leading-tight">
@@ -53,7 +54,7 @@ export default function AbundantVsCompassPage() {
           { label: 'Min Contract', abundant: '12 months', compass: 'Varies by facility', winAbundant: null },
           { label: 'Min Units', abundant: '1 miner', compass: '1 miner', winAbundant: null },
           { label: 'Uptime SLA', abundant: '99%', compass: '98%', winAbundant: true },
-          { label: 'Affiliate (LMC)', abundant: 'Yes — disclosed', compass: 'No', winAbundant: null },
+          { label: 'Affiliate (Lightning Mines)', abundant: 'Yes — disclosed', compass: 'No', winAbundant: null },
         ].map((row, i) => (
           <div key={row.label} className="grid grid-cols-3 py-3 px-4 text-sm" style={{ background: i % 2 === 0 ? '#0d1421' : '#111827', borderTop: '1px solid #1a2332' }}>
             <div className="text-gray-400">{row.label}</div>
@@ -114,7 +115,7 @@ export default function AbundantVsCompassPage() {
             Run the Numbers Free →
           </Link>
         </div>
-        <p className="text-xs text-gray-600 mt-3">LMC Mining earns a commission from Abundant Mines. Compass Mining is not affiliated.</p>
+        <p className="text-xs text-gray-600 mt-3">Lightning Mines earns a commission from Abundant Mines. Compass Mining is not affiliated.</p>
       </div>
     </div>
   )

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/university' },
   title: 'Bitcoin Mining University — Free Guides for 2026',
   description:
     'Free Bitcoin mining education hub. 12 guides covering mining basics, hardware, hosting, profitability, pool fees, taxes, scams, and advanced strategy. Written by miners, for miners.',

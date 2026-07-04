@@ -238,7 +238,7 @@ export default function HostingMatchPage() {
             )}
 
             {rec.isAffiliate && (
-              <p className="text-xs text-gray-600 mt-3">Affiliate link — LMC Mining earns a commission at no cost to you.</p>
+              <p className="text-xs text-gray-600 mt-3">Affiliate link — Lightning Mines earns a commission at no cost to you.</p>
             )}
           </div>
 

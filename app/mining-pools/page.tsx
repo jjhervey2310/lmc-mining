@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/mining-pools' },
   title: 'Best Bitcoin Mining Pools 2026 — Comparison & Review',
   description: 'Compare the best Bitcoin mining pools in 2026. Foundry USA, Antpool, Luxor, Braiins, Ocean — payout methods, fees, luck, and which pool is right for your operation.',
 }

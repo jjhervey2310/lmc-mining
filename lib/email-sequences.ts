@@ -1,14 +1,14 @@
 // Email sequence content — subjects and HTML for each email in the 5-part welcome series.
 // Imported by lib/send-email.ts which handles the actual Resend API calls.
 
-const SITE = 'https://lmc-mining.vercel.app'
+const SITE = 'https://www.lightningmines.com'
 const AFFILIATE = 'https://abundantmines.com/ref/72/'
 const STRIPE_97 = 'https://buy.stripe.com/fZuaEYdeQaSEfw08kAf7i01'
 const STRIPE_297 = 'https://buy.stripe.com/6oU8wQfmY2m86Zu7gwf7i00'
 
 const header = (tagline?: string) => `
   <div style="margin-bottom:32px;">
-    <div style="color:#f59e0b;font-size:22px;font-weight:bold;margin-bottom:4px;">⚡ LMC Mining Intelligence</div>
+    <div style="color:#f59e0b;font-size:22px;font-weight:bold;margin-bottom:4px;">⚡ Lightning Mines</div>
     ${tagline ? `<div style="color:#475569;font-size:13px;">${tagline}</div>` : ''}
   </div>
 `
@@ -16,8 +16,8 @@ const header = (tagline?: string) => `
 const footer = (disclosure?: string) => `
   <hr style="border:none;border-top:1px solid #1e293b;margin:32px 0;" />
   ${disclosure ? `<p style="color:#475569;font-size:12px;line-height:1.6;margin-bottom:16px;">${disclosure}</p>` : ''}
-  <p style="color:#475569;font-size:13px;margin-bottom:4px;">— Jacob H., Founder of LMC Mining Intelligence</p>
-  <p style="color:#334155;font-size:12px;margin:0;">You're receiving this because you signed up at lmc-mining.vercel.app. Reply to this email to unsubscribe.</p>
+  <p style="color:#475569;font-size:13px;margin-bottom:4px;">— Jacob H., Founder of Lightning Mines</p>
+  <p style="color:#334155;font-size:12px;margin:0;">You're receiving this because you signed up at lightningmines.com. Reply to this email to unsubscribe.</p>
 `
 
 const cta = (href: string, text: string, style: 'gold' | 'teal' | 'ghost' = 'gold') => {
@@ -41,7 +41,7 @@ export function getEmail1Html(spreadsheetLink: string): string {
       ${header('Independent Bitcoin mining data — no sponsored rankings')}
       <h1 style="color:#ffffff;font-size:26px;margin-bottom:8px;">Your Mining ROI Spreadsheet is here</h1>
       <p style="color:#94a3b8;font-size:16px;line-height:1.6;margin-bottom:24px;">
-        Welcome to LMC Mining Intelligence. As promised, here is your free Mining ROI Spreadsheet.
+        Welcome to Lightning Mines. As promised, here is your free Mining ROI Spreadsheet.
       </p>
       ${cta(spreadsheetLink, '📊 Access Your Free Spreadsheet →')}
       ${card(`
@@ -57,7 +57,7 @@ export function getEmail1Html(spreadsheetLink: string): string {
       ${card(`
         <div style="color:#f59e0b;font-weight:bold;margin-bottom:8px;">👋 Quick intro from me</div>
         <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin:0;">
-          I'm Jacob — 8 years in Bitcoin mining. I built LMC Mining because I was frustrated with the biased information
+          I'm Jacob — 8 years in Bitcoin mining. I built Lightning Mines because I was frustrated with the biased information
           everywhere in this space. Every "review" was sponsored, every calculator was designed to make a deal look better
           than it was. This site is different: independent data, honest analysis, no incentives to steer you wrong.
         </p>

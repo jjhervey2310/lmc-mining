@@ -14,6 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${p.name} Review 2026 — Bitcoin Mining Hosting`,
     description: `${p.name} hosting review: pricing, locations, cooling types, contracts, and independent ratings. Is ${p.name} right for your mining operation?`,
+    alternates: { canonical: `/hosts/${slug}` },
   }
 }
 

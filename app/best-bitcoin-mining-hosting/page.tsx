@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/best-bitcoin-mining-hosting' },
   title: 'Best Bitcoin Mining Hosting 2026 — Complete Guide',
   description: 'The definitive guide to Bitcoin mining hosting in 2026. Compare hosting providers, understand pricing models, avoid hidden fees, and find the best deal for your operation.',
   openGraph: {
@@ -175,7 +176,7 @@ const jsonLd = [
     headline: 'Best Bitcoin Mining Hosting 2026 — Complete Guide',
     description: 'The definitive guide to Bitcoin mining hosting in 2026. Compare providers, pricing models, and find the best deal for your operation.',
     author: { '@type': 'Person', name: 'Jacob H.' },
-    publisher: { '@type': 'Organization', name: 'LMC Mining Intelligence', url: 'https://lmc-mining.vercel.app' },
+    publisher: { '@type': 'Organization', name: 'Lightning Mines', url: 'https://www.lightningmines.com' },
     dateModified: '2026-06-01',
   },
   {
@@ -191,7 +192,7 @@ const jsonLd = [
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://lmc-mining.vercel.app' },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.lightningmines.com' },
       { '@type': 'ListItem', position: 2, name: 'Best Bitcoin Mining Hosting 2026' },
     ],
   },

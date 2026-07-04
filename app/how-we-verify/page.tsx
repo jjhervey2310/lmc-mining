@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/how-we-verify' },
   title: 'How We Verify Hosting Providers — Lightning Mines',
   description:
     'Every provider on Lightning Mines goes through the same verification process. This page explains what Verified, Pending, and Flagged mean — and why some providers are excluded entirely.',

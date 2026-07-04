@@ -3,8 +3,9 @@ import { GLOSSARY_TERMS } from '@/lib/data'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Bitcoin Mining Glossary — 200+ Terms Explained',
-  description: 'Complete Bitcoin mining glossary. Hashrate, hashprice, difficulty, J/TH, FPPS, block reward — every key mining term explained in plain language.',
+  title: 'Bitcoin Mining Glossary — Key Terms Explained',
+  description: 'Bitcoin mining glossary. Hashrate, hashprice, difficulty, J/TH, FPPS, block reward — key mining terms explained in plain language.',
+  alternates: { canonical: '/glossary' },
 }
 
 export default function GlossaryPage() {
@@ -28,8 +29,8 @@ export default function GlossaryPage() {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://lmcmining.com' },
-          { '@type': 'ListItem', position: 2, name: 'Mining Glossary', item: 'https://lmcmining.com/glossary' },
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.lightningmines.com' },
+          { '@type': 'ListItem', position: 2, name: 'Mining Glossary', item: 'https://www.lightningmines.com/glossary' },
         ],
       }) }} />
 

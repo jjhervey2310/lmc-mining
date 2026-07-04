@@ -133,7 +133,7 @@ export default function DataPage() {
         '@type': 'DataCatalog',
         name: 'Bitcoin Mining Live Data Dashboard',
         description: 'Real-time Bitcoin mining profitability data: hashprice, network difficulty, hashrate, and miner ROI calculator.',
-        url: 'https://lmcmining.com/data',
+        url: 'https://www.lightningmines.com/data',
       }) }} />
 
       {/* Breadcrumb */}

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/deal-analyzer' },
   title: 'Bitcoin Mining Deal Analyzer',
   description: 'Score any mining hardware and hosting deal in 60 seconds. Get profitability projections, ROI calculations, and risk scores. Free, no signup required.',
   openGraph: {

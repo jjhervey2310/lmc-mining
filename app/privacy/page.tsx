@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: { absolute: 'Privacy Policy | LMC Mining Intelligence' },
-  description: 'Privacy policy for LMC Mining Intelligence. Learn how we collect, use, and protect your personal information.',
+  title: { absolute: 'Privacy Policy | Lightning Mines' },
+  description: 'Privacy policy for Lightning Mines. Learn how we collect, use, and protect your personal information.',
+  alternates: { canonical: '/privacy' },
 }
 
 export default function PrivacyPage() {
@@ -20,7 +21,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-white mb-3">1. Who We Are</h2>
-          <p>LMC Mining Intelligence (&quot;LMC Mining,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates the website at lmc-mining.vercel.app. We provide independent Bitcoin mining data, profitability tools, hardware reviews, and hosting comparisons. We are based in Colorado, USA.</p>
+          <p>Lightning Mines (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates the website at lightningmines.com. We provide independent Bitcoin mining data, profitability tools, hardware reviews, and hosting comparisons. We are based in Colorado, USA.</p>
         </section>
 
         <section>
@@ -59,7 +60,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-white mb-3">4. Affiliate Links and Third-Party Services</h2>
-          <p className="mb-3">LMC Mining contains affiliate links. When you click a link to a hosting provider or marketplace and make a purchase, we may receive a commission at no additional cost to you. Our primary affiliate relationship is with Abundant Miners (abundantmines.com). We also link to hardware marketplaces and exchanges.</p>
+          <p className="mb-3">Lightning Mines contains affiliate links. When you click a link to a hosting provider or marketplace and make a purchase, we may receive a commission at no additional cost to you. Our primary affiliate relationship is with Abundant Miners (abundantmines.com). We also link to hardware marketplaces and exchanges.</p>
           <p>Affiliate compensation does not influence our reviews, ratings, or data. We maintain independent editorial standards.</p>
         </section>
 
@@ -96,7 +97,7 @@ export default function PrivacyPage() {
             <li>· Opt out of email communications (unsubscribe link in every email)</li>
             <li>· Request a copy of data we hold about you</li>
           </ul>
-          <p className="mt-3">To exercise these rights, email us at <span className="text-yellow-400">hello@lmcmining.com</span>.</p>
+          <p className="mt-3">To exercise these rights, email us at <span className="text-yellow-400">contact@lightningmines.com</span>.</p>
         </section>
 
         <section>
@@ -106,7 +107,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-white mb-3">10. Children&apos;s Privacy</h2>
-          <p>LMC Mining is not directed to children under 13. We do not knowingly collect personal information from anyone under 13. If you believe a child has provided us with personal information, contact us and we will delete it promptly.</p>
+          <p>Lightning Mines is not directed to children under 13. We do not knowingly collect personal information from anyone under 13. If you believe a child has provided us with personal information, contact us and we will delete it promptly.</p>
         </section>
 
         <section>
@@ -118,9 +119,9 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-semibold text-white mb-3">12. Contact</h2>
           <p>Questions about this privacy policy? Contact us:</p>
           <div className="mt-3 rounded-lg p-4" style={{ background: '#111827', border: '1px solid #1f2937' }}>
-            <p className="text-gray-300">LMC Mining Intelligence</p>
+            <p className="text-gray-300">Lightning Mines</p>
             <p className="text-gray-400">Colorado, USA</p>
-            <p className="text-yellow-400 mt-1">hello@lmcmining.com</p>
+            <p className="text-yellow-400 mt-1">contact@lightningmines.com</p>
           </div>
         </section>
 

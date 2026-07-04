@@ -114,7 +114,7 @@ export default function FinancingPage() {
         '@type': 'FinancialProduct',
         name: 'Bitcoin Mining Equipment Financing',
         description: 'Finance Bitcoin mining hardware through vendor financing, equipment loans, or specialty lenders. Calculate your monthly payments and ROI.',
-        url: 'https://lmcmining.com/financing',
+        url: 'https://www.lightningmines.com/financing',
       }) }} />
 
       <div className="text-xs text-gray-500 mb-6">

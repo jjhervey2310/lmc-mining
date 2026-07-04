@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import LandingShell from './LandingShell'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/' },
   title: 'Lightning Mines — The Bloomberg of Bitcoin Mining',
   description:
     'Independent Bitcoin mining intelligence. Verified hosting comparisons, live ROI calculator, hashprice data, and expert deal reviews — no sponsored content.',

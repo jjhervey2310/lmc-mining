@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Abundant Mines Review 2026 — $225/Month Flat Fee Hosting',
   description: 'Honest review of Abundant Mines Bitcoin hosting. $225/month flat fee, hydro power, Cascade Locks Oregon. Real numbers, no fluff.',
+  alternates: { canonical: '/hosts/abundant-miners' },
 }
 
 const FAQ_SCHEMA = {
@@ -67,7 +68,7 @@ export default function AbundantMinersPage() {
 
           <p className="text-xs text-gray-600 mt-4">
             <span className="font-medium text-gray-500">Affiliate disclosure:</span>{' '}
-            LMC Mining earns a commission if you sign up through this link, at no extra cost to you.
+            Lightning Mines earns a commission if you sign up through this link, at no extra cost to you.
             We only recommend providers we&apos;d use ourselves.
           </p>
         </div>
@@ -137,7 +138,7 @@ export default function AbundantMinersPage() {
               { label: 'Financing', value: '$140k @ 10% interest / 36 months (on approval)' },
               { label: 'Minimum Miners', value: 'Contact for current minimums' },
               { label: 'Supported Hardware', value: 'All major ASICs (Antminer, Whatsminer, Avalon)' },
-              { label: 'Verification Status', value: 'Independently verified by LMC Mining' },
+              { label: 'Verification Status', value: 'Independently verified by Lightning Mines' },
             ].map((row, i) => (
               <div
                 key={row.label}

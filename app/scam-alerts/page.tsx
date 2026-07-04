@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/scam-alerts' },
   title: 'Bitcoin Mining Scam Alerts — Red Flags, Warning Signs & Documented Fraud',
   description:
     'Documented fraud cases, exit scams, and SEC/DOJ enforcement actions in Bitcoin mining. Red flags checklist and 5 named scam patterns every miner needs to know.',

@@ -5,6 +5,7 @@ import BreakevenWidget from '@/components/BreakevenWidget'
 import { getLivePriceData } from '@/lib/btc-price'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/calculator' },
   title: 'Bitcoin Mining ROI Calculator — Free Profitability Tool',
   description:
     'Free Bitcoin mining profitability calculator. Enter your miner model, hashrate, power, electricity cost, hosting cost, pool fee, and BTC price to calculate gross revenue, net profit, and breakeven analysis.',

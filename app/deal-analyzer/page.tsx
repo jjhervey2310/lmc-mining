@@ -194,7 +194,7 @@ function DealAnalyzerContent() {
         '@type': 'WebApplication',
         name: 'Bitcoin Mining Deal Analyzer',
         description: 'Score any Bitcoin mining hardware and hosting combination across 5 dimensions. Get profitability projections, ROI calculations, and risk assessment in 60 seconds.',
-        url: 'https://lmc-mining.vercel.app/deal-analyzer',
+        url: 'https://www.lightningmines.com/deal-analyzer',
         applicationCategory: 'FinanceApplication',
         operatingSystem: 'Web Browser',
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
@@ -433,7 +433,7 @@ function DealAnalyzerContent() {
                   Get Started with Abundant Mines →
                 </a>
                 <p className="text-xs text-gray-600 mt-2 text-center">
-                  LMC Mining earns a commission if you sign up. This does not affect our independent analysis.
+                  Lightning Mines earns a commission if you sign up. This does not affect our independent analysis.
                 </p>
               </div>
 

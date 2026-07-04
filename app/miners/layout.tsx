@@ -6,6 +6,7 @@ export const metadata: Metadata = {
     template: '%s | Lightning Mines',
   },
   description: 'Compare Bitcoin mining hardware. Antminer S21 XP, S21 Pro, MicroBT M60S and more — specs, efficiency, profitability, and hosting recommendations. Updated 2026.',
+  alternates: { canonical: '/miners' },
 }
 
 export default function MinersLayout({ children }: { children: React.ReactNode }) {

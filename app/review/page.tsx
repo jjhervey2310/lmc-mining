@@ -3,6 +3,7 @@ import Link from 'next/link'
 import LeadForm from '@/components/LeadForm'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/review' },
   title: 'Free Bitcoin Mining Deal Review — Get a Pass or Avoid Verdict',
   description:
     'Submit your Bitcoin mining deal for a free expert review. Tell us your miner model, hosting provider, costs, and contract terms. Get a Pass / Pass with Conditions / Avoid assessment within 48 hours.',

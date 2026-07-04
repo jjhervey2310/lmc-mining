@@ -15,10 +15,10 @@ export async function GET() {
 
   try {
     const result = await resend.emails.send({
-      from: 'LMC Mining <onboarding@resend.dev>',
+      from: 'Lightning Mines <onboarding@resend.dev>',
       to: 'jjhervey1@gmail.com',
-      subject: 'LMC Mining Email Test ⚡',
-      html: '<div style="background:#0a0a0a;color:#ffffff;padding:40px;font-family:sans-serif;"><h1 style="color:#f59e0b;">⚡ Email system working!</h1><p style="color:#94a3b8;">LMC Mining email integration is live. Resend is connected and sending correctly.</p></div>',
+      subject: 'Lightning Mines Email Test ⚡',
+      html: '<div style="background:#0a0a0a;color:#ffffff;padding:40px;font-family:sans-serif;"><h1 style="color:#f59e0b;">⚡ Email system working!</h1><p style="color:#94a3b8;">Lightning Mines email integration is live. Resend is connected and sending correctly.</p></div>',
     })
     return NextResponse.json({ success: true, result })
   } catch (error) {

@@ -79,7 +79,7 @@ export default async function AdminLeadsPage({
     <div style={{ padding: 32, fontFamily: 'sans-serif', background: '#0a0e17', minHeight: '100vh', color: '#e2e8f0' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ color: '#f59e0b', fontSize: 24, fontWeight: 700, margin: 0 }}>⚡ LMC Mining — Leads</h1>
+          <h1 style={{ color: '#f59e0b', fontSize: 24, fontWeight: 700, margin: 0 }}>⚡ Lightning Mines — Leads</h1>
           <p style={{ color: '#64748b', fontSize: 14, margin: '4px 0 0' }}>
             {rows.length} total leads
             {Object.entries(counts).map(([type, n]) => ` · ${n} ${type.replace('_', ' ')}`).join('')}

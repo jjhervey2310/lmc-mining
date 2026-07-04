@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: pageTitle,
     description: `${miner.name} specs, efficiency (${eff.toFixed(1)} J/TH), hashrate (${miner.default_hashrate_th} TH/s), profitability analysis, and hosting provider recommendations. Independent review 2026.`,
+    alternates: { canonical: `/miners/${slug}` },
     openGraph: {
       images: [{ url: `/api/og?title=${encodeURIComponent(pageTitle)}`, width: 1200, height: 630 }],
     },
@@ -97,8 +98,8 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
         {
           '@context': 'https://schema.org', '@type': 'BreadcrumbList',
           itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://lmc-mining.vercel.app' },
-            { '@type': 'ListItem', position: 2, name: 'Hardware Database', item: 'https://lmc-mining.vercel.app/miners' },
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.lightningmines.com' },
+            { '@type': 'ListItem', position: 2, name: 'Hardware Database', item: 'https://www.lightningmines.com/miners' },
             { '@type': 'ListItem', position: 3, name: miner.name },
           ],
         },
@@ -223,7 +224,7 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
               ))}
             </div>
             <p className="text-xs text-gray-600 mt-3">
-              Affiliate disclosure: LMC Mining may earn a commission on purchases through some links. This does not affect our reviews or recommendations.
+              Affiliate disclosure: Lightning Mines may earn a commission on purchases through some links. This does not affect our reviews or recommendations.
             </p>
           </section>
 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/about' },
   title: 'About Lightning Mines — Mission, Affiliate Transparency, Data Policy',
   description:
     'Lightning Mines helps people avoid bad Bitcoin mining deals. Independent analysis, affiliate transparency, and a strict no-fabricated-data policy.',

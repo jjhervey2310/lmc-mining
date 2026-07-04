@@ -3,6 +3,7 @@ import Link from 'next/link'
 import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/buy-bitcoin' },
   title: 'Best Places to Buy Bitcoin 2026 — Exchange Comparison',
   description: 'Compare the best Bitcoin exchanges in 2026. Coinbase, Kraken, River Financial — fees, features, and which is right for Bitcoin miners selling mined BTC.',
 }
@@ -94,7 +95,7 @@ export default function BuyBitcoinPage() {
           Whether you&apos;re selling mined BTC or buying directly, here are the exchanges we recommend — ranked by what matters to miners.
         </p>
         <div className="mt-4 text-xs text-gray-500 max-w-xl mx-auto">
-          Affiliate disclosure: LMC Mining may earn a commission if you open an account through our links. This does not affect our rankings or reviews.
+          Affiliate disclosure: Lightning Mines may earn a commission if you open an account through our links. This does not affect our rankings or reviews.
         </div>
       </div>
 

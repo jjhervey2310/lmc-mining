@@ -7,6 +7,7 @@ import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 import MethodologyCallout from '@/components/MethodologyCallout'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/hosting' },
   title: 'Bitcoin Mining Hosting Comparison 2026 — Verified Providers',
   description:
     'Compare Bitcoin mining hosting providers side by side. Real pricing, power sources, cooling types, minimum commitments, setup fees, and verification status. Abundant Mines is our top pick.',

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/tools' },
   title: 'Bitcoin Mining Tools & Resources — Exchange, Tax Software',
   description:
     'Recommended tools for Bitcoin miners: Kraken exchange for buying and selling BTC, Koinly for crypto tax reporting. All affiliate links clearly disclosed.',

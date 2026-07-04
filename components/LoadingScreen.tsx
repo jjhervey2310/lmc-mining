@@ -169,7 +169,7 @@ export default function LoadingScreen() {
           backgroundClip: 'text',
           lineHeight: 1,
         }}>
-          LMC Mining
+          Lightning Mines
         </div>
         <div style={{
           fontSize: '0.6rem',
