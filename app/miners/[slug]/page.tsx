@@ -89,7 +89,6 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
           description: `${miner.name} Bitcoin ASIC miner — ${miner.default_hashrate_th} TH/s, ${eff} J/TH, ${COOLING_LABELS[miner.cooling_type]}`,
           brand: { '@type': 'Brand', name: miner.manufacturer },
           offers: miner.market_price_usd ? { '@type': 'Offer', price: miner.market_price_usd, priceCurrency: 'USD', availability: 'https://schema.org/InStock' } : undefined,
-          aggregateRating: miner.rating ? { '@type': 'AggregateRating', ratingValue: miner.rating, bestRating: 10, reviewCount: 1 } : undefined,
         },
         {
           '@context': 'https://schema.org', '@type': 'FAQPage',

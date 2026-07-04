@@ -1,5 +1,7 @@
 export interface ArticleData {
   slug: string
+  datePublished: string
+  dateModified: string
   title: string
   meta_description: string
   category: string
@@ -12,6 +14,8 @@ export interface ArticleData {
 export const ARTICLES: ArticleData[] = [
   {
     slug: 'is-bitcoin-mining-profitable-2026',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-29',
     title: 'Is Bitcoin Mining Profitable in 2026? An Honest Analysis',
     meta_description: 'Honest analysis of Bitcoin mining profitability in 2026. Real S21 Pro numbers, breakeven scenarios, difficulty growth, and who should not mine.',
     category: 'Profitability',
@@ -165,6 +169,8 @@ export const ARTICLES: ArticleData[] = [
   },
   {
     slug: 'air-vs-hydro-vs-immersion-cooling',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Air vs Hydro vs Immersion Cooling: Which Is Right for Your Mining Operation?',
     meta_description: 'Air, hydro, or immersion cooling for Bitcoin mining in 2026? Compare efficiency gains, setup costs, ROI thresholds, and which cooling type fits your scale and budget.',
     category: 'Hardware',
@@ -324,6 +330,8 @@ export const ARTICLES: ArticleData[] = [
   },
   {
     slug: 'how-to-calculate-bitcoin-mining-profitability',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'How to Calculate Bitcoin Mining Profitability: The Complete Guide',
     meta_description: 'The complete Bitcoin mining profitability formula with worked examples, difficulty growth modeling, multi-scenario ROI tables, and common calculation mistakes to avoid in 2026.',
     category: 'Education',
@@ -507,6 +515,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'best-bitcoin-miners-2026',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Best Bitcoin Miners of 2026: Ranked by Efficiency and ROI',
     meta_description: 'Best Bitcoin miners of 2026 ranked by J/TH efficiency, hashrate, ROI, and real profitability at current prices. S21 Pro leads air cooling at 15 J/TH and 234 TH/s.',
     category: 'Hardware',
@@ -704,6 +714,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'bitcoin-mining-hosting-guide',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Bitcoin Mining Hosting: Everything You Need to Know Before Signing a Contract',
     meta_description: 'Complete 2026 guide to Bitcoin mining hosting contracts. Flat fee vs per-kWh, 12 questions to ask every provider, red flags, and how to compare deals before committing.',
     category: 'Hosting',
@@ -850,6 +862,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'bitcoin-mining-taxes',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Bitcoin Mining Taxes: What You Need to Know in 2026',
     meta_description: 'Bitcoin mining taxes in 2026: IRS treatment of mined BTC as income, Section 179 equipment deductions, self-employment tax, business structures, and record-keeping systems.',
     category: 'Finance',
@@ -990,6 +1004,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'bitcoin-halving-effect-on-mining',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'How the Bitcoin Halving Affects Mining Profitability',
     meta_description: 'The 2028 Bitcoin halving cuts block rewards to 1.5625 BTC. Historical patterns, post-halving profitability models, efficiency thresholds, and how to position your operation.',
     category: 'Education',
@@ -1173,6 +1189,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'what-is-network-difficulty',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Bitcoin Network Difficulty Explained: Why It Matters for Miners',
     meta_description: 'Bitcoin network difficulty explained for miners in 2026: how the adjustment works, how to model growth in ROI projections, and why efficiency is your only defense.',
     category: 'Education',
@@ -1411,6 +1429,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'mining-financing-options',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'How to Finance a Bitcoin Mining Operation: Loans, Leases, and Vendor Finance',
     meta_description: 'Bitcoin mining financing guide 2026: vendor finance, equipment loans, SBA options, leasing. Full ROI modeling with interest, monthly payment math, and risk assessment.',
     category: 'Finance',
@@ -1567,6 +1587,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'antminer-s21-pro-review',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Antminer S21 Pro Review: Is It Still the Best Air-Cooled Miner in 2026?',
     meta_description: 'Antminer S21 Pro review 2026: 234 TH/s, 15 J/TH efficiency, real profitability data at $60k-$105k BTC, 2028 halving survival analysis, and verdict vs alternatives.',
     category: 'Hardware Reviews',
@@ -1832,6 +1854,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'mining-pool-comparison',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Best Bitcoin Mining Pools 2026: Foundry USA vs Antpool vs F2Pool',
     meta_description: 'Bitcoin mining pool comparison 2026: Foundry USA, Antpool, F2Pool, Braiins. Fees, FPPS vs PPLNS explained, hashrate concentration risks, and which pool maximizes net revenue.',
     category: 'Operations',
@@ -1991,6 +2015,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'hosted-vs-home-mining',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Hosted Mining vs Home Mining: Which Makes More Money?',
     meta_description: 'Hosted vs home Bitcoin mining 2026: full cost comparison, electricity math, noise and heat reality, infrastructure costs, and when each option actually makes sense.',
     category: 'Operations',
@@ -2197,6 +2223,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'mining-contract-red-flags',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: '10 Red Flags in Bitcoin Mining Hosting Contracts to Avoid',
     meta_description: 'Bitcoin mining hosting contract red flags in 2026: 10 warning signs with real examples, what good terms look like, and how to audit any contract before signing.',
     category: 'Hosting',
@@ -2330,6 +2358,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'what-is-hashprice',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'What Is Hashprice and Why Every Miner Should Track It Daily',
     meta_description: 'Hashprice explained for miners in 2026: the formula, historical ranges, how to calculate your breakeven hashprice, and why it\'s a better signal than BTC price alone.',
     category: 'Education',
@@ -2523,6 +2553,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'bitcoin-mining-for-beginners',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Bitcoin Mining for Beginners: Complete 2026 Guide',
     meta_description: 'Complete Bitcoin mining beginner guide 2026: what mining is, the 6-step startup process, hardware and hosting selection, profitability math, and the 2028 halving explained.',
     category: 'Education',
@@ -2673,6 +2705,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'antminer-vs-whatsminer',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Antminer vs Whatsminer: Which Brand Makes Better Bitcoin Miners?',
     meta_description: 'Antminer vs Whatsminer 2026: efficiency, reliability, ecosystem, resale value, hydro comparison, and which brand is right for your specific mining operation.',
     category: 'Hardware Reviews',
@@ -2856,6 +2890,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'mining-at-scale',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Scaling a Bitcoin Mining Operation from 1 to 100 Miners',
     meta_description: 'How to scale Bitcoin mining from 1 to 100 miners in 2026: economics at each stage, hosting negotiations, cooling upgrade thresholds, capital structure, and facility build decisions.',
     category: 'Operations',
@@ -3025,6 +3061,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'future-of-bitcoin-mining',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'The Future of Bitcoin Mining: Hydro, Immersion, and What Comes Next',
     meta_description: 'The future of Bitcoin mining in 2026 and beyond: cooling technology, AI energy competition, 2028 halving impact, hashprice trends, and how to position your operation now.',
     category: 'Industry',
@@ -3212,6 +3250,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'mining-breakeven-calculator',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'How to Calculate Your Mining Breakeven Point',
     meta_description: 'How to calculate your Bitcoin mining breakeven in 2026: the formula, worked examples with S21 Pro, stress tests across BTC price scenarios, and how financing changes the math.',
     category: 'Profitability',
@@ -3478,6 +3518,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
   },
   {
     slug: 'bitcoin-mining-insurance',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
     title: 'Bitcoin Mining Insurance: What\'s Covered and What\'s Not',
     meta_description: 'Bitcoin mining insurance in 2026: what\'s covered, what\'s excluded, cost benchmarks, coverage options, and the risk management framework that protects your hardware investment.',
     category: 'Operations',
@@ -3687,6 +3729,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 const LM_ARTICLES: ArticleData[] = [
   {
     slug: 'what-is-bitcoin-mining',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'What Is Bitcoin Mining?',
     meta_description: 'Bitcoin mining explained simply. Learn what mining is, how it works, why it exists, and what you actually need to start — from blocks and hashes to ASICs and hosted facilities.',
     category: 'Education',
@@ -3741,6 +3785,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'is-bitcoin-mining-profitable',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'Is Bitcoin Mining Profitable in 2026?',
     meta_description: 'Honest analysis of Bitcoin mining profitability in 2026. Real numbers for the Antminer S21 Pro, hosted at $225/month. Breakeven analysis, difficulty growth scenarios, and who should and should not mine.',
     category: 'Profitability',
@@ -3808,6 +3854,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'hosted-bitcoin-mining-explained',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'Hosted Bitcoin Mining Explained',
     meta_description: 'What is hosted Bitcoin mining? How it works, what you pay for, how to evaluate a hosting contract, and the key questions to ask before signing with any facility.',
     category: 'Hosting',
@@ -3875,6 +3923,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'how-to-calculate-bitcoin-mining-roi',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'How to Calculate Bitcoin Mining ROI',
     meta_description: 'Step-by-step guide to calculating Bitcoin mining ROI. Learn the formula, which inputs to use, how to model difficulty growth, and how to find your hardware breakeven price.',
     category: 'Profitability',
@@ -3937,6 +3987,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'bitcoin-mining-electricity-costs',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'Bitcoin Mining Electricity Costs Explained',
     meta_description: 'How electricity costs impact Bitcoin mining profitability. What to pay per kWh, how to compare flat-fee vs per-kWh hosting, and why your power rate determines whether you can mine profitably.',
     category: 'Hosting',
@@ -3987,6 +4039,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'best-bitcoin-miners-for-beginners',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'Best Bitcoin Miners for Beginners in 2026',
     meta_description: 'Which Bitcoin ASIC miner should a beginner buy in 2026? Honest comparison of top models by efficiency, price, and availability. Includes what to avoid and how to buy safely.',
     category: 'Hardware',
@@ -4047,6 +4101,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'bitcoin-mining-hosting-red-flags',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'Bitcoin Mining Hosting Red Flags: What to Watch For',
     meta_description: 'The most common Bitcoin mining hosting scams and red flags. What to look for in a hosting contract, which claims should raise concern, and how to protect your hardware investment.',
     category: 'Hosting',
@@ -4096,6 +4152,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'asic-miner-efficiency-explained',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'ASIC Miner Efficiency Explained: J/TH and What It Means for Profit',
     meta_description: 'What is J/TH in Bitcoin mining? How ASIC miner efficiency works, why it matters more than raw hashrate, and how to use efficiency to compare miners and project profitability.',
     category: 'Hardware',
@@ -4147,6 +4205,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'mining-pool-fees-explained',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'Mining Pool Fees Explained: How They Work and What They Cost You',
     meta_description: 'How Bitcoin mining pool fees work, what different payout schemes (FPPS, PPS+, PPLNS) mean for your income, and how to calculate the real cost of pool fees on your mining revenue.',
     category: 'Education',
@@ -4209,6 +4269,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'home-mining-vs-hosted-mining',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'Home Mining vs Hosted Mining: Which Is Right for You?',
     meta_description: 'Complete comparison of home Bitcoin mining vs hosted mining. Noise, power, costs, profitability, and who should choose each option. Honest analysis with no vested interest in either path.',
     category: 'Hosting',
@@ -4295,6 +4357,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'bitcoin-mining-tax-basics',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'Bitcoin Mining Tax Basics: What You Need to Know',
     meta_description: 'How Bitcoin mining income is taxed in the US. Self-employment income, deductible expenses, Section 179 depreciation, and what records to keep. Educational overview — consult a tax professional for advice specific to your situation.',
     category: 'Finance',
@@ -4356,6 +4420,8 @@ const LM_ARTICLES: ArticleData[] = [
   },
   {
     slug: 'how-to-avoid-bad-mining-deals',
+    datePublished: '2026-06-26',
+    dateModified: '2026-06-26',
     title: 'How to Avoid Bad Bitcoin Mining Deals',
     meta_description: 'A practical guide to evaluating Bitcoin mining deals. What due diligence to do before buying hardware or signing a hosting contract, and the exact questions that reveal whether a deal is good or a trap.',
     category: 'Education',

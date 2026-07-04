@@ -1,5 +1,10 @@
+import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, nocache: true },
+}
 
 type Lead = {
   id: string

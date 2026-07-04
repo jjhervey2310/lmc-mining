@@ -43,6 +43,14 @@ function CompareContent() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebApplication',
+        name: 'Bitcoin Mining Hosting Comparison Tool',
+        description: 'Compare Bitcoin mining hosting providers side by side on pricing, cooling type, uptime, and verification status.',
+        applicationCategory: 'FinanceApplication',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      }) }} />
       <div className="text-xs text-gray-500 mb-6">
         <Link href="/" className="hover:text-white">Home</Link> / <Link href="/hosts" className="hover:text-white">Hosting</Link> / Compare
       </div>

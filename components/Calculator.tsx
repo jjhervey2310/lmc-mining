@@ -12,9 +12,13 @@ interface LiveData {
   warning?: string
 }
 
-export default function Calculator() {
+interface CalculatorProps {
+  initialLiveData?: LiveData | null
+}
+
+export default function Calculator({ initialLiveData = null }: CalculatorProps) {
   const [miners, setMiners] = useState<Miner[]>([])
-  const [liveData, setLiveData] = useState<LiveData | null>(null)
+  const [liveData, setLiveData] = useState<LiveData | null>(initialLiveData)
   const [loadingData, setLoadingData] = useState(true)
 
   const [coolingFilter, setCoolingFilter] = useState<'all' | CoolingType>('all')
@@ -30,6 +34,13 @@ export default function Calculator() {
       .then((minerData) => setMiners(minerData.miners || []))
       .catch(() => setMiners([]))
 
+    // Server already provided live price/difficulty for the initial render.
+    // Only re-fetch client-side if that server-side fetch failed.
+    if (initialLiveData) {
+      setLoadingData(false)
+      return
+    }
+
     fetch('/api/btc-price')
       .then((r) => r.json())
       .then((priceData) => {
@@ -37,6 +48,7 @@ export default function Calculator() {
       })
       .catch(() => {})
       .finally(() => setLoadingData(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const filteredMiners = miners.filter(

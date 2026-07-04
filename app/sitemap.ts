@@ -31,6 +31,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/compare/antminer-s21-xp-vs-s21-pro`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${BASE_URL}/compare/abundant-mines-vs-compass-mining`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${BASE_URL}/compare/home-mining-vs-hosted-mining`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${BASE_URL}/miners/compare`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/hosts/compare`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/hosting-match`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.65 },
+    { url: `${BASE_URL}/alerts`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/mining-pools`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/buy-bitcoin`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.55 },
+    { url: `${BASE_URL}/wallet`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/platform`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.5 },
   ]
 
   const minerPages: MetadataRoute.Sitemap = MINERS_DATA
@@ -52,7 +60,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const articlePages: MetadataRoute.Sitemap = ARTICLES.map(a => ({
     url: `${BASE_URL}/university/${a.slug}`,
-    lastModified: NOW,
+    lastModified: new Date(a.dateModified),
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }))

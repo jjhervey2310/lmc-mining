@@ -1,3 +1,10 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Best Bitcoin Hardware Wallets for Miners',
+  description: 'Why Bitcoin miners need a hardware wallet, how mining payouts get exposed to theft, and which hardware wallets are the right fit for securing mining rewards.',
+}
+
 export default function WalletPage() {
   return (
     <main style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1rem' }}>

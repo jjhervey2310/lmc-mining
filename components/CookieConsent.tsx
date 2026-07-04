@@ -16,10 +16,14 @@ function setConsentCookie(value: string) {
   document.cookie = `${COOKIE_KEY}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`
 }
 
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+const CLARITY_PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID
+
 function loadGA4() {
+  if (!GA_MEASUREMENT_ID) return
   if (document.querySelector('script[data-ga4]')) return
   const s = document.createElement('script')
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID'
+  s.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`
   s.async = true
   s.setAttribute('data-ga4', '1')
   document.head.appendChild(s)
@@ -30,11 +34,12 @@ function loadGA4() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function gtag(...args: any[]) { w.dataLayer.push(args) }
     gtag('js', new Date())
-    gtag('config', 'GA_MEASUREMENT_ID')
+    gtag('config', GA_MEASUREMENT_ID)
   }
 }
 
 function loadClarity() {
+  if (!CLARITY_PROJECT_ID) return
   if (document.querySelector('script[data-clarity]')) return
   const script = document.createElement('script')
   script.setAttribute('data-clarity', '1')
@@ -42,7 +47,7 @@ function loadClarity() {
     c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
     t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
     y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-  })(window, document, "clarity", "script", "CLARITY_PROJECT_ID");`
+  })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");`
   document.head.appendChild(script)
 }
 

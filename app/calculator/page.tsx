@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Calculator from '@/components/Calculator'
 import BreakevenWidget from '@/components/BreakevenWidget'
+import { getLivePriceData } from '@/lib/btc-price'
 
 export const metadata: Metadata = {
   title: 'Bitcoin Mining ROI Calculator — Free Profitability Tool',
@@ -62,7 +63,10 @@ const breadcrumbSchema = {
   ],
 }
 
-export default function CalculatorPage() {
+export default async function CalculatorPage() {
+  const priceResult = await getLivePriceData()
+  const initialLiveData = 'error' in priceResult ? null : priceResult
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
@@ -94,7 +98,7 @@ export default function CalculatorPage() {
       </div>
 
       {/* Calculator */}
-      <Calculator />
+      <Calculator initialLiveData={initialLiveData} />
 
       {/* Breakeven widget */}
       <div className="mt-10">

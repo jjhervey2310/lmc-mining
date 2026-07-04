@@ -106,6 +106,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     '@type': 'Article',
     headline: article.title,
     description: article.meta_description,
+    datePublished: article.datePublished,
+    dateModified: article.dateModified,
     author: { '@type': 'Person', name: 'Jacob H.', jobTitle: 'Founder', worksFor: { '@type': 'Organization', name: 'Lightning Mines' } },
     publisher: { '@type': 'Organization', name: 'Lightning Mines' },
     keywords: article.tags.join(', '),
@@ -171,7 +173,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               <span className="text-gray-700">·</span>
               <span className="text-xs text-gray-500">{article.reading_time_minutes} min read</span>
               <span className="text-gray-700">·</span>
-              <span className="text-xs text-gray-500">Updated 2026</span>
+              <span className="text-xs text-gray-500">
+                Updated {new Date(article.dateModified).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </span>
               <Link href="/about" className="text-xs hover:underline" style={{ color: '#f59e0b' }}>About the author →</Link>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-4">
