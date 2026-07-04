@@ -103,31 +103,27 @@ export interface Lead {
 }
 
 export interface CalculatorInputs {
-  miner: Miner | null
   hashrate_th: number
   power_watts: number
-  cooling_type: CoolingType
-  provider: HostingProvider | null
-  monthly_hosting_fee: number | null
   electricity_rate_kwh: number
-  miner_purchase_price: number | null
+  hardware_cost: number | null
   btc_price: number
   network_difficulty: number
 }
 
 export interface CalculatorResults {
   daily_btc_mined: number
-  daily_gross_revenue_usd: number
-  daily_home_electricity_cost: number
-  daily_hosted_cost: number | null
-  daily_net_profit_home: number
-  daily_net_profit_hosted: number | null
-  monthly_net_profit_home: number
-  monthly_net_profit_hosted: number | null
-  annual_net_profit_home: number
-  annual_net_profit_hosted: number | null
-  breakeven_days_hosted: number | null
-  breakeven_days_home: number | null
+  daily_revenue_usd: number
+  daily_power_cost_usd: number
+  daily_profit_usd: number
+  monthly_revenue_usd: number
+  monthly_profit_usd: number
+  annual_revenue_usd: number
+  annual_profit_usd: number
+  breakeven_btc_price: number
+  profit_margin_percent: number
+  hashprice_usd_per_th_day: number
+  payback_days: number | null
 }
 
 export interface GlossaryTerm {

@@ -2,64 +2,45 @@ import { CalculatorInputs, CalculatorResults } from './types'
 import { BLOCK_REWARD_BTC } from './constants'
 
 export function calculateMiningProfitability(inputs: CalculatorInputs): CalculatorResults {
-  const {
-    hashrate_th,
-    power_watts,
-    monthly_hosting_fee,
-    electricity_rate_kwh,
-    miner_purchase_price,
-    btc_price,
-    network_difficulty,
-  } = inputs
+  const { hashrate_th, power_watts, electricity_rate_kwh, hardware_cost, btc_price, network_difficulty } =
+    inputs
 
   // Daily BTC mined = (hashrate_th * 1e12 * 86400 * block_reward) / (difficulty * 2^32)
   const hashrateHs = hashrate_th * 1e12
   const daily_btc_mined = (hashrateHs * 86400 * BLOCK_REWARD_BTC) / (network_difficulty * Math.pow(2, 32))
 
-  const daily_gross_revenue_usd = daily_btc_mined * btc_price
+  const daily_revenue_usd = daily_btc_mined * btc_price
+  const daily_power_cost_usd = (power_watts / 1000) * 24 * electricity_rate_kwh
+  const daily_profit_usd = daily_revenue_usd - daily_power_cost_usd
 
-  // Home electricity cost
-  const daily_home_electricity_cost = (power_watts / 1000) * 24 * electricity_rate_kwh
+  const monthly_revenue_usd = daily_revenue_usd * 30
+  const monthly_profit_usd = daily_profit_usd * 30
 
-  // Hosted cost
-  const daily_hosted_cost = monthly_hosting_fee !== null ? monthly_hosting_fee / 30 : null
+  const annual_revenue_usd = daily_revenue_usd * 365
+  const annual_profit_usd = daily_profit_usd * 365
 
-  const daily_net_profit_home = daily_gross_revenue_usd - daily_home_electricity_cost
-  const daily_net_profit_hosted =
-    daily_hosted_cost !== null ? daily_gross_revenue_usd - daily_hosted_cost : null
+  const breakeven_btc_price = daily_btc_mined > 0 ? daily_power_cost_usd / daily_btc_mined : 0
 
-  const monthly_net_profit_home = daily_net_profit_home * 30
-  const monthly_net_profit_hosted =
-    daily_net_profit_hosted !== null ? daily_net_profit_hosted * 30 : null
+  const profit_margin_percent = daily_revenue_usd > 0 ? (daily_profit_usd / daily_revenue_usd) * 100 : 0
 
-  const annual_net_profit_home = daily_net_profit_home * 365
-  const annual_net_profit_hosted =
-    daily_net_profit_hosted !== null ? daily_net_profit_hosted * 365 : null
+  const hashprice_usd_per_th_day = hashrate_th > 0 ? daily_revenue_usd / hashrate_th : 0
 
-  // Breakeven days (only if profitable and purchase price provided)
-  const breakeven_days_hosted =
-    miner_purchase_price && daily_net_profit_hosted && daily_net_profit_hosted > 0
-      ? miner_purchase_price / daily_net_profit_hosted
-      : null
-
-  const breakeven_days_home =
-    miner_purchase_price && daily_net_profit_home > 0
-      ? miner_purchase_price / daily_net_profit_home
-      : null
+  const payback_days =
+    hardware_cost && daily_profit_usd > 0 ? hardware_cost / daily_profit_usd : null
 
   return {
     daily_btc_mined,
-    daily_gross_revenue_usd,
-    daily_home_electricity_cost,
-    daily_hosted_cost,
-    daily_net_profit_home,
-    daily_net_profit_hosted,
-    monthly_net_profit_home,
-    monthly_net_profit_hosted,
-    annual_net_profit_home,
-    annual_net_profit_hosted,
-    breakeven_days_hosted,
-    breakeven_days_home,
+    daily_revenue_usd,
+    daily_power_cost_usd,
+    daily_profit_usd,
+    monthly_revenue_usd,
+    monthly_profit_usd,
+    annual_revenue_usd,
+    annual_profit_usd,
+    breakeven_btc_price,
+    profit_margin_percent,
+    hashprice_usd_per_th_day,
+    payback_days,
   }
 }
 
