@@ -201,38 +201,6 @@ export default function AuditPage() {
         </p>
       </div>
 
-      {/* Testimonials */}
-      <div className="mb-10">
-        <h2 className="text-base font-bold text-white mb-4">What clients say</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {([
-            {
-              quote: "I was about to sign a 12-month contract with a hosting provider I found online. The audit found two red flags in the contract I would have missed. Worth 10x the fee.",
-              author: 'M.R.',
-              location: 'Texas',
-            },
-            {
-              quote: "The build plan gave me a complete picture: which miner, which host, what my monthly net looks like at three BTC price scenarios. Made a confident decision for the first time.",
-              author: 'D.K.',
-              location: 'Colorado',
-            },
-            {
-              quote: "Jacob found that the deal I was evaluating had an implied electricity rate of $0.11/kWh buried in flat-fee language. At current BTC prices, I would have lost money every month.",
-              author: 'A.T.',
-              location: 'Florida',
-            },
-          ] as const).map((t, i) => (
-            <div key={i} className="rounded-2xl p-5 flex flex-col" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
-              <p className="text-sm text-gray-400 leading-relaxed flex-1 mb-4 italic">&ldquo;{t.quote}&rdquo;</p>
-              <div>
-                <div className="text-xs font-semibold text-white">{t.author}</div>
-                <div className="text-xs text-gray-600">{t.location}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Inquiry form */}
       <div id="inquiry" />
       {submitted ? (
