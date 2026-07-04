@@ -5,6 +5,13 @@ export const metadata: Metadata = {
   title: 'Abundant Mines Review 2026 — $225/Month Flat Fee Hosting',
   description: 'Honest review of Abundant Mines Bitcoin hosting. $225/month flat fee, hydro power, Cascade Locks Oregon. Real numbers, no fluff.',
   alternates: { canonical: '/hosts/abundant-miners' },
+  openGraph: {
+    images: [{ url: `/api/og?title=${encodeURIComponent('Abundant Mines Review 2026 — $225/Month Flat Fee Hosting')}`, width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image' as const,
+    images: [`/api/og?title=${encodeURIComponent('Abundant Mines Review 2026 — $225/Month Flat Fee Hosting')}`],
+  },
 }
 
 const FAQ_SCHEMA = {

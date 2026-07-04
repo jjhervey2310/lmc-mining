@@ -20,6 +20,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: article.title,
       description: article.meta_description,
       type: 'article',
+      images: [{ url: `/api/og?title=${encodeURIComponent(article.title)}`, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image' as const,
+      images: [`/api/og?title=${encodeURIComponent(article.title)}`],
     },
   }
 }
