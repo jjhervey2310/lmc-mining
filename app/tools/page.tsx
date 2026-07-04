@@ -145,6 +145,21 @@ export default function ToolsPage() {
             <div className="text-sm font-semibold text-white mb-1">Free Deal Review</div>
             <div className="text-xs text-gray-500">Get an expert review of your deal</div>
           </Link>
+          <Link href="/mining-pools" className="rounded-xl p-4 text-center block" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+            <div className="text-lg mb-1">⛏️</div>
+            <div className="text-sm font-semibold text-white mb-1">Best Mining Pools</div>
+            <div className="text-xs text-gray-500">Compare pool fees and payout methods</div>
+          </Link>
+          <Link href="/buy-bitcoin" className="rounded-xl p-4 text-center block" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+            <div className="text-lg mb-1">💱</div>
+            <div className="text-sm font-semibold text-white mb-1">Where to Buy Bitcoin</div>
+            <div className="text-xs text-gray-500">Compare exchanges for cashing out</div>
+          </Link>
+          <Link href="/wallet" className="rounded-xl p-4 text-center block" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+            <div className="text-lg mb-1">🔒</div>
+            <div className="text-sm font-semibold text-white mb-1">Secure Your Mining Rewards</div>
+            <div className="text-xs text-gray-500">Hardware wallets for mined Bitcoin</div>
+          </Link>
         </div>
       </div>
     </div>
