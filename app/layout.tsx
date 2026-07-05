@@ -5,6 +5,7 @@ import EmailCapture from '@/components/EmailCapture'
 import TickerBar from '@/components/TickerBar'
 import ExitIntent from '@/components/ExitIntent'
 import AmbientEffects from '@/components/AmbientEffects'
+import CookieConsent from '@/components/CookieConsent'
 
 export const metadata: Metadata = {
   title: {
@@ -157,6 +158,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </footer>
+        <CookieConsent />
       </body>
     </html>
   )
