@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const apiKey = process.env.RESEND_API_KEY
+  const apiKey = process.env.RESEND_API_KEY || process.env.resend_api_key
   if (!apiKey) {
     return NextResponse.json({ error: 'Resend not configured' }, { status: 503 })
   }
