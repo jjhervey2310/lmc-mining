@@ -22,7 +22,7 @@ export const ARTICLES: ArticleData[] = [
     tags: ['profitability', 'roi', 'beginners', '2026'],
     reading_time_minutes: 15,
     faqs: [
-      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Bitcoin mining can be profitable in 2026 with the right hardware (15-17 J/TH), competitive hosting ($225/month or below $0.07/kWh), and BTC price above $45,000. In a $105,000 BTC reference scenario, well-configured S21 Pro operations generate approximately $74/day net after hosting — BTC price changes daily, so always check your exact numbers with our live ROI calculator before deciding.' },
+      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Bitcoin mining can be profitable in 2026 with the right hardware (15-17 J/TH), competitive hosting ($225/month or below $0.07/kWh), and BTC price above approximately $68,000 (the current operating breakeven at today\'s difficulty). In a $105,000 BTC reference scenario, well-configured S21 Pro operations generate approximately $4.04/day net after hosting — a thin margin, not a wide one. BTC price changes daily, so always check your exact numbers with our live ROI calculator before deciding.' },
       { question: 'What is the minimum BTC price for mining to be profitable?', answer: 'For an Antminer S21 Pro hosted at $225/month, operating costs exceed revenue below the operating-cost breakeven price — currently approximately $68,000, and it rises over time as network difficulty grows. Check our live calculator for today\'s exact figure. For hardware ROI to close within 24 months, you need BTC meaningfully above that breakeven, depending on your exact setup and difficulty growth.' },
       { question: 'How much can a single miner earn per month in 2026?', answer: 'An Antminer S21 Pro (234 TH/s) at current network difficulty earns approximately $346/month gross revenue at $105,000 BTC, with net profit of approximately $121/month after a $225/month flat hosting fee. Margins are thin at today\'s difficulty — check our live calculator for your exact numbers at the actual current BTC price.' },
       { question: 'Is it too late to start Bitcoin mining in 2026?', answer: 'It is not too late, but the opportunity is more competitive than in previous cycles. Success requires S21-generation hardware (15-17 J/TH), competitive hosting at or below $225/month, and planning around the April 2028 halving when block rewards drop to 1.5625 BTC.' },
@@ -33,7 +33,7 @@ export const ARTICLES: ArticleData[] = [
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>Bitcoin mining profitability depends entirely on the BTC price and network difficulty at the time — check our <a href="/" style="color:#00d4aa">live calculator</a> before assuming either way</li>
-<li>In a $105,000 BTC reference scenario, an Antminer S21 Pro nets approximately $74/day after $225/month hosting — about $2,200/month</li>
+<li>In a $105,000 BTC reference scenario, an Antminer S21 Pro nets approximately $4.04/day after $225/month hosting — about $123/month</li>
 <li>The S21 Pro's operating-cost breakeven at $225/month hosting is currently approximately $68,000 (it rises as network difficulty grows over time, independent of BTC price) — check our live calculator for today's exact figure</li>
 <li>Network difficulty grows roughly 20% annually in bull markets — always build this into multi-month projections</li>
 <li>The April 2028 halving cuts block rewards to 1.5625 BTC — model your hardware surviving or paying off before then</li>
@@ -340,7 +340,7 @@ export const ARTICLES: ArticleData[] = [
     reading_time_minutes: 15,
     faqs: [
       { question: 'What is the Bitcoin mining profitability formula?', answer: 'Daily BTC = (hashrate_TH × 10^12 × 86,400 × 3.125) ÷ (network_difficulty × 2^32). Multiply by BTC price for USD gross revenue. Subtract hosting cost ($7.50/day at $225/month) or electricity cost (kW × 24 × $/kWh) for net daily profit.' },
-      { question: 'What network difficulty should I use for calculations?', answer: 'Use current difficulty from blockchain.info or our live data dashboard. As of mid-2026, network difficulty is approximately 113-120 trillion. For projections beyond 90 days, model at 120% of current difficulty (20% growth) to account for new miner deployments in the bull market.' },
+      { question: 'What network difficulty should I use for calculations?', answer: 'Use current difficulty from blockchain.info or our live data dashboard. As of mid-2026, network difficulty is approximately 134 trillion. For projections beyond 90 days, model at 120% of current difficulty (20% growth) to account for new miner deployments in the bull market.' },
       { question: 'Why does my calculator show different results than other calculators?', answer: 'Differences usually come from outdated difficulty data, different BTC price assumptions, not accounting for pool fees (1-2.5%), or different formula implementations. Our calculator uses live CoinGecko price data and blockchain.info difficulty. Always use live data and include all costs in your model.' },
       { question: 'How do I calculate mining ROI?', answer: 'ROI % = ((Total Revenue - Total Costs) / Hardware Cost) × 100. Total costs = hosting fees × months + pool fees. Model over 12 and 24 months at both current BTC price and a stressed scenario ($70,000). Hardware cost should include purchase price only — the $500 Abundant Miners deposit is refundable as prepaid hosting.' },
       { question: 'How do I account for difficulty growth in my profitability model?', answer: 'Apply a monthly difficulty multiplier to your revenue calculation. At 20% annual growth, multiply month N revenue by 1/(1 + 0.20)^(N/12). For a 12-month model: month 1 revenue × 1.00, month 6 revenue × 0.91, month 12 revenue × 0.83. This compounds to about 17% lower revenue in month 12 vs month 1.' },
@@ -351,7 +351,7 @@ export const ARTICLES: ArticleData[] = [
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>Daily BTC = (hashrate × 86,400 × 3.125) ÷ (difficulty × 2³²) — this is the fundamental formula every calculator uses</li>
 <li>Net profit = gross revenue minus hosting cost ($7.50/day at $225/month) minus pool fees (1-2.5%)</li>
-<li>Hardware ROI = hardware cost ÷ net daily profit — for S21 Pro at $105k BTC, that is 50.7 days</li>
+<li>Hardware ROI = hardware cost ÷ net daily profit — for S21 Pro at $105k BTC, that is 941 days</li>
 <li>Always model 20% annual difficulty growth into projections beyond 90 days — ignoring this systematically overstates returns</li>
 <li>Stress-test every model at $70,000 and $50,000 BTC before committing capital — know your floor scenario</li>
 </ul>
@@ -369,29 +369,30 @@ export const ARTICLES: ArticleData[] = [
 <li><strong>H</strong> = your hashrate in hashes per second (convert TH/s: multiply by 10¹²)</li>
 <li><strong>86,400</strong> = seconds per day</li>
 <li><strong>3.125</strong> = current block reward in BTC (post-April 2024 halving)</li>
-<li><strong>D</strong> = current network difficulty (unitless number, currently ~113-120 trillion)</li>
+<li><strong>D</strong> = current network difficulty (unitless number, currently approximately 134 trillion)</li>
 <li><strong>2³²</strong> = 4,294,967,296 (the difficulty target scaling constant)</li>
 </ul>
 
 <h3>Worked Example: Antminer S21 Pro</h3>
 <p>Hardware: Antminer S21 Pro — 234 TH/s (234 × 10¹² = 234,000,000,000,000 hashes/second)<br>
-Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
-<p>Daily BTC = (234,000,000,000,000 × 86,400 × 3.125) ÷ (113,757,508,517,000 × 4,294,967,296)</p>
-<p>= 63,180,000,000,000,000,000 ÷ 488,811,000,000,000,000,000,000</p>
-<p>= <strong>0.0007850 BTC per day</strong></p>
-<p>At $105,000 BTC: 0.000785 × $105,000 = <strong>$82.43 gross daily revenue</strong></p>
+Network difficulty used in this example: 133,869,853,540,305 (a snapshot value — check our <a href="/data">live data dashboard</a> for today's actual figure, since this changes roughly every two weeks and directly changes the result)</p>
+<p>Daily BTC = (234,000,000,000,000 × 86,400 × 3.125) ÷ (133,869,853,540,305 × 4,294,967,296)</p>
+<p>= 63,180,000,000,000,000,000 ÷ approximately 574,966,510,000,000,000,000,000</p>
+<p>= <strong>0.00010988 BTC per day</strong></p>
+<p>At $105,000 BTC: 0.00010988 × $105,000 = <strong>$11.54 gross daily revenue</strong></p>
+<p style="font-size: 0.85rem; color: #9ca3af;">Notice how small this number is relative to what older estimates once assumed — network difficulty has grown substantially over time, and daily BTC output per TH/s shrinks correspondingly. Always use current difficulty, not a memorized or outdated figure.</p>
 
 <h2>From Gross Revenue to Net Profit</h2>
 <p>Gross revenue is not what you earn — it is your starting point. You must subtract all operating costs to arrive at net profit, which is the figure that actually matters for ROI calculations.</p>
 
 <h3>Flat-Fee Hosted Mining</h3>
 <p>Net Daily Profit = Daily Gross Revenue − (Monthly Hosting Fee ÷ 30) − Pool Fees</p>
-<p>Example with Abundant Miners ($225/month) and Foundry USA pool (0.75% fee):</p>
+<p>Example with Abundant Miners ($225/month) and Foundry USA pool (0.75% fee), using the $11.54 gross revenue figure from the worked example above:</p>
 <ul>
-<li>Daily gross revenue: $82.43</li>
+<li>Daily gross revenue: $11.54</li>
 <li>Hosting cost: $225 ÷ 30 = $7.50/day</li>
-<li>Pool fee (0.75%): $82.43 × 0.0075 = $0.62/day</li>
-<li><strong>Net daily profit: $82.43 − $7.50 − $0.62 = $74.31/day</strong></li>
+<li>Pool fee (0.75%): $11.54 × 0.0075 = $0.09/day</li>
+<li><strong>Net daily profit: $11.54 − $7.50 − $0.09 = $3.95/day</strong></li>
 </ul>
 
 <h3>Per-kWh Electricity Model</h3>
@@ -399,22 +400,22 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>Example at $0.07/kWh for S21 Pro (3.51 kW draw):</p>
 <ul>
 <li>Daily electricity: 3.51 × 24 × $0.07 = $5.90/day</li>
-<li>Pool fee (1.5%): $82.43 × 0.015 = $1.24/day</li>
-<li><strong>Net daily profit: $82.43 − $5.90 − $1.24 = $75.29/day</strong></li>
+<li>Pool fee (1.5%): $11.54 × 0.015 = $0.17/day</li>
+<li><strong>Net daily profit: $11.54 − $5.90 − $0.17 = $5.47/day</strong></li>
 </ul>
-<p>The flat-fee model ($74.31/day) and the per-kWh model at $0.07/kWh ($75.29/day) give similar results for S21 Pro hardware. However, as difficulty rises and gross revenue falls, the flat-fee model's fixed cost structure becomes relatively more expensive. At lower hashprice environments, per-kWh models with competitive rates outperform flat fees.</p>
+<p>At today's difficulty, the per-kWh model at $0.07/kWh ($5.47/day) meaningfully outperforms the flat-fee model ($3.95/day) for this specific machine — the opposite of the "similar results" that held in past years when gross revenue was much higher relative to both fixed costs. As gross revenue has compressed, the flat $7.50/day hosting fee has become the more expensive of the two cost structures for efficient hardware like the S21 Pro. Always compare both models against your specific machine and rate before choosing.</p>
 
 <h2>Calculating ROI and Hardware Breakeven</h2>
 <h3>The Breakeven Formula</h3>
 <p>Breakeven days = Hardware Purchase Price ÷ Net Daily Profit</p>
 <p>For an Antminer S21 Pro at $3,800:</p>
 <ul>
-<li>At $105,000 BTC: $3,800 ÷ $74.31 = <strong>51.1 days</strong></li>
-<li>At $80,000 BTC: $3,800 ÷ $54.50 = <strong>69.7 days</strong></li>
-<li>At $60,000 BTC: $3,800 ÷ $39.10 = <strong>97.2 days</strong></li>
-<li>At $50,000 BTC: $3,800 ÷ $31.20 = <strong>121.8 days</strong></li>
+<li>At $105,000 BTC: $3,800 ÷ $4.04 = <strong>941 days</strong></li>
+<li>At $80,000 BTC: $3,800 ÷ $1.29 = <strong>~2,946 days</strong></li>
+<li>At $60,000 BTC: net is -$0.91/day — <strong>never breaks even</strong> at this price</li>
+<li>At $50,000 BTC: net is -$2.01/day — <strong>never breaks even</strong> at this price</li>
 </ul>
-<p>Even at $50,000 BTC — a common bear-case stress test — the hardware pays for itself in just over 4 months. This gives a clear picture of the downside risk profile: even in a significant bear scenario, the S21 Pro recovers hardware cost well within a 12-month contract.</p>
+<p>This is a very different risk picture than in past years: at $60,000 or $50,000 BTC, the S21 Pro doesn't pay back slower — it runs at a net operating loss every day, regardless of how long you hold it. The operating breakeven (the BTC price below which the machine loses money daily) sits at approximately $68,000. Know that number for any deal you evaluate — it matters more than the headline payback-days figure at today's price.</p>
 
 <h3>12-Month Net Profit Table</h3>
 <div style="overflow-x: auto; margin: 1.5rem 0;">
@@ -429,38 +430,38 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <tbody>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$120,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$86.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$2,592</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$31,104</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">44 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$5.69</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$170.70</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$1,638</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">668 days</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$105,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$74.31</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$2,229</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$27,143</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">51 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$4.04</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$121.20</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$1,089</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">941 days</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$80,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$54.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$1,635</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$19,620</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">70 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$1.29</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$38.70</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$178</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~2,946 days</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$60,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$39.10</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$1,173</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$14,076</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">97 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$0.91</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$27.30</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$552</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$50,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$31.20</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$936</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$11,232</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">122 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$2.01</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$60.30</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$916</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 </tbody>
 </table>
@@ -478,7 +479,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li>Month 6: 100% ÷ 1.0153⁶ = 91.3% of base revenue</li>
 <li>Month 12: 100% ÷ 1.0153¹² = 83.3% of base revenue</li>
 </ul>
-<p>At $105,000 BTC with this adjustment, your 12-month net profit is closer to $22,000–24,000 (not $27,143 from the static model) — a meaningful difference that compounds when comparing deals. Read our <a href="/university/what-is-network-difficulty">difficulty guide</a> for a complete explanation of how difficulty adjusts and how to model it.</p>
+<p>At $105,000 BTC with this adjustment, your 12-month net profit is closer to $1,089 (not $1,472 — the naive result of simply multiplying the static $4.04/day net by 365 days) — a meaningful difference that compounds when comparing deals, and one that only gets larger the thinner your starting margin is. Read our <a href="/university/what-is-network-difficulty">difficulty guide</a> for a complete explanation of how difficulty adjusts and how to model it.</p>
 
 <h3>Modeling Multiple BTC Price Paths</h3>
 <p>Rather than pick a single BTC price, model three scenarios: base (current price), bull (+30% over 12 months), and bear (-40% over 12 months). Weight them according to your personal probability assessment. This gives a probability-weighted expected return rather than a single-point estimate that may not reflect the actual distribution of outcomes.</p>
@@ -490,12 +491,12 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <h3>Hosting Cost vs Electricity Rate</h3>
 <p>At $225/month flat ($7.50/day) vs $0.07/kWh ($5.90/day for S21 Pro), the electricity model saves $1.60/day — $584/year. But flat fees provide certainty. At a higher electricity rate of $0.09/kWh, daily cost is $7.58 — nearly matching the flat fee — with the added risk of rate increases. The flat-fee model at $225/month is competitive for most operators who prioritize cost certainty over marginal savings.</p>
 <h3>Pool Fee Selection</h3>
-<p>Pool fees of 0.75% (Foundry USA) vs 2.5% (Antpool FPPS) represent a $1.43/day difference at $82/day gross — $522/year per machine. At 10 machines, that's $5,220/year in fee differences. Pool selection is one of the highest-leverage, lowest-effort optimizations available to any mining operator. See our <a href="/university/mining-pool-comparison">pool comparison guide</a>.</p>
+<p>Pool fees of 0.75% (Foundry USA) vs 2.5% (Antpool FPPS) represent approximately a $0.20/day difference at $11.54/day gross — approximately $74/year per machine. At 10 machines, that's approximately $740/year in fee differences. Pool selection is one of the highest-leverage, lowest-effort optimizations available to any mining operator, and matters proportionally more now that margins are thinner. See our <a href="/university/mining-pool-comparison">pool comparison guide</a>.</p>
 
 <h2>Common Mistakes in Mining Profitability Calculations</h2>
 <ul>
 <li><strong>Using static difficulty for multi-month models.</strong> Always apply a monthly difficulty growth rate. At 20% annual growth, month-12 revenue is 83% of month-1 revenue — a 17% reduction that compounds every year.</li>
-<li><strong>Forgetting pool fees.</strong> Pool fees of 1-2.5% of gross revenue are not small. On $82/day gross, that's $300-748/year per machine. Include them in every calculation.</li>
+<li><strong>Forgetting pool fees.</strong> Pool fees of 1-2.5% of gross revenue are not small relative to today's thin margins. On $11.54/day gross, that's approximately $42-105/year per machine. Include them in every calculation.</li>
 <li><strong>Using gross revenue for ROI calculations.</strong> ROI must be calculated on net profit after all operating costs. Gross revenue overstates returns by 10-20% depending on your cost structure.</li>
 <li><strong>Not stress-testing at lower BTC prices.</strong> Calculate breakeven and 12-month net profit at $70,000 and $50,000 BTC before committing capital. Operators who only ran numbers at peak BTC prices have been repeatedly surprised by the impact of corrections.</li>
 <li><strong>Using estimated rather than live difficulty data.</strong> Outdated difficulty data can cause significant calculation errors. Always use live difficulty from blockchain.info or our <a href="/data">live data dashboard</a>.</li>
@@ -525,7 +526,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     reading_time_minutes: 15,
     faqs: [
       { question: 'What is the most efficient Bitcoin miner in 2026?', answer: 'In air cooling, the Antminer S21 Pro at 15 J/TH is the clear leader. In immersion, purpose-built immersion variants achieve approximately 11-12.2 J/TH. The S21 Pro Hydro (16 J/TH, 335 TH/s) leads the hydro category by hashrate. For most hosted operators, the S21 Pro air is the optimal choice.' },
-      { question: 'What is the best Bitcoin miner for beginners in 2026?', answer: 'For beginners, the Antminer S21 Pro is the top recommendation — universally supported by hosting providers, well-documented, excellent resale market, and the best efficiency in its class. At $225/month with Abundant Miners, it generates approximately $74/day net at current BTC prices.' },
+      { question: 'What is the best Bitcoin miner for beginners in 2026?', answer: 'For beginners, the Antminer S21 Pro is the top recommendation — universally supported by hosting providers, well-documented, excellent resale market, and the best efficiency in its class. At $225/month with Abundant Miners, it generates approximately $4.04/day net at current BTC prices.' },
       { question: 'Is it worth buying an older Antminer S19 in 2026?', answer: 'The S19 XP (21.5 J/TH) remains viable if purchased at a significant discount to S21 generation pricing. The S19j Pro+ (27.5 J/TH) is borderline at $225/month hosting — verify breakeven carefully. Avoid S19 Pro (29.5 J/TH) and older at standard hosting rates — the economics do not work at $225/month hosting.' },
       { question: 'Antminer vs Whatsminer in 2026 — which is better?', answer: 'For air-cooled mining, Antminer S21 Pro leads on efficiency (15 J/TH) and ecosystem support. Whatsminer M60S (20 J/TH) is a solid alternative for brand diversification but trails on efficiency. For hydro deployments, both are competitive. See our full comparison in the Antminer vs Whatsminer article.' },
       { question: 'How much does the Antminer S21 Pro cost in 2026?', answer: 'The Antminer S21 Pro trades in a range of $3,500-4,200 depending on market conditions, purchase quantity, and source. Direct from Bitmain runs $3,800-4,000 for single units. Secondary market pricing follows BTC price closely — buy in market dips for better hardware economics.' },
@@ -553,11 +554,11 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 
 <h2>Tier 1: Best-in-Class Air Cooling (15–18 J/TH)</h2>
 <h3>#1 — Antminer S21 Pro · 15.0 J/TH · 234 TH/s · ~$3,800</h3>
-<p>The Antminer S21 Pro is the definitive benchmark for air-cooled Bitcoin mining in 2026. No air-cooled competitor matches its combination of 15 J/TH efficiency and 234 TH/s hashrate. At current network conditions and $225/month hosting, it generates approximately $74/day net profit at $105,000 BTC — a 51-day hardware payback.</p>
+<p>The Antminer S21 Pro is the definitive benchmark for air-cooled Bitcoin mining in 2026. No air-cooled competitor matches its combination of 15 J/TH efficiency and 234 TH/s hashrate. At today's network difficulty and $225/month hosting, it generates approximately $4.04/day net profit at a $105,000 BTC reference price — an approximately 941-day hardware payback, considerably longer than when this hardware first launched.</p>
 <p>Key advantages: compatible with every major hosting provider, deep Bitmain ecosystem support, strong secondary market liquidity, and the lowest J/TH of any air-cooled production miner. The S21 Pro should be the default choice for any operator planning a new air-cooled deployment in 2026. <a href="/miners/antminer-s21-pro">Read the full S21 Pro review →</a></p>
 
 <h3>#2 — Antminer S21 · 17.5 J/TH · 200 TH/s · ~$2,700</h3>
-<p>The S21 (non-Pro) offers a more accessible entry point to the S21 generation at ~$2,700. Efficiency is 17.5 J/TH — 17% lower than the Pro — but still excellent by historical standards and well ahead of Whatsminer competition. Daily net profit at $105,000 BTC and $225/month hosting: approximately $63/day. Hardware payback: approximately 43 days.</p>
+<p>The S21 (non-Pro) offers a more accessible entry point to the S21 generation at ~$2,700. Efficiency is 17.5 J/TH — 17% lower than the Pro — but still excellent by historical standards and well ahead of Whatsminer competition. Daily net profit at $105,000 BTC and $225/month hosting: approximately $2.36/day. Hardware payback: approximately 1,144 days.</p>
 <p>The S21 is the better choice when capital is more constrained and maximizing machines-per-dollar matters more than maximizing efficiency per machine. For a fixed $27,000 budget, you could buy 10 S21s vs 7 S21 Pros — generating more total hashrate despite the per-unit efficiency gap. <a href="/miners/antminer-s21">Read the full S21 review →</a></p>
 
 <h3>#3 — Antminer S21 Pro Hydro · 16.0 J/TH · 335 TH/s · ~$5,500</h3>
@@ -580,42 +581,43 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Whatsminer M60S</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">20.0</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">170</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">+$49.40</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">+$0.88</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$2,500</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">51 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~2,841 days</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Whatsminer M60</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">20.5</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">162</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">+$46.20</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">+$0.49</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$2,100</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">45 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~4,312 days</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Canaan A1566</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">22.8</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">150</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">+$39.70</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$0.11</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$1,800</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">45 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 </tbody>
 </table>
 </div>
+<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>At today's network difficulty, Tier 2 hardware clears breakeven only barely (M60S, M60) or not at all (A1566). These were comfortable mid-tier choices in past years; at current difficulty they no longer offer a meaningful margin of safety over Tier 1.</em></p>
 
 <h3>Whatsminer M60S (20 J/TH) — Best Non-Bitmain Option</h3>
-<p>MicroBT's flagship air-cooled miner is the strongest Antminer alternative in 2026. At 20 J/TH and 170 TH/s, it trails the S21 Pro on efficiency but is priced at ~$2,500 — 34% less hardware cost. For operators wanting to diversify away from Bitmain or who need the more accessible price point, the M60S is the clear Tier 2 choice. See the full comparison in our <a href="/university/antminer-vs-whatsminer">Antminer vs Whatsminer guide</a>.</p>
+<p>MicroBT's flagship air-cooled miner is the strongest Antminer alternative in 2026. At 20 J/TH and 170 TH/s, it trails the S21 Pro on efficiency but is priced at ~$2,500 — 34% less hardware cost. The tradeoff is real, though: at today's network difficulty, the M60S clears only about $0.88/day net on $225/month hosting, a razor-thin margin with almost no buffer against further difficulty growth. For operators wanting to diversify away from Bitmain or who need the more accessible price point, it remains the strongest Tier 2 choice — just go in knowing the margin, not the headline efficiency spec, is now the real story. See the full comparison in our <a href="/university/antminer-vs-whatsminer">Antminer vs Whatsminer guide</a>.</p>
 
 <h2>Tier 3: Budget Hardware (22–28 J/TH)</h2>
 <h3>Antminer S19 XP · 21.5 J/TH · 140 TH/s · ~$1,500-1,900</h3>
-<p>The best of the S19 generation. The S19 XP remains viable in 2026 if purchased at a meaningful discount to S21 series pricing. At $1,600 and $225/month hosting, daily net profit is approximately $33 — 108-day hardware payback at $105,000 BTC. The risk: 21.5 J/TH is significantly less efficient than S21 generation, meaning it gets squeezed harder as difficulty rises. Only purchase if the price discount is substantial and your hosting cost is below $225/month.</p>
+<p>At today's network difficulty, the S19 XP is no longer viable at $225/month hosting regardless of purchase discount: it earns approximately $6.90/day gross, which is below the $7.50/day flat hosting cost — a net loss of approximately $0.60/day. Difficulty has grown enough since this hardware launched that its 21.5 J/TH efficiency can no longer clear standard hosting rates at any price. Only consider this hardware at hosting rates meaningfully below $200/month, and confirm the actual math with our <a href="/">calculator</a> before buying at any price.</p>
 <h3>Antminer S19j Pro+ · 27.5 J/TH · 122 TH/s · ~$900-1,200</h3>
-<p>Borderline economics at $225/month hosting. Net daily profit of approximately $22 at $105,000 BTC — adequate, but at 27.5 J/TH this machine is highly sensitive to difficulty increases and BTC price corrections. Not recommended for new deployments unless available at a steep discount with verified hosting at below $200/month.</p>
+<p>Also net-negative at $225/month hosting at today's difficulty: approximately $6.02/day gross against $7.50/day hosting cost, a loss of approximately $1.49/day. At 27.5 J/TH, this machine no longer clears standard flat-fee hosting under current network conditions. Not recommended for new deployments at any price unless hosting is substantially below market rate.</p>
 
 <h2>Tier 4: Legacy Hardware — Avoid for New Deployments</h2>
-<p>The Antminer S19 Pro (29.5 J/TH), S19j Pro (30.5 J/TH), and all older hardware generations should not be purchased for new deployments in 2026. At $225/month hosting and current difficulty, these machines generate minimal or negative net profit — and their economics worsen continuously as difficulty grows.</p>
-<p>The math: an S19 Pro at 30 J/TH costs approximately $10.53/day in electricity at $0.07/kWh. At $105,000 BTC and current difficulty, it earns approximately $47/day gross with 107 TH/s. Net after $7.50/day hosting: $39.50/day — but this assumes the flat-fee covers all electricity for a 3,510W miner. At per-kWh rates, the S19 Pro's higher power draw makes it uncompetitive vs S21 generation even at favorable electricity costs.</p>
+<p>The Antminer S19 Pro (29.5 J/TH), S19j Pro (30.5 J/TH), and all older hardware generations should not be purchased for new deployments in 2026. At $225/month hosting and current difficulty, these machines run at a net loss — and the loss deepens continuously as difficulty grows.</p>
+<p>The math: an S19 Pro at 29.5 J/TH and 110 TH/s earns approximately $5.42/day gross at $105,000 BTC and today's difficulty. Net after $7.50/day flat-fee hosting: approximately -$2.08/day — a loss, not a thin profit. This is true even before accounting for the S19 Pro's higher power draw making per-kWh hosting models even less competitive than the flat-fee comparison shown here.</p>
 
 <h2>Complete Hardware Rankings Table</h2>
 <div style="overflow-x: auto; margin: 1.5rem 0;">
@@ -634,7 +636,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21 Pro</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">15</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">234</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$74.90</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$4.04</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">Buy</td>
 </tr>
 <tr>
@@ -642,7 +644,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">17.5</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">200</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$63.10</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$2.36</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">Buy</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
@@ -650,23 +652,23 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">M60S</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">20</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">170</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$49.40</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$0.88</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #3d7aed;">Consider</td>
 </tr>
 <tr>
-<td style="padding: 0.75rem; border: 1px solid #1f2937; color: #f59e0b;">T3</td>
+<td style="padding: 0.75rem; border: 1px solid #1f2937; color: #ef4444;">T3</td>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S19 XP</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">21.5</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">140</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$33.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">Discount only</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$0.60</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Avoid</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #ef4444;">T4</td>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S19j Pro+</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">27.5</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">122</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$21.80</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$1.49</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Avoid</td>
 </tr>
 <tr>
@@ -674,13 +676,13 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S19 Pro</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">29.5</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">110</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">$11.80</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$2.08</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Avoid</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Net/day at $105,000 BTC, $225/month hosting, ~113T difficulty. Figures approximate.</em></p>
+<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Net/day at $105,000 BTC, $225/month hosting, ~134T difficulty. Figures approximate. Only Tier 1 hardware clears a meaningful margin at today's difficulty — everything below it is thin, marginal, or outright unprofitable on standard flat-fee hosting.</em></p>
 
 <h2>Evaluating Hardware Offers: What Actually Matters</h2>
 <h3>Hardware Price vs Market Rate</h3>
@@ -693,7 +695,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <h2>Common Mistakes When Buying Mining Hardware</h2>
 <ul>
 <li><strong>Buying on hashrate rather than J/TH.</strong> A miner with 200 TH/s and 25 J/TH generates less net profit than one with 180 TH/s and 18 J/TH at the same hosting cost — because the lower-efficiency machine costs more in electricity.</li>
-<li><strong>Buying legacy hardware "at a discount" without checking the economics.</strong> A 50% discount on an S19 Pro is still a bad deal at $225/month hosting if the net daily profit is only $11-12/day. Calculate payback carefully on any non-current-generation hardware.</li>
+<li><strong>Buying legacy hardware "at a discount" without checking the economics.</strong> A 50% discount on an S19 Pro doesn't fix the underlying problem: at $225/month hosting and today's difficulty, the machine runs at a net loss of approximately $2.08/day regardless of how little you paid for it. A cheaper acquisition price shortens a payback period — it can't turn a negative daily margin positive. Calculate the actual daily net profit (not just discount percentage) on any non-current-generation hardware before buying.</li>
 <li><strong>Purchasing hardware before confirming hosting availability.</strong> Always secure your hosting contract before or simultaneously with hardware purchase. A miner without a host generates zero revenue.</li>
 <li><strong>Not verifying hashrate with the hosting provider.</strong> When receiving miners at a hosting facility, confirm the pool dashboard shows expected hashrate within 48 hours of deployment. Discrepancies above 5% from rated spec should be investigated immediately.</li>
 <li><strong>Ignoring the 2028 halving horizon.</strong> Hardware deployed today must generate adequate returns by April 2028 or survive on post-halving economics. Run the numbers with a 1.5625 BTC block reward to verify viability.</li>
@@ -1015,7 +1017,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     faqs: [
       { question: 'When is the next Bitcoin halving?', answer: 'The next Bitcoin halving is expected in April 2028, reducing the block reward from 3.125 BTC to 1.5625 BTC. The exact date depends on actual block timing — approximately 210,000 blocks from the April 2024 halving — but April 2028 is the best current estimate.' },
       { question: 'Does the Bitcoin halving hurt miners?', answer: 'On halving day, every miner\'s BTC revenue drops exactly 50%. Historically, BTC price has increased significantly in the 12-18 months following each halving, more than compensating for the reduced reward. However, inefficient miners (25+ J/TH) often face negative margins immediately after the halving before price appreciation catches up.' },
-      { question: 'What efficiency do I need to survive the 2028 halving?', answer: 'At $100,000 BTC post-2028 halving, miners need approximately 15-18 J/TH to operate profitably at $225/month hosting. The Antminer S21 Pro at 15 J/TH has a post-halving breakeven BTC price of approximately $80,000 at $225/month — providing reasonable margin even without significant price appreciation.' },
+      { question: 'What efficiency do I need to survive the 2028 halving?', answer: 'At today\'s network difficulty, the Antminer S21 Pro (15 J/TH, best-in-class air-cooled efficiency) has a post-halving breakeven BTC price of approximately $137,000 at $225/month hosting — meaning even the most efficient available hardware needs meaningful price appreciation from current levels to stay net positive after the halving. Less efficient hardware needs a substantially higher price still. Model your specific hardware and hosting cost at our live calculator with the block reward set to 1.5625.' },
       { question: 'Did miners profit after previous halvings?', answer: 'Yes in every case so far. The 2016 halving was followed by BTC rising from $650 to $20,000 (18 months). The 2020 halving: $8,500 to $69,000 (18 months). The 2024 halving: $63,000 to $105,000+ (18 months). Miners with efficient hardware who held BTC consistently outperformed those who panic-sold around the halving.' },
       { question: 'What happens to inefficient miners at the 2028 halving?', answer: 'Miners running 25+ J/TH hardware at standard hosting rates will likely face negative margins immediately after the 2028 halving if BTC price doesn\'t appreciate rapidly. Historically, these operators power off their machines, reducing network hashrate and triggering difficulty adjustments that benefit remaining efficient miners. This is Bitcoin\'s self-correcting efficiency mechanism.' },
       { question: 'Should I buy mining hardware now or wait until after the 2028 halving?', answer: 'Buying now (2026) is generally preferable to waiting until after the 2028 halving. Hardware purchased today benefits from 2+ years of pre-halving revenue at current block rewards. Post-halving hardware prices typically rise as BTC price appreciation makes mining attractive to new entrants competing for hardware supply. Lock in today\'s economics rather than waiting for an uncertain post-halving market.' },
@@ -1025,7 +1027,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>The April 2028 halving cuts block rewards from 3.125 BTC to 1.5625 BTC — halving every miner's BTC revenue on that day</li>
 <li>All three prior halvings (2016, 2020, 2024) were followed by significant BTC price appreciation within 18 months</li>
-<li>S21 Pro operators at $225/month hosting survive the 2028 halving if BTC price stays above approximately $80,000</li>
+<li>S21 Pro operators at $225/month hosting need BTC price above approximately $137,000 at today's network difficulty to stay net positive post-halving</li>
 <li>Hardware above 25 J/TH faces negative margins post-halving unless BTC price more than doubles from halving-day prices</li>
 <li>Hardware bought today captures 2+ years of pre-halving revenue — buying after the halving means competing for hardware at likely higher prices</li>
 </ul>
@@ -1092,59 +1094,60 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>On halving day, every miner in the world — regardless of size, hardware, or hosting cost — sees their BTC revenue drop by exactly 50%. This is not gradual. It happens at a single block height. One block earns 3.125 BTC; the next earns 1.5625 BTC.</p>
 
 <h3>What This Means for S21 Pro Operators</h3>
-<p>An Antminer S21 Pro earning approximately 0.000785 BTC/day before the 2028 halving will earn 0.000393 BTC/day after. At $105,000 BTC, that drops from $82.40/day gross to $41.20/day gross. After $225/month hosting ($7.50/day), net profit drops from $74.90/day to $33.70/day.</p>
-<p>This is still solidly profitable — but only because the S21 Pro is efficient and the hosting cost is competitive. At $400/month hosting ($13.33/day), the post-halving net would be $41.20 − $13.33 = $27.87/day — positive, but thin. At $500/month ($16.67/day), net would be just $24.53/day at $105,000 BTC — dangerously close to breakeven if BTC corrects even 15-20%.</p>
+<p>An Antminer S21 Pro's daily BTC output halves overnight when the block reward drops — at today's network difficulty, that's approximately 0.00011 BTC/day before the 2028 halving versus approximately 0.000055 BTC/day after. At $105,000 BTC, gross revenue drops from approximately $11.54/day to approximately $5.77/day.</p>
+<p>After $225/month hosting ($7.50/day), that post-halving gross revenue does not clear operating costs at a $105,000 BTC price — the S21 Pro needs BTC well above $105,000 (approximately $137,000, its post-halving breakeven at today's difficulty) just to stay net positive after the halving. This is the central risk of buying hardware today without stress-testing it against post-halving economics: network difficulty growth between now and 2028 will push these breakeven numbers even higher than what today's difficulty implies.</p>
 
 <h3>Post-Halving Profitability by Hardware</h3>
+<p>Recalculated against today's real network difficulty, the picture is considerably tougher than these post-halving numbers looked when this hardware generation launched: at a $105,000 BTC reference price, every machine below is underwater post-halving, and even at $150,000 only the S21 Pro clears its costs.</p>
 <div style="overflow-x: auto; margin: 1.5rem 0;">
 <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
 <thead><tr style="background: rgba(0,212,170,0.1);">
 <th style="padding: 0.75rem; text-align: left; border: 1px solid #1f2937; color: #fff;">Hardware</th>
 <th style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #fff;">J/TH</th>
+<th style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #fff;">Net/day post-halving $150k</th>
 <th style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #fff;">Net/day post-halving $105k</th>
-<th style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #fff;">Net/day post-halving $80k</th>
-<th style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #fff;">Breakeven BTC price</th>
+<th style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #fff;">Post-halving breakeven</th>
 </tr></thead>
 <tbody>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21 Pro</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">15</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">+$33.70</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">+$18.10</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$64,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">+$0.74</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$1.73</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$137,000</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">17.5</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">+$27.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">+$14.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$70,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$0.46</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$2.57</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$160,000</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">M60S</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">20</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">+$21.70</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">+$9.20</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$82,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$1.51</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$3.31</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$188,000</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S19 XP</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">21.5</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">+$13.70</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">+$1.10</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$96,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$2.57</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$4.05</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$228,000</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S19j Pro+</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">27.5</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">+$7.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$3.90</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$114,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$3.20</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$4.49</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$262,000</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Post-halving figures: 1.5625 BTC block reward, $225/month hosting, static current difficulty. Difficulty is expected to change significantly between now and April 2028.</em></p>
+<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Post-halving figures: 1.5625 BTC block reward, $225/month hosting, current live network difficulty. Difficulty will keep changing between now and April 2028, likely pushing these breakeven prices higher still — recheck this table's assumptions periodically at our <a href="/" style="color: #00d4aa;">live calculator</a>.</em></p>
 
 <h2>The Efficiency Filter: Who Survives Halvings?</h2>
 <p>Every halving is an efficiency filter. Miners who were barely profitable before the halving on inefficient hardware get pushed below zero on halving day and are forced to shut off. This is precisely the mechanism Bitcoin's protocol uses to drive constant hardware modernization — and it is devastating for operators who failed to plan around it.</p>
@@ -1158,10 +1161,10 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 
 <h2>Positioning Your Operation for the 2028 Halving</h2>
 <h3>Hardware Strategy</h3>
-<p>The S21 Pro at 15 J/TH survives the 2028 halving with positive margins down to approximately $64,000 BTC at $225/month hosting — providing a significant buffer even in bear scenarios. Hardware at 20+ J/TH is increasingly exposed to post-halving margin compression. The strategy is clear: prioritize J/TH efficiency in every hardware purchase decision between now and 2028.</p>
+<p>The S21 Pro at 15 J/TH needs BTC above approximately $137,000 at today's network difficulty to stay net positive post-halving at $225/month hosting — a meaningfully higher bar than pre-halving, and a real risk factor rather than a comfortable buffer. Less efficient hardware at 20+ J/TH needs an even higher price to clear the same bar. The strategy is clear: prioritize J/TH efficiency in every hardware purchase decision between now and 2028, and don't assume any hardware "survives" the halving without running the actual numbers against a realistic BTC price assumption.</p>
 <p>See our <a href="/university/best-bitcoin-miners-2026">complete hardware rankings</a> for the full efficiency comparison across all currently available miners.</p>
 <h3>Hosting Cost Strategy</h3>
-<p>Every dollar per month in hosting cost directly increases your post-halving breakeven BTC price. At $225/month, the S21 Pro's breakeven is $64,000 BTC post-halving. At $300/month, it rises to approximately $85,000. At $400/month, it approaches $115,000 — meaning any price correction post-halving would result in losses.</p>
+<p>Every dollar per month in hosting cost directly increases your post-halving breakeven BTC price. At today's network difficulty: $225/month puts the S21 Pro's post-halving breakeven at approximately $137,000; $300/month raises it to approximately $182,000; $400/month pushes it to approximately $243,000. Hosting cost matters even more post-halving than it does today, since it's compounding against a smaller per-machine BTC payout.</p>
 <p>Locking in competitive hosting at $225/month or below before the 2028 halving is one of the highest-leverage positioning decisions available to operators today. Visit <a href="/hosts/abundant-miners">Abundant Miners</a> or <a href="https://abundantmines.com/ref/72/" target="_blank" rel="noopener noreferrer">abundantmines.com</a> directly to discuss current availability.</p>
 <h3>Financial Planning Around the Halving</h3>
 <p>The 18-24 months before the halving are historically the strongest period for mining economics as BTC appreciates in anticipation of reduced supply issuance. The 3-6 months immediately after the halving are often the most challenging as revenue drops before price appreciation compensates. Planning for a temporary cash flow dip in the period immediately following April 2028 — and maintaining a financial reserve to absorb it — is prudent risk management.</p>
@@ -1200,7 +1203,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     faqs: [
       { question: 'What is Bitcoin network difficulty?', answer: 'Network difficulty is a measure of how hard it is for miners to find a valid Bitcoin block. It adjusts every 2016 blocks (approximately 2 weeks) to maintain the protocol\'s target of a 10-minute average block time. When more miners join the network and blocks are found faster, difficulty increases. When miners leave and blocks slow down, difficulty decreases.' },
       { question: 'How does difficulty affect my mining revenue?', answer: 'Difficulty directly and inversely affects your Bitcoin revenue. A 20% difficulty increase means your miner earns approximately 17% less Bitcoin (and USD) per day for the same hashrate output. Because difficulty tends to rise in bull markets as new miners join, this growth must be built into every multi-month mining ROI projection — otherwise you systematically overestimate returns.' },
-      { question: 'What is the current Bitcoin network difficulty?', answer: 'As of mid-2026, Bitcoin network difficulty is approximately 113-120 trillion (113T-120T). This represents a roughly 60% increase from early 2024 levels of approximately 75T. Check our live data dashboard for real-time figures and estimated next adjustment percentage.' },
+      { question: 'What is the current Bitcoin network difficulty?', answer: 'As of mid-2026, Bitcoin network difficulty is approximately 134 trillion. This represents a roughly 79% increase from early 2024 levels of approximately 75T. Check our live data dashboard for real-time figures and estimated next adjustment percentage.' },
       { question: 'Does difficulty ever go down?', answer: 'Yes. When miners leave the network after price drops or other disruptions, blocks slow below the 10-minute target and difficulty adjusts downward at the next 2016-block epoch. Downward adjustments benefit remaining efficient miners — each departing miner increases the earnings of those who stay. This self-correcting mechanism is why efficient hardware is the best protection against bear market difficulty surges.' },
       { question: 'What difficulty growth rate should I model in my mining ROI?', answer: 'Use 20% annual growth as a conservative base case and 35-40% as a stress test. In bull markets, difficulty has grown 40-80% annually as rising BTC prices attract new miners. In bear markets or consolidation periods, difficulty growth can slow to near zero or even briefly turn negative. Most operators should plan their 24-month ROI models around 20% annual growth and stress-test at 35%.' },
       { question: 'What is the relationship between hashrate and difficulty?', answer: 'Hashrate and difficulty are directly linked. When total network hashrate increases — because new miners deploy hardware — blocks are found faster than the 10-minute target. The next difficulty adjustment increases difficulty proportionally to restore the 10-minute average. Conversely, hashrate drops cause difficulty to decrease. You can estimate total network hashrate from difficulty using the formula: Hashrate (EH/s) ≈ Difficulty × 2³² ÷ 600 ÷ 10¹⁸.' },
@@ -1210,7 +1213,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>Bitcoin difficulty adjusts every 2016 blocks (~2 weeks) to maintain a 10-minute average block time — it rises as miners join and falls as they leave</li>
 <li>A 20% difficulty increase reduces your daily BTC earnings by approximately 17% on the same hashrate — with no change to your electricity cost</li>
-<li>Bitcoin network hashrate has grown from ~400 EH/s in early 2024 to ~650 EH/s by mid-2026 — compressing all miner revenues proportionally</li>
+<li>Bitcoin network hashrate has grown from ~400 EH/s in early 2024 to ~958 EH/s by mid-2026 — compressing all miner revenues proportionally</li>
 <li>Every ROI model that doesn't account for difficulty growth systematically overstates returns — always model 20% annual growth as a baseline</li>
 <li>Hardware efficiency (J/TH) is your primary protection against difficulty growth — it doesn't increase your revenue, but it keeps you profitable when less-efficient miners are squeezed out</li>
 </ul>
@@ -1297,8 +1300,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">2025</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">103T</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~115T</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~12%</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~134T</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~30%</td>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Post-halving consolidation</td>
 </tr>
 </tbody>
@@ -1312,7 +1315,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>Understanding the revenue math is essential. When difficulty increases by X%, your daily BTC earnings decrease by approximately X/(1+X)%. At 20% difficulty growth, your BTC earnings drop by approximately 17% — not 20%. This is because you're dividing by a larger difficulty number.</p>
 
 <h3>Worked Example: S21 Pro Over 36 Months</h3>
-<p>Starting point: Antminer S21 Pro, 234 TH/s, current difficulty. At today's difficulty, daily gross earnings are approximately 0.000785 BTC — approximately $82.40/day at $105,000 BTC.</p>
+<p>Starting point: Antminer S21 Pro, 234 TH/s, current difficulty. At today's difficulty, daily gross earnings are approximately 0.00010988 BTC — approximately $11.54/day at $105,000 BTC.</p>
 <p>Projected earnings with 20% annual difficulty growth:</p>
 <div style="overflow-x: auto; margin: 1.5rem 0;">
 <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
@@ -1327,44 +1330,44 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 1</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">1.00×</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000785</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$82.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$74.90</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00010988</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$11.54</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$4.04</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 6</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">1.095×</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000716</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$75.20</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$67.70</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00010035</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$10.54</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$3.04</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 12</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">1.20×</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000654</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$68.70</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$61.20</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00009157</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$9.61</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$2.11</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 18</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">1.314×</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000598</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$62.80</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$55.30</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00008361</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$8.78</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$1.28</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 24</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">1.44×</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000545</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$57.20</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$49.70</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00007628</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$8.01</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$0.51</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 36</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">1.728×</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000454</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$47.70</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$40.20</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00006359</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$6.68</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$0.82</td>
 </tr>
 </tbody>
 </table>
@@ -1372,7 +1375,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Static BTC price ($105k). Real returns depend on BTC price and actual difficulty growth rate. Use our <a href="/" style="color: #00d4aa;">calculator</a> to model your own assumptions.</em></p>
 
 <h3>The Cumulative Effect</h3>
-<p>Over a 24-month operation at 20% annual difficulty growth, total gross revenue is approximately $46,200 (vs. $60,000 in a static difficulty model — a 23% overstatement). The difference between modeling difficulty growth and ignoring it is the difference between accurate and systematically optimistic projections.</p>
+<p>Over a 24-month operation at 20% annual difficulty growth, total gross revenue is approximately $7,010 (vs. $8,310 in a static difficulty model that assumes Month 1's rate never changes — a 16% overstatement). The difference between modeling difficulty growth and ignoring it is the difference between accurate and systematically optimistic projections.</p>
 
 <h2>The Self-Correcting Nature of Difficulty</h2>
 <p>Difficulty is a market mechanism, not just a technical parameter. When BTC price drops sharply, two things happen simultaneously: your USD revenue falls (lower BTC price) and inefficient miners begin shutting off (they cross into negative margins). When enough hashrate leaves the network, difficulty adjusts downward — which immediately improves the economics for miners who remain.</p>
@@ -1440,18 +1443,18 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     faqs: [
       { question: 'Can I finance Bitcoin mining equipment?', answer: 'Yes. Options include vendor financing through hosting providers (Abundant Miners offers up to $140,000 at 10% APR with 10% down over 36 months), third-party equipment financing from crypto-specialized lenders, SBA 7(a) or 504 loans for established US businesses, and operating leases. Each has different cost, flexibility, and risk profiles suited to different operator situations.' },
       { question: 'What interest rate should I expect for mining equipment financing?', answer: 'In 2026, typical rates range from 10-18% APR depending on creditworthiness and lender type. Abundant Miners offers 10% APR vendor financing. Specialized crypto equipment lenders typically charge 12-15% APR with lower LTV requirements (50-70% of hardware value). SBA loans offer lower rates (prime + 2-3%) but require more documentation and established business history.' },
-      { question: 'Does financing make Bitcoin mining more or less profitable?', answer: 'Financing increases your total cost by the interest paid but enables larger deployments without full upfront capital. The critical question is whether your net mining ROI exceeds your financing cost. At 10% APR and current mining economics, the answer is typically yes — but you must model the financed scenario explicitly, accounting for interest in your total cost and running downside BTC price scenarios that test whether cash flow can service the debt.' },
+      { question: 'Does financing make Bitcoin mining more or less profitable?', answer: 'Financing increases your total cost by the interest paid but enables larger deployments without full upfront capital. The critical question is whether your net mining cash flow, after hosting, comfortably covers your financing payment — at today\'s compressed margins, the answer is thin, not comfortable: a 10-machine S21 Pro deployment at $105,000 BTC clears only about $109/month in free cash flow after debt service on a standard 10% APR vendor loan. You must model the financed scenario explicitly, accounting for interest in your total cost and running downside BTC price scenarios that test whether cash flow can service the debt at all.' },
       { question: 'What is the minimum credit score for mining equipment financing?', answer: 'Requirements vary by lender. Most third-party equipment finance companies require 650+ credit score. Vendor financing through hosting providers may be more flexible. SBA loans require strong business financials. Some crypto-specialized lenders use alternative underwriting criteria or accept larger down payments to compensate for lower credit scores.' },
-      { question: 'What happens if BTC price drops while I have a financing obligation?', answer: 'This is the primary risk of leveraged mining. If BTC price drops to the point where your daily net revenue no longer covers your hosting fee plus loan payment, you face a cash flow deficit each month. At 10% APR on $38,000, the monthly payment is approximately $1,226. You need daily net revenue above ($225 hosting + $1,226 financing) ÷ 30 = $48.37/day minimum to service the position. At $105k BTC that is comfortable; at $50k BTC the S21 Pro barely clears it. Always model the financing scenario at $50k-60k BTC before committing.' },
+      { question: 'What happens if BTC price drops while I have a financing obligation?', answer: 'This is the primary risk of leveraged mining. If BTC price drops to the point where your daily gross revenue no longer covers your hosting fee plus loan payment, you face a cash flow deficit each month. For a 10-machine fleet financing the full $38,000 with no down payment at 10% APR, the monthly payment is approximately $1,226. You need daily gross revenue above ($2,250 hosting + $1,226 financing) ÷ 30 = approximately $115.87/day across the fleet just to service the position — and at $105,000 BTC, the fleet only generates approximately $115.40/day gross, meaning even the base-case scenario falls slightly short of covering a full, no-down-payment loan at today\'s difficulty. At $50,000 BTC, gross revenue falls to approximately $54.90/day — nowhere close to covering the combined obligation. Always model the financing scenario at $50k-60k BTC before committing, and strongly consider a meaningful down payment to reduce the monthly debt service burden.' },
       { question: 'Is vendor financing better than a bank loan for mining?', answer: 'Vendor financing (like Abundant Miners at 10% APR) has one major structural advantage: the lender understands mining economics and the hardware\'s actual depreciation curve. Traditional banks often decline mining equipment loans or require personal guarantees because they don\'t understand the collateral. Vendor financing is also faster to close — days rather than weeks. The tradeoff is that your hosting relationship and financing are bundled — if you need to move your machines, the relationship is more complex.' },
     ],
     content: `<div style="background: rgba(0,212,170,0.05); border: 1px solid rgba(0,212,170,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>Vendor financing (Abundant Miners: 10% APR, 10% down, 36 months) is the most accessible option for most operators — closing in days, not weeks</li>
-<li>Financing a 10-machine S21 Pro deployment adds $1,098/month in debt service — total monthly commitment becomes $3,348 ($2,250 hosting + $1,098 payment)</li>
-<li>At $105,000 BTC, 10 S21 Pros generate approximately $22,350/month net after hosting — the financing payment represents only 5% of gross revenue</li>
-<li>Always model your financed position at $50,000-60,000 BTC — this is where leverage becomes dangerous and the stress test that matters most</li>
+<li>Financing a 10-machine S21 Pro deployment adds $1,103/month in debt service — total monthly commitment becomes $3,353 ($2,250 hosting + $1,103 payment)</li>
+<li>At $105,000 BTC and today's difficulty, 10 S21 Pros generate approximately $1,212/month net after hosting (before debt service) — the $1,103/month financing payment consumes approximately 91% of that, leaving only about $109/month in actual free cash flow across the whole 10-machine fleet</li>
+<li>Always model your financed position at $50,000-60,000 BTC — at those prices the fleet runs at a net loss before debt service is even considered, let alone after it</li>
 <li>Financing adds approximately $6,200 in total interest to a $38,000 10-machine purchase at 10% APR over 36 months — your effective hardware cost is $44,200</li>
 </ul>
 </div>
@@ -1509,7 +1512,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </tbody>
 </table>
 </div>
-<p>At $105,000 BTC, 10 S21 Pros generate approximately $824/day gross revenue ($82.40 × 10) — approximately $24,720/month. After hosting ($2,250) and debt service ($1,103), monthly net is approximately $21,367 in month 1. The financing payment represents 4.5% of gross revenue at these economics.</p>
+<p>At $105,000 BTC, 10 S21 Pros generate approximately $115.40/day gross revenue ($11.54 × 10) — approximately $3,462/month. After hosting ($2,250), that leaves approximately $1,212/month before debt service. After the $1,103/month financing payment, free cash flow is only approximately $109/month across the entire 10-machine fleet — the debt service consumes roughly 91% of the mining net profit, not a small slice of gross revenue. This is a materially thinner margin than in past years, and it means there is almost no room for a further difficulty increase or a BTC price dip before this financed deployment goes cash-flow negative.</p>
 <p>Visit <a href="/hosts/abundant-miners">Abundant Miners</a> or <a href="https://abundantmines.com/ref/72/" target="_blank" rel="noopener noreferrer">abundantmines.com</a> directly to discuss current financing availability and terms.</p>
 
 <h3>What Vendor Financing Doesn't Cover</h3>
@@ -1556,13 +1559,14 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>Before signing any financing agreement, run three scenarios through the <a href="/deal-analyzer">deal analyzer</a>:</p>
 
 <h3>Scenario 1: Base Case ($105,000 BTC, 20% annual difficulty growth)</h3>
-<p>At these assumptions, 10 S21 Pros net approximately $21,367/month after hosting and debt service in month 1, declining to approximately $15,200/month by month 12. The position is strongly cash-flow positive. Total 36-month net profit (after all costs including interest): approximately $530,000.</p>
+<p>At these assumptions, 10 S21 Pros net approximately $109/month after hosting and debt service in month 1 — already a thin margin. By month 12, as difficulty growth erodes gross revenue further while the $1,103/month debt service stays fixed, the position turns cash-flow negative: approximately -$468/month. Over the full 36-month loan term, cumulative net profit (after hosting, debt service, and interest, at a flat $105,000 BTC price) is approximately -$23,964 — a loss, not a profit. This "base case" only works if BTC price appreciates over the loan term, which is plausible given historical patterns but is not something this financing structure can survive on unchanged prices alone.</p>
 
 <h3>Scenario 2: Bear Case ($60,000 BTC, 15% annual difficulty growth)</h3>
-<p>Daily gross drops to approximately $47.10/machine ($471/day for 10 machines). Monthly gross: $14,130. After hosting ($2,250) and debt service ($1,103): net $10,777/month in month 1. Still positive — the position survives. By month 12 with 15% difficulty growth, monthly net is approximately $9,200. Still cash flow positive, though with less margin.</p>
+<p>Daily gross drops to approximately $6.59/machine (approximately $65.90/day for 10 machines). Monthly gross: approximately $1,978. After hosting ($2,250), the fleet is already net-negative before debt service is even considered: approximately -$272/month. After the $1,103/month debt service, the position runs approximately -$1,375/month starting in month 1 — a loss from day one, not a survivable position.</p>
 
 <h3>Scenario 3: Stress Case ($45,000 BTC, 25% annual difficulty growth)</h3>
-<p>Daily gross: approximately $35.30/machine ($353/day for 10). Monthly gross: $10,590. After hosting and debt service ($3,353 total): monthly net is approximately $7,237 in month 1. Still positive. By month 12 at 25% difficulty growth: monthly net approaches $4,000-5,000 — thin but positive. Below $35,000 BTC is where the position becomes cash flow negative at these hosting and financing costs.</p>
+<p>Daily gross: approximately $4.94/machine (approximately $49.40/day for 10). Monthly gross: approximately $1,484. After hosting ($2,250): approximately -$767/month before debt service. After the $1,103/month debt service: approximately -$1,870/month — a substantial monthly loss from day one that only gets worse as difficulty grows through the year.</p>
+<p>The honest conclusion across all three scenarios: at today's difficulty and standard 10% APR / 10%-down vendor terms, this financing structure has almost no margin for error even in the base case, and is underwater immediately in anything resembling a bear scenario. A larger down payment (reducing monthly debt service), a shorter loan term, or simply waiting for a wider margin between gross revenue and total fixed costs are all more defensible paths than financing at these terms with 10% down.</p>
 
 <h2>Common Mistakes in Mining Financing</h2>
 <ul>
@@ -1597,8 +1601,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     reading_time_minutes: 15,
     faqs: [
       { question: 'How much does the Antminer S21 Pro cost?', answer: 'The Antminer S21 Pro sells for approximately $3,500-4,200 depending on market conditions and purchase quantity. Direct from Bitmain typically runs $3,800-4,000 for single units. Volume discounts of 5-10% are typically available at 10+ units. The secondary market offers used units at $2,800-3,400 depending on runtime hours and condition.' },
-      { question: 'How profitable is the Antminer S21 Pro in 2026?', answer: 'In a $105,000 BTC reference scenario, the S21 Pro earns approximately $82/day gross revenue. With Abundant Miners hosting at $225/month ($7.50/day), net profit is approximately $74/day — approximately $2,247/month or $27,000/year. Hardware ROI in this scenario is approximately 51 days on a $3,800 unit. BTC price moves daily — check our live ROI calculator for numbers at today\'s actual price.' },
-      { question: 'Can the Antminer S21 Pro survive the 2028 halving?', answer: 'Yes. At $225/month hosting, the S21 Pro\'s post-halving breakeven BTC price is approximately $64,000. Even if BTC price only holds at $80,000 after the April 2028 halving, the S21 Pro generates approximately $18/day net profit — solidly positive. It is the most halving-resilient air-cooled miner available today.' },
+      { question: 'How profitable is the Antminer S21 Pro in 2026?', answer: 'In a $105,000 BTC reference scenario, the S21 Pro earns approximately $11.54/day gross revenue. With Abundant Miners hosting at $225/month ($7.50/day), net profit is approximately $4.04/day — approximately $123/month or $1,475/year. Hardware ROI in this scenario is approximately 941 days on a $3,800 unit. BTC price moves daily — check our live ROI calculator for numbers at today\'s actual price.' },
+      { question: 'Can the Antminer S21 Pro survive the 2028 halving?', answer: 'It depends heavily on BTC price by then. At $225/month hosting and today\'s network difficulty, the S21 Pro\'s post-halving breakeven BTC price is approximately $137,000 — meaning it needs meaningful price appreciation from today\'s levels to stay net positive after the halving, not just to hold steady. It remains the most halving-resilient air-cooled miner available today relative to competing hardware, but "resilient" here means a lower bar than the alternatives, not a comfortable one in absolute terms. Model your specific scenario at our live calculator with the block reward set to 1.5625.' },
       { question: 'Is the Antminer S21 Pro loud?', answer: 'Yes. The S21 Pro operates at approximately 75 dB — similar to a vacuum cleaner running continuously. This makes it completely unsuitable for home or residential use. It must be deployed in an industrial data center or mining facility. The Antminer S21 Pro Hydro variant drops to approximately 45 dB but requires liquid cooling infrastructure.' },
       { question: 'What is the warranty on the Antminer S21 Pro?', answer: 'Bitmain offers a 180-day repair or replacement warranty on new S21 Pro units purchased directly from Bitmain. Third-party resellers may offer different terms. Extended coverage (typically 12 months) may be available through your hosting provider. Used units typically carry no manufacturer warranty — factor this into pricing comparisons.' },
       { question: 'What is the difference between the S21 Pro and S21 Pro Hydro?', answer: 'The S21 Pro (234 TH/s, 15 J/TH) uses air cooling and can deploy in any standard facility. The S21 Pro Hydro (335 TH/s, approximately 16 J/TH) uses liquid cooling to achieve higher hashrate per unit, quieter operation (~45 dB), and longer component lifespan — but requires specialized hydro rack infrastructure that adds significant cost and limits compatible facilities. For operators without existing hydro infrastructure, the air-cooled S21 Pro is the better starting point.' },
@@ -1607,8 +1611,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>The S21 Pro at 15 J/TH is the most efficient air-cooled ASIC available in 2026 — no major competitor matches it on J/TH</li>
-<li>At $105,000 BTC and $225/month hosting, daily net profit is approximately $74.90 — hardware ROI closes in approximately 51 days</li>
-<li>Post-2028 halving breakeven: approximately $64,000 BTC at $225/month — providing substantial downside protection through the next reward cycle</li>
+<li>At $105,000 BTC and $225/month hosting, daily net profit is approximately $4.04 — hardware ROI closes in approximately 941 days</li>
+<li>Post-2028 halving breakeven: approximately $137,000 BTC at $225/month hosting at current network difficulty — a real risk factor to model, not a comfortable buffer</li>
 <li>Noise (75 dB) and power requirements (3,510 W, 240V) make it industrial-only — incompatible with home or residential deployment</li>
 <li>Strong secondary market liquidity — S21 Pro units resell well, providing an exit option if you need to liquidate your position</li>
 </ul>
@@ -1674,14 +1678,14 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>The profitability numbers that matter most are not the peak-case at current BTC prices — they are the range across realistic scenarios that your operation will encounter over a 24-36 month hardware lifespan.</p>
 
 <h3>Current Economics (Mid-2026)</h3>
-<p>At current network conditions (difficulty approximately 115T, BTC approximately $105,000):</p>
+<p>At current network conditions (difficulty approximately 134T, BTC approximately $105,000):</p>
 <ul>
-<li>Daily BTC mined: approximately 0.000785 BTC</li>
-<li>Daily gross revenue: approximately $82.40</li>
+<li>Daily BTC mined: approximately 0.00010988 BTC</li>
+<li>Daily gross revenue: approximately $11.54</li>
 <li>Daily hosting cost at <a href="/hosts/abundant-miners">Abundant Miners</a> ($225/month): $7.50</li>
-<li>Daily net profit: approximately $74.90</li>
-<li>Monthly net profit: approximately $2,247</li>
-<li>Hardware payback period: $3,800 ÷ $74.90 = approximately 51 days</li>
+<li>Daily net profit: approximately $4.04</li>
+<li>Monthly net profit: approximately $123</li>
+<li>Hardware payback period: $3,800 ÷ $4.04 = approximately 941 days</li>
 </ul>
 
 <h3>Multi-Scenario Profitability Table</h3>
@@ -1697,59 +1701,59 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <tbody>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$135,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$105.90</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$98.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">39 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$29,800</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$14.83</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$7.33</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">518 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$2,183</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$105,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$82.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$74.90</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">51 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$22,900</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$11.54</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$4.04</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">941 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$1,089</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$80,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$62.80</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$55.30</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">69 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$16,700</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$8.79</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$1.29</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~2,945 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$178</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$60,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$47.10</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$39.60</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">96 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$10,900</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$6.59</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$0.91</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~-$550</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$40,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$31.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$23.90</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">159 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$5,700</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$4.40</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$3.10</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~-$1,280</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$32,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$25.10</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$17.60</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">216 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$3,100</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$3.52</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$3.98</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~-$1,571</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Static current difficulty. 12-month figures approximate 20% annual difficulty growth. Use our <a href="/" style="color: #00d4aa;">calculator</a> for live numbers on your specific assumptions.</em></p>
+<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Static current difficulty (~134T). 12-month figures account for approximately 20% annual difficulty growth. Below approximately $68,000 BTC at today's difficulty, the S21 Pro runs at a net loss on $225/month hosting — it does not "pay back slower," it does not pay back at all until price recovers or network difficulty falls. Use our <a href="/" style="color: #00d4aa;">calculator</a> for live numbers on your specific assumptions.</em></p>
 
 <h3>2028 Halving Survival Analysis</h3>
 <p>The April 2028 halving cuts block rewards to 1.5625 BTC. At $225/month hosting, the S21 Pro's post-halving daily revenue and breakeven:</p>
 <ul>
-<li>Post-halving gross at $105,000 BTC: approximately $41.20/day</li>
-<li>Post-halving net at $225/month: approximately $33.70/day</li>
-<li>Post-halving breakeven BTC price: approximately $64,000</li>
+<li>Post-halving gross at $105,000 BTC: approximately $5.77/day</li>
+<li>Post-halving net at $225/month: approximately -$1.73/day (a loss at today's difficulty)</li>
+<li>Post-halving breakeven BTC price: approximately $137,000</li>
 </ul>
-<p>The S21 Pro is one of the few air-cooled miners with positive post-halving margins at $80,000 BTC. This is a decisive advantage over 20+ J/TH alternatives. See our complete <a href="/university/bitcoin-halving-effect-on-mining">halving profitability guide</a> for full post-halving scenario analysis.</p>
+<p>Even at today's $105,000 BTC price, the S21 Pro runs at a net loss post-halving under current network difficulty — it needs BTC to appreciate to approximately $137,000, or difficulty to fall meaningfully from today's level, just to break even. That breakeven is still lower than most 20+ J/TH alternatives need, which remains a real efficiency advantage — but "advantage" here means losing less badly, not staying profitable. See our complete <a href="/university/bitcoin-halving-effect-on-mining">halving profitability guide</a> for full post-halving scenario analysis.</p>
 
 <h2>Pros and Cons</h2>
 <h3>What the S21 Pro Does Better Than Any Alternative</h3>
@@ -1785,49 +1789,49 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #00d4aa;"><strong>234 TH/s</strong></td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #00d4aa;"><strong>15.0</strong></td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$3,800</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$74.90</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~$64,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$4.04</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$137,000</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Antminer S21</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">200 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">17.5</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$2,700</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$61.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$70,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$2.36</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$160,000</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Whatsminer M60S</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">170 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">20.0</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$2,500</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$51.80</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$82,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$0.88</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$188,000</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Antminer S19 XP</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">140 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">21.5</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$1,400</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$39.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$96,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$0.60</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$228,000</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21 Pro Hydro</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">335 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">~16.0</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$5,500</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$99.30*</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~$68,000*</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$9.02*</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~$95,000*</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>*S21 Pro Hydro requires hydro infrastructure not included in price. Net/day and post-halving breakeven at $225/month flat hosting equivalent. See our <a href="/university/best-bitcoin-miners-2026" style="color: #00d4aa;">complete hardware rankings</a> and <a href="/miners" style="color: #00d4aa;">miner comparison tool</a>.</em></p>
+<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>*S21 Pro Hydro requires hydro infrastructure not included in price. Figures recalculated against current live network difficulty — they will drift over time, so confirm your own numbers at our <a href="/">live calculator</a>. Note the S21 Pro Hydro's much higher absolute hashrate gives it the best net profit and post-halving breakeven here despite similar J/TH efficiency to the standard S21 Pro — hashrate per dollar of hosting cost matters as much as raw efficiency. See our <a href="/university/best-bitcoin-miners-2026" style="color: #00d4aa;">complete hardware rankings</a> and <a href="/miners" style="color: #00d4aa;">miner comparison tool</a>.</em></p>
 
 <h2>Should You Buy New or Used?</h2>
 <p>The secondary market for S21 Pro hardware is active, with units typically available at $2,800-3,400 depending on runtime hours and condition. The economics of used vs. new:</p>
-<p>A used S21 Pro at $3,000 (vs. new at $3,800) saves $800 in acquisition cost — shortening your payback period from 51 days to 40 days at $105,000 BTC and $225/month hosting. The tradeoff: no manufacturer warranty on used hardware, potentially higher failure rates depending on operational history, and possibly some thermal paste/fan degradation on high-hour units.</p>
+<p>A used S21 Pro at $3,000 (vs. new at $3,800) saves $800 in acquisition cost — shortening your payback period from 941 days to 40 days at $105,000 BTC and $225/month hosting. The tradeoff: no manufacturer warranty on used hardware, potentially higher failure rates depending on operational history, and possibly some thermal paste/fan degradation on high-hour units.</p>
 <p>For operators comfortable inspecting hardware or purchasing through a reputable broker, used S21 Pros at $2,800-3,000 represent an excellent value. For operators who want manufacturer warranty coverage and clean operational history, new units at $3,500-4,000 are worth the premium.</p>
 
 <h2>Common Mistakes When Buying an S21 Pro</h2>
@@ -1844,12 +1848,12 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li><strong>Deploy at $225/month flat-fee hosting for best economics.</strong> The S21 Pro's profitability case is built on competitive flat-fee hosting. At per-kWh rates above $0.07, the economics compress. <a href="/hosts/abundant-miners">Abundant Miners</a> at $225/month flat is the benchmark to compare against.</li>
 <li><strong>Run a profitability audit before buying at scale.</strong> For deployments of 5+ units, a $97 <a href="/audit">profitability audit</a> models your specific configuration across all scenarios — BTC price range, difficulty growth, and post-halving — and delivers a written assessment within 48 hours. The cost is trivial relative to the capital at stake.</li>
 <li><strong>Consider vendor financing for larger deployments.</strong> If capital is constrained, Abundant Miners offers 10% APR vendor financing with 10% down on up to $140,000. See our <a href="/university/mining-financing-options">complete financing guide</a> for the full math on financed deployments.</li>
-<li><strong>Pool selection matters more than most think.</strong> Choose a pool with FPPS+ payout structure and fees below 1%. Foundry USA at 0-0.75% is the current best option for US-based operators. Over 12 months at $82/day gross, a 1% fee difference saves approximately $300 — real money across a fleet.</li>
+<li><strong>Pool selection matters more than most think.</strong> Choose a pool with FPPS+ payout structure and fees below 1%. Foundry USA at 0-0.75% is the current best option for US-based operators. Over 12 months at $11.54/day gross, a 1% fee difference saves approximately $42/year per machine — small in absolute terms, but a larger share of profit than it used to be given how thin current margins are, and it compounds across a fleet.</li>
 <li><strong>Track your unit's actual hashrate weekly.</strong> S21 Pros occasionally drift from rated hashrate due to thermal paste degradation or fan issues. A unit consistently delivering 225 TH/s instead of 234 TH/s has a 4% revenue shortfall — worth addressing. Ask your hosting provider about monitoring dashboards.</li>
 </ul>
 
 <h2>The Bottom Line</h2>
-<p>The Antminer S21 Pro is the definitive air-cooled ASIC recommendation for 2026. Its 15 J/TH efficiency is the best available in the air-cooled segment, its profitability at $225/month hosting is strong across a wide BTC price range, and its post-2028 halving breakeven of approximately $64,000 BTC provides better downside protection than any competing hardware.</p>
+<p>The Antminer S21 Pro is a strong air-cooled ASIC recommendation for 2026, combining the best efficiency per TH in its class (15 J/TH) with a lower hardware price than higher-hashrate alternatives. Its post-2028 halving breakeven of approximately $137,000 BTC at current network difficulty is meaningfully better than lower-efficiency hardware like the M60S, though machines with substantially higher absolute hashrate (like the Whatsminer M66) can post a lower post-halving breakeven despite worse J/TH efficiency — run the actual numbers for any hardware you're comparing rather than assuming efficiency alone decides it.</p>
 <p>For operators deploying at a professional hosting facility — especially with <a href="/hosts/abundant-miners">Abundant Miners</a> at competitive rates — the S21 Pro is the correct choice unless you have existing hydro infrastructure (where the S21 Pro Hydro makes sense) or very limited capital (where the S21 at $2,700 is a viable alternative at the cost of efficiency).</p>
 <p>Score any specific S21 Pro offer through our <a href="/deal-analyzer">deal analyzer</a> before committing — it evaluates hardware price, hosting rate, efficiency, profitability, and post-halving resilience in a single composite score. Or book a <a href="/audit">profitability audit</a> for a complete expert review of your planned deployment.</p>`,
   },
@@ -1868,7 +1872,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
       { question: 'What is FPPS vs PPS vs PPLNS?', answer: 'FPPS (Full Pay Per Share) pays you for every valid share submitted plus a proportional share of transaction fees in mined blocks — the highest-paying stable structure. PPS (Pay Per Share) pays for every share but excludes transaction fees. PPLNS (Pay Per Last N Shares) pays based on shares you contributed in the window before each block is found — variance is higher but expected value equals FPPS over long periods. For stable cash flow, choose FPPS or FPPS+.' },
       { question: 'Can I switch mining pools without penalty?', answer: 'Yes — with reputable hosting providers. Abundant Miners and most professional facilities allow you to point your miner at any pool by updating the pool address in your miner\'s settings. The switch takes minutes and incurs no fee or penalty. Always confirm pool flexibility before signing any hosting contract — some less reputable operators lock you into specific pools.' },
       { question: 'Does pool hashrate concentration affect my mining revenue?', answer: 'Pool size affects variance but not expected value. A large pool (30% of global hashrate) finds blocks frequently, producing smooth, consistent payouts. A smaller pool finds blocks less often, producing lumpy payouts with the same expected value over time. For operators with multiple machines generating significant daily revenue, large pools smooth cash flow. For solo operators with one or two machines, large pools are also preferable for predictability.' },
-      { question: 'What is hashprice and how does pool selection affect it?', answer: 'Hashprice is the expected daily revenue per TH/s of hashrate — it combines BTC price, network difficulty, and block reward into a single number. Pool fees directly reduce your effective hashprice. At a hashprice of $0.082/TH/s/day (mid-2026 levels), a 2.5% pool fee reduces your effective hashprice to $0.0800/TH/s/day versus $0.0814/TH/s/day at 0.75%. On 234 TH/s, that difference is $3.18/day or approximately $1,161/year per machine.' },
+      { question: 'What is hashprice and how does pool selection affect it?', answer: 'Hashprice is the expected daily revenue per TH/s of hashrate — it combines BTC price, network difficulty, and block reward into a single number. Pool fees directly reduce your effective hashprice. At a hashprice of $0.0493/TH/s/day (mid-2026 levels), a 2.5% pool fee reduces your effective hashprice to approximately $0.0481/TH/s/day versus approximately $0.0489/TH/s/day at 0.75%. On 234 TH/s, that difference is approximately $0.20/day or approximately $73/year per machine — small in absolute terms, but still worth capturing at today\'s thin margins.' },
     ],
     content: `<div style="background: rgba(0,212,170,0.05); border: 1px solid rgba(0,212,170,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
@@ -1877,7 +1881,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li>FPPS+ is the optimal payout structure — it pays for every share plus transaction fee income with no variance</li>
 <li>Foundry USA is the recommended pool for US operators: lowest fees, FPPS+, US-based compliance, and the largest hashrate share (~30%)</li>
 <li>Pool flexibility is non-negotiable in hosting contracts — confirm you can point machines at any pool before signing</li>
-<li>Solo mining is not viable at any scale in 2026 — with 234 TH/s and 650 EH/s network hashrate, expected time to a solo block is approximately 7,600 years</li>
+<li>Solo mining is not viable at any scale in 2026 — with 234 TH/s and approximately 958 EH/s network hashrate, expected time to a solo block is approximately 78 years</li>
 </ul>
 </div>
 
@@ -1886,13 +1890,13 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>This guide covers the four major pools relevant to US-based operators in 2026 — Foundry USA, Antpool, F2Pool, and Braiins Pool — with complete fee comparisons, payout structure explanations, and a final recommendation.</p>
 
 <h2>Why Pool Fees Compound into Real Money</h2>
-<p>At current economics, an Antminer S21 Pro earns approximately $82.40/day gross. On an annualized basis, that is approximately $30,076/year. The difference between a 0.75% pool fee and a 2.5% pool fee:</p>
+<p>At current economics, an Antminer S21 Pro earns approximately $11.54/day gross. On an annualized basis, that is approximately $30,076/year. The difference between a 0.75% pool fee and a 2.5% pool fee:</p>
 <ul>
 <li>At 0.75% fee: $30,076 × 0.0075 = $225.57/year paid to the pool</li>
 <li>At 2.5% fee: $30,076 × 0.025 = $751.90/year paid to the pool</li>
 <li>Annual difference: $526.33 per machine</li>
 </ul>
-<p>For an operator running 10 S21 Pros, the fee difference between Foundry USA and Antpool is approximately $5,260/year — more than enough to offset years of switching costs. For a 50-machine operation, it is over $26,000/year. Pool fee optimization is one of the highest-leverage, lowest-effort improvements available to any operator.</p>
+<p>For an operator running 10 S21 Pros, the fee difference between Foundry USA and Antpool is approximately $737/year — more than enough to offset years of switching costs. For a 50-machine operation, it is approximately $3,686/year. Pool fee optimization is one of the highest-leverage, lowest-effort improvements available to any operator, and matters proportionally more now that gross revenue itself is much thinner than in past years.</p>
 
 <h2>Understanding Payout Structures</h2>
 <p>Before comparing specific pools, it is essential to understand the three payout structures they offer, because they affect not just variance but in some cases total expected revenue.</p>
@@ -1983,13 +1987,13 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <h2>Why Solo Mining Is Not Viable in 2026</h2>
 <p>Some operators ask about solo mining — operating without a pool and collecting the full block reward when you find a block. The math makes this clearly impractical at any reasonable scale:</p>
 <ul>
-<li>Global network hashrate: approximately 650 EH/s (650,000,000 TH/s)</li>
+<li>Global network hashrate: approximately 958 EH/s (958,000,000 TH/s)</li>
 <li>Your hashrate (1 S21 Pro): 234 TH/s</li>
-<li>Your share of global hashrate: 234 ÷ 650,000,000 = 0.000036%</li>
-<li>Expected blocks per year: 52,560 (network) × 0.00000036 = 0.019 blocks per year</li>
-<li>Expected time to find one block: approximately 54 years per machine</li>
+<li>Your share of global hashrate: 234 ÷ 958,000,000 = 0.0000244%</li>
+<li>Expected blocks per year: 52,560 (network) × 0.000000244 = 0.0128 blocks per year</li>
+<li>Expected time to find one block: approximately 78 years per machine</li>
 </ul>
-<p>Even with 100 machines (23,400 TH/s), expected time to a solo block is over 6 months. Solo mining at this scale exposes you to years of operating costs with no income. Pools exist precisely to smooth this variance into predictable daily payouts.</p>
+<p>Even with 100 machines (23,400 TH/s), expected time to a solo block is approximately 9 months. Solo mining at this scale exposes you to months to years of operating costs with no income. Pools exist precisely to smooth this variance into predictable daily payouts.</p>
 
 <h2>Common Mistakes in Pool Selection</h2>
 <ul>
@@ -2066,41 +2070,41 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$0.16/kWh (US avg residential)</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">$404/month</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">+$179 more</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$68.90</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$1.94</td>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Most US residential</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$0.12/kWh</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">$303/month</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">+$78 more</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$72.30</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$1.43</td>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Low-cost residential states</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$0.089/kWh (breakeven)</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$225/month</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">Same</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$74.90</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$4.04</td>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Rare residential, some business</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$0.07/kWh</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$177/month</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">-$48 cheaper</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$76.50</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$5.64</td>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Agricultural, some industrial</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$0.05/kWh</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$126/month</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">-$99 cheaper</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$79.10</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$7.33</td>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Industrial, hydro regions, solar</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Net/day figures based on $82.40/day gross at $105,000 BTC, current difficulty. Home mining figures exclude additional infrastructure costs below.</em></p>
+<p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Net/day figures based on $11.54/day gross at $105,000 BTC, current difficulty. Home mining figures exclude additional infrastructure costs below.</em></p>
 
 <h3>The Takeaway on Electricity</h3>
 <p>If your home or business electricity rate is above $0.089/kWh, hosted mining is strictly cheaper on electricity alone — before accounting for any other costs. If your rate is below $0.07/kWh, home mining has a cost advantage that grows as the rate drops. At US residential average ($0.16/kWh), you are paying $179/month more per machine to mine at home than to host.</p>
@@ -2182,7 +2186,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </tbody>
 </table>
 </div>
-<p>At US residential electricity rates, the total effective cost of home mining per machine is approximately $544-694/month versus $225/month hosted — 2.4-3.1× more expensive. At $105,000 BTC with $82.40/day gross, home mining at this cost level produces negative net returns. That is the core of why home mining rarely makes financial sense for US residential operators.</p>
+<p>At US residential electricity rates, the total effective cost of home mining per machine is approximately $544-694/month versus $225/month hosted — 2.4-3.1× more expensive. At $105,000 BTC with $11.54/day gross, home mining at this cost level produces negative net returns. That is the core of why home mining rarely makes financial sense for US residential operators.</p>
 
 <h2>When Home Mining Actually Makes Sense</h2>
 <p>Despite the above, home mining is viable — even advantageous — in specific, real-world scenarios:</p>
@@ -2270,7 +2274,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>Every hosting contract claims something about uptime. "We target 99% uptime," or "We work hard to ensure maximum availability." These statements are not guarantees — they are aspirations. A real SLA (Service Level Agreement) specifies exactly what happens when uptime targets are missed: the credit amount, the calculation method, and how credits are applied.</p>
 <p>Red flag language: "We will make commercially reasonable efforts to maintain uptime" or "Target uptime of 99% with no liability for interruptions."</p>
 <p>What to look for instead: specific uptime percentage (99% minimum), defined measurement period (monthly), defined credit schedule (e.g., 5% monthly fee credit per percentage point below target, up to 25%), and defined exclusions (scheduled maintenance with 48-hour notice is reasonable to exclude).</p>
-<p>Why this matters: at $74/day net profit, a week of downtime costs $518. Without an SLA penalty clause, your only recourse is legal action or leaving — both expensive. With a proper SLA, you receive automatic compensation for downtime without having to fight for it.</p>
+<p>Why this matters: at $4.04/day net profit, a week of downtime costs approximately $28. Without an SLA penalty clause, your only recourse is legal action or leaving — both expensive. With a proper SLA, you receive automatic compensation for downtime without having to fight for it.</p>
 
 <h2>Red Flag #3: No Pool Flexibility</h2>
 <p>Pool flexibility — the ability to direct your machines to any mining pool of your choice — is a fundamental right that every reputable hosting provider offers. If a contract requires you to mine on the host's designated pool, or restricts your pool choices in any way, this is a serious red flag.</p>
@@ -2367,9 +2371,9 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     tags: ['hashprice', 'profitability', 'metrics', 'data'],
     reading_time_minutes: 15,
     faqs: [
-      { question: 'What is hashprice in Bitcoin mining?', answer: 'Hashprice is the expected daily revenue per terahash of mining power, expressed in USD per TH/s per day. It synthesizes Bitcoin price and network difficulty into a single actionable number. At current hashprice of approximately $0.077/TH/day, an S21 Pro at 234 TH/s earns approximately $18/day gross — which equals $82.40/day when you factor in the 4,500 TH/s-equivalent power of 234 actual TH/s applied to correct block probability math.' },
-      { question: 'How do I calculate hashprice?', answer: 'Hashprice (USD/TH/day) = (BTC price × block reward × blocks per day) ÷ total network hashrate in TH/s. At $105,000 BTC, 3.125 BTC block reward, 144 blocks/day, and 650 EH/s network hashrate (650,000,000 TH/s): Hashprice = ($105,000 × 3.125 × 144) ÷ 650,000,000 = $47,250,000 ÷ 650,000,000 = approximately $0.0727/TH/day.' },
-      { question: 'What is a good hashprice for Bitcoin mining?', answer: 'Hashprice above $0.050/TH/day makes S21 Pro-class hardware profitable at $225/month hosting (breakeven: $0.032/TH/day). Hashprice above $0.075/TH/day generates strong margins. The 2022 bear market trough brought hashprice to approximately $0.05/TH/day — the S21 Pro still survived. The 2026 hashprice around $0.075-0.085/TH/day provides approximately $0.045/TH/day net margin for S21 Pro operators at $225/month.' },
+      { question: 'What is hashprice in Bitcoin mining?', answer: 'Hashprice is the expected daily revenue per terahash of mining power, expressed in USD per TH/s per day. It synthesizes Bitcoin price and network difficulty into a single actionable number. At current hashprice of approximately $0.049/TH/day, an S21 Pro at 234 TH/s earns approximately $11.54/day gross.' },
+      { question: 'How do I calculate hashprice?', answer: 'Hashprice (USD/TH/day) = (BTC price × block reward × blocks per day) ÷ total network hashrate in TH/s. At $105,000 BTC, 3.125 BTC block reward, 144 blocks/day, and 958 EH/s network hashrate (958,000,000 TH/s): Hashprice = ($105,000 × 3.125 × 144) ÷ 958,000,000 = $47,250,000 ÷ 958,000,000 = approximately $0.0493/TH/day.' },
+      { question: 'What is a good hashprice for Bitcoin mining?', answer: 'Hashprice above $0.032/TH/day makes S21 Pro-class hardware profitable at $225/month hosting (that exact figure is its breakeven). Hashprice above $0.045/TH/day provides a genuinely comfortable margin. The 2022 bear market trough brought hashprice to approximately $0.05/TH/day — and mid-2026 hashprice, at approximately $0.049/TH/day, sits almost exactly at that same bear-market level despite BTC trading near all-time highs. Today\'s S21 Pro margin (~$0.017/TH/day above breakeven) is thin, not comfortable — a reminder that BTC price alone doesn\'t tell you how healthy mining economics actually are.' },
       { question: 'Where can I track live hashprice?', answer: 'Check our live data dashboard at /data for real-time hashprice and a 90-day historical chart. Hashprice data is also available from Luxor\'s Hashrate Index (luxor.tech/hashrate-index), CoinMetrics, and Braiins Insights. Track hashprice at least weekly — changes can signal emerging opportunity or risk before they show up in your pool payout figures.' },
       { question: 'What is the difference between hashprice and hashrate?', answer: 'Hashrate measures your mining power output in terahashes per second (TH/s). Hashprice measures the revenue that one TH/s of hashrate generates per day in USD. Hashrate is a property of your hardware; hashprice is a market signal set by BTC price and total network difficulty. Your daily gross revenue = hashrate × hashprice. Understanding both numbers — and the difference between them — is fundamental to mining economics.' },
       { question: 'What historical hashprice levels have miners survived?', answer: 'The 2022 bear market brought hashprice to approximately $0.05/TH/day at its trough — the lowest level in years. Miners with hardware above 25 J/TH and hosting costs above $0.08/kWh were pushed below breakeven. S21 Pro-class hardware at $225/month flat hosting has a breakeven hashprice of approximately $0.032/TH/day — providing a 36% buffer even against the 2022 bear market trough.' },
@@ -2378,7 +2382,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>Hashprice (USD/TH/day) is the single metric that combines BTC price and network difficulty — it directly tells you your gross revenue per unit of hashrate</li>
-<li>Current hashprice is approximately $0.075-0.085/TH/day; S21 Pro at 234 TH/s earns approximately $82/day gross at $105,000 BTC</li>
+<li>Current hashprice is approximately $0.049/TH/day — close to the 2022 bear-market trough despite BTC trading near all-time highs; S21 Pro at 234 TH/s earns approximately $11.54/day gross at $105,000 BTC</li>
 <li>Your breakeven hashprice = daily hosting cost ÷ hashrate (TH/s) — for S21 Pro at $225/month: $7.50 ÷ 234 = $0.032/TH/day</li>
 <li>Hashprice fell to approximately $0.05/TH/day at the 2022 bear market trough — S21 Pro hardware still produced positive margins at that level</li>
 <li>Monitoring hashprice daily gives you earlier warning of deteriorating economics than waiting for changes to show up in monthly revenue</li>
@@ -2386,7 +2390,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </div>
 
 <p>Bitcoin miners track dozens of numbers: BTC price, network difficulty, hashrate, power consumption, pool fees, hardware efficiency, hosting cost per kWh. It's easy to get lost in the data. Hashprice cuts through all of it.</p>
-<p>Hashprice is the daily revenue generated per terahash of mining power, expressed in USD/TH/s/day. It combines the two most important market variables — Bitcoin price and network difficulty — into a single number that directly converts to your gross revenue. If your hashprice is $0.077/TH/day and you run 234 TH/s, you earn $18.02/day per unit of hashrate in the formula. Your actual daily earnings are calculated from this same underlying relationship applied to block probability across 144 daily blocks.</p>
+<p>Hashprice is the daily revenue generated per terahash of mining power, expressed in USD/TH/s/day. It combines the two most important market variables — Bitcoin price and network difficulty — into a single number that directly converts to your gross revenue. If your hashprice is $0.049/TH/day and you run 234 TH/s, you earn $11.46/day gross — reconciling closely to the $11.54/day figure used elsewhere on the site once you account for rounding in the network hashrate estimate.</p>
 <p>This guide explains the hashprice formula, how to calculate your specific breakeven hashprice, how hashprice has moved through past market cycles, and how to use it as the primary ongoing signal for your operation's profitability.</p>
 
 <h2>The Hashprice Formula</h2>
@@ -2398,10 +2402,10 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li>BTC price: $105,000</li>
 <li>Block reward: 3.125 BTC</li>
 <li>Blocks per day: 144 (average at 10-minute block times)</li>
-<li>Network hashrate: approximately 650 EH/s = 650,000,000 TH/s</li>
+<li>Network hashrate: approximately 958 EH/s = 958,000,000 TH/s</li>
 </ul>
-<p style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-family: monospace; margin: 1rem 0;">Hashprice = ($105,000 × 3.125 × 144) ÷ 650,000,000 = $47,250,000 ÷ 650,000,000 = <strong>$0.0727/TH/day</strong></p>
-<p>For an S21 Pro at 234 TH/s: 234 × $0.0727 = $17.01/day gross — which reconciles to the $82.40/day figure you'll see elsewhere when applying the full probability-based calculation across 144 blocks. The formula above gives a clean approximation; the full calculation accounts for the granular probability of your specific hashrate share finding each block.</p>
+<p style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-family: monospace; margin: 1rem 0;">Hashprice = ($105,000 × 3.125 × 144) ÷ 958,000,000 = $47,250,000 ÷ 958,000,000 = <strong>$0.0493/TH/day</strong></p>
+<p>For an S21 Pro at 234 TH/s: 234 × $0.0493 = $11.54/day gross — matching the figure you'll see elsewhere on the site for the same hardware and conditions.</p>
 <p>Track live hashprice on our <a href="/data">data dashboard</a> rather than calculating manually — the network hashrate figure changes with each difficulty adjustment.</p>
 
 <h2>Why Hashprice Matters More Than BTC Price Alone</h2>
@@ -2445,16 +2449,15 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Mid-2026 (current)</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$105,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~$0.075-0.085/TH/day</td>
-<td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Current cycle</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$0.049/TH/day</td>
+<td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Current cycle — near the 2022 bear-market trough</td>
 </tr>
 </tbody>
 </table>
 </div>
 
 <h3>The Critical Insight: Hashprice Range</h3>
-<p>Even at the 2021 BTC price peak ($69,000), hashprice was approximately $0.40/TH/day. Today, with BTC at $105,000 — 52% higher — hashprice is approximately $0.077/TH/day. The explanation: network hashrate has grown from approximately 180 EH/s (2021 peak) to 650 EH/s (2026) — a 261% increase that has more than offset the BTC price appreciation in terms of per-TH revenue.</p>
-<p>This is why hashprice, not BTC price, is the correct revenue signal for miners.</p>
+<p>Even at the 2021 BTC price peak ($69,000), hashprice was approximately $0.40/TH/day. Today, with BTC at $105,000 — 52% higher — hashprice is approximately $0.049/TH/day, an 88% decline. The explanation: network hashrate has grown from approximately 180 EH/s (2021 peak) to approximately 958 EH/s (2026) — a roughly 432% increase that has more than offset the BTC price appreciation in terms of per-TH revenue. Strikingly, today's hashprice sits at almost the same level as the December 2022 bear-market trough ($0.050/TH/day) — despite BTC trading over 6x higher than it did then. This is the clearest illustration of why hashprice, not BTC price, is the correct revenue signal for miners: a near-all-time-high BTC price is coexisting with bear-market-trough mining economics.</p>
 
 <h2>Calculating Your Breakeven Hashprice</h2>
 <p>Your breakeven hashprice is the hashprice level at which your daily mining revenue exactly covers your daily operating cost. Below this level, you lose money on operations; above it, you profit.</p>
@@ -2463,7 +2466,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <h3>S21 Pro at $225/Month Hosting</h3>
 <p>Daily hosting cost: $225 ÷ 30 = $7.50/day</p>
 <p>Breakeven hashprice: $7.50 ÷ 234 TH/s = <strong>$0.0321/TH/day</strong></p>
-<p>At current hashprice of $0.077/TH/day, your daily net margin per TH/s is $0.077 − $0.0321 = $0.0449/TH/day. For 234 TH/s, that's approximately $10.50/TH/day × per machine basis — the $74.90/day net figure.</p>
+<p>At current hashprice of $0.049/TH/day, your daily net margin per TH/s is $0.049 − $0.0321 = $0.0172/TH/day. For 234 TH/s, that works out to approximately $4.04/day net — a thin 35% margin above breakeven, not a comfortable one.</p>
 
 <h3>Breakeven Hashprice by Hardware and Hosting</h3>
 <div style="overflow-x: auto; margin: 1.5rem 0;">
@@ -2526,7 +2529,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>S21 Pro's breakeven of $0.032/TH/day sits well below even the 2022 trough. This is why it is the hardware benchmark for 2026 — not just because of current profitability, but because of bear market resilience.</p>
 
 <h3>Hashprice and the 2028 Halving</h3>
-<p>The April 2028 halving cuts block reward from 3.125 to 1.5625 BTC, which mechanically halves hashprice overnight (all else equal). At current hashprice of $0.077/TH/day, post-halving hashprice would be approximately $0.038/TH/day — above the S21 Pro's $0.032/TH/day breakeven, but below the S19 XP's $0.054/TH/day breakeven.</p>
+<p>The April 2028 halving cuts block reward from 3.125 to 1.5625 BTC, which mechanically halves hashprice overnight (all else equal). At current hashprice of $0.049/TH/day, post-halving hashprice would be approximately $0.0245/TH/day — below both the S21 Pro's $0.0321/TH/day breakeven and the S19 XP's $0.054/TH/day breakeven. At today's BTC price and difficulty, this halving would put even the most efficient current-generation hardware at a net loss; surviving it net-positive requires BTC price appreciation between now and April 2028, difficulty growth slowing meaningfully, or both — not a given, but the historical pattern discussed elsewhere in our <a href="/university/bitcoin-halving-effect-on-mining">halving guide</a>.</p>
 <p>This analysis — calculating post-halving hashprice against hardware-specific breakeven prices — is the most direct way to evaluate which hardware survives the 2028 event. See our complete <a href="/university/bitcoin-halving-effect-on-mining">halving profitability guide</a> for the full analysis.</p>
 
 <h2>Common Mistakes in Hashprice Analysis</h2>
@@ -2563,7 +2566,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     reading_time_minutes: 15,
     faqs: [
       { question: 'How much does it cost to start Bitcoin mining in 2026?', answer: 'The minimum realistic budget for hosted Bitcoin mining in 2026 is approximately $4,750-5,200: hardware ($3,800 for an Antminer S21 Pro), hosting deposit (~$500), and 1-2 months of hosting buffer ($450-900). Financing is available to reduce the upfront capital requirement — Abundant Miners offers up to $140,000 at 10% APR with 10% down.' },
-      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'It depends heavily on today\'s BTC price and network difficulty, which both change constantly. As a reference: at $105,000 BTC, an Antminer S21 Pro hosted at $225/month generates approximately $74.90/day net profit (approximately $27,000/year) with payback in approximately 51 days. The operating-cost breakeven price (independent of that scenario, driven by current network difficulty) is currently approximately $68,000. Always check our live ROI calculator for numbers at the actual current price before deciding.' },
+      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'It depends heavily on today\'s BTC price and network difficulty, which both change constantly. As a reference: at $105,000 BTC, an Antminer S21 Pro hosted at $225/month generates approximately $4.04/day net profit (approximately $1,475/year at a flat BTC price, less once difficulty growth is factored in) with payback in approximately 941 days. The operating-cost breakeven price (independent of that scenario, driven by current network difficulty) is currently approximately $68,000. Always check our live ROI calculator for numbers at the actual current price before deciding.' },
       { question: 'How do I start Bitcoin mining in 2026?', answer: 'Six steps: (1) Model the economics using our profitability calculator before spending anything. (2) Choose hardware — the Antminer S21 Pro (15 J/TH, 234 TH/s) is the best starting point. (3) Choose a hosting provider — Abundant Miners at $225/month flat fee is the recommended option for beginners. (4) Set up a mining pool account (Foundry USA recommended). (5) Run any deal through the deal analyzer before committing. (6) Ship your miner and start monitoring pool payouts.' },
       { question: 'How much money do I need to start Bitcoin mining?', answer: 'Minimum: hardware ($3,800 for S21 Pro) + deposit (~$500) + 1-2 months hosting buffer ($450-900) = approximately $4,750-5,200 to start with adequate financial cushion. If capital-constrained, Abundant Miners vendor financing allows deployment with $380 down (10% of $3,800) and monthly payments of approximately $1,103 over 36 months at 10% APR.' },
       { question: 'Do I need technical knowledge to start Bitcoin mining?', answer: 'No. Hosted mining requires minimal technical knowledge — your hosting provider handles hardware setup, maintenance, and connectivity. You need to understand: (1) how to read a profitability calculator, (2) how to set up a pool account and provide a pool address to your host, (3) how to read your contract before signing, and (4) how to monitor your pool dashboard once running. Our university articles cover all of this.' },
@@ -2573,7 +2576,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>Bitcoin mining in 2026 is profitable with the right hardware (15 J/TH or better) and competitive hosting ($225/month or below $0.07/kWh)</li>
-<li>The S21 Pro at $225/month hosting generates approximately $74.90/day net at $105,000 BTC — hardware pays back in approximately 51 days</li>
+<li>The S21 Pro at $225/month hosting generates approximately $4.04/day net at $105,000 BTC — hardware pays back in approximately 941 days</li>
 <li>Six steps to starting: model economics → choose hardware → choose hosting → set up pool → analyze the deal → ship and monitor</li>
 <li>The April 2028 halving cuts block rewards to 1.5625 BTC — model your setup at post-halving reward before committing capital</li>
 <li>Total startup cost for hosted mining: approximately $4,750-5,200 (hardware + deposit + buffer); financing available with 10% down</li>
@@ -2605,7 +2608,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>Your operating cost structure. Two models exist: flat monthly fee ($225/month at Abundant Miners, covering all electricity regardless of consumption) and per-kWh ($0.07/kWh and below). For an S21 Pro at $225/month, daily operating cost is $7.50. Monthly net profit = gross mining revenue − $225.</p>
 
 <h3>3. Bitcoin Price</h3>
-<p>Multiplies your BTC earnings into USD revenue. At $105,000 BTC, the S21 Pro earns approximately $82.40/day gross. At $70,000 BTC: approximately $54.90/day gross. At $50,000 BTC: approximately $39.20/day gross. The operation remains profitable (above $7.50/day operating cost) at all these levels.</p>
+<p>Multiplies your BTC earnings into USD revenue. At $105,000 BTC, the S21 Pro earns approximately $11.54/day gross. At $70,000 BTC: approximately $7.69/day gross — barely above the $7.50/day operating cost. At $50,000 BTC: approximately $5.49/day gross, which is below operating cost and puts the operation at a net loss. This is why BTC price is the single most important variable to stress-test before committing capital — at today's network difficulty, this hardware's margin of safety below $70,000 is thin to nonexistent.</p>
 
 <h2>Step 1: Model the Economics Before Spending Anything</h2>
 <p>Before purchasing any hardware or signing any hosting contract, run the profitability numbers. Use our <a href="/">free profitability calculator</a> with these inputs:</p>
@@ -2614,8 +2617,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li>Hosting: $225/month flat fee</li>
 <li>BTC price: model at three points — current price, $80,000, and $50,000</li>
 </ul>
-<p>At all three BTC price points, the S21 Pro at $225/month is profitable at current difficulty. Understanding the economics at each price point tells you what your downside looks like — and whether you're comfortable with it before committing capital.</p>
-<p>Also model the 2028 halving scenario: set block reward to 1.5625 BTC (or divide your output by 2) to see what post-halving earnings look like. The S21 Pro at $225/month remains profitable post-halving down to approximately $64,000 BTC — a meaningful buffer.</p>
+<p>At current difficulty, the S21 Pro at $225/month is solidly profitable at today's price, thin but still positive at $80,000, and at a net loss at $50,000. Understanding the economics at each price point tells you what your downside looks like — and whether you're comfortable with it before committing capital.</p>
+<p>Also model the 2028 halving scenario: set block reward to 1.5625 BTC (or divide your output by 2) to see what post-halving earnings look like. The S21 Pro at $225/month remains profitable post-halving down to approximately $137,000 BTC — a meaningful buffer.</p>
 
 <h2>Step 2: Choose Your Hardware</h2>
 <p>For first-time miners in 2026, the hardware recommendation is clear: the <a href="/miners/antminer-s21-pro">Antminer S21 Pro</a> at 15 J/TH, 234 TH/s.</p>
@@ -2675,12 +2678,12 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </ul>
 
 <h2>Bitcoin Mining Tax Basics for Beginners</h2>
-<p>Mined Bitcoin is taxable as ordinary income at the fair market value on the date of receipt. If you mine 0.000785 BTC on a day when BTC is worth $105,000, you have $82.40 in ordinary income — reportable on your tax return. When you later sell that BTC, any appreciation above your $82.40 basis is a capital gain.</p>
+<p>Mined Bitcoin is taxable as ordinary income at the fair market value on the date of receipt. If you mine 0.00010988 BTC on a day when BTC is worth $105,000, you have $11.54 in ordinary income — reportable on your tax return. When you later sell that BTC, any appreciation above your $11.54 basis is a capital gain.</p>
 <p>This means: even if you don't sell your mined BTC, you owe income tax on it. This is the most common surprise for new miners. Read our complete <a href="/university/bitcoin-mining-taxes">mining tax guide</a> before your first payout so you understand your obligations. The short version: track the date, BTC amount, and USD fair market value of every payout. This is your cost basis and income record.</p>
 
 <h2>Planning Around the April 2028 Halving</h2>
 <p>Every operator starting in 2026 should plan around the April 2028 halving, when block rewards drop from 3.125 to 1.5625 BTC. This is approximately 22 months away and will affect the economics of every machine deployed today.</p>
-<p>The S21 Pro's post-halving breakeven at $225/month hosting is approximately $64,000 BTC — providing substantial buffer even without significant BTC price appreciation. Run the halving scenario in our profitability calculator before deploying: set block reward to 1.5625 and verify your setup remains profitable. Read our complete <a href="/university/bitcoin-halving-effect-on-mining">halving guide</a> for the full analysis.</p>
+<p>The S21 Pro's post-halving breakeven at $225/month hosting is currently approximately $137,000 BTC at today's network difficulty — meaningfully higher than pre-halving, since the block reward halves while difficulty doesn't. Run the halving scenario in our profitability calculator before deploying: set block reward to 1.5625 and verify your setup remains profitable at your assumed BTC price. Read our complete <a href="/university/bitcoin-halving-effect-on-mining">halving guide</a> for the full analysis.</p>
 
 <h2>Common Mistakes Beginners Make</h2>
 <ul>
@@ -2714,18 +2717,18 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     tags: ['antminer', 'whatsminer', 'bitmain', 'microbt', 'comparison'],
     reading_time_minutes: 15,
     faqs: [
-      { question: 'Is Antminer or Whatsminer more efficient?', answer: 'In 2026, Antminer leads significantly on air-cooled efficiency. The S21 Pro achieves 15 J/TH versus the Whatsminer M60S at 20 J/TH — a 33% efficiency advantage. This gap translates to approximately $23/day more revenue for S21 Pro at $105,000 BTC and $225/month hosting versus the M60S at equivalent hosting. In hydro, both brands are more competitive, with Antminer\'s S21 Pro Hydro at approximately 16 J/TH and Whatsminer\'s M63S Hydro in a similar range.' },
+      { question: 'Is Antminer or Whatsminer more efficient?', answer: 'In 2026, Antminer leads significantly on air-cooled efficiency. The S21 Pro achieves 15 J/TH versus the Whatsminer M60S at 20 J/TH — a 33% efficiency advantage. This gap translates to approximately $3.16/day more net profit for S21 Pro at $105,000 BTC and $225/month hosting versus the M60S at equivalent hosting ($4.04/day vs $0.88/day). In hydro, both brands are more competitive, with Antminer\'s S21 Pro Hydro at approximately 16 J/TH and Whatsminer\'s M63S Hydro in a similar range.' },
       { question: 'Is Whatsminer more reliable than Antminer?', answer: 'Both brands have strong reliability reputations for properly maintained units in professional facilities. The main difference: Antminer has a vastly larger install base (60-65% global market share vs Whatsminer\'s 30-35%), which means more community knowledge, more documented failure modes, and more third-party repair services. Whatsminer units are often praised for conservative engineering and waterproofing in hydro variants. For most operators, reliability difference is minimal; ecosystem depth favors Antminer.' },
       { question: 'Which has better resale value — Antminer or Whatsminer?', answer: 'Antminer units command a premium on secondary markets due to brand recognition and the larger pool of buyers. S21 Pro units typically sell at 5-10% higher prices than comparable-generation Whatsminer units. For operators who may need to liquidate hardware quickly, Antminer\'s secondary market liquidity advantage is meaningful — there are simply more potential buyers.' },
       { question: 'Does Whatsminer work with all hosting providers?', answer: 'Yes. Whatsminer (MicroBT) hardware is compatible with all major hosting providers that support the appropriate cooling type. Air-cooled Whatsminer units (M60, M60S, M66) work at any air-cooled facility. Hydro Whatsminer units require hydro-capable infrastructure, same as Antminer hydro variants.' },
-      { question: 'Should I buy Antminer or Whatsminer for my first mining operation?', answer: 'For a first deployment at a hosted facility, the Antminer S21 Pro is the better starting choice: superior efficiency (15 J/TH vs 20 J/TH for M60S), stronger ecosystem and community support, broader hosting compatibility, and better secondary market liquidity if you need to exit. The Whatsminer M60S is a legitimate alternative for operators who want brand diversification or cannot source S21 Pro hardware at competitive prices, but it generates approximately $23/day less at current economics.' },
+      { question: 'Should I buy Antminer or Whatsminer for my first mining operation?', answer: 'For a first deployment at a hosted facility, the Antminer S21 Pro is the better starting choice: superior efficiency (15 J/TH vs 20 J/TH for M60S), stronger ecosystem and community support, broader hosting compatibility, and better secondary market liquidity if you need to exit. The Whatsminer M60S is a legitimate alternative for operators who want brand diversification or cannot source S21 Pro hardware at competitive prices, but it generates approximately $3.16/day less net profit at current economics ($0.88/day vs $4.04/day) — a thin margin that leaves little room for further difficulty growth or a price pullback.' },
       { question: 'What is the main use case where Whatsminer beats Antminer?', answer: 'Whatsminer has historically shown advantages in hydro cooling deployments, particularly in build quality and waterproofing. For large operators building dedicated hydro infrastructure (50+ units), both brands are worth evaluating side by side on current specs. Some large-scale operators split their fleets between brands to reduce single-vendor concentration risk, using Whatsminer as the secondary brand. For air-cooled deployments below 50 machines, Antminer\'s efficiency advantage is decisive.' },
     ],
     content: `<div style="background: rgba(0,212,170,0.05); border: 1px solid rgba(0,212,170,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>Bitmain (Antminer) and MicroBT (Whatsminer) control approximately 85-90% of the Bitcoin ASIC market — every major hardware decision is between these two brands</li>
-<li>For air-cooled mining: Antminer S21 Pro (15 J/TH) vs Whatsminer M60S (20 J/TH) — Antminer generates approximately $23/day more net revenue at $105,000 BTC and $225/month hosting</li>
+<li>For air-cooled mining: Antminer S21 Pro (15 J/TH) vs Whatsminer M60S (20 J/TH) — Antminer generates approximately $3.16/day more net profit at $105,000 BTC and $225/month hosting ($4.04/day vs $0.88/day)</li>
 <li>Antminer leads on ecosystem depth, firmware ecosystem, secondary market liquidity, and hosting compatibility</li>
 <li>Whatsminer has traditionally been competitive in hydro cooling applications and is often cited for conservative (reliable) engineering</li>
 <li>For first-time operators: Antminer S21 Pro is the default recommendation; Whatsminer M60S is a legitimate secondary choice for diversification</li>
@@ -2756,8 +2759,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #00d4aa;">234 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #00d4aa;"><strong>15</strong></td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$3,800</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$74.90</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~$64,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$4.04</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~$137,000</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21</td>
@@ -2765,8 +2768,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">200 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">17.5</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$2,700</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$61.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$70,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$2.36</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$160,000</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">M66</td>
@@ -2774,8 +2777,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">298 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">18</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$4,800</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$77.80</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$74,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$7.19</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~$107,000</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">M60S</td>
@@ -2783,8 +2786,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">170 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">20</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$2,500</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$51.80</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$82,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$0.88</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$188,000</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">M60</td>
@@ -2792,8 +2795,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">186 TH/s</td>
 <td style="padding: 0.75rem; text-align: center; border: 1px solid #1f2937; color: #d1d5db;">20.5</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$2,800</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$56.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$82,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$1.67</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">~$172,000</td>
 </tr>
 </tbody>
 </table>
@@ -2801,14 +2804,14 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p style="font-size: 0.8rem; color: #6b7280; margin-top: -1rem;"><em>Net/day at $225/month hosting, $105,000 BTC, current difficulty. Post-halving breakeven (BEP) at 1.5625 BTC block reward, $225/month. Use our <a href="/miners" style="color: #00d4aa;">miner comparison</a> for live figures.</em></p>
 
 <h3>What the Efficiency Gap Means in Practice</h3>
-<p>The difference between 15 J/TH (S21 Pro) and 20 J/TH (M60S) is not just a specification — it is approximately $23/day in additional net revenue at $105,000 BTC and $225/month hosting. Over 12 months at 20% difficulty growth: approximately $7,500 in cumulative additional earnings per machine.</p>
-<p>The S21 Pro costs approximately $1,300 more than the M60S ($3,800 vs $2,500). That additional hardware cost pays back in approximately 57 days of differential earnings. After payback, every day is additional earnings advantage.</p>
-<p>The post-halving comparison is starker: the M60S has a post-halving breakeven BTC price of approximately $82,000 — versus $64,000 for the S21 Pro. At $80,000 BTC post-halving, the M60S is marginally negative; the S21 Pro still generates $18/day net. This difference means the M60S carries significant 2028 halving risk that the S21 Pro avoids. See our <a href="/university/bitcoin-halving-effect-on-mining">halving profitability guide</a> for complete analysis.</p>
+<p>The difference between 15 J/TH (S21 Pro) and 20 J/TH (M60S) is not just a specification — it is approximately $3.16/day in additional net profit at $105,000 BTC and $225/month hosting. Over 12 months at 20% difficulty growth: approximately $1,046 in cumulative additional net profit per machine — and the gap matters even more than the dollar figure suggests, since the M60S's $0.88/day margin leaves almost no buffer before difficulty growth or a price dip pushes it negative.</p>
+<p>The S21 Pro costs approximately $1,300 more than the M60S ($3,800 vs $2,500). At today's thin margins, that additional hardware cost takes approximately 411 days of differential earnings ($3.16/day) to pay back — a much longer payback than in past years, reflecting how much network difficulty has grown. After that payback period, every day is additional earnings advantage, and the S21 Pro's much larger margin cushion also matters more than the M60S's near-zero buffer against further difficulty growth.</p>
+<p>The post-halving comparison is starker: at today's network difficulty, the M60S has a post-halving breakeven BTC price of approximately $188,000 — versus approximately $137,000 for the S21 Pro. Both numbers are far higher than either machine's pre-halving breakeven, since network difficulty keeps growing while the halving itself is a fixed, one-time cut to the block reward. The relative gap still favors the S21 Pro, meaning the M60S carries more 2028 halving risk — but neither machine has a comfortable buffer at today's difficulty, and both need meaningful BTC price appreciation or difficulty relief to stay clearly profitable post-halving. See our <a href="/university/bitcoin-halving-effect-on-mining">halving profitability guide</a> for complete analysis.</p>
 
 <h2>The M66: Whatsminer's Competitive Answer</h2>
-<p>The Whatsminer M66 (298 TH/s, 18 J/TH) represents MicroBT's most competitive air-cooled offering in 2026. At 18 J/TH, it narrows the efficiency gap with the S21 Pro significantly — and its 298 TH/s hashrate exceeds the S21 Pro's 234 TH/s, producing $77.80/day net versus $74.90/day.</p>
-<p>The tradeoff: the M66 at ~$4,800 costs $1,000 more than the S21 Pro, its 18 J/TH efficiency is still below S21 Pro's 15 J/TH (meaning it runs at higher electricity cost per TH), and its post-halving breakeven is approximately $74,000 BTC versus $64,000 for the S21 Pro.</p>
-<p>The M66 is a legitimate consideration for operators who want the highest absolute hashrate per machine and are comfortable with the higher hardware cost. For most operators, the S21 Pro's efficiency and lower hardware cost remains the better value equation.</p>
+<p>The Whatsminer M66 (298 TH/s, 18 J/TH) represents MicroBT's most competitive air-cooled offering in 2026. At 18 J/TH, it's less efficient per TH than the S21 Pro's 15 J/TH — but its 298 TH/s hashrate is high enough to more than compensate: at today's network difficulty and a $105,000 BTC reference price, the M66 nets approximately $7.19/day versus the S21 Pro's $4.04/day.</p>
+<p>The tradeoff: the M66 at ~$4,800 costs $1,000 more than the S21 Pro, and its 18 J/TH efficiency is still below the S21 Pro's 15 J/TH per unit of hashrate. But recalculated against today's real network difficulty, the M66's higher absolute hashrate actually gives it a <em>lower</em> post-halving breakeven than the S21 Pro (~$107,000 versus ~$137,000) — the opposite of what pure J/TH efficiency would suggest, and a reminder to run the actual numbers rather than reasoning from efficiency alone.</p>
+<p>The M66's higher absolute hashrate makes it a genuinely competitive option once you run the real numbers, not just a hashrate-chasing compromise — at today's difficulty its extra $1,000 hardware cost is offset by meaningfully higher daily revenue. The S21 Pro still wins on lower upfront capital and better efficiency per TH, which matters more at scale or on tighter budgets. Run both through our <a href="/">calculator</a> with your actual hosting rate before deciding.</p>
 
 <h2>Reliability and Build Quality</h2>
 <p>Both brands have strong reputations for properly maintained units deployed in professional facilities. The key differences:</p>
@@ -2866,8 +2869,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 
 <h2>Common Mistakes in Antminer vs Whatsminer Decisions</h2>
 <ul>
-<li><strong>Choosing Whatsminer to save $1,300 upfront on M60S vs S21 Pro.</strong> The $1,300 price difference pays back in approximately 57 days of differential earnings at $105,000 BTC. The S21 Pro generates roughly $7,500 more over 12 months at 20% annual difficulty growth. The upfront saving is real; the cumulative earnings disadvantage is larger.</li>
-<li><strong>Not modeling post-halving breakeven by brand.</strong> The M60S's $82,000 post-halving breakeven vs S21 Pro's $64,000 is one of the most important differences between these units for any operator thinking beyond 2 years. Don't ignore it.</li>
+<li><strong>Choosing Whatsminer to save $1,300 upfront on M60S vs S21 Pro.</strong> At today's difficulty, the $1,300 price difference takes approximately 411 days of differential earnings to pay back ($3.16/day at $105,000 BTC) — and the S21 Pro generates roughly $1,046 more over 12 months at 20% annual difficulty growth. More importantly, the M60S's $0.88/day margin gives it almost no room before further difficulty growth turns it net-negative, while the S21 Pro's $4.04/day margin has far more cushion. The upfront saving is real; the thin margin it buys is the bigger risk.</li>
+<li><strong>Not modeling post-halving breakeven by brand.</strong> The M60S's post-halving breakeven runs meaningfully higher than the S21 Pro's at today's difficulty — one of the most important differences between these units for any operator thinking beyond 2 years. Run both through the calculator with the block reward set to 1.5625. Don't ignore it.</li>
 <li><strong>Assuming Whatsminer is always "more reliable."</strong> Both brands have strong reliability reputations. The community perception that Whatsminer is more conservative/reliable doesn't translate to meaningfully different failure rates in professional facility environments where both brands are properly maintained.</li>
 <li><strong>Ignoring ecosystem compatibility before buying Whatsminer.</strong> If your hosting provider's technicians have primarily Antminer experience, setup, troubleshooting, and maintenance will be smoother with Antminer hardware. Verify your provider's comfort level with both brands before choosing Whatsminer for a first deployment.</li>
 <li><strong>Not comparing actual current specs when buying at scale.</strong> Both brands update their product lines regularly. Verify specifications on the actual models available at purchase time, not specs from articles written 6-12 months earlier. Use our <a href="/miners">miner comparison tool</a> for current verified figures.</li>
@@ -2883,8 +2886,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </ul>
 
 <h2>The Verdict</h2>
-<p><strong>For air-cooled mining in 2026:</strong> Antminer S21 Pro wins decisively on efficiency (15 J/TH vs 20+ J/TH), ecosystem, resale value, and post-halving resilience. The $1,300 premium over the M60S pays back in approximately 57 days of additional earnings and provides approximately $18,000 more cumulative revenue over a 36-month operational life.</p>
-<p><strong>For the M66 specifically:</strong> A closer comparison. At 18 J/TH and 298 TH/s, the M66 is competitive. The S21 Pro still wins on efficiency and post-halving resilience; the M66 wins on raw hashrate per machine. Compare current pricing carefully — at typical prices, the S21 Pro remains the better J/TH value.</p>
+<p><strong>For air-cooled mining in 2026:</strong> Antminer S21 Pro wins decisively on efficiency (15 J/TH vs 20+ J/TH), ecosystem, resale value, and post-halving resilience. At today's difficulty, the $1,300 premium over the M60S takes approximately 411 days of additional earnings to recoup — a long payback that reflects how much thinner margins have become industry-wide. The bigger reason to pay it isn't the payback period itself, it's margin safety: the S21 Pro's $4.04/day net gives it far more room to absorb further difficulty growth before turning unprofitable than the M60S's razor-thin $0.88/day.</p>
+<p><strong>For the M66 specifically:</strong> A closer comparison than the raw J/TH numbers suggest. At 18 J/TH and 298 TH/s, the M66's higher absolute hashrate actually gives it better post-halving resilience than the S21 Pro once you run today's real numbers, despite being less efficient per TH. The S21 Pro still wins on lower upfront hardware cost and efficiency per TH. Compare current pricing and both machines' numbers on our <a href="/">calculator</a> before deciding — don't assume the more "efficient" spec sheet wins.</p>
 <p><strong>For hydro at scale (50+ machines):</strong> Both brands deserve evaluation with current verified specs. The efficiency gap narrows in hydro; the decision requires careful spec comparison at purchase time.</p>
 <p><strong>For brand diversification (50+ total machines):</strong> A 70/30 or 80/20 Antminer/Whatsminer split is reasonable for large operators who want reduced vendor concentration risk.</p>
 <p>Compare any specific models using our <a href="/miners">miner comparison tool</a>, and run the complete deal through our <a href="/deal-analyzer">deal analyzer</a> before committing capital.</p>`,
@@ -2899,19 +2902,19 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     tags: ['scaling', 'industrial mining', 'operations', 'growth'],
     reading_time_minutes: 15,
     faqs: [
-      { question: 'How many miners do I need to make Bitcoin mining worth it?', answer: 'Even a single miner generates positive economics at $225/month hosting and $105,000 BTC — approximately $74/day net. But the economics improve significantly at scale: 5-10 machines unlock hardware volume discounts (5-10%), operational efficiency, and the management overhead spreads across more revenue. At 20+ machines, you gain real hosting negotiation leverage and can access terms unavailable to single-machine operators.' },
+      { question: 'How many miners do I need to make Bitcoin mining worth it?', answer: 'Even a single miner generates positive economics at $225/month hosting and $105,000 BTC — approximately $4.04/day net. But the economics improve significantly at scale: 5-10 machines unlock hardware volume discounts (5-10%), operational efficiency, and the management overhead spreads across more revenue. At 20+ machines, you gain real hosting negotiation leverage and can access terms unavailable to single-machine operators.' },
       { question: 'What is the minimum scale for immersion cooling to make sense?', answer: 'Immersion cooling infrastructure costs $15,000-30,000 per tank (100-200 kW capacity). The efficiency improvement from immersion (roughly 30-40% reduction in J/TH) and the hardware lifespan extension (50-100% longer component life) must justify this investment. At 20-30 miners per tank, the math typically works for operators committed to a multi-year horizon. At 50+ miners, immersion economics are compelling for most deployment scenarios.' },
       { question: 'How do I negotiate better hosting rates at scale?', answer: 'Hosting providers tier their rates by volume. At 10+ machines, request a 5% discount from standard rates and a 24-month rate lock. At 20+ machines, a 10% discount is reasonable. At 50+ machines, you\'re a significant customer — negotiate directly with facility management, not sales, and be specific about your commitment (machines, contract term, payment schedule). Abundant Miners offers volume pricing for multi-machine deployments — contact directly to discuss.' },
       { question: 'Should I build my own facility or use hosted mining at scale?', answer: 'For most operators below 500 miners, hosted mining remains more economical. Building a dedicated facility requires $500,000-5M+ in capex (land, electrical infrastructure, cooling systems, security), plus operational expertise and ongoing costs. The economics of self-hosting only become competitive when you have access to dedicated cheap power (sub-$0.04/kWh industrial contract), a long operational horizon (5+ years), and the operational capacity to manage facility infrastructure. Below 500 machines, hosted is almost always the right answer.' },
       { question: 'What is the optimal hardware upgrade strategy as I scale?', answer: 'Hardware upgrades at scale should be triggered by two conditions: (1) current hardware falls below 20 J/TH efficiency threshold where margins become thin, and (2) new hardware offers at least 20-25% efficiency improvement over current generation. For S21 Pro operators (15 J/TH), the next upgrade trigger would be hardware reaching 11-12 J/TH commercially — expected from next-generation ASIC releases in 2027-2028. Planning hardware refresh cycles 6-9 months in advance of new generation availability allows you to capture used hardware market premium on outgoing units.' },
-      { question: 'How do I manage BTC treasury at scale?', answer: 'At 10+ machines generating $750+/day gross, BTC treasury management becomes a meaningful financial decision. Three common approaches: (1) sell mined BTC immediately to USD (lowest risk, predictable cash flow); (2) accumulate mined BTC for 30-90 days then batch sell (moderate exposure, reduces transaction overhead); (3) HODL strategy — hold all mined BTC long-term (maximum BTC exposure, requires strong liquidity position to fund operating costs from other sources). Most operators use a hybrid: sell enough to cover operating costs and financing payments, accumulate the remainder.' },
+      { question: 'How do I manage BTC treasury at scale?', answer: 'At 10+ machines generating $115+/day gross (at today\'s difficulty and $105,000 BTC), BTC treasury management becomes a meaningful financial decision. Three common approaches: (1) sell mined BTC immediately to USD (lowest risk, predictable cash flow); (2) accumulate mined BTC for 30-90 days then batch sell (moderate exposure, reduces transaction overhead); (3) HODL strategy — hold all mined BTC long-term (maximum BTC exposure, requires strong liquidity position to fund operating costs from other sources). Most operators use a hybrid: sell enough to cover operating costs and financing payments, accumulate the remainder.' },
     ],
     content: `<div style="background: rgba(0,212,170,0.05); border: 1px solid rgba(0,212,170,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
 <li>Even 1 miner is profitable at $225/month hosting — but scale unlocks hardware discounts, hosting negotiations, and operational efficiency that improve economics significantly</li>
 <li>Key inflection points: 5-10 machines (hardware volume discounts), 20+ machines (hosting negotiation leverage), 50+ machines (immersion cooling economics), 100+ machines (dedicated facility evaluation)</li>
-<li>At 100 S21 Pros: approximately $380,000 in hardware, $7,400/day gross revenue, $5,000/day net — $1.8M/year net at $105,000 BTC</li>
+<li>At 100 S21 Pros: approximately $380,000 in hardware, $1,154/day gross revenue, $404/day net — approximately $109,000/year net at $105,000 BTC with 20% annual difficulty growth applied</li>
 <li>Self-hosting (building your own facility) typically doesn't become economical until 500+ machines with access to industrial-rate electricity</li>
 <li>The 2028 halving should be planned around at every stage — all hardware decisions made in 2026 will run through it</li>
 </ul>
@@ -2932,10 +2935,10 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <h3>Stage 1 Economics</h3>
 <p>One S21 Pro at $225/month, $105,000 BTC:</p>
 <ul>
-<li>Daily net profit: $74.90</li>
-<li>Monthly net: $2,247</li>
-<li>Hardware ROI payback: approximately 51 days</li>
-<li>Annual net profit (at 20% difficulty growth): approximately $22,900</li>
+<li>Daily net profit: $4.04</li>
+<li>Monthly net: approximately $123</li>
+<li>Hardware ROI payback: approximately 941 days</li>
+<li>Annual net profit (at 20% difficulty growth): approximately $1,089</li>
 <li>Total startup capital required: approximately $4,750-5,200 (hardware + deposit + buffer)</li>
 </ul>
 <p>The stage 1 operation is primarily an education investment. The capital risk is manageable; the operational knowledge gained is the durable asset. Do not skip this stage even if you have capital for a larger deployment — understanding how pool dashboards work, what hashrate variance looks like, and how payouts accumulate is essential before managing a fleet.</p>
@@ -2964,26 +2967,26 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Daily gross revenue at $105,000 BTC</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$824</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$115.40</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Daily net profit</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$749</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$40.40</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Hardware payback period</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">47 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~875 days</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Annual net profit (20% difficulty growth)</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">~$228,000</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~$10,900</td>
 </tr>
 </tbody>
 </table>
 </div>
 
 <h3>Capital Structure at Stage 2</h3>
-<p>With $35,340 in hardware, cash purchase is ideal if capital allows. If constrained: <a href="/hosts/abundant-miners">Abundant Miners</a> vendor financing at 10% APR, 10% down, 36 months means $3,534 down and $1,040/month in payments — manageable against $749/day net revenue. See our <a href="/university/mining-financing-options">financing guide</a> for complete monthly payment math.</p>
+<p>With $35,340 in hardware, cash purchase is ideal if capital allows. If constrained: <a href="/hosts/abundant-miners">Abundant Miners</a> vendor financing at 10% APR, 10% down, 36 months means $3,534 down and $1,040/month in payments — against approximately $1,228/month ($40.40/day) in net revenue, leaving only around $188/month of free cash flow during the loan term. At today's compressed margins this is a thin buffer, not a comfortable one; model your specific numbers at our <a href="/deal-analyzer">deal analyzer</a> before financing a 10-machine order. See our <a href="/university/mining-financing-options">financing guide</a> for complete monthly payment math.</p>
 
 <h2>Stage 3: Mid-Scale Operation (20-100 Units)</h2>
 <p>The 20-machine threshold is when hosting negotiation leverage becomes real. You're no longer a small customer — you represent $45,000/month in hosting revenue ($2,250 × 20). This creates meaningful incentive for the hosting provider to accommodate requests.</p>
@@ -2998,22 +3001,22 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </ul>
 
 <h3>Cooling Upgrade Evaluation at Stage 3</h3>
-<p>At 50+ machines, evaluate whether your facility offers or can support hydro cooling infrastructure. The Antminer S21 Pro Hydro (335 TH/s, ~16 J/TH) provides 43% more hashrate per unit footprint vs air-cooled S21 Pro (234 TH/s). At 50 air-cooled machines generating $37,450/day gross, the upgrade to 50 hydro machines would increase gross to $53,600/day — a $16,150/day improvement at $105,000 BTC.</p>
-<p>The hydro infrastructure investment (typically $30,000-60,000 for a 50-machine hydro rack setup) pays back in approximately 2-4 months of differential revenue at current economics. The lifespan extension (hardware runs cooler and lasts longer in hydro) provides additional long-term value.</p>
+<p>At 50+ machines, evaluate whether your facility offers or can support hydro cooling infrastructure. The Antminer S21 Pro Hydro (335 TH/s, ~16 J/TH) provides 43% more hashrate per unit footprint vs air-cooled S21 Pro (234 TH/s). At 50 air-cooled machines generating approximately $577/day gross, the upgrade to 50 hydro machines would increase gross to approximately $826/day — a $249/day improvement at $105,000 BTC.</p>
+<p>The hydro infrastructure investment (typically $30,000-60,000 for a 50-machine hydro rack setup) pays back in approximately 4-8 months of differential revenue at current economics — longer than in past years, since today's thinner per-machine margins mean the same dollar upgrade cost takes more days of incremental revenue to recoup. The lifespan extension (hardware runs cooler and lasts longer in hydro) provides additional long-term value beyond the direct payback math.</p>
 <p>See our complete <a href="/university/air-vs-hydro-vs-immersion-cooling">cooling comparison guide</a> for full economics of each cooling type at various scales.</p>
 
 <h3>Stage 3 Economics (50-Machine Fleet)</h3>
 <p>50 S21 Pros at negotiated $210/month hosting, $105,000 BTC:</p>
 <ul>
-<li>Daily gross: $4,120</li>
+<li>Daily gross: $577.00</li>
 <li>Daily hosting cost: $350</li>
-<li>Daily net: $3,770</li>
-<li>Annual net (20% difficulty growth): approximately $1.15M</li>
-<li>Hardware asset value: $190,000 (at 5% volume discount)</li>
+<li>Daily net: $227.00</li>
+<li>Annual net (20% difficulty growth): approximately $63,600</li>
+<li>Hardware asset value: approximately $190,000 (list price; volume discount reduces actual acquisition cost)</li>
 </ul>
 
 <h2>Stage 4: Industrial Scale (100+ Units)</h2>
-<p>At 100 miners, your operation has crossed into territory where new considerations dominate. You're managing $380,000 in hardware assets and generating approximately $7,400/day gross — $5,000/day net at current economics. At this scale, several strategic questions become urgent:</p>
+<p>At 100 miners, your operation has crossed into territory where new considerations dominate. You're managing $380,000 in hardware assets and generating approximately $1,154/day gross — $404/day net at current economics. At this scale, several strategic questions become urgent:</p>
 
 <h3>Dedicated Facility Evaluation</h3>
 <p>At 100+ machines, the economics of building or leasing your own facility begin to be worth serious evaluation. A dedicated 1 MW mining container (100-150 S21 Pro machines) costs approximately $150,000-250,000 in infrastructure plus land/space costs and an industrial power contract. The ongoing cost savings from industrial electricity ($0.04-0.05/kWh vs $225/month hosted) can be substantial at this scale.</p>
@@ -3027,13 +3030,13 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li>Higher hashrate per footprint: 50-70% more hashrate in same rack space vs air-cooled</li>
 <li>Reduced maintenance: fewer moving parts (no fans), less thermal stress on components</li>
 </ul>
-<p>At 100 machines generating $5,000/day net, a 35% efficiency improvement from immersion would add approximately $1,750/day in additional net revenue — a payback period of approximately 86-114 days on the infrastructure investment.</p>
+<p>At 100 machines generating approximately $404/day net, a 35% efficiency improvement from immersion would add approximately $141/day in additional net revenue at today's margins — a payback period of approximately 2.9-3.9 years on a $150,000-200,000 infrastructure investment. That is meaningfully longer than in past years, and long enough that the hardware lifespan extension and higher hashrate-per-footprint (not the direct dollar payback alone) are the more decisive arguments for immersion at today's thin margins.</p>
 
 <h3>Treasury Management at Scale</h3>
-<p>At 100 machines generating approximately 0.0785 BTC/day (approximately 28.6 BTC/year at current difficulty, declining with growth), treasury management becomes a serious financial decision. Options:</p>
+<p>At 100 machines generating approximately 0.010988 BTC/day (approximately 4.0 BTC/year at current difficulty before accounting for further difficulty growth, which reduces the actual total), treasury management becomes a serious financial decision. Options:</p>
 <ul>
-<li><strong>Immediate sale:</strong> Convert all mined BTC to USD daily/weekly. Lowest volatility, predictable cash flow. Revenue at $105,000 BTC: approximately $1.83M/year.</li>
-<li><strong>Partial accumulation:</strong> Sell enough to cover operating costs ($2,250 × 100 machines = $225,000/year hosting), accumulate the remainder. Maintains liquidity for operations while building BTC position.</li>
+<li><strong>Immediate sale:</strong> Convert all mined BTC to USD daily/weekly. Lowest volatility, predictable cash flow. Revenue at $105,000 BTC: approximately $421,000/year at static difficulty (less once difficulty growth is factored in).</li>
+<li><strong>Partial accumulation:</strong> Sell enough to cover operating costs ($225/month × 100 machines = $270,000/year hosting), accumulate the remainder. Maintains liquidity for operations while building BTC position.</li>
 <li><strong>Full accumulation (HODL):</strong> Hold all mined BTC. Maximum BTC exposure — requires substantial external capital to fund operating costs. Only viable for operators with strong separate income sources.</li>
 </ul>
 <p>The right choice depends on personal financial situation, BTC price outlook, and tax efficiency. Consult a CPA familiar with cryptocurrency before implementing a multi-machine treasury strategy. See our <a href="/university/bitcoin-mining-taxes">tax guide</a> for the core framework.</p>
@@ -3075,7 +3078,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
       { question: 'When will immersion cooling become mainstream for smaller Bitcoin mining operations?', answer: 'Immersion cooling is already mainstream at industrial scale (500+ unit operations). The barrier for smaller operators is infrastructure cost: a single immersion tank runs $15,000-30,000 and requires dedicated facility space, dielectric fluid management, and compatible hardware. As turnkey systems improve and dielectric fluid costs decline, the threshold for viable small-operator immersion is expected to drop from the current 50-100 machines to 20-30 machines by 2027-2028. For now, hydro cooling (water-cooled hardware like the S21 Pro Hydro) offers near-immersion efficiency without the infrastructure requirement for operations of 10+ machines.' },
       { question: 'What happens to old Bitcoin miners when they become unprofitable?', answer: 'Unprofitable miners follow a predictable secondary market path. First, they are sold into lower-electricity-cost markets — often overseas (Southeast Asia, Central Asia, East Africa) where electricity is cheaper. As profitability continues declining, hardware is either powered off and stored (waiting for a price recovery that makes it viable again), repurposed for heating applications (some operators sell mining heat to greenhouses or buildings), or liquidated for component parts. The used ASIC market is substantial and relatively efficient at redistributing hardware to its highest-value users globally.' },
       { question: 'How will next-generation ASIC hardware change mining economics?', answer: 'Next-generation ASICs (expected from Bitmain and MicroBT in 2026-2027) are projected to push air-cooled efficiency to 12-13 J/TH and hydro-cooled efficiency to 10-11 J/TH. For current S21 Pro operators at 15 J/TH, this represents a 20-25% efficiency advantage for new-gen hardware. The upgrade decision will depend on new hardware pricing (typically high at launch), used market value of current hardware (S21 Pros will drop 30-40% when next-gen ships), and the absolute profitability improvement from the upgrade. For most S21 Pro operators, the hardware upgrade will make sense 12-18 months after next-gen hardware releases, when new hardware prices normalize and used market stabilizes.' },
-      { question: 'Will hashprice recover from its current levels?', answer: 'Hashprice ($0.077-0.085/TH/day in mid-2026) is a function of BTC price, block reward, and network hashrate. Recovery scenarios: (1) BTC price appreciation increases the numerator — historically the primary driver of hashprice recovery after halvings. (2) Network hashrate growth slows or reverses (from miner exits or energy competition) — reduces the denominator. (3) Block reward increase — impossible by protocol. The 2024 halving historically suppressed hashprice initially, then BTC price appreciation drove recovery. The 2028 halving will create a similar dynamic. Operators who survive the post-halving period with efficient hardware and locked hosting rates typically see strong hashprice recovery within 18-24 months.' },
+      { question: 'Will hashprice recover from its current levels?', answer: 'Hashprice (approximately $0.049/TH/day in mid-2026 — near the 2022 bear-market trough despite BTC trading close to all-time highs) is a function of BTC price, block reward, and network hashrate. Recovery scenarios: (1) BTC price appreciation increases the numerator — historically the primary driver of hashprice recovery after halvings. (2) Network hashrate growth slows or reverses (from miner exits or energy competition) — reduces the denominator. (3) Block reward increase — impossible by protocol. The 2024 halving historically suppressed hashprice initially, then BTC price appreciation drove recovery. The 2028 halving will create a similar dynamic. Operators who survive the post-halving period with efficient hardware and locked hosting rates typically see strong hashprice recovery within 18-24 months.' },
     ],
     content: `<div style="background: rgba(0,212,170,0.05); border: 1px solid rgba(0,212,170,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
@@ -3146,12 +3149,12 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>Past performance is not predictive, but the mechanism is consistent: halvings reduce new BTC supply while demand continues growing, creating structural supply shock that historically drives price appreciation over the following 12-18 months. See our detailed <a href="/university/bitcoin-halving-effect-on-mining">halving impact guide</a> for hardware-specific profitability modeling.</p>
 
 <h3>Hardware Threshold for 2028 Survival</h3>
-<p>At post-halving revenue (0.000392 BTC/day for S21 Pro at 1.5625 block reward), and $225/month hosting cost:</p>
+<p>At post-halving revenue (approximately 0.00005494 BTC/day for the S21 Pro at 1.5625 block reward and today's network difficulty), and $225/month hosting cost:</p>
 <ul>
-<li>S21 Pro remains net positive at BTC above approximately $64,000</li>
-<li>S21 (216 TH/s, 17.5 J/TH) requires BTC above approximately $75,000</li>
-<li>S19 XP (140 TH/s, 21.5 J/TH) requires BTC above approximately $105,000</li>
-<li>S19j Pro (100 TH/s, 29 J/TH) is unprofitable at $225/month below ~$160,000 BTC post-halving</li>
+<li>S21 Pro remains net positive at BTC above approximately $137,000</li>
+<li>S21 (216 TH/s, 17.5 J/TH) requires BTC above approximately $148,000</li>
+<li>S19 XP (140 TH/s, 21.5 J/TH) requires BTC above approximately $228,000</li>
+<li>S19j Pro (100 TH/s, 29 J/TH) is unprofitable at $225/month below approximately $319,000 BTC post-halving</li>
 </ul>
 <p>This math confirms what every efficiency-focused operator knows: hardware bought today should be S21 Pro or better. Older generations become economically unviable post-2028 unless BTC price significantly exceeds current levels.</p>
 
@@ -3213,7 +3216,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>The strategic implication: individual operators competing with public miners on scale will lose. Individual operators competing on flexibility, tax efficiency, and strategic BTC accumulation can win. Your edge is not volume — it\'s not being forced to liquidate BTC to cover payroll.</p>
 
 <h2>The Hashprice Trajectory</h2>
-<p>Hashprice (dollars earned per TH/s per day) is the single metric that determines whether any mining configuration is profitable. Current hashprice: approximately $0.077-0.085/TH/day. Understanding its likely trajectory:</p>
+<p>Hashprice (dollars earned per TH/s per day) is the single metric that determines whether any mining configuration is profitable. Current hashprice: approximately $0.049/TH/day — close to the December 2022 bear-market trough despite BTC trading near all-time highs, a reminder that BTC price alone is a poor proxy for mining economics. Understanding its likely trajectory:</p>
 <p><strong>Near-term (2026-2027):</strong> Hashprice improvement likely if BTC price continues appreciating from current levels. Network hashrate growth may moderate as older hardware retires and new deployments wait for next-gen ASICs.</p>
 <p><strong>Post-2028 halving:</strong> Hashprice will be mechanically cut in half at block reward halving — then recover as BTC price appreciation compensates. The pattern from 2020 and 2024 halvings is consistent. Operators should model a 6-12 month period of compressed margins post-halving and plan their liquidity accordingly.</p>
 <p>See our detailed <a href="/university/what-is-hashprice">hashprice guide</a> for the full formula and how to calculate your personal breakeven hashprice threshold.</p>
@@ -3223,7 +3226,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <ul>
 <li><strong>New hardware launch price:</strong> Typically 25-40% premium at launch vs 12 months post-launch</li>
 <li><strong>Used S21 Pro market value post-announcement:</strong> Typically drops 30-40% when new generation is announced</li>
-<li><strong>Absolute efficiency improvement:</strong> 12 J/TH vs 15 J/TH = 20% improvement. At $0.082 hashprice: $0.0164/TH/day improvement on 234 TH/s = $3.84/day improvement. At $3,200 new hardware cost, payback on the efficiency delta: $3,200 ÷ $3.84 = 833 days. Only worth it if new hardware also offers significantly higher TH/s per unit.</li>
+<li><strong>Absolute efficiency improvement:</strong> 12 J/TH vs 15 J/TH = 20% improvement. At $0.049 hashprice: approximately $0.0099/TH/day improvement on 234 TH/s = approximately $2.31/day improvement. At $3,200 new hardware cost, payback on the efficiency delta alone: $3,200 ÷ $2.31 = approximately 1,385 days — considerably longer than in past years, since today's thinner margins mean the same dollar upgrade cost takes far more days of incremental revenue to recoup. Only worth it if new hardware also offers significantly higher TH/s per unit.</li>
 </ul>
 <p>The right upgrade timing for most S21 Pro operators: wait 12-18 months after next-gen launch for pricing to normalize, then evaluate the net-of-used-S21-Pro-sale cost.</p>
 
@@ -3259,17 +3262,17 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     tags: ['breakeven', 'roi', 'calculator', 'profitability'],
     reading_time_minutes: 15,
     faqs: [
-      { question: 'How do I calculate my mining breakeven point?', answer: 'Breakeven days = Total investment ÷ Net daily profit. Total investment = hardware cost + any non-refundable setup fees. Net daily profit = daily gross revenue − daily operating cost (hosting). Run this calculation at current BTC price to find your base-case breakeven, then stress-test at $70,000 BTC and $50,000 BTC to understand your downside risk profile. For the S21 Pro at $225/month hosting and $105,000 BTC: $3,800 ÷ $74.90/day = 50.7 day breakeven.' },
+      { question: 'How do I calculate my mining breakeven point?', answer: 'Breakeven days = Total investment ÷ Net daily profit. Total investment = hardware cost + any non-refundable setup fees. Net daily profit = daily gross revenue − daily operating cost (hosting). Run this calculation at current BTC price to find your base-case breakeven, then stress-test at $70,000 BTC and $50,000 BTC to understand your downside risk profile. For the S21 Pro at $225/month hosting and a $105,000 BTC reference price at today\'s network difficulty: $3,800 ÷ $4.04/day ≈ 941 day breakeven — a reminder that hardware payback periods have lengthened considerably as network difficulty has grown. Use our live calculator for your exact numbers.' },
       { question: 'What is a good mining breakeven time?', answer: 'Under 90 days is exceptional (current S21 Pro at $105,000 BTC). Under 180 days (6 months) is excellent. 180-365 days is good. 365-540 days is acceptable for high-conviction operators with strong financial cushion. Over 540 days (18 months) deserves serious scrutiny — it provides little buffer for difficulty increases, price corrections, or the 2028 halving. A useful rule: your stress-test breakeven (at $60,000 BTC) should be under 180 days before committing capital.' },
-      { question: 'Does the breakeven calculation change if I use financing?', answer: 'Yes, significantly. If you finance hardware, your total cost includes all interest paid over the loan term. A $3,800 S21 Pro financed at 10% APR over 36 months costs $4,461 total (hardware + interest). Your breakeven denominator stays the same ($74.90/day), but the numerator increases to $4,461 → breakeven extends to 59.6 days vs 50.7 days cash. More importantly, your daily cash flow is reduced by the loan payment ($103/month = $3.42/day) — so actual free cash flow is $74.90 − $3.42 = $71.48/day while payments are active. See our financing guide for the full math.' },
+      { question: 'Does the breakeven calculation change if I use financing?', answer: 'Yes, significantly. If you finance hardware, your total cost includes all interest paid over the loan term. A $3,800 S21 Pro financed at 10% APR over 36 months costs $4,461 total (hardware + interest). Your breakeven denominator stays the same (approximately $4.04/day at today\'s difficulty and a $105,000 BTC reference price), but the numerator increases to $4,461 → breakeven extends to approximately 1,104 days versus approximately 941 days cash. More importantly, your daily cash flow is reduced by the loan payment ($103/month = $3.42/day) — so actual free cash flow is $4.04 − $3.42 = $0.62/day while payments are active, which is uncomfortably thin. Run your own numbers at our live calculator before financing hardware at today\'s margins. See our financing guide for the full math.' },
       { question: 'Should I include the deposit in my breakeven calculation?', answer: 'The Abundant Miners $500 deposit converts to prepaid hosting credit at contract end, so it is returned in-kind and should not be included in your irretrievable investment for breakeven purposes. However, it does tie up $500 of cash until contract end and should be included in your total initial outlay calculation when planning cash requirements.' },
       { question: 'How does difficulty growth affect my breakeven timeline?', answer: 'Difficulty growth reduces your daily BTC mined — which reduces daily revenue — which extends your remaining breakeven period. At 20% annual difficulty growth (conservative estimate), month 1 earns at full hashprice; month 12 earns approximately 17% less. This matters most when comparing deals at similar upfront breakeven — a deal that looks like 90-day breakeven at static difficulty may be 105-120 days when difficulty growth is applied month by month. Our deal analyzer calculates breakeven with difficulty growth applied dynamically.' },
-      { question: 'How does the 2028 halving change the breakeven analysis?', answer: 'Hardware deployed in 2026 runs through the April 2028 halving. Post-halving, the block reward drops from 3.125 to 1.5625 BTC — cutting daily BTC mined roughly in half (before any price increase). For breakeven planning: ensure your hardware pays itself back before April 2028 under stress-test assumptions, OR verify it remains profitable post-halving at a defensible BTC price. The S21 Pro breaks even in approximately 51 days at $105,000 BTC — well before April 2028 — and remains net positive post-halving at BTC above ~$64,000.' },
+      { question: 'How does the 2028 halving change the breakeven analysis?', answer: 'Hardware deployed in 2026 runs through the April 2028 halving. Post-halving, the block reward drops from 3.125 to 1.5625 BTC — cutting daily BTC mined roughly in half (before any price increase). For breakeven planning: ensure your hardware pays itself back before April 2028 under stress-test assumptions, OR verify it remains profitable post-halving at a defensible BTC price. At today\'s network difficulty and a $105,000 BTC reference price, the S21 Pro\'s hardware payback runs to approximately 941 days — past the April 2028 halving, not before it — which means most operators buying today need either a real BTC price rally or a difficulty plateau to recover hardware cost before the halving hits. Model your specific scenario at our live calculator rather than assuming a fast payback.' },
     ],
     content: `<div style="background: rgba(0,212,170,0.05); border: 1px solid rgba(0,212,170,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
-<li>Breakeven = Total investment ÷ Net daily profit. For S21 Pro at $225/month hosting and $105,000 BTC: ~51 days</li>
+<li>Breakeven = Total investment ÷ Net daily profit. For S21 Pro at $225/month hosting and $105,000 BTC: ~941 days</li>
 <li>Always calculate breakeven at 3 BTC price scenarios: current price, $70,000, and $50,000. The $50,000 scenario stress-test is your risk floor</li>
 <li>Financing adds interest cost to the numerator — a $3,800 cash purchase vs $4,461 financed changes breakeven from 50.7 to 59.6 days</li>
 <li>Difficulty growth extends breakeven over time — the static calculation understates true breakeven by 10-20% depending on the growth rate applied</li>
@@ -3307,8 +3310,8 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 
 <h2>Step 2: Calculate Daily BTC Mined</h2>
 <p>Daily BTC mined = (Hashrate in TH/s × 86,400 × Block Reward) ÷ (Network Difficulty × 2³²)</p>
-<p>For the S21 Pro at mid-2026 network difficulty:</p>
-<p style="font-family: monospace; background: #0a0e17; padding: 1rem; border-radius: 8px; border: 1px solid #1f2937; color: #d1d5db;">(234 × 10¹² × 86,400 × 3.125) ÷ (113,757,508,517,000 × 2³²) = <span style="color: #00d4aa;">0.000785 BTC/day</span></p>
+<p>For the S21 Pro at current network difficulty (check our <a href="/data">live data dashboard</a> for today's exact figure):</p>
+<p style="font-family: monospace; background: #0a0e17; padding: 1rem; border-radius: 8px; border: 1px solid #1f2937; color: #d1d5db;">(234 × 10¹² × 86,400 × 3.125) ÷ (133,869,853,540,305 × 2³²) = <span style="color: #00d4aa;">0.00010988 BTC/day</span></p>
 <p>This is the foundation number. Everything else in the calculation flows from here. Note: this number declines as network difficulty grows over time — covered in Step 5.</p>
 
 <h2>Step 3: Calculate Daily Net Profit</h2>
@@ -3329,50 +3332,50 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <tbody>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$135,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$106.00</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$14.83</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$7.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$98.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">38.6 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$7.33</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">518 days</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$105,000 (current)</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$82.40</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$11.54</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$7.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$74.90</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">50.7 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$4.04</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">941 days</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$80,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$62.80</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$8.79</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$7.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$55.30</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">68.7 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">$1.29</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~2,945 days</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$60,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$47.10</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$6.59</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$7.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$39.60</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">95.9 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$0.91</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$50,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$39.25</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$5.49</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$7.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$31.75</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">119.7 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$2.01</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">$40,000 (extreme stress)</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$31.40</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$4.40</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$7.50</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$23.90</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">159.0 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">-$3.10</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>The key insight from this table: even at $40,000 BTC — a 62% price decline from current levels — the S21 Pro breaks even within 6 months. This is the risk profile of an efficient, well-priced mining operation.</p>
+<p>The key insight from this table: at today's network difficulty, the S21 Pro's breakeven is far more BTC-price-sensitive than efficiency alone would suggest. Below approximately $68,000 BTC, it runs at a net daily loss on $225/month hosting — no breakeven, only mounting losses until price recovers, difficulty falls, or you shut the machine off. This is the honest risk profile of a thin-margin, hosted mining operation at current difficulty — not a reason to avoid mining, but a reason to stress-test before committing capital.</p>
 
 <h2>Step 4: Stress-Test Your Deal</h2>
 <p>The purpose of stress-testing is to understand your downside: how long does breakeven take if BTC price drops significantly? The key scenarios to always calculate:</p>
@@ -3382,7 +3385,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li><strong>Severe stress:</strong> $50,000 BTC (approximately 50% decline)</li>
 <li><strong>Extreme stress:</strong> $40,000 BTC (approximately 60% decline)</li>
 </ul>
-<p>If your severe stress breakeven is over 365 days, the deal has meaningful downside risk that deserves careful consideration. The S21 Pro at $225/month hosting passes this test easily — at $50,000 BTC, breakeven is 120 days.</p>
+<p>If your severe stress scenario shows a net daily loss rather than merely a longer breakeven, the deal has serious downside risk that deserves careful consideration before committing capital. The S21 Pro at $225/month hosting does not pass this test at today's difficulty — at $50,000 BTC, it runs at a loss of approximately $2.01/day, meaning breakeven never arrives without price recovery. Its operating breakeven (the BTC price at which daily net turns from loss to profit) sits at approximately $68,000 — know that number for any hardware you're evaluating, not just its headline breakeven-days figure at today's price.</p>
 
 <h2>Step 5: Account for Difficulty Growth</h2>
 <p>The breakeven calculations above assume static difficulty — they use today\'s network difficulty throughout. In reality, difficulty grows over time as more hashrate comes online. This reduces your daily BTC mined in future months.</p>
@@ -3398,39 +3401,39 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <tbody>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 1</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000785</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$82.40</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$74.90</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00010988</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$11.54</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">$4.04</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 6</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000739</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$77.60</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$70.10</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00010035</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$10.54</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$3.04</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 12</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000654</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$68.70</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$61.20</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00009157</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$9.61</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$2.11</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">Month 18</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.000579</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$60.80</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$53.30</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">0.00008361</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$8.78</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$1.28</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>With difficulty growth applied, the effective breakeven for the S21 Pro at $105,000 BTC is approximately 54-55 days rather than 50.7 — a small difference at this efficiency level. For less efficient hardware at tighter margins, difficulty growth can extend breakeven significantly. This is why our <a href="/deal-analyzer">deal analyzer</a> applies difficulty growth dynamically to all projections.</p>
+<p>With difficulty growth applied, the picture is more serious than the static 941-day number suggests — not less. At today's thin margin ($4.04 net on $11.54 gross, a 35% margin), 20% annual difficulty growth erodes daily net profit far faster than it erodes gross revenue, because the $7.50/day hosting cost doesn't shrink alongside it. Modeled out at a flat $105,000 BTC price, daily net actually reaches zero around month 28 — before the static 941-day breakeven is even reached. In practice, this means the S21 Pro only fully repays its hardware cost on this timeline if BTC price appreciates from here (which has historically been the norm over multi-year windows), or if you plan to reassess the deployment well before month 28 rather than assuming today's price holds for 2.5+ years. This is exactly why our <a href="/deal-analyzer">deal analyzer</a> applies difficulty growth dynamically instead of using a single static breakeven number.</p>
 
 <h2>Step 6: Apply the 2028 Halving</h2>
 <p>Hardware deployed in 2026 will experience the April 2028 halving. At that point, the block reward drops from 3.125 to 1.5625 BTC — mechanically halving the daily BTC mined. The breakeven analysis should include:</p>
 <ol>
-<li><strong>Pre-halving recovery:</strong> Does the hardware break even before April 2028? For S21 Pro at $105,000 BTC: yes, in ~51 days. ✓</li>
-<li><strong>Post-halving economics:</strong> Is the hardware still net positive after halving? S21 Pro requires BTC above ~$64,000 post-halving to remain net positive at $225/month. ✓</li>
-<li><strong>Price compression scenario:</strong> If BTC price drops 30% around the halving (as it did briefly around the 2024 halving), does the operation survive? S21 Pro at $73,500 BTC post-halving: still marginally positive (breakeven hashprice is approximately $0.044/TH/day; post-halving hashprice at $73,500 BTC is approximately $0.048/TH/day). ✓</li>
+<li><strong>Pre-halving recovery:</strong> Does the hardware break even before April 2028? For S21 Pro at $105,000 BTC: no — static breakeven is approximately 941 days (~2.6 years), which extends past the roughly 21-month window remaining to the April 2028 halving. At today's reference price, this hardware does not fully recover its cost before the halving arrives. ✗</li>
+<li><strong>Post-halving economics:</strong> Is the hardware still net positive after halving? S21 Pro requires BTC above approximately $137,000 post-halving to remain net positive at $225/month — well above today's $105,000. ✗ at today's price, ✓ only if price appreciates meaningfully by 2028.</li>
+<li><strong>Price compression scenario:</strong> If BTC price drops 30% around the halving (as it did briefly around the 2024 halving), does the operation survive? S21 Pro at $73,500 BTC post-halving: a net loss of approximately $3.46/day (gross $4.04/day vs. $7.50/day hosting) — well below the ~$137,000 breakeven needed post-halving. ✗ This scenario does not survive without price recovery or renegotiated hosting costs.</li>
 </ol>
 
 <h2>The Financed Breakeven Calculation</h2>
@@ -3440,15 +3443,15 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li>$3,800 hardware, 10% APR, 36 months = $1,040/month payment</li>
 <li>Wait — $1,040/month for 36 months = $37,440 total? No: that\'s for 10 machines.</li>
 <li>Per unit: $380 down payment, $103/month payment, 36 months = $380 + $3,708 = $4,088 total. Interest = $288. Total investment = $4,088.</li>
-<li>Breakeven with financing: $4,088 ÷ $74.90/day = 54.6 days (vs 50.7 days cash)</li>
+<li>Breakeven with financing: $4,088 ÷ $4.04/day ≈ 1,012 days (vs approximately 941 days cash)</li>
 </ul>
 <p><strong>2. Cash flow is reduced during payment period:</strong></p>
 <ul>
 <li>Daily loan payment = $103/month ÷ 30 = $3.43/day</li>
-<li>Net daily free cash flow during payments = $74.90 − $3.43 = $71.47/day</li>
-<li>After 36 months, payments end and full $74.90/day is free cash flow</li>
+<li>Net daily free cash flow during payments = $4.04 − $3.43 = $0.61/day — uncomfortably thin, and a reminder that financing hardware at today's margins leaves very little room for error</li>
+<li>After the loan term ends, payments stop and the full daily net (whatever it is by then, since difficulty will have grown further) becomes free cash flow</li>
 </ul>
-<p>The financing premium is small at 10% APR because the hardware pays back so fast. Where financing gets expensive: higher APR (15-18%) or longer terms (48-60 months) on less efficient hardware at tighter margins.</p>
+<p>At today's compressed margins, financing meaningfully extends an already-long payback period rather than being a small premium. This is a different picture than when this hardware generation launched — model your specific financing terms at our <a href="/deal-analyzer">deal analyzer</a> before committing, especially at higher APRs (15-18%) or longer terms (48-60 months).</p>
 
 <h2>Using Breakeven to Compare Multiple Deals</h2>
 <p>Breakeven is most useful as a comparison tool when evaluating multiple hardware or hosting options simultaneously. The methodology:</p>
@@ -3468,32 +3471,32 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <tbody>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21 Pro, $225/mo hosting</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">50.7 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">78.4 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">119.7 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">941 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">~19,800 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21 Pro, $275/mo hosting</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">55.4 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">90.1 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">142.5 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">1,603 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S21, $225/mo hosting</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">57.2 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">96.3 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">155.0 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">1,144 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">S19 XP, $225/mo hosting</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">94.6 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">182.4 days</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">376.2 days</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #ef4444;">Never (loss)</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>This table makes the risk profiles visible: the S19 XP at $50,000 BTC stress has a 376-day breakeven — over a year. The S21 Pro at $225/month in the same scenario is 120 days. The hardware and hosting rate choice matters enormously to downside risk.</p>
+<p>This table makes the risk profiles visible in a way the $105,000 base case alone never would: the S19 XP is already underwater at today's price — its 21.5 J/TH efficiency can't clear $225/month hosting even at $105,000 BTC, let alone under stress. The S21 at 17.5 J/TH survives the base case but turns unprofitable the moment BTC drops to $70,000. Only the S21 Pro clears breakeven at today's price, and even it needs BTC near $70,000 just to keep its daily margin positive under stress — its "80-day" style stress breakevens from a higher-price era no longer describe current conditions. The hardware and hosting rate choice matters enormously to downside risk — and at today's difficulty, "does it break even at all under stress" is a more useful question than "how many days."</p>
 
 <h2>Common Mistakes in Breakeven Analysis</h2>
 <ul>
@@ -3506,7 +3509,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 
 <h2>Expert Tips for Breakeven Analysis</h2>
 <ul>
-<li><strong>Your $50,000 BTC stress breakeven should be under 180 days before you commit.</strong> This single heuristic eliminates most bad deals. If a deal takes longer than 6 months to break even at $50,000 BTC, you have insufficient margin for the inevitable periods of BTC price weakness.</li>
+<li><strong>Check whether your deal is net positive at all at $50,000 BTC before you commit — not just how many days it takes.</strong> At today's network difficulty, every current-generation ASIC on standard hosting rates runs at a net daily loss at $50,000 BTC; "breakeven days" is a meaningless number when the daily margin itself is negative. If a deal shows a net loss at $50,000 BTC, you are underwriting a bet on BTC price recovery, not on the hardware's own economics — go in knowing that's the trade you're making.</li>
 <li><strong>Use the deal analyzer to get breakeven in 30 seconds.</strong> Our <a href="/deal-analyzer">deal analyzer</a> calculates breakeven automatically as part of its 5-dimension deal score — including difficulty growth applied month by month. Enter hardware, hosting, and BTC price; it outputs everything.</li>
 <li><strong>Run the comparison table approach for any major hardware or hosting decision.</strong> Before committing to hardware or a hosting contract, build the 3×3 grid: 3 hardware options × 3 BTC price scenarios. The best deal is obvious from the table.</li>
 <li><strong>If you\'re financing: run the full cash-flow model, not just the accounting breakeven.</strong> Accounting breakeven (when cumulative net profit equals hardware cost) can look different from cash breakeven (when monthly free cash flow turns positive after loan payment). Make sure you understand both.</li>
@@ -3514,7 +3517,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </ul>
 
 <h2>The Bottom Line</h2>
-<p>Breakeven analysis is not complicated, but it must be done rigorously — across multiple BTC price scenarios, with difficulty growth applied, and including all capital costs (hardware, interest if financed). The S21 Pro at $225/month hosting sets the benchmark: 51-day base case breakeven, 120-day breakeven at $50,000 BTC stress. Any deal you evaluate should be measured against this standard.</p>
+<p>Breakeven analysis is not complicated, but it must be done rigorously — across multiple BTC price scenarios, with difficulty growth applied, and including all capital costs (hardware, interest if financed). At today's network difficulty, the S21 Pro at $225/month hosting takes approximately 941 days to pay back hardware cost at a $105,000 BTC reference price — and at $50,000 BTC it does not pay back at all, since it runs at a net operating loss below its approximately $68,000 breakeven. Any deal you evaluate should be stress-tested the same way: find the price at which it stops paying back entirely, not just how long payback takes at an optimistic price.</p>
 <p>Our <a href="/deal-analyzer">deal analyzer</a> calculates breakeven automatically as part of its 5-dimension scoring — including difficulty growth modeling and post-halving analysis. Run any deal through it before committing. For larger commitments, our <a href="/audit">profitability audit</a> provides expert-written analysis within 48 hours. Visit <a href="/hosts/abundant-miners">Abundant Miners</a> to discuss current hardware and hosting options.</p>`,
   },
   {
@@ -3532,7 +3535,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
       { question: 'What risks should I insure against in Bitcoin mining?', answer: 'The insurable risks in Bitcoin mining are the physical and operational ones: hardware theft, fire/flood/water damage at the facility, electrical surge damage, and business interruption from extended downtime caused by a covered event. The non-insurable risks — Bitcoin price decline, network difficulty increases, hosting provider insolvency, wallet hacks, and general revenue volatility — must be managed through operational and financial planning rather than insurance. Focus insurance coverage on the hardware asset value; manage the economic risks through hardware quality, hosting contract vetting, and operating reserves.' },
       { question: 'How much does Bitcoin mining equipment insurance cost?', answer: 'Equipment insurance for mining hardware typically costs 1-2% of insured value annually for commercial inland marine policies. For 10 S21 Pros worth $38,000, expect $380-760/year. For 50 S21 Pros worth $190,000, expect $1,900-3,800/year. Business interruption riders add 20-40% to the base premium. Some specialty insurers that cover crypto mining infrastructure charge 1.5-3% annually due to the higher perceived risk of the asset class. Compare against what your hosting provider includes in their fee — if equipment insurance is included, the premium is already built into the hosting rate.' },
       { question: 'What happens to my insurance claim if a mining facility has a fire or flood?', answer: 'When a covered event occurs at a hosting facility, the claims process depends on who holds the insurance. If your hosting provider\'s facility insurance covers your hardware: the provider files the claim with their insurer; you coordinate with the provider for replacement or compensation. If you hold your own equipment insurance: you file the claim directly; your insurer coordinates with the facility for damage assessment; replacement hardware is procured and the insurer pays up to your policy limit. In either case: document your hardware serial numbers, purchase receipts, and photos before deployment — they\'re required for any claim. Without documentation, claims can be delayed or reduced significantly.' },
-      { question: 'Do I need business interruption insurance for Bitcoin mining?', answer: 'Business interruption insurance pays lost revenue during periods when your operation is halted by a covered event (fire, flood, major equipment failure). For Bitcoin mining, this translates to: lost mining revenue during the period from damage event to hardware replacement/restart. For a 10-machine operation generating $22,500/month net, a 6-week downtime costs $33,750 in lost revenue. A business interruption rider on your equipment policy costs approximately $200-400/year on a 10-machine fleet — a reasonable premium for that protection. Evaluate whether your operating reserve (ideally 3 months of net profit) would cover a major downtime event; if not, the BI rider is worth it.' },
+      { question: 'Do I need business interruption insurance for Bitcoin mining?', answer: 'Business interruption insurance pays lost revenue during periods when your operation is halted by a covered event (fire, flood, major equipment failure). For Bitcoin mining, this translates to: lost mining revenue during the period from damage event to hardware replacement/restart. For a 10-machine operation generating approximately $1,212/month net, a 6-week downtime costs approximately $1,697 in lost revenue. A business interruption rider on your equipment policy costs approximately $200-400/year on a 10-machine fleet — a smaller, proportionally larger premium relative to today\'s thinner margins, but still worth evaluating. Consider whether your operating reserve (ideally 3 months of net profit) would cover a major downtime event; if not, the BI rider is worth it.' },
     ],
     content: `<div style="background: rgba(0,212,170,0.05); border: 1px solid rgba(0,212,170,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
@@ -3545,7 +3548,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 </ul>
 </div>
 
-<p>An Antminer S21 Pro costs approximately $3,800. Ten of them represents $38,000 in physical hardware. A 50-machine operation is $190,000 in assets. These assets sit in a third-party facility you don\'t control — exposed to fire, flood, electrical failure, theft, and operational disruptions. For a business generating $22,500/month in net profit, the risk of losing the hardware without insurance protection is material.</p>
+<p>An Antminer S21 Pro costs approximately $3,800. Ten of them represents $38,000 in physical hardware. A 50-machine operation is $190,000 in assets. These assets sit in a third-party facility you don\'t control — exposed to fire, flood, electrical failure, theft, and operational disruptions. Even for a smaller business generating only around $1,212/month in net profit at today's thin margins, the hardware asset value at risk ($38,000-$190,000) is what matters for insurance purposes — that risk doesn't shrink just because margins have compressed.</p>
 <p>This guide covers what is and isn\'t insurable in Bitcoin mining, the specific coverage types and products available, cost benchmarks, and the broader risk management framework that addresses the risks insurance can\'t cover.</p>
 
 <h2>What Is and Isn\'t Insurable in Bitcoin Mining</h2>
@@ -3629,43 +3632,43 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$3,800</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$57/yr</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$74/yr</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$22,900</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">0.3%</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$1,089</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">6.8%</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">10 S21 Pros</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$38,000</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$570/yr</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$741/yr</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$228,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">0.3%</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$10,890</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">6.8%</td>
 </tr>
 <tr style="background: rgba(0,0,0,0.2);">
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">50 S21 Pros</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$190,000</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$2,850/yr</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$3,705/yr</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$1,140,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">0.3%</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$54,450</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">6.8%</td>
 </tr>
 <tr>
 <td style="padding: 0.75rem; border: 1px solid #1f2937; color: #d1d5db;">100 S21 Pros</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$380,000</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$5,700/yr</td>
 <td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">$7,410/yr</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$1,825,000</td>
-<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #00d4aa;">0.4%</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #d1d5db;">~$108,900</td>
+<td style="padding: 0.75rem; text-align: right; border: 1px solid #1f2937; color: #f59e0b;">6.8%</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>Insurance is inexpensive relative to mining revenue — approximately 0.3-0.4% of annual net profit at all scales. This is not a place to economize. The asymmetric risk (paying 0.3% annually to protect against a catastrophic loss of the full hardware asset) makes insurance straightforwardly worth it at any scale.</p>
+<p>At today's compressed margins, insurance costs approximately 6.8% of annual net profit at every scale shown — a real cost, not a rounding error, and a much larger share of thin current margins than it was in past years when gross revenue was higher. It's still asymmetric risk worth taking: you're paying a mid-single-digit percentage of a thin profit to protect against a total loss of the underlying hardware asset (which is worth many multiples of a year's profit). But go in aware that insurance is a meaningful line item at today's margins, not a rounding error you can ignore.</p>
 
 <h2>Risk Management Beyond Insurance</h2>
 <p>Insurance covers the hardware asset value — but several significant risks are outside its scope. A comprehensive risk management framework for Bitcoin mining addresses both insurable and non-insurable risks.</p>
 
 <h3>Operating Reserve</h3>
-<p>The most important non-insurance risk management tool. Maintain 3 months of net operating costs as cash reserve. For 10 S21 Pros generating $19,000/month net: keep $57,000 in liquid cash reserve. This covers:</p>
+<p>The most important non-insurance risk management tool. Maintain 3 months of net profit as cash reserve. For 10 S21 Pros generating approximately $1,212/month net at today's difficulty: keep approximately $3,636 in liquid cash reserve. This covers:</p>
 <ul>
 <li>Revenue gaps during insurance claim processing periods</li>
 <li>Unexpected hosting cost increases before contract renewal</li>
@@ -3794,18 +3797,18 @@ const LM_ARTICLES: ArticleData[] = [
     tags: ['profitability', 'roi', '2026'],
     reading_time_minutes: 12,
     faqs: [
-      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Yes — with the right setup. An Antminer S21 Pro hosted at $225/month generates approximately $74/day net profit at $100,000 BTC. Hardware ROI closes in roughly 50 days at those prices. However, profitability requires efficient hardware (15-17 J/TH), competitive hosting, and BTC price above ~$32,000 to stay above operating costs.' },
+      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Yes — but thinly, and only with the right setup. An Antminer S21 Pro hosted at $225/month generates approximately $3.49/day net profit at $100,000 BTC. Hardware ROI closes in roughly 1,089 days (about 3 years) at that price. Profitability requires efficient hardware (15-17 J/TH), competitive hosting, and BTC price above approximately $68,000 just to stay above operating costs — well below that, and the machine runs at a daily loss regardless of hardware quality.' },
       { question: 'What BTC price is needed to break even on operating costs?', answer: 'For an Antminer S21 Pro hosted at $225/month flat fee, operating costs equal revenue at approximately $68,000 BTC at current network difficulty — this rises over time as difficulty grows, so check our live calculator for today\'s exact figure. Below that price, you lose money on a daily basis. Recovering the $3,800 hardware cost itself requires meaningfully higher prices or a longer holding period — run your own numbers in the calculator rather than relying on a fixed figure here.' },
-      { question: 'How much does a single Antminer S21 Pro earn per month?', answer: 'At $100,000 BTC and current difficulty, an S21 Pro earns approximately $2,400/month gross and $2,175/month net after a $225/month hosting fee — about $72-75/day net depending on difficulty and exact BTC price.' },
+      { question: 'How much does a single Antminer S21 Pro earn per month?', answer: 'At $100,000 BTC and current difficulty, an S21 Pro earns approximately $334/month gross and $106/month net after a $225/month hosting fee — about $3.49/day net.' },
       { question: 'What hardware efficiency do I need to mine profitably in 2026?', answer: 'The competitive threshold in 2026 is 20 J/TH or better. The S21 Pro at 15 J/TH and S21 XP at 13.5 J/TH are the current benchmarks for air cooling. Hardware above 25 J/TH faces severely compressed margins at standard hosting rates and is generally only viable with very cheap electricity.' },
     ],
     content: `<div style="background:rgba(247,147,26,0.06);border:1px solid rgba(247,147,26,0.2);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
 <strong style="color:#f7931a;display:block;margin-bottom:0.75rem">Key Numbers (as of mid-2026)</strong>
 <ul style="margin:0;padding-left:1.25rem;color:#d1d5db;line-height:1.8">
-<li>S21 Pro daily gross at $100k BTC: ~$80/day</li>
-<li>S21 Pro daily net at $225/mo hosting: ~$72-75/day</li>
+<li>S21 Pro daily gross at $100k BTC: ~$10.99/day</li>
+<li>S21 Pro daily net at $225/mo hosting: ~$3.49/day</li>
 <li>Operating cost breakeven: currently ~$68,000 BTC (rises over time as difficulty grows — check the live calculator for today's figure)</li>
-<li>Hardware ROI breakeven (at $3,800 purchase): ~51 days at $100k BTC</li>
+<li>Hardware ROI breakeven (at $3,800 purchase): ~1,089 days at $100k BTC</li>
 <li>Network difficulty growth: ~15-20% annually in bull markets</li>
 </ul>
 </div>
@@ -3815,7 +3818,7 @@ const LM_ARTICLES: ArticleData[] = [
 
 <h2>The Three Levers That Determine Profitability</h2>
 <h3>1. Hardware Efficiency (J/TH)</h3>
-<p>Joules per terahash is the single most important hardware metric. It determines your operating cost per unit of revenue. The S21 Pro at 15 J/TH sets the standard for air-cooled efficiency in 2026. At $0.07/kWh electricity, the S21 Pro costs approximately $0.06/TH/day to operate. An older S19 Pro at 29 J/TH costs $0.12/TH/day — double the operating cost for the same contribution to your mining revenue. That gap compounds across a full year.</p>
+<p>Joules per terahash is the single most important hardware metric. It determines your operating cost per unit of revenue. The S21 Pro at 15 J/TH sets the standard for air-cooled efficiency in 2026. At $0.07/kWh electricity, the S21 Pro costs approximately $0.025/TH/day to operate. An older S19 Pro at 29 J/TH costs approximately $0.049/TH/day — nearly double the operating cost for the same contribution to your mining revenue. That gap compounds across a full year.</p>
 <p>The competitive threshold in 2026 is approximately 20 J/TH. Hardware above 25 J/TH is generally unviable at standard hosted rates ($0.06-0.08/kWh equivalent) unless you purchased it at a steep discount.</p>
 
 <h3>2. Hosting Cost ($/month or $/kWh)</h3>
@@ -3823,20 +3826,20 @@ const LM_ARTICLES: ArticleData[] = [
 <p>A hosting cost of $350/month vs $225/month means $125/month less profit — $1,500/year per machine. At 5 machines, that is $7,500/year the higher-cost operator loses relative to the better-negotiated one. Getting hosting right is as important as getting hardware right.</p>
 
 <h3>3. BTC Price</h3>
-<p>Revenue is simply your daily BTC earnings multiplied by BTC price. At $100,000 BTC, an S21 Pro earns approximately $80/day gross. At $60,000, the same machine earns approximately $48/day gross. Your fixed costs (hosting, pool fees) stay constant regardless of price, so lower prices compress margins faster than they reduce revenue.</p>
+<p>Revenue is simply your daily BTC earnings multiplied by BTC price. At $100,000 BTC, an S21 Pro earns approximately $10.99/day gross. At $60,000, the same machine earns approximately $6.59/day gross — already below the $7.50/day hosting cost, meaning it runs at a loss. Your fixed costs (hosting, pool fees) stay constant regardless of price, so lower prices compress margins faster than they reduce revenue.</p>
 <p>The key number to know is your operating cost breakeven — the BTC price at which daily revenue equals daily operating costs. For an S21 Pro at $225/month hosting, that breakeven is currently approximately $68,000 (network difficulty pushes this up over time — check our live calculator for today's figure). Above that price, you cover operating costs. Below it, you lose money every day the machine runs.</p>
 
 <h2>Real Numbers: S21 Pro at $225/mo Hosting</h2>
-<p>At $100,000 BTC and 113.8T network difficulty:</p>
+<p>At $100,000 BTC and approximately 134T network difficulty:</p>
 <ul>
-<li>Daily BTC earnings: ~0.000817 BTC (before pool fee)</li>
-<li>Daily gross revenue: ~$81.70</li>
+<li>Daily BTC earnings: ~0.00010988 BTC (before pool fee)</li>
+<li>Daily gross revenue: ~$10.99</li>
 <li>Daily hosting cost: $225/30 = $7.50</li>
-<li>Daily pool fee (1%): ~$0.82</li>
-<li>Daily net: ~$73.38</li>
-<li>Monthly net: ~$2,201</li>
-<li>Annual net: ~$26,784</li>
-<li>Hardware payback at $3,800: ~52 days</li>
+<li>Daily pool fee (1%): ~$0.11</li>
+<li>Daily net: ~$3.38</li>
+<li>Monthly net: ~$103</li>
+<li>Annual net (at 20% difficulty growth): ~$872</li>
+<li>Hardware payback at $3,800: ~1,124 days</li>
 </ul>
 <p>Use our <a href="/calculator">Bitcoin mining ROI calculator</a> to run these numbers with the current live BTC price and your specific hosting cost.</p>
 
@@ -3846,7 +3849,7 @@ const LM_ARTICLES: ArticleData[] = [
 
 <h2>The 2028 Halving Impact</h2>
 <p>The next Bitcoin halving in April 2028 will cut the block reward from 3.125 BTC to 1.5625 BTC. All else equal, this halves your daily revenue overnight. Hardware that pays back before the halving is dramatically less risky than hardware still in payback when the halving hits.</p>
-<p>In a $105,000 BTC reference scenario, an S21 Pro at $225/month hosting pays back in ~50 days. That gives years of margin before the 2028 halving — though your real payback period depends on BTC price at the time of purchase, so check the live calculator for current numbers. Older, less efficient hardware with longer payback periods faces much more halving risk.</p>
+<p>In a $105,000 BTC reference scenario, an S21 Pro at $225/month hosting pays back in approximately 941 days — about 2.6 years, which is longer than the roughly 21 months remaining to the April 2028 halving. At today's difficulty and price, this hardware does not fully recover its cost before the halving arrives, which is exactly why the halving needs to be modeled explicitly rather than assumed away. Your real payback period depends on BTC price at the time of purchase, so check the live calculator for current numbers. Older, less efficient hardware with longer payback periods faces even more halving risk.</p>
 
 <h2>Who Should (and Should Not) Mine in 2026</h2>
 <p><strong>Good candidates:</strong> People with $5k-50k to deploy in a non-correlated BTC exposure vehicle, who understand that returns vary with BTC price, who can commit to 12+ months, and who want direct BTC accumulation without exchange counterparty risk.</p>
@@ -3934,7 +3937,7 @@ const LM_ARTICLES: ArticleData[] = [
     faqs: [
       { question: 'What is the formula for Bitcoin mining ROI?', answer: 'Daily BTC earned = (hashrate × 86400 × block_reward × (1 - pool_fee)) / (difficulty × 2^32). Daily gross revenue = daily BTC × BTC price. Daily net = daily gross − daily electricity cost − daily hosting cost. Hardware ROI = hardware purchase price / daily net profit.' },
       { question: 'What inputs do I need to calculate mining profitability?', answer: 'You need: miner hashrate (TH/s), miner power draw (watts), electricity cost ($/kWh) or monthly hosting fee ($), pool fee (%), BTC price ($), and current network difficulty. Our calculator handles all of this automatically.' },
-      { question: 'How do I calculate my hardware payback period?', answer: 'Hardware payback days = hardware purchase price / daily net profit. If you paid $3,800 for an S21 Pro and it nets $73/day, payback is 3800/73 = 52 days. This assumes constant BTC price and difficulty, which is why you should also model conservative scenarios.' },
+      { question: 'How do I calculate my hardware payback period?', answer: 'Hardware payback days = hardware purchase price / daily net profit. If you paid $3,800 for an S21 Pro and it nets $4.04/day, payback is 3800/4.04 ≈ 941 days. This assumes constant BTC price and difficulty, which is why you should also model conservative scenarios.' },
       { question: 'How should I account for difficulty growth in my projections?', answer: 'Run three scenarios: flat difficulty (optimistic), +20% difficulty (base case), +40% difficulty (conservative). For annual projections, use the +20% scenario as your baseline. For multi-year projections, compound the difficulty increase year-over-year.' },
     ],
     content: `<div style="background:rgba(247,147,26,0.06);border:1px solid rgba(247,147,26,0.2);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
@@ -3951,21 +3954,21 @@ const LM_ARTICLES: ArticleData[] = [
 <h2>The Mining Revenue Formula</h2>
 <p>Bitcoin mining revenue is determined by one core equation:</p>
 <p style="background:#0a0a0a;border:1px solid #222;padding:1rem;border-radius:8px;font-family:monospace;font-size:0.875rem;color:#e2e8f0">Daily BTC = (Hashrate_TH × 1,000,000,000,000 × 86,400 seconds × Block_Reward × (1 − Pool_Fee)) / (Difficulty × 2^32)</p>
-<p>Where: Hashrate is in TH/s, Block_Reward is currently 3.125 BTC, Pool_Fee is typically 0.01 (1%), and Difficulty is the current network difficulty number (currently ~113.8 trillion).</p>
+<p>Where: Hashrate is in TH/s, Block_Reward is currently 3.125 BTC, Pool_Fee is typically 0.01 (1%), and Difficulty is the current network difficulty number — check our <a href="/data">live data dashboard</a> for today's exact figure, since it changes roughly every two weeks and materially affects every number below.</p>
 <p>This gives you your daily BTC earnings before any costs. Multiply by BTC price to get daily gross revenue.</p>
 
 <h2>Step-by-Step Calculation for an Antminer S21 Pro</h2>
-<p><strong>Inputs:</strong> 234 TH/s hashrate, 3,510W power, $225/month hosting, 1% pool fee, $100,000 BTC, 113.8T difficulty.</p>
+<p><strong>Inputs:</strong> 234 TH/s hashrate, 3,510W power, $225/month hosting, 1% pool fee, $100,000 BTC, current network difficulty (this example uses live difficulty at time of writing — your result will differ as difficulty changes).</p>
 <ol>
-<li>Daily BTC = (234 × 10^12 × 86,400 × 3.125 × 0.99) / (113,757,508,517,000 × 4,294,967,296) ≈ 0.000814 BTC</li>
-<li>Daily gross = 0.000814 × $100,000 = $81.40</li>
+<li>Daily BTC = (234 × 10^12 × 86,400 × 3.125 × 0.99) / (current difficulty × 4,294,967,296) ≈ 0.0001088 BTC</li>
+<li>Daily gross = 0.0001088 × $100,000 = $10.88</li>
 <li>Daily hosting cost = $225 / 30 = $7.50</li>
-<li>Daily net = $81.40 − $7.50 = $73.90</li>
-<li>Monthly net = $73.90 × 30 = $2,217</li>
-<li>Annual net = $73.90 × 365 = $26,974</li>
-<li>Hardware payback at $3,800: $3,800 / $73.90 = 51 days</li>
+<li>Daily net = $10.88 − $7.50 = $3.38</li>
+<li>Monthly net = $3.38 × 30 = $101</li>
+<li>Annual net = $3.38 × 365 = $1,233</li>
+<li>Hardware payback at $3,800: $3,800 / $3.38 ≈ 1,125 days</li>
 </ol>
-<p>Use our <a href="/calculator">calculator</a> to run these numbers with current live BTC price in seconds — no manual math required.</p>
+<p>Notice how thin this margin is even at a fairly bullish $100,000 BTC price — that's a direct consequence of how much network difficulty has grown. Use our <a href="/calculator">calculator</a> to run these numbers with current live BTC price and difficulty in seconds — no manual math required, and it stays accurate as conditions change.</p>
 
 <h2>Finding Your Operating Cost Breakeven</h2>
 <p>The operating cost breakeven is the BTC price at which your daily revenue equals your daily costs. Below this price, you lose money every day the machine operates.</p>
@@ -4035,7 +4038,7 @@ const LM_ARTICLES: ArticleData[] = [
 <p>To compare these fairly, calculate the effective monthly cost for your specific machine: Flat-fee effective $/kWh = flat fee / (machine watts / 1000 × 24 × 30). For an S21 Pro at $225/month: $225 / (3.51 × 24 × 30) = $225 / 2,527 = $0.089/kWh effective. This tells you whether the flat fee is competitive vs a quoted per-kWh rate.</p>
 
 <h2>Why Residential Power Is Incompatible with Mining</h2>
-<p>US residential electricity averages approximately $0.16/kWh nationally, with many states above $0.20/kWh. At $0.16/kWh, an S21 Pro costs: (3510/1000) × 24 × 0.16 = $13.48/day = $404/month in electricity alone. At $100,000 BTC, gross revenue is approximately $81/day. That leaves only $67.52/day before pool fees and hardware depreciation — and at $0.20/kWh, the electricity alone costs $16.85/day, eliminating the margin entirely.</p>
+<p>US residential electricity averages approximately $0.16/kWh nationally, with many states above $0.20/kWh. At $0.16/kWh, an S21 Pro costs: (3510/1000) × 24 × 0.16 = $13.48/day = $404/month in electricity alone. At $100,000 BTC and today's network difficulty, gross revenue is only approximately $10.99/day — meaning residential electricity alone costs more than the machine earns, before pool fees, depreciation, or anything else. At $0.20/kWh, the electricity alone costs $16.85/day, an even larger daily loss.</p>
 <p>The only scenario where home mining is viable is access to very cheap or free electricity (below $0.05/kWh) — industrial facilities, surplus renewable power, or specific utility arrangements. For everyone else, hosted mining is the only economically viable path.</p>`,
   },
   {
@@ -4069,7 +4072,7 @@ const LM_ARTICLES: ArticleData[] = [
 
 <h2>Top Air-Cooled Miners for Hosted Operations</h2>
 <h3>Antminer S21 Pro — The Best Overall Choice</h3>
-<p>The S21 Pro at 234 TH/s and 15 J/TH is the strongest air-cooled miner for most beginners in 2026. It delivers best-in-class efficiency for the price, is widely supported by all hosting providers, and has a strong secondary market if you decide to sell. At ~$3,800, hardware payback is approximately 50 days at $100k BTC and $225/month hosting.</p>
+<p>The S21 Pro at 234 TH/s and 15 J/TH is the strongest air-cooled miner for most beginners in 2026. It delivers best-in-class efficiency for the price, is widely supported by all hosting providers, and has a strong secondary market if you decide to sell. At ~$3,800, hardware payback is approximately 1,089 days at $100k BTC and $225/month hosting.</p>
 <p><strong>Best for:</strong> Beginners with $5k-10k to deploy who want the best efficiency at a reasonable price.<br/>
 <strong>Worst for:</strong> Home mining — the 75 dB noise requires an industrial environment.</p>
 
@@ -4214,15 +4217,15 @@ const LM_ARTICLES: ArticleData[] = [
     tags: ['pools', 'fees', 'payout schemes', 'revenue'],
     reading_time_minutes: 7,
     faqs: [
-      { question: 'What is a Bitcoin mining pool fee?', answer: 'A mining pool fee is a percentage of your mining revenue that the pool operator retains as payment for coordinating the pool. Typical fees are 1-2.5% of gross revenue. A 1% pool fee on $80/day gross revenue costs $0.80/day = $24/month per machine.' },
+      { question: 'What is a Bitcoin mining pool fee?', answer: 'A mining pool fee is a percentage of your mining revenue that the pool operator retains as payment for coordinating the pool. Typical fees are 1-2.5% of gross revenue. A 1% pool fee on $11.54/day gross revenue (S21 Pro at $105,000 BTC) costs approximately $0.12/day, or about $3.51/month per machine.' },
       { question: 'What is the difference between FPPS, PPS+, and PPLNS payout schemes?', answer: 'FPPS (Full Pay Per Share) pays you for every share you submit based on the expected value, including transaction fees — stable, predictable income. PPS+ is similar but may not include all transaction fees. PPLNS (Pay Per Last N Shares) only pays you based on shares in the last N shares submitted — income varies with luck but the fee is sometimes lower. For most retail miners, FPPS or PPS+ is preferable for predictability.' },
-      { question: 'Which Bitcoin mining pool has the lowest fees?', answer: 'Major pools charge 1-2.5% depending on the payout scheme. Antpool and F2Pool charge ~2.5% on PPLNS. Foundry USA charges 0% PPS+ on new miners (promotional). Braiins Pool charges 2% FPPS. Always calculate your actual dollar cost per month — 1% vs 2.5% on $80/day gross is only $1.20/day difference, which matters but is not the most critical factor.' },
+      { question: 'Which Bitcoin mining pool has the lowest fees?', answer: 'Major pools charge 1-2.5% depending on the payout scheme. Antpool and F2Pool charge ~2.5% on PPLNS. Foundry USA charges 0% PPS+ on new miners (promotional). Braiins Pool charges 2% FPPS. Always calculate your actual dollar cost per month — 1% vs 2.5% on $11.54/day gross (S21 Pro at $105,000 BTC) is only about $0.17/day difference, which matters more than it looks given how thin current margins are, but is still not the most critical factor.' },
     ],
     content: `<div style="background:rgba(247,147,26,0.06);border:1px solid rgba(247,147,26,0.2);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
 <strong style="color:#f7931a;display:block;margin-bottom:0.75rem">Key Takeaways</strong>
 <ul style="margin:0;padding-left:1.25rem;color:#d1d5db;line-height:1.8">
 <li>Mining pools combine hashrate from many miners to earn more consistent block rewards</li>
-<li>Pool fees are 1-2.5% of gross revenue — typically $20-60/month per machine</li>
+<li>Pool fees are 1-2.5% of gross revenue — typically $3.50-$9/month per machine at today's gross revenue levels</li>
 <li>FPPS/PPS+ payout schemes provide predictable income; PPLNS varies with luck</li>
 <li>Pool selection matters but is secondary to hardware efficiency and hosting cost</li>
 <li>You can see your exact earnings and hash rate in your pool dashboard — check it weekly</li>
@@ -4230,11 +4233,11 @@ const LM_ARTICLES: ArticleData[] = [
 </div>
 
 <h2>Why Mining Pools Exist</h2>
-<p>Solo mining means your single machine competes against the entire global network to win a block. An Antminer S21 Pro at 234 TH/s vs the global network at ~900 exahashes/second (900,000,000 TH/s) represents 0.000026% of the network. At that share, you would statistically win a block reward (3.125 BTC — worth whatever BTC is trading at when you find it) approximately once every 37 years. Solo mining is impractical for retail miners.</p>
-<p>Mining pools solve this by aggregating the hashrate of thousands of machines. The pool wins blocks regularly. Each participating miner earns a proportional share of the rewards based on their contribution — measured in "shares" submitted to the pool. Instead of winning $300,000 once every 37 years, you earn small consistent payments daily.</p>
+<p>Solo mining means your single machine competes against the entire global network to win a block. An Antminer S21 Pro at 234 TH/s vs the global network at approximately 958 exahashes/second (958,000,000 TH/s) represents approximately 0.0000244% of the network. At that share, you would statistically win a block reward (3.125 BTC — worth whatever BTC is trading at when you find it) approximately once every 78 years. Solo mining is impractical for retail miners.</p>
+<p>Mining pools solve this by aggregating the hashrate of thousands of machines. The pool wins blocks regularly. Each participating miner earns a proportional share of the rewards based on their contribution — measured in "shares" submitted to the pool. Instead of winning a single large payout once every 78 years, you earn small consistent payments daily.</p>
 
 <h2>How Pool Fees Work</h2>
-<p>The pool operator retains a percentage of each block's revenue as their fee for running the infrastructure. This fee comes off your payout before you receive it. A 1% fee on an $80/day gross means you receive $79.20/day from the pool. A 2.5% fee means you receive $78.00/day.</p>
+<p>The pool operator retains a percentage of each block's revenue as their fee for running the infrastructure. This fee comes off your payout before you receive it. A 1% fee on an $11.54/day gross (S21 Pro at $105,000 BTC) means you receive approximately $11.42/day from the pool. A 2.5% fee means you receive approximately $11.25/day.</p>
 <p>On an annual basis: 1% fee = $292/year per machine. 2.5% fee = $730/year per machine. The difference matters but is much smaller than the impact of hardware efficiency or hosting cost. Do not prioritize pool fee optimization over hardware or hosting decisions.</p>
 
 <h2>Understanding Payout Schemes</h2>
@@ -4288,14 +4291,14 @@ const LM_ARTICLES: ArticleData[] = [
 </div>
 
 <h2>The Case for Home Mining</h2>
-<p>Home mining has genuine advantages in specific circumstances. If you own a property with access to very cheap electricity — hydro power in a rural area, solar with battery surplus, or industrial power access — home mining eliminates the hosting fee entirely. At $0 hosting cost, an S21 Pro at $0.04/kWh electricity earns approximately $70/day net vs $73/day in a hosted facility. The economics are comparable.</p>
+<p>Home mining has genuine advantages in specific circumstances. If you own a property with access to very cheap electricity — hydro power in a rural area, solar with battery surplus, or industrial power access — home mining eliminates the hosting fee entirely. At $0 hosting cost, an S21 Pro at $0.04/kWh electricity ($3.37/day) earns approximately $8.17/day net at $105,000 BTC, versus approximately $4.04/day in a $225/month hosted facility. At today's compressed margins, cheap-power home mining is not merely comparable to hosted — it roughly doubles the net margin, because the fixed $7.50/day hosting fee now consumes a much larger share of a much thinner gross revenue number than it used to. The catch is that very few operators actually have reliable access to power that cheap with adequate infrastructure — for everyone else, the tradeoffs below still favor hosting.</p>
 <p>Home mining also eliminates third-party custody risk. Your machine is in your building, under your control. There is no hosting provider who can go out of business, lock up your hardware, or steal your machine.</p>
 <p>Finally, for dedicated enthusiasts with the right setup, home mining can be deeply satisfying. Running your own operation, understanding every component, and maintaining full control over your mining has value that goes beyond pure economics.</p>
 
 <h2>The Reality of Home Mining for Most People</h2>
 <p><strong>Noise:</strong> An Antminer S21 Pro runs at 75 decibels at one meter. Sustained 75 dB noise causes hearing damage with prolonged exposure. It is comparable to a running lawn mower or power drill — continuously, 24 hours a day, 7 days a week. This is incompatible with living spaces. Effective soundproofing requires custom enclosures and is expensive and complex to implement correctly.</p>
 <p><strong>Power requirements:</strong> A single S21 Pro draws 3,510 watts — about the same as a large electric oven. Two machines require dedicated 240V/30A circuits. Five machines require a significant panel upgrade. Most residential electrical systems are not designed for this load, and professional installation of adequate infrastructure typically costs $2,000-5,000.</p>
-<p><strong>Electricity cost:</strong> US residential electricity averages $0.16/kWh nationally, with many states at $0.20/kWh+. At $0.16/kWh, an S21 Pro costs $13.48/day in electricity alone — consuming nearly 19% of gross revenue at $100,000 BTC. At $0.20/kWh, the electricity cost is $16.85/day, consuming nearly a quarter of gross revenue. Standard hosted mining at $225/month costs $7.50/day — half the electricity cost at standard residential rates, with better infrastructure and no setup investment.</p>
+<p><strong>Electricity cost:</strong> US residential electricity averages $0.16/kWh nationally, with many states at $0.20/kWh+. At $0.16/kWh, an S21 Pro costs $13.48/day in electricity alone — which at today's difficulty actually exceeds the machine's entire $10.99/day gross revenue at $100,000 BTC, meaning standard residential rates make mining a guaranteed daily loss before any other cost is considered. At $0.20/kWh, the electricity cost rises to $16.85/day — an even larger loss. Standard hosted mining at $225/month costs $7.50/day — close to half the electricity cost at standard residential rates, with better infrastructure and no setup investment, and the only way the economics work at today's thin margins.</p>
 <p><strong>Heat:</strong> An S21 Pro dissipates approximately 3,510 watts of heat — equivalent to a very large space heater running continuously. In summer, this dramatically increases cooling costs and can damage the machine itself if not properly managed.</p>
 
 <h2>Side-by-Side Comparison</h2>
