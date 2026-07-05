@@ -27,54 +27,44 @@ if ! python3 -c "import json,sys; json.load(open('$WORK/api.json'))" 2>>"$LOG"; 
   log "ERROR: could not fetch valid content — aborting"; exit 1
 fi
 
-# 2. Split the payload into a render spec, narration, and captions file
+# 2. Split the payload into a silent-video spec, a carousel spec, and captions
 python3 - "$WORK/api.json" "$WORK" "$OUTDIR/$DATE-captions.txt" <<'PY' 2>>"$LOG"
 import json, sys
 data = json.load(open(sys.argv[1])); work = sys.argv[2]; capfile = sys.argv[3]
 v = data["video"]
-spec = {"title": v["title"], "lines": v["lines"], "verdict": v["verdict"], "cta": v["cta"]}
-if data.get("chart"): spec["chart"] = data["chart"]
-json.dump(spec, open(f"{work}/spec.json", "w"))
-open(f"{work}/narration.txt", "w").write(v["narration"])
+vspec = {"title": v["title"], "lines": v["lines"], "verdict": v["verdict"], "cta": v["cta"]}
+if data.get("chart"): vspec["chart"] = data["chart"]
+json.dump(vspec, open(f"{work}/spec.json", "w"))
+cspec = {"slides": v.get("slides", [])}
+if data.get("chart"): cspec["chart"] = data["chart"]
+json.dump(cspec, open(f"{work}/carousel.json", "w"))
 c = data["captions"]
 with open(capfile, "w") as f:
-    f.write(f"THEME: {data['theme']}\n\nPost the video with these captions:\n")
+    f.write(f"THEME: {data['theme']}\n\nPost the silent video to Reels / TikTok / Shorts,\nand the slide images as an Instagram carousel. Captions:\n")
     for k in ("youtube", "tiktok", "instagram", "x"):
         f.write(f"\n===== {k.upper()} =====\n{c[k]}\n")
 PY
 if [ ! -s "$WORK/spec.json" ]; then log "ERROR: spec build failed"; exit 1; fi
 
-# 3. Voiceover — prefer the most natural voice installed, in this order:
-#    Premium/Enhanced neural voice (near-human) > known-good standard > system default.
-pick_voice() {
-  local list; list="$(say -v '?' 2>/dev/null)"
-  # premium/enhanced English voices sound near-human (user installs via System Settings)
-  local v
-  v="$(echo "$list" | grep -iE 'en_US|en_GB' | grep -iE 'premium|enhanced' | head -1 | sed -E 's/  +.*//')"
-  if [ -n "$v" ]; then echo "$v"; return; fi
-  for name in Ava Zoe Evan Samantha Alex; do
-    if echo "$list" | grep -q "^$name "; then echo "$name"; return; fi
-  done
-  echo ""
-}
-VOICE="$(pick_voice)"; log "voice: ${VOICE:-system-default}"
-if [ -n "$VOICE" ]; then
-  say -v "$VOICE" -r 180 -o "$WORK/voice.aiff" -f "$WORK/narration.txt" 2>>"$LOG"
-else
-  say -r 180 -o "$WORK/voice.aiff" -f "$WORK/narration.txt" 2>>"$LOG"
-fi
-if [ ! -s "$WORK/voice.aiff" ]; then log "ERROR: voiceover failed"; exit 1; fi
+# 3. Compile binaries if missing
+for bin in render carousel; do
+  if [ ! -x "$DIR/$bin" ]; then log "compiling $bin"; ( cd "$DIR" && swiftc -O "$bin.swift" -o "$bin" 2>>"$LOG" ); fi
+done
 
-# 4. Render (auto-compile the binary if missing)
-if [ ! -x "$DIR/render" ]; then
-  log "compiling renderer"; ( cd "$DIR" && swiftc -O render.swift -o render 2>>"$LOG" )
-fi
-if "$DIR/render" "$WORK/spec.json" "$WORK/voice.aiff" "$OUTDIR/$DATE.mp4" >>"$LOG" 2>&1; then
-  log "OK -> $OUTDIR/$DATE.mp4"
-  # macOS notification so Jacob knows it's ready
-  osascript -e "display notification \"Today's video is ready in LightningMines-Content\" with title \"⚡ Lightning Mines\" sound name \"Glass\"" 2>/dev/null || true
+# 4. Silent motion-graphic video (no voiceover — robotic TTS hurts a trust brand)
+if "$DIR/render" "$WORK/spec.json" "-" "$OUTDIR/$DATE.mp4" >>"$LOG" 2>&1; then
+  log "OK video -> $OUTDIR/$DATE.mp4"
 else
-  log "ERROR: render failed"; exit 1
+  log "ERROR: video render failed"
 fi
 
+# 5. Instagram carousel slides
+rm -f "$OUTDIR/$DATE-slide-"*.png 2>/dev/null
+if "$DIR/carousel" "$WORK/carousel.json" "$OUTDIR" "$DATE" >>"$LOG" 2>&1; then
+  log "OK carousel slides -> $OUTDIR/$DATE-slide-*.png"
+else
+  log "ERROR: carousel render failed"
+fi
+
+osascript -e "display notification \"Today's video + carousel are ready in LightningMines-Content\" with title \"⚡ Lightning Mines\" sound name \"Glass\"" 2>/dev/null || true
 rm -rf "$WORK"

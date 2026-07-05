@@ -80,12 +80,24 @@ export interface VideoLine {
   tone: 'pos' | 'neg' | 'neutral'
 }
 
+export interface Slide {
+  tag: string
+  headline: string
+  sub?: string
+  value?: string
+  tone?: 'pos' | 'neg' | 'neutral'
+  chart?: boolean
+  hookNext?: string
+  cta?: string
+}
+
 export interface VideoSpec {
   title: string       // short on-screen headline
   lines: VideoLine[]  // the number rows
   verdict: string     // one-line profit/loss statement
   cta: string         // "lightningmines.com"
-  narration: string   // spoken-friendly script for TTS
+  narration: string   // spoken-friendly script (email + optional TTS)
+  slides: Slide[]     // Instagram carousel, one idea per slide
 }
 
 export interface DailyDrop {
@@ -107,6 +119,56 @@ function toNarration(script: string): string {
     .replace(/\n+/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+function buildSlides(n: DailyNumbers): Slide[] {
+  const be = usd0(n.breakevenBtcPrice)
+  const netStr = n.profitable ? `+$${usd(n.s21NetDay)}/day` : `-$${usd(Math.abs(n.s21NetDay))}/day`
+  return [
+    {
+      tag: 'Daily Hashprice Check',
+      headline: n.profitable
+        ? 'Mining is profitable today — but barely. Here’s the real math.'
+        : 'Bitcoin is near all-time highs. Mining still loses money today.',
+      hookNext: 'Here’s the proof →',
+    },
+    {
+      tag: 'First, the price',
+      headline: `Bitcoin: $${usd0(n.btcPrice)}`,
+      chart: true,
+      hookNext: 'But price isn’t profit →',
+    },
+    {
+      tag: 'What actually pays you',
+      headline: `Hashprice: $${usd(n.hashpricePerThDay, 4)} / TH`,
+      sub: 'This — not the BTC price — is what a miner really earns per unit of power.',
+      hookNext: 'So what does the best miner earn? →',
+    },
+    {
+      tag: 'The verdict',
+      headline: 'Antminer S21 Pro',
+      value: netStr,
+      tone: n.profitable ? 'pos' : 'neg',
+      sub: n.profitable
+        ? 'The most efficient air-cooled miner made. A thin margin.'
+        : 'The most efficient air-cooled miner made. Underwater today.',
+      hookNext: 'What would change it? →',
+    },
+    {
+      tag: 'The line to watch',
+      headline: `Breakeven: ~$${be} BTC`,
+      sub: n.profitable
+        ? 'Below this price, hosted mining loses money every day.'
+        : `BTC must clear ~$${be} before hosted mining profits at all.`,
+      hookNext: 'Want your exact numbers? →',
+    },
+    {
+      tag: 'Lightning Mines',
+      headline: 'Run YOUR numbers. Free.',
+      sub: 'Honest mining data, every day. Follow for tomorrow’s check.',
+      cta: 'lightningmines.com',
+    },
+  ]
 }
 
 const VIDEO_TITLES: Record<string, string> = {
@@ -208,6 +270,9 @@ export function buildDailyDrop(n: DailyNumbers, date: Date): DailyDrop {
         ? `${n.profitable ? "Here's today's honest mining check." : 'Nobody else will tell you this: mining loses money today.'} ${numbersBlock} Run your own numbers free at lightningmines.com.`
         : script
     ),
+    // Instagram carousel — the daily-numbers story every day, each slide a
+    // single idea with a hook that pulls the swipe.
+    slides: buildSlides(n),
   }
 
   return { theme, script, captions, checklist, video }

@@ -8,8 +8,8 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/.lightningmines"
 mkdir -p "$DEST"
 
-echo "Compiling renderer…"
-( cd "$SRC" && swiftc -O render.swift -o "$DEST/render" )
+echo "Compiling renderer + carousel…"
+( cd "$SRC" && swiftc -O render.swift -o "$DEST/render" && swiftc -O carousel.swift -o "$DEST/carousel" )
 cp "$SRC/make-daily-video.sh" "$DEST/make-daily-video.sh"
 chmod +x "$DEST/make-daily-video.sh"
 

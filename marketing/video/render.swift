@@ -39,9 +39,11 @@ func toneColor(_ t: String) -> NSColor { t == "pos" ? TEAL : (t == "neg" ? RED :
 // ── geometry / timing ──
 let W = 1080, H = 1920
 let fps: Int32 = 60
-let audioAsset = AVURLAsset(url: audioURL)
-let audioDur = CMTimeGetSeconds(audioAsset.duration)
-let total = max(12.0, (audioDur > 0 ? audioDur : 20.0) + 1.4)
+let hasAudio = args[2] != "-" && FileManager.default.fileExists(atPath: args[2])
+let audioAsset: AVURLAsset? = hasAudio ? AVURLAsset(url: audioURL) : nil
+let audioDur = audioAsset != nil ? CMTimeGetSeconds(audioAsset!.duration) : 0
+// Silent build (no voiceover) holds the finished graphic ~14s for muted autoplay.
+let total = max(14.0, audioDur > 0 ? audioDur + 1.4 : 14.0)
 let frameCount = Int(total * Double(fps))
 let margin: CGFloat = 76
 let contentW = CGFloat(W) - margin*2
@@ -295,9 +297,9 @@ guard let vTrack = comp.addMutableTrack(withMediaType: .video, preferredTrackID:
       let vSrc = vAsset.tracks(withMediaType: .video).first else {
     FileHandle.standardError.write("no vtrack\n".data(using: .utf8)!); exit(5) }
 try? vTrack.insertTimeRange(CMTimeRange(start: .zero, duration: vAsset.duration), of: vSrc, at: .zero)
-if let aSrc = audioAsset.tracks(withMediaType: .audio).first,
+if let aa = audioAsset, let aSrc = aa.tracks(withMediaType: .audio).first,
    let aTrack = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
-    let aLen = min(audioAsset.duration, vAsset.duration)
+    let aLen = min(aa.duration, vAsset.duration)
     try? aTrack.insertTimeRange(CMTimeRange(start: .zero, duration: aLen), of: aSrc, at: CMTime(value: 4, timescale: 10))
 }
 try? FileManager.default.removeItem(at: outURL)
