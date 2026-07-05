@@ -55,11 +55,11 @@ export default function AbundantMinersPage() {
           </h1>
 
           <p className="text-lg text-gray-400 mb-2">
-            $225 flat monthly fee. Hydro power from the Columbia River. Cascade Locks, Oregon.
+            $225 flat monthly fee. Air-cooled facility powered by Columbia River hydroelectric power. Cascade Locks, Oregon.
             No electricity rate games. No surprise bills.
           </p>
           <p className="text-sm text-gray-500 mb-8">
-            Real hydro power, professional infrastructure, and straightforward pricing —
+            Real hydroelectric power, professional infrastructure, and straightforward pricing —
             built for serious bitcoin miners.
           </p>
 
@@ -100,9 +100,9 @@ export default function AbundantMinersPage() {
               },
               {
                 icon: '💧',
-                title: 'Hydro Power',
+                title: 'Hydroelectric Power',
                 price: 'Cascade Locks, OR',
-                desc: 'Columbia River hydroelectric power — one of the cheapest and most stable power sources in North America. Real clean energy, not marketing copy.',
+                desc: 'Columbia River hydroelectric power — one of the cheapest and most stable power sources in North America. Miners are air-cooled; hydro refers to the electricity source, not the cooling method.',
                 highlight: false,
               },
               {
@@ -140,7 +140,7 @@ export default function AbundantMinersPage() {
               { label: 'Monthly Fee', value: '$225 flat (per machine)' },
               { label: 'Power Source', value: 'Columbia River Hydro' },
               { label: 'Location', value: 'Cascade Locks, Oregon' },
-              { label: 'Cooling', value: 'Air cooling (hydro-assisted)' },
+              { label: 'Cooling', value: 'Air cooling (facility powered by hydroelectric grid)' },
               { label: 'Contract Terms', value: 'Flexible — contact for details' },
               { label: 'Financing', value: '$140k @ 10% interest / 36 months (on approval)' },
               { label: 'Minimum Miners', value: 'Contact for current minimums' },
