@@ -30,10 +30,19 @@
 - Stripe audit booking: /audit page (Stripe links — verify before touching)
 
 ## Open Items (do not mark resolved without testing)
-- Supabase migration: DB may still use old schema — verify before any DB writes
-- Resend welcome sequence: email flow needs end-to-end test
-- NEXT_PUBLIC_SITE_URL: confirm set in Vercel env vars
-- /audit page Stripe links: verified live (both return HTTP 200) as of 2026-07-05 — resolved
+- Supabase schema: verified current (slug/cooling_type/snake_case) as of 2026-07-05 — resolved
+- Resend: domain lightningmines.com VERIFIED; all mail sends from no-reply@lightningmines.com; end-to-end confirmed 2026-07-05 — resolved
+- NEXT_PUBLIC_SITE_URL: confirmed (sitemap serves www.lightningmines.com) — resolved
+- /audit page Stripe links: verified live (both HTTP 200) 2026-07-05 — resolved
+- GA4 (G-PSP0VE8ZJJ) + Clarity (xhpj936w12): live via CookieConsent (mounted in app/layout.tsx). Data appears in ~24-48h.
+
+## Marketing Automation (all $0, live 2026-07-05)
+- BRAND.md = voice/rules/review-checklist source of truth for ALL content
+- Scheduling: Supabase pg_cron + pg_net (NOT Vercel crons). Jobs: daily-hashprice-snapshot (0 0), daily-content-drop (0 13 UTC), weekly-newsletter (0 15 Sun UTC)
+- Secret for content endpoints: DAILY_CONTENT_SECRET (Vercel prod env). Endpoints reject without header x-content-secret
+- lib/daily-content.ts → /api/cron/daily-content: emails Jacob the day's video script + 4 platform captions, numbers computed live at send time
+- lib/newsletter.ts → /api/cron/weekly-newsletter: emails all leads/subscribers, minus email_suppressions table; HMAC unsubscribe via /api/unsubscribe
+- To change cron schedule/secret: update via Supabase execute_sql on cron.job, not vercel.json
 
 ## Conventions
 - All provider pages: /hosts/[id] where id = HostingProvider.id slug
