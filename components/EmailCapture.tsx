@@ -5,7 +5,11 @@ import { useState } from 'react'
 export default function EmailCapture() {
   const [submitted, setSubmitted] = useState(false)
 
-  const formUrl = process.env.NEXT_PUBLIC_EMAIL_FORM_URL
+  const rawFormUrl = process.env.NEXT_PUBLIC_EMAIL_FORM_URL
+  // Guard against the literal placeholder value from .env.example being left
+  // in place instead of a real Mailchimp/ConvertKit embed URL — without this,
+  // every visitor gets a broken empty iframe instead of the working fallback.
+  const formUrl = rawFormUrl && !rawFormUrl.includes('your-email-service.com') ? rawFormUrl : null
 
   if (submitted) {
     return (
