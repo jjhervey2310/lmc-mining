@@ -32,8 +32,9 @@ python3 - "$WORK/api.json" "$WORK" "$OUTDIR/$DATE-captions.txt" <<'PY' 2>>"$LOG"
 import json, sys
 data = json.load(open(sys.argv[1])); work = sys.argv[2]; capfile = sys.argv[3]
 v = data["video"]
-json.dump({"title": v["title"], "lines": v["lines"], "verdict": v["verdict"], "cta": v["cta"]},
-          open(f"{work}/spec.json", "w"))
+spec = {"title": v["title"], "lines": v["lines"], "verdict": v["verdict"], "cta": v["cta"]}
+if data.get("chart"): spec["chart"] = data["chart"]
+json.dump(spec, open(f"{work}/spec.json", "w"))
 open(f"{work}/narration.txt", "w").write(v["narration"])
 c = data["captions"]
 with open(capfile, "w") as f:
@@ -43,12 +44,24 @@ with open(capfile, "w") as f:
 PY
 if [ ! -s "$WORK/spec.json" ]; then log "ERROR: spec build failed"; exit 1; fi
 
-# 3. Voiceover (prefer Samantha; fall back to the system default voice)
-VOICE="Samantha"; say -v '?' 2>/dev/null | grep -q "^Samantha" || VOICE=""
+# 3. Voiceover — prefer the most natural voice installed, in this order:
+#    Premium/Enhanced neural voice (near-human) > known-good standard > system default.
+pick_voice() {
+  local list; list="$(say -v '?' 2>/dev/null)"
+  # premium/enhanced English voices sound near-human (user installs via System Settings)
+  local v
+  v="$(echo "$list" | grep -iE 'en_US|en_GB' | grep -iE 'premium|enhanced' | head -1 | sed -E 's/  +.*//')"
+  if [ -n "$v" ]; then echo "$v"; return; fi
+  for name in Ava Zoe Evan Samantha Alex; do
+    if echo "$list" | grep -q "^$name "; then echo "$name"; return; fi
+  done
+  echo ""
+}
+VOICE="$(pick_voice)"; log "voice: ${VOICE:-system-default}"
 if [ -n "$VOICE" ]; then
-  say -v "$VOICE" -o "$WORK/voice.aiff" -f "$WORK/narration.txt" 2>>"$LOG"
+  say -v "$VOICE" -r 180 -o "$WORK/voice.aiff" -f "$WORK/narration.txt" 2>>"$LOG"
 else
-  say -o "$WORK/voice.aiff" -f "$WORK/narration.txt" 2>>"$LOG"
+  say -r 180 -o "$WORK/voice.aiff" -f "$WORK/narration.txt" 2>>"$LOG"
 fi
 if [ ! -s "$WORK/voice.aiff" ]; then log "ERROR: voiceover failed"; exit 1; fi
 
