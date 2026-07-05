@@ -201,7 +201,13 @@ export function buildDailyDrop(n: DailyNumbers, date: Date): DailyDrop {
       ? 'Profitable today — but thin. Watch your breakeven.'
       : 'Mining loses money today. Most channels won’t say that.',
     cta: 'lightningmines.com',
-    narration: toNarration(script),
+    // The Sunday script is a meta note to Jacob ("make a long-form video today"),
+    // so the spoken narration always uses a clean viewer-facing version instead.
+    narration: toNarration(
+      dow === 0
+        ? `${n.profitable ? "Here's today's honest mining check." : 'Nobody else will tell you this: mining loses money today.'} ${numbersBlock} Run your own numbers free at lightningmines.com.`
+        : script
+    ),
   }
 
   return { theme, script, captions, checklist, video }
