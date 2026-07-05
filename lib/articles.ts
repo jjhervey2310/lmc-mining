@@ -3797,7 +3797,7 @@ const LM_ARTICLES: ArticleData[] = [
     tags: ['profitability', 'roi', '2026'],
     reading_time_minutes: 12,
     faqs: [
-      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Yes — but thinly, and only with the right setup. An Antminer S21 Pro hosted at $225/month generates approximately $3.49/day net profit at $100,000 BTC. Hardware ROI closes in roughly 1,089 days (about 3 years) at that price. Profitability requires efficient hardware (15-17 J/TH), competitive hosting, and BTC price above approximately $68,000 just to stay above operating costs — well below that, and the machine runs at a daily loss regardless of hardware quality.' },
+      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Only when BTC trades above your operating breakeven — approximately $68,000 for an S21 Pro at $225/month hosting at today\'s network difficulty. Above that level, margins are thin but real: at a $100,000 BTC reference price, the machine nets approximately $3.49/day with hardware ROI around 1,089 days. Below $68,000, even the most efficient hardware runs at a daily loss on standard hosting rates. Check our live ROI calculator for where today\'s actual price puts you before deciding.' },
       { question: 'What BTC price is needed to break even on operating costs?', answer: 'For an Antminer S21 Pro hosted at $225/month flat fee, operating costs equal revenue at approximately $68,000 BTC at current network difficulty — this rises over time as difficulty grows, so check our live calculator for today\'s exact figure. Below that price, you lose money on a daily basis. Recovering the $3,800 hardware cost itself requires meaningfully higher prices or a longer holding period — run your own numbers in the calculator rather than relying on a fixed figure here.' },
       { question: 'How much does a single Antminer S21 Pro earn per month?', answer: 'At $100,000 BTC and current difficulty, an S21 Pro earns approximately $334/month gross and $106/month net after a $225/month hosting fee — about $3.49/day net.' },
       { question: 'What hardware efficiency do I need to mine profitably in 2026?', answer: 'The competitive threshold in 2026 is 20 J/TH or better. The S21 Pro at 15 J/TH and S21 XP at 13.5 J/TH are the current benchmarks for air cooling. Hardware above 25 J/TH faces severely compressed margins at standard hosting rates and is generally only viable with very cheap electricity.' },
@@ -3813,8 +3813,8 @@ const LM_ARTICLES: ArticleData[] = [
 </ul>
 </div>
 
-<h2>The Short Answer: Yes, With Conditions</h2>
-<p>Bitcoin mining is profitable in 2026 — but only with the right hardware, the right hosting, and BTC price held above the breakeven level. These conditions are achievable and many operations run profitably today. But the margin for error is smaller than it was in previous cycles, and the question is not binary: profitability is a function of three variables that must all be optimized simultaneously.</p>
+<h2>The Short Answer: It Depends on BTC Price vs Your Breakeven</h2>
+<p>Bitcoin mining is profitable in 2026 only when BTC trades above your operating breakeven — approximately $68,000 for an S21 Pro at $225/month hosting at today's network difficulty. When BTC is above that level, well-configured operations earn a thin but real margin; when it's below, even the most efficient hardware runs at a daily loss on standard hosting rates. The question is not binary and it is not static: profitability is a function of hardware efficiency, hosting cost, and BTC price, and it flips as price moves through your breakeven. Check the <a href="/calculator">live calculator</a> for where things stand at today's actual price before making any decision.</p>
 
 <h2>The Three Levers That Determine Profitability</h2>
 <h3>1. Hardware Efficiency (J/TH)</h3>
