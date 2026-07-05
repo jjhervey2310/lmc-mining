@@ -74,11 +74,49 @@ const MYTHS = [
 
 // ── Script + captions ──
 
+export interface VideoLine {
+  label: string
+  value: string
+  tone: 'pos' | 'neg' | 'neutral'
+}
+
+export interface VideoSpec {
+  title: string       // short on-screen headline
+  lines: VideoLine[]  // the number rows
+  verdict: string     // one-line profit/loss statement
+  cta: string         // "lightningmines.com"
+  narration: string   // spoken-friendly script for TTS
+}
+
 export interface DailyDrop {
   theme: string
   script: string
   captions: { youtube: string; tiktok: string; instagram: string; x: string }
   checklist: string[]
+  video: VideoSpec
+}
+
+// Turn a written script into something the macOS `say` engine reads cleanly.
+function toNarration(script: string): string {
+  return script
+    .replace(/lightningmines\.com/gi, 'lightning mines dot com')
+    .replace(/\$([0-9][0-9,]*)/g, '$1 dollars')
+    .replace(/\bTH\/day\b/gi, 'terahash per day')
+    .replace(/\bBTC\b/g, 'bitcoin')
+    .replace(/—/g, ', ')
+    .replace(/\n+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+const VIDEO_TITLES: Record<string, string> = {
+  'Red Flag Tuesday': 'RED FLAG TUESDAY',
+  'Hardware Reality Check': 'HARDWARE REALITY CHECK',
+  'Explainer Thursday': 'MINING, EXPLAINED',
+  'Myth-Bust Saturday': 'MYTH BUSTED',
+  'Long-form Sunday (YouTube deep dive day)': 'THE MINING WEEK',
+  'Hashprice Check + Week Recap': 'HASHPRICE CHECK',
+  'Daily Hashprice Check': 'DAILY HASHPRICE CHECK',
 }
 
 export function buildDailyDrop(n: DailyNumbers, date: Date): DailyDrop {
@@ -139,12 +177,32 @@ export function buildDailyDrop(n: DailyNumbers, date: Date): DailyDrop {
   }
 
   const checklist = [
-    '□ Record/render the 30–60s vertical using the script (dark bg, amber numbers, big text)',
+    '□ Grab today’s MP4 from Desktop/LightningMines-Content/ (auto-rendered ~7am)',
     '□ 12:00pm ET — post to YouTube Shorts (check "altered content: AI" box) + TikTok',
     '□ 12:15pm ET — post to Instagram Reels',
     '□ 6:00pm ET — post the X version (numbers first, link after)',
     '□ Reply to every comment within the first hour — the algorithm rewards it',
   ]
 
-  return { theme, script, captions, checklist }
+  const video: VideoSpec = {
+    title: VIDEO_TITLES[theme] ?? 'DAILY HASHPRICE CHECK',
+    lines: [
+      { label: 'BITCOIN', value: `$${usd0(n.btcPrice)}`, tone: 'neutral' },
+      { label: 'DIFFICULTY', value: `${(n.difficulty / 1e12).toFixed(1)}T`, tone: 'neutral' },
+      { label: 'HASHPRICE', value: `$${usd(n.hashpricePerThDay, 4)}/TH`, tone: 'neutral' },
+      {
+        label: 'S21 PRO NET / DAY',
+        value: n.profitable ? `+$${usd(n.s21NetDay)}` : `-$${usd(Math.abs(n.s21NetDay))}`,
+        tone: n.profitable ? 'pos' : 'neg',
+      },
+      { label: 'BREAKEVEN BTC', value: `~$${usd0(n.breakevenBtcPrice)}`, tone: 'neutral' },
+    ],
+    verdict: n.profitable
+      ? 'Profitable today — but thin. Watch your breakeven.'
+      : 'Mining loses money today. Most channels won’t say that.',
+    cta: 'lightningmines.com',
+    narration: toNarration(script),
+  }
+
+  return { theme, script, captions, checklist, video }
 }
