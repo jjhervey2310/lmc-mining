@@ -1,0 +1,19 @@
+name: Daily content drop
+
+on:
+  schedule:
+    # 13:00 UTC = 7:00am Mountain (summer). Delivers the post pack before the workday.
+    - cron: '0 13 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily content email
+        run: |
+          code=$(curl -s -o /tmp/resp.json -w "%{http_code}" -X POST \
+            -H "x-content-secret: ${{ secrets.DAILY_CONTENT_SECRET }}" \
+            "https://www.lightningmines.com/api/cron/daily-content")
+          cat /tmp/resp.json
+          [ "$code" = "200" ] || exit 1
