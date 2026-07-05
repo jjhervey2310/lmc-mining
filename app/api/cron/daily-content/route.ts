@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   try {
     const live = await getLivePriceData()
-    if (!live) throw new Error('Live price data unavailable')
+    if (!live || 'error' in live) throw new Error('Live price data unavailable')
 
     const numbers = computeDailyNumbers(live.price, live.difficulty)
     const drop = buildDailyDrop(numbers, new Date())
