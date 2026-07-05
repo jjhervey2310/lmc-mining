@@ -33,7 +33,7 @@
 - Supabase migration: DB may still use old schema — verify before any DB writes
 - Resend welcome sequence: email flow needs end-to-end test
 - NEXT_PUBLIC_SITE_URL: confirm set in Vercel env vars
-- /audit page: Stripe placeholder links need verification
+- /audit page Stripe links: verified live (both return HTTP 200) as of 2026-07-05 — resolved
 
 ## Conventions
 - All provider pages: /hosts/[id] where id = HostingProvider.id slug
