@@ -22,8 +22,8 @@ export const ARTICLES: ArticleData[] = [
     tags: ['profitability', 'roi', 'beginners', '2026'],
     reading_time_minutes: 15,
     faqs: [
-      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Bitcoin mining can be profitable in 2026 with the right hardware (15-17 J/TH), competitive hosting ($225/month or below $0.07/kWh), and BTC price above $45,000. At current prices around $105,000, well-configured S21 Pro operations generate approximately $74/day net after hosting.' },
-      { question: 'What is the minimum BTC price for mining to be profitable?', answer: 'For an Antminer S21 Pro hosted at $225/month, operating costs exceed revenue only below approximately $32,000 BTC. For hardware ROI to close within 24 months, you need BTC above $45,000-55,000 depending on your exact setup and difficulty growth.' },
+      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Bitcoin mining can be profitable in 2026 with the right hardware (15-17 J/TH), competitive hosting ($225/month or below $0.07/kWh), and BTC price above $45,000. In a $105,000 BTC reference scenario, well-configured S21 Pro operations generate approximately $74/day net after hosting — BTC price changes daily, so always check your exact numbers with our live ROI calculator before deciding.' },
+      { question: 'What is the minimum BTC price for mining to be profitable?', answer: 'For an Antminer S21 Pro hosted at $225/month, operating costs exceed revenue below the operating-cost breakeven price — currently approximately $68,000, and it rises over time as network difficulty grows. Check our live calculator for today\'s exact figure. For hardware ROI to close within 24 months, you need BTC meaningfully above that breakeven, depending on your exact setup and difficulty growth.' },
       { question: 'How much can a single miner earn per month in 2026?', answer: 'An Antminer S21 Pro (234 TH/s) at current difficulty earns approximately $2,400/month gross revenue at $105,000 BTC, with net profit of approximately $2,200/month after a $225/month flat hosting fee — about $74/day net.' },
       { question: 'Is it too late to start Bitcoin mining in 2026?', answer: 'It is not too late, but the opportunity is more competitive than in previous cycles. Success requires S21-generation hardware (15-17 J/TH), competitive hosting at or below $225/month, and planning around the April 2028 halving when block rewards drop to 1.5625 BTC.' },
       { question: 'How does network difficulty affect mining profitability?', answer: 'A 20% difficulty increase reduces your BTC earnings by approximately 17%. In bull markets, new miners enter the network and push difficulty up continuously. Always model 15-25% annual difficulty growth into projections beyond 90 days, or you will systematically overestimate returns.' },
@@ -32,9 +32,9 @@ export const ARTICLES: ArticleData[] = [
     content: `<div style="background: rgba(0,212,170,0.05); border: 1px solid rgba(0,212,170,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
 <strong style="color: #00d4aa; display: block; margin-bottom: 0.75rem;">Key Takeaways</strong>
 <ul style="margin: 0; padding-left: 1.25rem; color: #d1d5db; line-height: 1.8;">
-<li>Bitcoin mining is profitable in 2026 with S21-generation hardware (15–17 J/TH) and hosting at or below $225/month</li>
-<li>An Antminer S21 Pro nets approximately $74/day after $225/month hosting — about $2,200/month at $105,000 BTC</li>
-<li>Operating costs exceed revenue only below approximately $32,000 BTC for S21 Pro at $225/month</li>
+<li>Bitcoin mining profitability depends entirely on the BTC price and network difficulty at the time — check our <a href="/" style="color:#00d4aa">live calculator</a> before assuming either way</li>
+<li>In a $105,000 BTC reference scenario, an Antminer S21 Pro nets approximately $74/day after $225/month hosting — about $2,200/month</li>
+<li>The S21 Pro's operating-cost breakeven at $225/month hosting is currently approximately $68,000 (it rises as network difficulty grows over time, independent of BTC price) — check our live calculator for today's exact figure</li>
 <li>Network difficulty grows roughly 20% annually in bull markets — always build this into multi-month projections</li>
 <li>The April 2028 halving cuts block rewards to 1.5625 BTC — model your hardware surviving or paying off before then</li>
 </ul>
@@ -63,7 +63,7 @@ export const ARTICLES: ArticleData[] = [
 <li><strong>Base case ($100,000 BTC):</strong> Strong positive margins, 8–12 month hardware ROI on S21 Pro</li>
 <li><strong>Bull case ($150,000+ BTC):</strong> Exceptional returns with potential 4–6 month hardware payback</li>
 </ul>
-<p>The critical question is not what BTC price is today, but what your <em>breakeven price</em> is. For an S21 Pro at $225/month hosting, operating costs exceed revenue only below approximately $32,000 BTC — a price not seen since 2020.</p>
+<p>The critical question is not what BTC price is today, but what your <em>breakeven price</em> is. For an S21 Pro at $225/month hosting, operating costs exceed revenue only below approximately $68,000 (current network difficulty) — check our live calculator for today's exact figure, since this rises as difficulty grows.</p>
 
 <h2>Profitability by Hardware: Data Table</h2>
 <p>All figures assume $225/month ($7.50/day) flat hosting and current network difficulty (~113T). Figures are approximate.</p>
@@ -413,7 +413,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <li>At $60,000 BTC: $3,800 ÷ $39.10 = <strong>97.2 days</strong></li>
 <li>At $50,000 BTC: $3,800 ÷ $31.20 = <strong>121.8 days</strong></li>
 </ul>
-<p>Even at $50,000 BTC — approximately half of current prices — the hardware pays for itself in just over 4 months. This gives a clear picture of the downside risk profile: even in a significant bear scenario, the S21 Pro recovers hardware cost well within a 12-month contract.</p>
+<p>Even at $50,000 BTC — a common bear-case stress test — the hardware pays for itself in just over 4 months. This gives a clear picture of the downside risk profile: even in a significant bear scenario, the S21 Pro recovers hardware cost well within a 12-month contract.</p>
 
 <h3>12-Month Net Profit Table</h3>
 <div style="overflow-x: auto; margin: 1.5rem 0;">
@@ -518,7 +518,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     datePublished: '2026-06-22',
     dateModified: '2026-06-22',
     title: 'Best Bitcoin Miners of 2026: Ranked by Efficiency and ROI',
-    meta_description: 'Best Bitcoin miners of 2026 ranked by J/TH efficiency, hashrate, ROI, and real profitability at current prices. S21 Pro leads air cooling at 15 J/TH and 234 TH/s.',
+    meta_description: 'Best Bitcoin miners of 2026 ranked by J/TH efficiency, hashrate, and real ROI examples. S21 Pro leads air cooling at 15 J/TH and 234 TH/s.',
     category: 'Hardware',
     tags: ['best miners', 'hardware comparison', 'asic', '2026', 'rankings'],
     reading_time_minutes: 15,
@@ -1596,7 +1596,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     reading_time_minutes: 15,
     faqs: [
       { question: 'How much does the Antminer S21 Pro cost?', answer: 'The Antminer S21 Pro sells for approximately $3,500-4,200 depending on market conditions and purchase quantity. Direct from Bitmain typically runs $3,800-4,000 for single units. Volume discounts of 5-10% are typically available at 10+ units. The secondary market offers used units at $2,800-3,400 depending on runtime hours and condition.' },
-      { question: 'How profitable is the Antminer S21 Pro in 2026?', answer: 'At $105,000 BTC and current difficulty, the S21 Pro earns approximately $82/day gross revenue. With Abundant Miners hosting at $225/month ($7.50/day), net profit is approximately $74/day — approximately $2,247/month or $27,000/year. Hardware ROI at current prices is approximately 51 days on a $3,800 unit.' },
+      { question: 'How profitable is the Antminer S21 Pro in 2026?', answer: 'In a $105,000 BTC reference scenario, the S21 Pro earns approximately $82/day gross revenue. With Abundant Miners hosting at $225/month ($7.50/day), net profit is approximately $74/day — approximately $2,247/month or $27,000/year. Hardware ROI in this scenario is approximately 51 days on a $3,800 unit. BTC price moves daily — check our live ROI calculator for numbers at today\'s actual price.' },
       { question: 'Can the Antminer S21 Pro survive the 2028 halving?', answer: 'Yes. At $225/month hosting, the S21 Pro\'s post-halving breakeven BTC price is approximately $64,000. Even if BTC price only holds at $80,000 after the April 2028 halving, the S21 Pro generates approximately $18/day net profit — solidly positive. It is the most halving-resilient air-cooled miner available today.' },
       { question: 'Is the Antminer S21 Pro loud?', answer: 'Yes. The S21 Pro operates at approximately 75 dB — similar to a vacuum cleaner running continuously. This makes it completely unsuitable for home or residential use. It must be deployed in an industrial data center or mining facility. The Antminer S21 Pro Hydro variant drops to approximately 45 dB but requires liquid cooling infrastructure.' },
       { question: 'What is the warranty on the Antminer S21 Pro?', answer: 'Bitmain offers a 180-day repair or replacement warranty on new S21 Pro units purchased directly from Bitmain. Third-party resellers may offer different terms. Extended coverage (typically 12 months) may be available through your hosting provider. Used units typically carry no manufacturer warranty — factor this into pricing comparisons.' },
@@ -2562,7 +2562,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
     reading_time_minutes: 15,
     faqs: [
       { question: 'How much does it cost to start Bitcoin mining in 2026?', answer: 'The minimum realistic budget for hosted Bitcoin mining in 2026 is approximately $4,750-5,200: hardware ($3,800 for an Antminer S21 Pro), hosting deposit (~$500), and 1-2 months of hosting buffer ($450-900). Financing is available to reduce the upfront capital requirement — Abundant Miners offers up to $140,000 at 10% APR with 10% down.' },
-      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Yes, with the right setup. An Antminer S21 Pro hosted at $225/month generates approximately $74.90/day net profit at $105,000 BTC — approximately $27,000/year. Hardware payback is approximately 51 days at current prices. The operation remains profitable down to approximately $32,000 BTC at $225/month hosting, making it resilient across a wide price range.' },
+      { question: 'Is Bitcoin mining profitable in 2026?', answer: 'It depends heavily on today\'s BTC price and network difficulty, which both change constantly. As a reference: at $105,000 BTC, an Antminer S21 Pro hosted at $225/month generates approximately $74.90/day net profit (approximately $27,000/year) with payback in approximately 51 days. The operating-cost breakeven price (independent of that scenario, driven by current network difficulty) is currently approximately $68,000. Always check our live ROI calculator for numbers at the actual current price before deciding.' },
       { question: 'How do I start Bitcoin mining in 2026?', answer: 'Six steps: (1) Model the economics using our profitability calculator before spending anything. (2) Choose hardware — the Antminer S21 Pro (15 J/TH, 234 TH/s) is the best starting point. (3) Choose a hosting provider — Abundant Miners at $225/month flat fee is the recommended option for beginners. (4) Set up a mining pool account (Foundry USA recommended). (5) Run any deal through the deal analyzer before committing. (6) Ship your miner and start monitoring pool payouts.' },
       { question: 'How much money do I need to start Bitcoin mining?', answer: 'Minimum: hardware ($3,800 for S21 Pro) + deposit (~$500) + 1-2 months hosting buffer ($450-900) = approximately $4,750-5,200 to start with adequate financial cushion. If capital-constrained, Abundant Miners vendor financing allows deployment with $380 down (10% of $3,800) and monthly payments of approximately $1,103 over 36 months at 10% APR.' },
       { question: 'Do I need technical knowledge to start Bitcoin mining?', answer: 'No. Hosted mining requires minimal technical knowledge — your hosting provider handles hardware setup, maintenance, and connectivity. You need to understand: (1) how to read a profitability calculator, (2) how to set up a pool account and provide a pool address to your host, (3) how to read your contract before signing, and (4) how to monitor your pool dashboard once running. Our university articles cover all of this.' },
@@ -2620,7 +2620,7 @@ Network difficulty: 113,757,508,517,000 (113.76 trillion, mid-2026)</p>
 <p>For first-time miners in 2026, the hardware recommendation is clear: the <a href="/miners/antminer-s21-pro">Antminer S21 Pro</a> at 15 J/TH, 234 TH/s.</p>
 <p>Why not an alternative?</p>
 <ul>
-<li><strong>S21 Pro vs S21:</strong> The S21 (200 TH/s, 17.5 J/TH, ~$2,700) is more affordable but generates approximately $13/day less at current prices. The S21 Pro's $1,100 price premium pays back in approximately 85 days of additional revenue. Over 36 months: approximately $14,000 in additional cumulative net profit.</li>
+<li><strong>S21 Pro vs S21:</strong> The S21 (200 TH/s, 17.5 J/TH, ~$2,700) is more affordable but generates approximately $13/day less in a $105,000 BTC reference scenario. The S21 Pro's $1,100 price premium pays back in approximately 85 days of additional revenue in that scenario. Over 36 months: approximately $14,000 in additional cumulative net profit.</li>
 <li><strong>S21 Pro vs used older hardware (S19, S19j Pro):</strong> Older hardware costs less per unit but is less efficient (25-29 J/TH). At $225/month flat-fee hosting, older hardware generates meaningfully less revenue per month and is more at risk post-2028 halving. The economics don't favor it unless acquired at very steep discounts.</li>
 <li><strong>S21 Pro vs Whatsminer M60S:</strong> The M60S (170 TH/s, 20 J/TH, ~$2,500) is a solid alternative if brand diversification matters. But for a first deployment, S21 Pro's better efficiency, larger ecosystem, and stronger resale market make it the better starting point.</li>
 </ul>
@@ -3794,7 +3794,7 @@ const LM_ARTICLES: ArticleData[] = [
     reading_time_minutes: 12,
     faqs: [
       { question: 'Is Bitcoin mining profitable in 2026?', answer: 'Yes — with the right setup. An Antminer S21 Pro hosted at $225/month generates approximately $74/day net profit at $100,000 BTC. Hardware ROI closes in roughly 50 days at those prices. However, profitability requires efficient hardware (15-17 J/TH), competitive hosting, and BTC price above ~$32,000 to stay above operating costs.' },
-      { question: 'What BTC price is needed to break even on operating costs?', answer: 'For an Antminer S21 Pro hosted at $225/month flat fee, operating costs equal revenue at approximately $32,000 BTC. Below that price, you lose money on a daily basis. Hardware ROI requires higher prices still — breakeven on an $3,800 S21 Pro purchase at $225/month is approximately $45,000-55,000 BTC depending on difficulty growth.' },
+      { question: 'What BTC price is needed to break even on operating costs?', answer: 'For an Antminer S21 Pro hosted at $225/month flat fee, operating costs equal revenue at approximately $68,000 BTC at current network difficulty — this rises over time as difficulty grows, so check our live calculator for today\'s exact figure. Below that price, you lose money on a daily basis. Recovering the $3,800 hardware cost itself requires meaningfully higher prices or a longer holding period — run your own numbers in the calculator rather than relying on a fixed figure here.' },
       { question: 'How much does a single Antminer S21 Pro earn per month?', answer: 'At $100,000 BTC and current difficulty, an S21 Pro earns approximately $2,400/month gross and $2,175/month net after a $225/month hosting fee — about $72-75/day net depending on difficulty and exact BTC price.' },
       { question: 'What hardware efficiency do I need to mine profitably in 2026?', answer: 'The competitive threshold in 2026 is 20 J/TH or better. The S21 Pro at 15 J/TH and S21 XP at 13.5 J/TH are the current benchmarks for air cooling. Hardware above 25 J/TH faces severely compressed margins at standard hosting rates and is generally only viable with very cheap electricity.' },
     ],
@@ -3803,7 +3803,7 @@ const LM_ARTICLES: ArticleData[] = [
 <ul style="margin:0;padding-left:1.25rem;color:#d1d5db;line-height:1.8">
 <li>S21 Pro daily gross at $100k BTC: ~$80/day</li>
 <li>S21 Pro daily net at $225/mo hosting: ~$72-75/day</li>
-<li>Operating cost breakeven: ~$32,000 BTC</li>
+<li>Operating cost breakeven: currently ~$68,000 BTC (rises over time as difficulty grows — check the live calculator for today's figure)</li>
 <li>Hardware ROI breakeven (at $3,800 purchase): ~51 days at $100k BTC</li>
 <li>Network difficulty growth: ~15-20% annually in bull markets</li>
 </ul>
@@ -3823,7 +3823,7 @@ const LM_ARTICLES: ArticleData[] = [
 
 <h3>3. BTC Price</h3>
 <p>Revenue is simply your daily BTC earnings multiplied by BTC price. At $100,000 BTC, an S21 Pro earns approximately $80/day gross. At $60,000, the same machine earns approximately $48/day gross. Your fixed costs (hosting, pool fees) stay constant regardless of price, so lower prices compress margins faster than they reduce revenue.</p>
-<p>The key number to know is your operating cost breakeven — the BTC price at which daily revenue equals daily operating costs. For an S21 Pro at $225/month hosting, that breakeven is approximately $32,000 BTC. Above that price, you cover operating costs. Below it, you lose money every day the machine runs.</p>
+<p>The key number to know is your operating cost breakeven — the BTC price at which daily revenue equals daily operating costs. For an S21 Pro at $225/month hosting, that breakeven is currently approximately $68,000 (network difficulty pushes this up over time — check our live calculator for today's figure). Above that price, you cover operating costs. Below it, you lose money every day the machine runs.</p>
 
 <h2>Real Numbers: S21 Pro at $225/mo Hosting</h2>
 <p>At $100,000 BTC and 113.8T network difficulty:</p>
@@ -3845,7 +3845,7 @@ const LM_ARTICLES: ArticleData[] = [
 
 <h2>The 2028 Halving Impact</h2>
 <p>The next Bitcoin halving in April 2028 will cut the block reward from 3.125 BTC to 1.5625 BTC. All else equal, this halves your daily revenue overnight. Hardware that pays back before the halving is dramatically less risky than hardware still in payback when the halving hits.</p>
-<p>At current prices, an S21 Pro at $225/month hosting pays back in ~50 days. That gives years of margin before the 2028 halving. Older, less efficient hardware with longer payback periods faces much more halving risk.</p>
+<p>In a $105,000 BTC reference scenario, an S21 Pro at $225/month hosting pays back in ~50 days. That gives years of margin before the 2028 halving — though your real payback period depends on BTC price at the time of purchase, so check the live calculator for current numbers. Older, less efficient hardware with longer payback periods faces much more halving risk.</p>
 
 <h2>Who Should (and Should Not) Mine in 2026</h2>
 <p><strong>Good candidates:</strong> People with $5k-50k to deploy in a non-correlated BTC exposure vehicle, who understand that returns vary with BTC price, who can commit to 12+ months, and who want direct BTC accumulation without exchange counterparty risk.</p>
@@ -3968,7 +3968,7 @@ const LM_ARTICLES: ArticleData[] = [
 
 <h2>Finding Your Operating Cost Breakeven</h2>
 <p>The operating cost breakeven is the BTC price at which your daily revenue equals your daily costs. Below this price, you lose money every day the machine operates.</p>
-<p>To find it: Daily costs = $7.50 (hosting). Daily BTC at today's difficulty = 0.000814 BTC. Breakeven price = $7.50 / 0.000814 = ~$9,213 (at flat difficulty). But add the pool fee back in and at current conditions the real breakeven for operating costs on S21 Pro hosted at $225/month is approximately $32,000 BTC.</p>
+<p>To find it: Daily costs = $7.50 (hosting). Daily BTC at current network difficulty ≈ 0.00011 BTC for an S21 Pro. Breakeven price = $7.50 / 0.00011 ≈ $68,000. This moves whenever difficulty changes — plug in live numbers at our calculator rather than relying on a fixed figure here.</p>
 <p>This is why S21 Pro operators can sustain operations through significant price drawdowns. Older hardware with higher electricity costs has much higher operating breakeven prices.</p>
 
 <h2>Modeling Difficulty Growth</h2>
@@ -4229,7 +4229,7 @@ const LM_ARTICLES: ArticleData[] = [
 </div>
 
 <h2>Why Mining Pools Exist</h2>
-<p>Solo mining means your single machine competes against the entire global network to win a block. An Antminer S21 Pro at 234 TH/s vs the global network at ~900 exahashes/second (900,000,000 TH/s) represents 0.000026% of the network. At that share, you would statistically win a block reward (3.125 BTC = ~$300,000 at current prices) approximately once every 37 years. Solo mining is impractical for retail miners.</p>
+<p>Solo mining means your single machine competes against the entire global network to win a block. An Antminer S21 Pro at 234 TH/s vs the global network at ~900 exahashes/second (900,000,000 TH/s) represents 0.000026% of the network. At that share, you would statistically win a block reward (3.125 BTC — worth whatever BTC is trading at when you find it) approximately once every 37 years. Solo mining is impractical for retail miners.</p>
 <p>Mining pools solve this by aggregating the hashrate of thousands of machines. The pool wins blocks regularly. Each participating miner earns a proportional share of the rewards based on their contribution — measured in "shares" submitted to the pool. Instead of winning $300,000 once every 37 years, you earn small consistent payments daily.</p>
 
 <h2>How Pool Fees Work</h2>
