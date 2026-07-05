@@ -43,6 +43,7 @@
 - lib/daily-content.ts → /api/cron/daily-content: emails Jacob the day's video script + 4 platform captions, numbers computed live at send time
 - lib/newsletter.ts → /api/cron/weekly-newsletter: emails all leads/subscribers, minus email_suppressions table; HMAC unsubscribe via /api/unsubscribe
 - To change cron schedule/secret: update via Supabase execute_sql on cron.job, not vercel.json
+- Daily video auto-render (macOS, marketing/video/): /api/daily-script serves the day's video spec; render.swift (AppKit+AVFoundation, no ffmpeg) makes the MP4; `say` does voiceover. Installed to ~/.lightningmines/ (NOT the repo — macOS TCC blocks launchd from ~/Desktop). Output: ~/LightningMines-Content/ (+Desktop symlink). Schedule: launchd com.lightningmines.dailyvideo @ 7:10am. Re-install after edits: marketing/video/install.sh
 
 ## Conventions
 - All provider pages: /hosts/[id] where id = HostingProvider.id slug

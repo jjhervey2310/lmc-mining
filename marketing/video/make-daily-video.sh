@@ -5,8 +5,10 @@
 # Designed to run unattended from launchd.
 set -uo pipefail
 
-DIR="/Users/jacobslaptop/Desktop/lmc-mining/marketing/video"
-OUTDIR="$HOME/Desktop/LightningMines-Content"
+# Location-independent: render binary sits next to this script. Output goes to a
+# non-TCC-protected home folder so launchd (a background agent) can write to it.
+DIR="$(cd "$(dirname "$0")" && pwd)"
+OUTDIR="$HOME/LightningMines-Content"
 WORK="$(mktemp -d)"
 DATE="$(date +%Y-%m-%d)"
 LOG="$OUTDIR/render.log"
@@ -57,7 +59,7 @@ fi
 if "$DIR/render" "$WORK/spec.json" "$WORK/voice.aiff" "$OUTDIR/$DATE.mp4" >>"$LOG" 2>&1; then
   log "OK -> $OUTDIR/$DATE.mp4"
   # macOS notification so Jacob knows it's ready
-  osascript -e "display notification \"Today's video is ready on your Desktop\" with title \"⚡ Lightning Mines\" sound name \"Glass\"" 2>/dev/null || true
+  osascript -e "display notification \"Today's video is ready in LightningMines-Content\" with title \"⚡ Lightning Mines\" sound name \"Glass\"" 2>/dev/null || true
 else
   log "ERROR: render failed"; exit 1
 fi
