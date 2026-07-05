@@ -15,7 +15,7 @@ export async function GET() {
 
   try {
     const result = await resend.emails.send({
-      from: 'Lightning Mines <onboarding@resend.dev>',
+      from: 'Lightning Mines <no-reply@lightningmines.com>',
       to: 'jjhervey1@gmail.com',
       subject: 'Lightning Mines Email Test ⚡',
       html: '<div style="background:#0a0a0a;color:#ffffff;padding:40px;font-family:sans-serif;"><h1 style="color:#f59e0b;">⚡ Email system working!</h1><p style="color:#94a3b8;">Lightning Mines email integration is live. Resend is connected and sending correctly.</p></div>',

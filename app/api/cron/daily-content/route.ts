@@ -44,7 +44,7 @@ ${section('✅ Posting checklist', drop.checklist.join('\n'))}
 
     const resend = new Resend(apiKey)
     const result = await resend.emails.send({
-      from: 'Lightning Mines Content Desk <onboarding@resend.dev>',
+      from: 'Lightning Mines Content Desk <no-reply@lightningmines.com>',
       to: RECIPIENT,
       subject: `⚡ Today's post: ${drop.theme} — S21 net ${numbers.profitable ? '+' : '-'}$${Math.abs(numbers.s21NetDay).toFixed(2)}/day`,
       html,
