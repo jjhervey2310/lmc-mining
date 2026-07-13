@@ -36,3 +36,18 @@ with a newer dated one.
 
 ## Lessons learned (mistakes → rule) (append newest on top)
 <!-- YYYY-MM-DD — where an ROI call was wrong — the rule that recalibrates it -->
+- 2026-07-13 — v2 of the LMC Phase 1 capital-deployment memo added a financing
+  section ("don't debt-finance unless sub-$0.06/kWh") that its own numbers
+  contradict: at $0.06/kWh fleet net is $1,513/mo but the Abundant equipment
+  loan payment on $54–60k financed (10% down, 10% interest, 36mo) is
+  $1,744–1,939/mo (matches the doc's stated $1,750–1,950) — i.e. NEGATIVE cash
+  flow of ~$230–425/mo at the exact rate the guidance calls "safe." Even at
+  $0.05/kWh (net $1,985/mo) the loan barely clears before pool fees (1–2.5%,
+  disclosed as unmodeled) are applied, leaving near-zero margin for opex,
+  downtime, or difficulty growth. Rule: when a memo states a financing
+  guardrail as a rate threshold ("sub-$X/kWh"), always independently recompute
+  loan-payment-vs-net-cash-flow at that exact threshold before accepting the
+  guardrail — directional caveats ("debt is risky") are not a substitute for
+  the actual breakeven math, and a guardrail that fails at its own stated
+  boundary should be flagged as unsound, not waved through because the
+  overall tone is appropriately cautious.

@@ -42,6 +42,24 @@ delete history — supersede an old note with a newer dated one.
   https://www.sec.gov/files/rules/interp/2026/33-11412.pdf
 
 ## Lessons learned (mistakes → rule) (append newest on top)
+- 2026-07-13 — v2 of a previously-VETOed "deployment plan" reframed as an
+  **internal** capital-deployment memo (Jacob/LMC's own decision, not
+  published, not an offer to any third party). Calibrated rule: FTC
+  Endorsement Guides (16 CFR 255) attach to disclosures made *to an audience*
+  (consumers/viewers of an endorsement); SEC/CFTC 33-11412 investment-contract
+  analysis attaches to representations made *in connection with an offer/sale
+  to a third-party investor*. Neither element (audience, offer/sale) is
+  present in a solo/self-directed internal memo — so the affiliate-disclosure
+  and investment-contract-adjacency flags from the v1 VETO do not carry over
+  automatically to v2's internal-use case. What DOES carry over unconditionally:
+  a declarative, unhedged forward-looking payback line ("it's a real 3-4 year
+  payback") is still the thing to fix the moment the document's audience
+  changes — i.e., before it is published, pitched to a co-investor/lender, or
+  otherwise leaves Jacob's own hands. Rule going forward: score internal-only
+  memos on their actual (internal) legal surface, but always append an
+  explicit "gate" condition — the specific line(s) that must be hedged/
+  disclosed before the same document could be shown to anyone else — so the
+  conditional risk isn't lost between drafts.
 - 2026-07-13 — "Deployment plan" style content that verdicts a *specific named
   hosting deal* ("this tranche is good if Immanuel quotes under $0.06/kWh")
   reads as personalized investment counsel, not generic educational math, even
