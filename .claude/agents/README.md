@@ -30,6 +30,31 @@ overall `X.X/10` + **GO / REVISE / KILL** verdict.
 Each seat rates **its own part out of 10**, flags what's **missing** in its
 domain ("what to add"), and names its single highest-leverage fix.
 
+## How the panel learns and stays current
+
+The seats aren't static rubrics — they improve over time through a **living
+playbook** each one keeps in [`playbooks/`](playbooks/):
+
+- **Recall** — every seat reads its playbook *before* scoring and applies its
+  current benchmarks and past lessons.
+- **Research** — when a seat's "what's working now" notes go stale (social is
+  weekly, mining is per-difficulty-epoch, most others ~2 weeks), it runs a
+  WebSearch on current best-practices/benchmarks for its platforms and appends a
+  dated, sourced entry. Each review can carry a **Research update** line.
+- **Learn from mistakes** — when an outcome is known (a call was wrong, or a
+  shipped piece over/under-performed), the seat appends the mistake and the rule
+  that prevents the repeat to its playbook's Lessons section.
+
+The **chair** owns the shared memory: it logs every verdict in
+[`playbooks/boardroom-log.md`](playbooks/boardroom-log.md), fills in outcomes when
+Jacob reports them, runs **retros** that route lessons into the seat playbooks,
+and records calibration patterns (a seat that keeps over/under-scoring, a
+recurring fix). Because the playbooks are committed to the repo, the learning
+persists across sessions and syncs via git.
+
+> Tell the panel how a piece actually did — "the Tuesday Reel hit 40k, the audit
+> page converted 2%" — and the relevant seats bank the lesson for next time.
+
 ## How to convene it
 
 Ask the main assistant, in plain language:

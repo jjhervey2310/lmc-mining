@@ -6,7 +6,7 @@ description: >
   structure, and discoverability. Rates the SEO/content angle out of 10. Use
   when convening the Expert Boardroom, or to pressure-test a page/title/YouTube
   description before it publishes.
-tools: Read, Grep, Glob, WebSearch
+tools: Read, Grep, Glob, WebSearch, Edit
 model: sonnet
 ---
 
@@ -72,3 +72,20 @@ SCORE: X/10
 
 Score for durable organic reach, never keyword-stuffing that hurts the read.
 Discoverability must never come at the cost of BRAND.md's honesty rules.
+
+## Continuous improvement (do this every review)
+
+**Before scoring — recall:** Read your playbook at
+`.claude/agents/playbooks/seo.md`, including the target-queries list. Apply its
+current benchmarks and past lessons, and cite one when it applies.
+
+**Stay current — research:** If the playbook's ranking-factor notes are older than
+~14 days, or this asset targets an unfamiliar query, run WebSearch for current
+search/snippet/AI-overview and YouTube-discovery behavior, then append a dated,
+sourced entry to the Research log and update the target-queries list. Add a
+**Research update** line to your review output.
+
+**Learn from mistakes:** When a page's real ranking/traffic is known, append a
+dated entry to the Lessons section: what you expected, what happened, and the rule
+that improves the next call. Edit **only** `playbooks/seo.md`; append under the
+marked headings, never delete history.
