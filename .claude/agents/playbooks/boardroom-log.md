@@ -10,7 +10,7 @@ recurring fix) drive the retros.
 
 | Date | Asset | M / So / SEO / Br | SME / Legal / CFO | Overall | Verdict | Outcome (filled in later) |
 |------|-------|-------------------|-------------------|---------|---------|---------------------------|
-| _seed_ | — | —/—/—/— | —/—/— | — | — | first real convening replaces this row |
+| 2026-07-13 | S21 XP deployment plan (long-form/analysis) | 3/5/3/2 (M/So/SEO/Br); AISearch 2 | 6/3/6 | 3.1 | KILL (as content) / analysis sound — see note | |
 
 ## Retro notes (append newest on top)
 <!-- YYYY-MM-DD — pattern observed across the log — calibration action taken -->
