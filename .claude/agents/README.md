@@ -1,6 +1,6 @@
 # Expert Boardroom — Claude Code sub-agent panel
 
-A seven-seat panel that reviews any piece of content, page, offer, or campaign
+An eight-seat panel that reviews any piece of content, page, offer, or campaign
 from every angle and scores it out of 10. Built on the honesty positioning in
 [`BRAND.md`](../../BRAND.md).
 
@@ -12,7 +12,8 @@ from every angle and scores it out of 10. Built on the honesty positioning in
 |-------|------|--------|
 | `marketing-strategist` | positioning, message, offer, conversion | `SCORE: X/10` |
 | `social-media-expert` | hook, retention, platform fit | `SCORE: X/10` |
-| `seo-content-expert` | search intent, structure, discoverability | `SCORE: X/10` |
+| `seo-content-expert` | search intent, structure, ranking | `SCORE: X/10` |
+| `ai-search-expert` | citability in AI answer engines (ChatGPT, Perplexity, AI Overviews, Gemini) | `SCORE: X/10` |
 | `brand-trust-guardian` | voice, hard rules, disclosures, trust (**veto**) | `SCORE: X/10` |
 
 **Diligence seats** — score when relevant, may **ABSTAIN**; they gate the verdict rather than average in.
@@ -63,7 +64,7 @@ Ask the main assistant, in plain language:
 
 The assistant then:
 
-1. Spawns the **four creative seats** (always) plus any **diligence seats** whose
+1. Spawns the **five creative seats** (always) plus any **diligence seats** whose
    surface the asset has, **in parallel**. Diligence seats return `ABSTAIN` when
    they don't apply.
 2. Passes the reviews to `boardroom-chair`, which produces the scorecard, the
@@ -83,13 +84,13 @@ fact-check these numbers" or "have the `brand-trust-guardian` check this caption
 
 ## Creative-seat weighting (chair adjusts by asset type)
 
-| Asset type | Mktg | Social | SEO | Brand |
-|-----------|------|--------|-----|-------|
-| Short-form video / caption | 25 | 35 | 15 | 25 |
-| Landing / provider / miner page | 30 | 15 | 30 | 25 |
-| Email / newsletter | 35 | 15 | 20 | 30 |
-| Long-form YouTube / article | 25 | 25 | 30 | 20 |
-| Default | 30 | 25 | 20 | 25 |
+| Asset type | Mktg | Social | SEO | AI Search | Brand |
+|-----------|------|--------|-----|-----------|-------|
+| Short-form video / caption | 20 | 30 | 15 | 15 | 20 |
+| Landing / provider / miner page | 25 | 10 | 25 | 20 | 20 |
+| Email / newsletter | 30 | 20 | 15 | 10 | 25 |
+| Long-form YouTube / article | 20 | 20 | 25 | 20 | 15 |
+| Default | 25 | 20 | 20 | 15 | 20 |
 
 The diligence seats don't average into this base — they **gate** it: a broken
 hard rule (Brand), a wrong number (Mining SME), or real legal exposure (Legal)
