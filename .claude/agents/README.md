@@ -58,11 +58,15 @@ persists across sessions and syncs via git.
 
 ## How to convene it
 
-Ask the main assistant, in plain language:
+Fastest — the slash command (see [`../skills/boardroom/`](../skills/boardroom/SKILL.md)):
+
+> `/boardroom marketing/scripts/2026-07-13.md`
+
+Or just ask in plain language:
 
 > Convene the Expert Boardroom on `marketing/scripts/2026-07-13.md`.
 
-The assistant then:
+Either way, the assistant then:
 
 1. Spawns the **five creative seats** (always) plus any **diligence seats** whose
    surface the asset has, **in parallel**. Diligence seats return `ABSTAIN` when
