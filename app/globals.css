@@ -390,3 +390,13 @@ body {
 
 .article-content strong { color: #ffffff; font-weight: 600; }
 .article-content em { font-style: italic; }
+
+/* Respect users who prefer reduced motion: disable decorative animation/transition. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

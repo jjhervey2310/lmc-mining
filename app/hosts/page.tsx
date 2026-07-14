@@ -6,7 +6,7 @@ import { PROVIDERS_DATA } from '@/lib/data'
 import { HostingProvider } from '@/lib/types'
 
 function VerificationBadge({ status }: { status: string }) {
-  if (status === 'verified') return <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#00d4aa15', color: '#00d4aa' }}>✓ Verified</span>
+  if (status === 'verified') return <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#f7931a15', color: '#f7931a' }}>ⓘ Listed — verify direct</span>
   if (status === 'contact_only') return <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#818cf815', color: '#818cf8' }}>✉ Contact for Pricing</span>
   return <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#fbbf2415', color: '#fbbf24' }}>⏳ Pending</span>
 }
@@ -81,7 +81,7 @@ function ProviderCard({ p, featured }: { p: HostingProvider; featured?: boolean 
           View Full Profile
         </Link>
         {p.website && (
-          <a href={p.website} target="_blank" rel="noopener noreferrer" className="text-sm px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white transition-colors">
+          <a href={p.affiliateProgram && p.affiliateLink ? p.affiliateLink : p.website} target="_blank" rel="noopener noreferrer" className="text-sm px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white transition-colors">
             Visit ↗
           </a>
         )}
@@ -112,7 +112,7 @@ export default function HostsPage() {
     <div className="max-w-7xl mx-auto px-4 py-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         '@context': 'https://schema.org', '@type': 'CollectionPage',
-        name: 'Bitcoin Mining Hosting Providers — Verified Comparison 2026',
+        name: 'Bitcoin Mining Hosting Providers — Compared 2026',
         description: 'Compare verified Bitcoin mining hosting providers. Independent ratings, pricing, and reviews. Find the best host for your setup.',
       }) }} />
 
@@ -120,8 +120,8 @@ export default function HostsPage() {
         <Link href="/" className="hover:text-white">Home</Link> / Hosting Providers
       </div>
 
-      <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Bitcoin Mining Hosting Providers — Verified Comparison 2026</h1>
-      <p className="text-gray-400 max-w-2xl mb-8">Independent reviews of every major Bitcoin mining hosting provider. All pricing and specs verified from primary sources. No paid placements.</p>
+      <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Bitcoin Mining Hosting Providers — Compared 2026</h1>
+      <p className="text-gray-400 max-w-2xl mb-8">Independent reviews of every major Bitcoin mining hosting provider. We verify what we can confirm and flag the rest — check each provider&apos;s status and last-verified date. We earn affiliate commissions but never sell rankings.</p>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-8">

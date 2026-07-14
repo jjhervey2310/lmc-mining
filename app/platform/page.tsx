@@ -42,7 +42,7 @@ const HOW_WE_HELP = [
   {
     icon: '🔍',
     title: 'Get a Free Deal Review',
-    body: "Submit your mining deal and get a Pass / Pass with Conditions / Avoid verdict within 48 hours. Completely free. We've reviewed hundreds of deals and know every red flag.",
+    body: "Submit your mining deal and get a Pass / Pass with Conditions / Avoid verdict within 48 hours. Completely free. We check every deal against live network data and a standing red-flag checklist.",
     link: '/review',
     cta: 'Submit My Deal',
   },

@@ -45,7 +45,7 @@ export default function Navbar() {
             <span className="font-bold text-white text-lg tracking-tight">Lightning Mines</span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-6">
+          <div className="hidden xl:flex items-center gap-5">
             {NAV_LINKS.map(l => (
               <Link
                 key={l.href}
@@ -70,9 +70,10 @@ export default function Navbar() {
           </div>
 
           <button
-            className="lg:hidden text-gray-400 hover:text-white p-2"
+            className="xl:hidden text-gray-400 hover:text-white p-2"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {mobileOpen
@@ -83,7 +84,7 @@ export default function Navbar() {
         </div>
 
         {mobileOpen && (
-          <div className="lg:hidden py-4 border-t space-y-1" style={{ borderColor: '#222222' }}>
+          <div className="xl:hidden py-4 border-t space-y-1" style={{ borderColor: '#222222' }}>
             {NAV_LINKS.map(l => (
               <Link
                 key={l.href}

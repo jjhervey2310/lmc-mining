@@ -68,16 +68,16 @@ export default function LandingShell() {
         {/* CTA */}
         <div className="landing-cta flex flex-col sm:flex-row items-center gap-4">
           <Link
-            href="/platform"
+            href="/calculator"
             className="btn-gold-hero text-sm font-bold px-8 py-4 rounded-xl"
           >
-            Explore the Platform →
+            Run the Free ROI Calculator →
           </Link>
           <Link
-            href="/calculator"
+            href="/platform"
             className="btn-outline-hero text-sm font-medium px-8 py-4 rounded-xl"
           >
-            Run Free ROI Calculator
+            Explore the Platform
           </Link>
         </div>
 
@@ -89,7 +89,7 @@ export default function LandingShell() {
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: '#f7931a' }} />
-            Verified hosting providers
+            Reviewed hosting providers
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: '#9ca3af' }} />

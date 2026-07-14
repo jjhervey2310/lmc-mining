@@ -113,7 +113,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
             {p.cooling.map(c => (
               <span key={c} className="text-xs px-2.5 py-1 rounded-full capitalize" style={{ background: '#1f2937', color: '#9ca3af' }}>{c} cooling</span>
             ))}
-            {p.verificationStatus === 'verified' && <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: '#00d4aa15', color: '#00d4aa' }}>✓ Verified</span>}
+            {p.verificationStatus === 'verified' && <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: '#f7931a15', color: '#f7931a' }}>ⓘ Listed — verify direct</span>}
             {p.verificationStatus === 'pending' && <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>⏳ Pending</span>}
             {p.verificationStatus === 'contact_only' && <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>✉ Contact for Pricing</span>}
             <Link href="/how-we-verify" className="text-xs hover:text-white transition-colors" style={{ color: '#6b7280' }}>
@@ -140,7 +140,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
           </div>
         </div>
         <div className="text-xs text-gray-500 text-right">
-          <div>Verified {p.lastVerified ? new Date(p.lastVerified).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''}</div>
+          <div>Reviewed {p.lastVerified ? new Date(p.lastVerified).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''}</div>
         </div>
       </div>
 
@@ -177,7 +177,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
                   ['Uptime', p.uptimePercent ? `${p.uptimePercent}%` : '—'],
                   ['Hidden Fees', p.hiddenFees ?? 'None noted'],
                   ['Repair Policy', p.repairPolicy],
-                  ['Verification', p.verificationStatus === 'verified' ? '✓ Verified' : p.verificationStatus === 'contact_only' ? '✉ Contact for Pricing' : '⚠ Pending'],
+                  ['Verification', p.verificationStatus === 'verified' ? 'Listed — verify direct' : p.verificationStatus === 'contact_only' ? '✉ Contact for Pricing' : '⚠ Pending'],
                 ].map(([k, v]) => (
                   <tr key={k}>
                     <td className="py-2.5 pr-4 text-gray-500 w-44">{k}</td>

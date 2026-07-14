@@ -20,14 +20,14 @@ export const metadata: Metadata = {
     type: 'website',
     title: 'Lightning Mines — Bitcoin Mining Made Simple',
     description:
-      'Avoid bad mining deals. Free ROI calculator, verified hosting providers, hardware comparison, and expert deal review.',
+      'Avoid bad mining deals. Free ROI calculator, hosting-provider reviews, hardware comparison, and expert deal review.',
     images: [{ url: '/api/og', width: 1200, height: 630, alt: 'Lightning Mines' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Lightning Mines — Bitcoin Mining Made Simple',
     description:
-      'Avoid bad mining deals. Free ROI calculator, verified hosting providers, hardware comparison, and expert deal review.',
+      'Avoid bad mining deals. Free ROI calculator, hosting-provider reviews, hardware comparison, and expert deal review.',
     images: ['/api/og'],
   },
   keywords: [
@@ -114,14 +114,15 @@ const websiteSchema = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-full flex flex-col" style={{ background: '#0a0a0a', color: '#e2e8f0' }}>
+      <body className="min-h-full flex flex-col overflow-x-hidden" style={{ background: '#0a0a0a', color: '#e2e8f0' }}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+        <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-white focus:text-black focus:font-semibold">Skip to content</a>
         <AmbientEffects />
         <TickerBar />
         <Navbar />
         <ExitIntent />
-        <main className="flex-1 pb-16 md:pb-0">{children}</main>
+        <main id="main" className="flex-1 pb-16 md:pb-0">{children}</main>
 
         <footer className="border-t mt-16" style={{ borderColor: '#222222' }}>
           <div className="max-w-6xl mx-auto px-4 py-10">
@@ -138,7 +139,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <p className="text-sm text-gray-500 mb-4">
                   Bitcoin mining profitability, hosting and hardware made simple. We help you avoid bad deals.
                 </p>
-                <p className="text-xs text-gray-600">contact@lightningmines.com</p>
+                <p className="text-xs text-gray-400">contact@lightningmines.com</p>
               </div>
 
               <div>
@@ -169,7 +170,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
 
             <div className="border-t pt-6 mb-4" style={{ borderColor: '#222222' }}>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-400">
                 <span className="font-semibold text-gray-500">Affiliate Disclosure:</span>{' '}
                 Lightning Mines earns commissions from affiliate links including Abundant Mines hosting,
                 Kraken exchange, and Koinly tax software. Affiliate relationships do not influence our
@@ -184,7 +185,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-600 text-center">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400 text-center">
               <span>© {new Date().getFullYear()} Lightning Mines. All rights reserved.</span>
               <span>·</span>
               <a href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</a>

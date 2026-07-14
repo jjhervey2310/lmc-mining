@@ -7,7 +7,7 @@ import { daysToHalving } from '@/lib/constants'
 const STATIC_ITEMS = [
   'Block Reward: 3.125 BTC',
   'Best Efficiency: 13.5 J/TH (S21 XP)',
-  'Abundant Mines: $225/mo flat rate — Cascade Locks, OR',
+  'Abundant Mines: $225/mo flat all-in rate',
   'S21 XP Hydro: 473 TH/s · 12 J/TH',
   'Independent Bitcoin Mining Intelligence',
   'No Paid Rankings · No Sponsored Content',
@@ -19,10 +19,17 @@ function calcHashprice(price: number, difficulty: number): number {
 
 export default function TickerBar() {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
   const [btcPrice, setBtcPrice] = useState<string | null>(null)
   const [hashprice, setHashprice] = useState<string | null>(null)
   const [networkEH, setNetworkEH] = useState<string | null>(null)
   const [halvingDays, setHalvingDays] = useState<number | null>(null)
+
+  // Populate the ticker only after mount. This keeps the decorative live-data
+  // marquee out of the server-rendered HTML so the first crawlable text on every
+  // page is the real H1/value prop — not "BTC: Loading..." (SEO/AEO), while the
+  // empty bar below still reserves its height to avoid any layout shift.
+  useEffect(() => { setMounted(true) }, [])
 
   // Compute halving countdown on the client so every page shows the same live
   // number (static pages would otherwise bake a stale build-time value).
@@ -55,6 +62,19 @@ export default function TickerBar() {
   }, [])
 
   if (pathname === '/') return null
+
+  // Pre-mount / server render: reserve the bar's 32px height with no text content
+  // (no "BTC: Loading...") so the ticker is never the first crawlable text on the
+  // page and there is no layout shift when it populates.
+  if (!mounted) {
+    return (
+      <div
+        className="border-b"
+        style={{ height: '32px', background: '#0a0a0a', borderColor: '#1a2332' }}
+        aria-hidden="true"
+      />
+    )
+  }
 
   const items = [
     btcPrice ? `BTC: ${btcPrice}` : 'BTC: Loading...',

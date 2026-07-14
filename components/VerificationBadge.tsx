@@ -11,10 +11,10 @@ export default function VerificationBadge({ status, date, size = 'sm' }: Verific
     return (
       <span
         className={`inline-flex items-center gap-1 ${textSize} font-medium px-2 py-0.5 rounded-full`}
-        style={{ background: '#00d4aa20', color: '#00d4aa', border: '1px solid #00d4aa40' }}
+        style={{ background: '#f7931a20', color: '#f7931a', border: '1px solid #f7931a40' }}
       >
-        <span>✓</span>
-        <span>Verified{date ? ` ${new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : ''}</span>
+        <span>ⓘ</span>
+        <span>Listed — verify direct{date ? ` · reviewed ${new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : ''}</span>
       </span>
     )
   }

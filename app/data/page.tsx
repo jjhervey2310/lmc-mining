@@ -36,7 +36,7 @@ function MetricCard({ label, value, sub, positive, negative, accent }: LiveMetri
   return (
     <div className="rounded-2xl p-5" style={{ background: '#111827', border: '1px solid #1f2937' }}>
       <div className="text-xs text-gray-500 mb-2">{label}</div>
-      <div className="text-2xl font-bold font-mono" style={{ color }}>{value}</div>
+      <div className="text-xl md:text-2xl font-bold font-mono break-words" style={{ color }}>{value}</div>
       {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
     </div>
   )
@@ -247,7 +247,8 @@ export default function DataPage() {
           <div className="text-base font-semibold text-white">Miner Profitability at {btcPrice !== null ? `$${btcPrice.toLocaleString()}` : '—'} BTC · ${hostingFee}/mo Hosting</div>
           <div className="text-xs text-gray-500 mt-0.5">Air-cooled miners sorted by efficiency. Net profit after flat hosting fee.</div>
         </div>
-        <table className="w-full text-sm" style={{ background: '#111827' }}>
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[680px]" style={{ background: '#111827' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #1f2937' }}>
               {['Miner', 'Hashrate', 'Efficiency', 'Daily Gross', 'Daily Cost', 'Daily Net', 'Monthly Net'].map(h => (
@@ -289,6 +290,7 @@ export default function DataPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Mining Economics */}
