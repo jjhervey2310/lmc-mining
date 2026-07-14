@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { MINERS_DATA } from '@/lib/data'
+import { daysToHalving } from '@/lib/constants'
 
 const DIFFICULTY = 113_757_508_517_000
 const BLOCK_REWARD = 3.125
@@ -89,6 +90,8 @@ export default function DataPage() {
   const [btcPriceError, setBtcPriceError] = useState(false)
   const [hostingFee, setHostingFee] = useState(225)
   const [history] = useState<ChartPoint[]>(() => generateHistory(105_000, 90))
+  const [halvingDays, setHalvingDays] = useState<number | null>(null)
+  useEffect(() => { setHalvingDays(daysToHalving()) }, [])
 
   const fetchBtcPrice = useCallback(() => {
     fetch('/api/btc-price')
@@ -123,7 +126,7 @@ export default function DataPage() {
     { label: 'Network Hashrate', value: `${NETWORK_HASHRATE_EH} EH/s`, sub: 'Estimated live' },
     { label: 'Network Difficulty', value: '113.76T', sub: `~${nextAdj} days to next adj.` },
     { label: 'Block Reward', value: '3.125 BTC', sub: 'Post-April 2024 halving' },
-    { label: 'Next Halving', value: 'Apr 2028', sub: '~700 days away', negative: false },
+    { label: 'Next Halving', value: 'Apr 2028', sub: halvingDays !== null ? `~${halvingDays} days away` : 'Apr 15, 2028', negative: false },
   ]
 
   return (

@@ -44,6 +44,14 @@ function minLabel(p: HostingProvider): string {
   return `${p.minMachines} machine${p.minMachines !== 1 ? 's' : ''}`
 }
 
+// Formats the real per-provider lastVerified date from PROVIDERS_DATA (single
+// source of truth). Renders the "Last Verified" date /how-we-verify promises.
+function lastVerifiedLabel(p: HostingProvider): string {
+  const d = new Date(p.lastVerified)
+  if (isNaN(d.getTime())) return 'Pending'
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+}
+
 const activeProviders = PROVIDERS_DATA.filter(p => p.listingStatus === 'active')
 const pricedProviders = activeProviders.filter(p => p.rateMin !== null || p.flatMonthly !== null)
 const quoteProviders = activeProviders.filter(p => p.rateMin === null && p.flatMonthly === null)
@@ -244,6 +252,7 @@ export default function HostingPage() {
                       Verify Direct
                     </span>
                   )}
+                  <div className="text-[11px] text-gray-600 mt-1">Last verified: {lastVerifiedLabel(p)}</div>
                 </td>
                 <td className="py-4 pr-4 text-xs">
                   {p.affiliateProgram && p.affiliateLink ? (
@@ -282,6 +291,7 @@ export default function HostingPage() {
                 >
                   {p.verificationStatus === 'verified' ? '✓ Verified' : 'Verify Direct'}
                 </span>
+                <div className="text-[11px] text-gray-600 mt-1">Last verified: {lastVerifiedLabel(p)}</div>
               </div>
               {p.affiliateProgram && p.affiliateLink && (
                 <a href={p.affiliateLink} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: ORANGE, color: '#000' }}>
@@ -319,6 +329,7 @@ export default function HostingPage() {
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
                 Contact for Pricing
               </span>
+              <div className="text-[11px] text-gray-600 mt-2">Last verified: {lastVerifiedLabel(p)}</div>
             </div>
           ))}
         </div>

@@ -261,6 +261,65 @@ export default function AuditPage() {
         </div>
       </div>
 
+      {/* ---------- SAMPLE AUDIT PREVIEW ---------- */}
+      <div className="mb-12">
+        <h2 className="text-xl md:text-2xl font-bold text-white mb-2">What your audit report looks like</h2>
+        <p className="text-sm text-gray-400 mb-6 max-w-2xl">
+          Every audit follows the same structure. Here is an anonymized excerpt so you know exactly what lands in your inbox — no vague &ldquo;it depends,&rdquo; just numbers and a decision.
+        </p>
+        <div className="rounded-2xl overflow-hidden" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+          {/* Report header */}
+          <div className="px-5 py-4 flex items-center justify-between" style={{ background: '#0a0a0a', borderBottom: `1px solid ${BORDER}` }}>
+            <div className="text-sm font-semibold text-white">Mining Deal Audit — Sample</div>
+            <div className="text-xs" style={{ color: ORANGE }}>Lightning Mines</div>
+          </div>
+          <div className="p-5 md:p-6 space-y-5">
+            {/* Verdict */}
+            <div className="rounded-xl p-4 flex items-center gap-3" style={{ background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.3)' }}>
+              <span className="text-xs font-bold uppercase px-2 py-1 rounded" style={{ background: 'rgba(255,71,87,0.15)', color: '#ff4757' }}>Verdict: No-Go (as structured)</span>
+              <span className="text-sm text-gray-300">Renegotiate hosting to ≤ $0.075/kWh or walk. At the quoted rate this deal is underwater below ~$83k BTC.</span>
+            </div>
+            {/* Key numbers */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                ['Breakeven BTC', '$83,400'],
+                ['Net / machine / mo', '−$18'],
+                ['Payback', 'Never at quote'],
+                ['24-mo difficulty drag', '~28%'],
+              ].map(([label, val]) => (
+                <div key={label} className="rounded-xl p-3 text-center" style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}>
+                  <div className="text-xs text-gray-500 mb-1">{label}</div>
+                  <div className="text-sm font-bold font-mono text-white">{val}</div>
+                </div>
+              ))}
+            </div>
+            {/* Red flags */}
+            <div>
+              <div className="text-sm font-semibold text-white mb-2">Red flags found</div>
+              <ul className="space-y-1.5 text-sm text-gray-400">
+                {[
+                  'Hosting rate quoted per-kWh but contract lets provider pass through demand charges — uncapped.',
+                  'No written exit clause; hardware retrieval terms undefined.',
+                  '“Guaranteed” uptime with no SLA credit mechanism behind it.',
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="shrink-0 mt-0.5" style={{ color: '#ff4757' }}>⚑</span>{f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Recommendation */}
+            <div className="rounded-xl p-4" style={{ background: 'rgba(0,212,170,0.06)', border: '1px solid rgba(0,212,170,0.25)' }}>
+              <div className="text-sm font-semibold mb-1" style={{ color: '#00d4aa' }}>Recommendation</div>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Counter at a flat $225/mo all-in, get the demand-charge pass-through struck, and add a 30-day exit clause. With those three changes the same hardware clears breakeven near $68k and pays back in ~19 months at the base-case BTC price.
+              </p>
+            </div>
+            <p className="text-xs text-gray-600">Illustrative sample. Your report uses your real hardware, hosting quote, and live BTC price / network difficulty at the time of analysis.</p>
+          </div>
+        </div>
+      </div>
+
       {/* ---------- PROOF / CREDIBILITY ---------- */}
       <div className="rounded-2xl p-6 md:p-8 mb-8" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
         <div className="flex items-start gap-4">

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ARTICLES, getArticleBySlug } from '@/lib/articles'
 import type { Metadata } from 'next'
 import ArticleEmailCapture from '@/components/ArticleEmailCapture'
+import QuickAnswer from '@/components/QuickAnswer'
 import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export async function generateStaticParams() {
@@ -195,6 +196,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               ))}
             </div>
           </div>
+
+          {/* Quick Answer — extractable lead answer for AI/search, sourced from the
+              article's primary FAQ so the visible text matches the FAQPage schema */}
+          {article.faqs.length > 0 && (
+            <QuickAnswer question={article.faqs[0].question}>{article.faqs[0].answer}</QuickAnswer>
+          )}
 
           {/* Affiliate disclosure — only when the article body links to an affiliate partner */}
           {(article.content.includes('abundantmines') || article.content.includes('kaboomracks')) && (

@@ -3,10 +3,11 @@
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { daysToHalving } from '@/lib/constants'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const DAYS_TO_HALVING = Math.ceil((new Date('2028-04-01').getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+const DAYS_TO_HALVING = daysToHalving()
 const MINERS_IN_DB = 22
 
 interface Props {

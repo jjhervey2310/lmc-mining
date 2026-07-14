@@ -17,6 +17,16 @@ export const COLORS = {
 // Bitcoin block reward (post-2024 halving)
 export const BLOCK_REWARD_BTC = 3.125
 
+// Next halving — single source of truth for every "days to halving" display sitewide.
+// Estimated date; the exact block-height date shifts slightly with hashrate.
+export const HALVING_DATE = new Date('2028-04-15T00:00:00Z')
+
+// Days remaining until the next halving, computed from the current time.
+// Always call this at render/effect time (client) so every surface shows the same number.
+export function daysToHalving(now: number = Date.now()): number {
+  return Math.max(0, Math.ceil((HALVING_DATE.getTime() - now) / 86_400_000))
+}
+
 // CoinGecko endpoint
 export const COINGECKO_URL =
   'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'

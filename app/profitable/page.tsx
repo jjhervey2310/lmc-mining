@@ -6,11 +6,11 @@ import dynamic from 'next/dynamic'
 const DifficultyWidget = dynamic(() => import('@/components/DifficultyWidget'), { ssr: false })
 const HashpriceChart = dynamic(() => import('@/components/HashpriceChart'), { ssr: false })
 import MethodologyCallout from '@/components/MethodologyCallout'
+import HalvingDays from '@/components/HalvingDays'
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
 const BORDER = '#222222'
-const HALVING_DATE = new Date('2028-04-15T00:00:00Z')
 
 // Reference miner: Antminer S21 Pro
 const REF_TH = 234
@@ -52,7 +52,6 @@ export default function ProfitabilityPage() {
 
   const hashprice = btcPrice && difficulty ? calcHashprice(btcPrice, difficulty) : null
   const networkEH = difficulty ? (difficulty * 4294967296 / 600 / 1e18) : null
-  const daysToHalving = Math.max(0, Math.ceil((HALVING_DATE.getTime() - Date.now()) / 86400000))
 
   // Daily revenue for reference miner (REF_TH is in TH, hashprice is $/PH/day)
   const dailyRevenue = hashprice ? hashprice * (REF_TH / 1000) : null
@@ -125,7 +124,7 @@ export default function ProfitabilityPage() {
             { label: 'BTC Price',        value: btcPrice    ? `$${btcPrice.toLocaleString()}`           : '...', live: true  },
             { label: 'Hashprice',        value: hashprice   ? `$${hashprice.toFixed(2)}/PH/day`         : '...', live: true  },
             { label: 'Network Hashrate', value: networkEH   ? `${networkEH.toFixed(0)} EH/s`            : '...', live: true  },
-            { label: 'Next Halving',     value: `${daysToHalving} days`,                                          live: false },
+            { label: 'Next Halving',     value: <HalvingDays />,                                                  live: false },
           ].map(s => (
             <div key={s.label} className="rounded-xl p-4 text-center" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
               <div className="flex items-center justify-center gap-1.5 mb-1">
