@@ -55,7 +55,7 @@ function CompareContent() {
         <Link href="/" className="hover:text-white">Home</Link> / <Link href="/hosts" className="hover:text-white">Hosting</Link> / Compare
       </div>
       <h1 className="text-3xl font-bold text-white mb-2">Compare Bitcoin Mining Hosting Providers</h1>
-      <p className="text-gray-400 mb-8">Side-by-side comparison of verified hosting providers.</p>
+      <p className="text-gray-400 mb-8">Side-by-side comparison of listed hosting providers.</p>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
         {[{ val: selA, set: setSelA, label: 'Provider A' }, { val: selB, set: setSelB, label: 'Provider B' }].map(({ val, set, label }) => (

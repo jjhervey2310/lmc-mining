@@ -102,7 +102,7 @@ export default function AuditPage() {
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-5"
           style={{ background: 'rgba(255,71,87,0.12)', color: RED, border: '1px solid rgba(255,71,87,0.25)' }}
         >
-          3 build-plan spots remaining this month
+          48–72 hour turnaround · money-back guarantee
         </div>
         <h1 className="text-3xl md:text-5xl font-bold text-white mb-5 leading-tight">
           Don&apos;t wire $20,000 into a mining deal you haven&apos;t stress-tested.

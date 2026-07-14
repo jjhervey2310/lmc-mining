@@ -9,12 +9,12 @@ import QuickAnswer from '@/components/QuickAnswer'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/hosting' },
-  title: 'Bitcoin Mining Hosting Comparison 2026 — Verified Providers',
+  title: 'Bitcoin Mining Hosting Comparison 2026 — Compare Providers',
   description:
     'Compare Bitcoin mining hosting providers side by side. Real pricing, power sources, cooling types, minimum commitments, setup fees, and verification status. Abundant Mines is our top pick.',
   openGraph: {
     title: 'Bitcoin Mining Hosting Comparison | Lightning Mines',
-    description: 'Verified hosting providers compared side by side. Real pricing. No fabricated numbers.',
+    description: 'Bitcoin mining hosting providers compared side by side. Real pricing, last-reviewed dates, verify-direct flags. No fabricated numbers.',
     type: 'website',
   },
 }
@@ -153,7 +153,7 @@ export default function HostingPage() {
 
       <QuickAnswer question="What is the best Bitcoin mining hosting provider in 2026?">
         The best Bitcoin mining hosting keeps your all-in cost at or below roughly $0.08/kWh (or about $225/month flat per machine), runs a verifiable facility with a named power source, and states pricing, uptime, and a clear exit clause in writing.
-        {topPick ? <> Our current top-rated verified provider is {topPick.name} ({priceLabel(topPick)}, {topPick.facilityLocations[0]}).</> : null} Compare every verified provider — with last-verified dates — in the table below, and confirm current terms in writing before you deposit.
+        {topPick ? <> Our current top-rated listed provider is {topPick.name} ({priceLabel(topPick)}, {topPick.facilityLocations[0]}).</> : null} Compare every listed provider — with last-reviewed dates — in the table below, and confirm current terms in writing before you deposit.
       </QuickAnswer>
 
       {/* Verification notice */}
@@ -246,8 +246,8 @@ export default function HostingPage() {
                 <td className="py-4 pr-4 text-gray-400 text-xs">{minLabel(p)}</td>
                 <td className="py-4 pr-4 text-xs whitespace-nowrap">
                   {p.verificationStatus === 'verified' ? (
-                    <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(0,212,170,0.15)', color: '#00d4aa' }}>
-                      ✓ Verified
+                    <span className="px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(247,147,26,0.15)', color: '#f7931a' }}>
+                      ⓘ Listed — verify direct
                     </span>
                   ) : (
                     <span
@@ -258,7 +258,7 @@ export default function HostingPage() {
                       Verify Direct
                     </span>
                   )}
-                  <div className="text-[11px] text-gray-600 mt-1">Last verified: {lastVerifiedLabel(p)}</div>
+                  <div className="text-[11px] text-gray-600 mt-1">Last reviewed: {lastVerifiedLabel(p)}</div>
                 </td>
                 <td className="py-4 pr-4 text-xs">
                   {p.affiliateProgram && p.affiliateLink ? (
@@ -297,7 +297,7 @@ export default function HostingPage() {
                 >
                   {p.verificationStatus === 'verified' ? '✓ Verified' : 'Verify Direct'}
                 </span>
-                <div className="text-[11px] text-gray-600 mt-1">Last verified: {lastVerifiedLabel(p)}</div>
+                <div className="text-[11px] text-gray-600 mt-1">Last reviewed: {lastVerifiedLabel(p)}</div>
               </div>
               {p.affiliateProgram && p.affiliateLink && (
                 <a href={p.affiliateLink} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: ORANGE, color: '#000' }}>
@@ -335,7 +335,7 @@ export default function HostingPage() {
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
                 Contact for Pricing
               </span>
-              <div className="text-[11px] text-gray-600 mt-2">Last verified: {lastVerifiedLabel(p)}</div>
+              <div className="text-[11px] text-gray-600 mt-2">Last reviewed: {lastVerifiedLabel(p)}</div>
             </div>
           ))}
         </div>

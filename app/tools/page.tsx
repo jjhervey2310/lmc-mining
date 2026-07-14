@@ -138,7 +138,7 @@ export default function ToolsPage() {
           <Link href="/hosting" className="rounded-xl p-4 text-center block" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
             <div className="text-lg mb-1">🏗️</div>
             <div className="text-sm font-semibold text-white mb-1">Hosting Comparison</div>
-            <div className="text-xs text-gray-500">Compare verified hosting providers</div>
+            <div className="text-xs text-gray-500">Compare listed hosting providers</div>
           </Link>
           <Link href="/review" className="rounded-xl p-4 text-center block" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
             <div className="text-lg mb-1">🔍</div>

@@ -120,7 +120,7 @@ export default function ReviewPage() {
           Free — No Credit Card Required
         </div>
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-          Get Your Mining Deal Reviewed
+          Before you send a deposit, let us check the deal.
         </h1>
         <p className="text-gray-400">
           Submit your deal and get a{' '}

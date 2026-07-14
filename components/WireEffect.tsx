@@ -142,7 +142,7 @@ export default function WireEffect() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: 2,
+        zIndex: -1,
       }}
     />
   )
