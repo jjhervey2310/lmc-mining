@@ -49,7 +49,6 @@ function addInternalLinks(content: string, currentSlug?: string): string {
     ['Whatsminer M60S', '/miners/whatsminer-m60s'],
     // Host pages
     ['Abundant Mines', '/hosts/abundant-miners'],
-    ['Abundant Miners', '/hosts/abundant-miners'],
     // Cross-article links
     ['network difficulty', '/university/what-is-network-difficulty'],
     ['difficulty adjustment', '/university/what-is-network-difficulty'],

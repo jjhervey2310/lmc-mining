@@ -364,12 +364,12 @@ export const MINERS_DATA: Miner[] = [
 export const PROVIDERS_DATA: HostingProvider[] = [
   {
     id: 'abundant-miners',
-    name: 'Abundant Miners',
+    name: 'Abundant Mines',
     tier: 1,
     country: 'US',
     facilityLocations: ['United States'],
-    website: 'https://abundantminers.com',
-    contactEmail: 'contact@abundantminers.com',
+    website: 'https://abundantmines.com',
+    contactEmail: 'contact@abundantmines.com',
     lastVerified: '2025-12-01',
     rateMin: null,
     rateMax: null,

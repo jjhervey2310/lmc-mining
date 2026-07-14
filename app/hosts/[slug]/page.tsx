@@ -69,7 +69,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
       q: `Does ${p.name} offer financing?`,
       a: p.financingAvailable
         ? `Yes, ${p.name} offers financing options. Contact them directly for current terms.`
-        : `${p.name} does not currently list financing options. Consider Abundant Miners if financing is important — they offer up to $140k at 10% APR over 36 months.`,
+        : `${p.name} does not currently list financing options. Consider Abundant Mines if financing is important — they offer up to $140k at 10% APR over 36 months.`,
     },
   ]
 
@@ -129,7 +129,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
           <a href={p.affiliateLink ?? p.website} target="_blank" rel="noopener noreferrer"
             className="text-sm font-semibold px-6 py-3 rounded-xl"
             style={{ background: '#00d4aa', color: '#0a0e17' }}>
-            {p.tier === 1 ? 'Get Started with Abundant Miners →' : `Visit ${p.name} →`}
+            {p.tier === 1 ? 'Get Started with Abundant Mines →' : `Visit ${p.name} →`}
           </a>
         )}
       </div>
@@ -192,14 +192,14 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
             </table>
           </section>
 
-          {/* Abundant Miners specific section */}
+          {/* Abundant Mines specific section */}
           {isAbundant && (
             <section className="rounded-2xl p-6" style={{ background: '#00d4aa10', border: '1px solid #00d4aa30' }}>
-              <h2 className="text-lg font-semibold text-white mb-4">Why Abundant Miners is Rated #1</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">Why Abundant Mines is Rated #1</h2>
               <div className="space-y-4 text-sm text-gray-300">
                 <div>
                   <h3 className="font-medium text-white mb-1">The $225/Month Flat Fee — What It Includes</h3>
-                  <p>Abundant Miners charges a flat $225/month per air-cooled miner. This covers electricity (no matter how much your miner draws), cooling infrastructure, routine maintenance, insurance on your equipment, and internet connectivity. No surprise bills, no electricity rate fluctuations.</p>
+                  <p>Abundant Mines charges a flat $225/month per air-cooled miner. This covers electricity (no matter how much your miner draws), cooling infrastructure, routine maintenance, insurance on your equipment, and internet connectivity. No surprise bills, no electricity rate fluctuations.</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-1">The $500 Deposit Structure</h3>
@@ -207,11 +207,11 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-1">Financing Up to $140,000</h3>
-                  <p>Abundant Miners offers vendor financing for hardware purchases up to $140,000 at 10% APR over 36 months with 10% down. This allows operators to deploy at scale without full upfront capital.</p>
+                  <p>Abundant Mines offers vendor financing for hardware purchases up to $140,000 at 10% APR over 36 months with 10% down. This allows operators to deploy at scale without full upfront capital.</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-1">Hydro & Immersion Timeline (~2027)</h3>
-                  <p>Abundant Miners is currently air-cooled only. Hydro cooling infrastructure is in development targeting approximately 2027.</p>
+                  <p>Abundant Mines is currently air-cooled only. Hydro cooling infrastructure is in development targeting approximately 2027.</p>
                 </div>
               </div>
             </section>
@@ -295,7 +295,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
               <a href={p.affiliateLink ?? p.website} target="_blank" rel="noopener noreferrer"
                 className="block text-center text-sm font-semibold py-2.5 rounded-lg"
                 style={{ background: '#00d4aa', color: '#0a0e17' }}>
-                {p.tier === 1 ? 'Get Started with Abundant Miners →' : `Visit ${p.name} →`}
+                {p.tier === 1 ? 'Get Started with Abundant Mines →' : `Visit ${p.name} →`}
               </a>
             )}
             {p.affiliateProgram && (

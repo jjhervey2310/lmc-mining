@@ -73,7 +73,7 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
     },
     {
       q: `What hosting providers support the ${miner.name}?`,
-      a: `The ${miner.name} uses ${COOLING_LABELS[miner.cooling_type]}. Compatible hosting providers include ${compatibleProviders.slice(0, 3).map(p => p.name).join(', ')}. Abundant Miners is recommended for air-cooled miners at a flat $225/month all-in rate.`,
+      a: `The ${miner.name} uses ${COOLING_LABELS[miner.cooling_type]}. Compatible hosting providers include ${compatibleProviders.slice(0, 3).map(p => p.name).join(', ')}. Abundant Mines is recommended for air-cooled miners at a flat $225/month all-in rate.`,
     },
     {
       q: `What is the efficiency of the ${miner.name}?`,
@@ -234,7 +234,7 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
           {/* ROI analysis */}
           <section className="rounded-2xl p-6" style={{ background: '#111827', border: '1px solid #1f2937' }}>
             <h2 className="text-lg font-semibold text-white mb-1">ROI Analysis</h2>
-            <p className="text-xs text-gray-500 mb-4">Based on current network difficulty. Assumes Abundant Miners hosting at $225/month flat fee.</p>
+            <p className="text-xs text-gray-500 mb-4">Based on current network difficulty. Assumes Abundant Mines hosting at $225/month flat fee.</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {scenarios.map(s => {
                 const dailyGross = dailyBTC * s.btc

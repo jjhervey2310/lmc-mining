@@ -84,7 +84,7 @@ export default function ProfitabilityPage() {
       {
         '@type': 'Question',
         name: 'What is the cheapest hosting rate available?',
-        acceptedAnswer: { '@type': 'Answer', text: 'Competitive hosted mining rates in 2026 range from $0.05/kWh to $0.10/kWh, or flat monthly fees of $225-275 per machine. Abundant Miners offers $225/month flat fee using Columbia River hydroelectric power, which is the most competitive verified flat-fee rate we have found.' },
+        acceptedAnswer: { '@type': 'Answer', text: 'Competitive hosted mining rates in 2026 range from $0.05/kWh to $0.10/kWh, or flat monthly fees of $225-275 per machine. Abundant Mines offers $225/month flat fee using Columbia River hydroelectric power, which is the most competitive verified flat-fee rate we have found.' },
       },
       {
         '@type': 'Question',

@@ -51,7 +51,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-white mb-3">5. Affiliate Relationships</h2>
-          <p>Lightning Mines participates in affiliate programs. We may receive compensation when you click certain links or make purchases through them. This includes our primary relationship with Abundant Miners. Affiliate relationships do not influence our editorial content, ratings, or data. See our full <Link href="/about#affiliate" className="text-yellow-400 hover:underline">affiliate disclosure</Link>.</p>
+          <p>Lightning Mines participates in affiliate programs. We may receive compensation when you click certain links or make purchases through them. This includes our primary relationship with Abundant Mines. Affiliate relationships do not influence our editorial content, ratings, or data. See our full <Link href="/about#affiliate" className="text-yellow-400 hover:underline">affiliate disclosure</Link>.</p>
         </section>
 
         <section>

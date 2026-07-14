@@ -116,8 +116,8 @@ const FAQ = [
     a: 'Pool luck measures how often a pool finds blocks relative to its expected frequency. Luck averages to 100% over time, but small pools experience more variance. If you\'re on a small pool, your daily income can swing significantly even at the same hash rate. Larger pools smooth this out.',
   },
   {
-    q: 'What pool do Abundant Miners use for hosted machines?',
-    a: 'Abundant Miners allows miners to connect to their pool of choice. Most customers use Foundry USA or Luxor. Contact them directly to confirm current options for your hardware type.',
+    q: 'What pool do Abundant Mines use for hosted machines?',
+    a: 'Abundant Mines allows miners to connect to their pool of choice. Most customers use Foundry USA or Luxor. Contact them directly to confirm current options for your hardware type.',
   },
 ]
 
