@@ -36,6 +36,8 @@ const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa
 const COOLING_LABELS: Record<string, string> = { air: 'Air Cooling', hydro: 'Hydro Cooling', immersion: 'Immersion Cooling' }
 
 function formatUSD(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n) }
+// Cents precision for small daily figures so gross − hosting = net reconciles on screen.
+function formatUSDc(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) }
 
 function calcDailyBTC(hashrate: number, difficulty: number) {
   return (hashrate * 1e12 * 86400 * 3.125) / (difficulty * Math.pow(2, 32))
@@ -247,15 +249,15 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
                         <span className="text-gray-500">Daily gross</span>
-                        <span className="text-white font-mono">{formatUSD(dailyGross)}</span>
+                        <span className="text-white font-mono">{formatUSDc(dailyGross)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Daily hosting</span>
-                        <span className="text-white font-mono">-{formatUSD(dailyHosting)}</span>
+                        <span className="text-white font-mono">-{formatUSDc(dailyHosting)}</span>
                       </div>
                       <div className="flex justify-between border-t border-gray-800 pt-1">
                         <span className="text-gray-400 font-medium">Daily net</span>
-                        <span className="font-mono font-semibold" style={{ color: dailyNet > 0 ? '#00d4aa' : '#ff4757' }}>{formatUSD(dailyNet)}</span>
+                        <span className="font-mono font-semibold" style={{ color: dailyNet > 0 ? '#00d4aa' : '#ff4757' }}>{formatUSDc(dailyNet)}</span>
                       </div>
                       {breakevenDays && (
                         <div className="flex justify-between">

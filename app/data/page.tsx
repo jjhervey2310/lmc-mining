@@ -8,10 +8,16 @@ import { daysToHalving } from '@/lib/constants'
 const DIFFICULTY = 113_757_508_517_000
 const BLOCK_REWARD = 3.125
 const BLOCKS_PER_DAY = 144
-const NETWORK_HASHRATE_EH = 658 // EH/s
+// Network hashrate implied by difficulty: difficulty * 2^32 / block_time. Derived
+// (not hardcoded) so it stays consistent with DIFFICULTY on this page.
+const NETWORK_HASHRATE_EH = Math.round((DIFFICULTY * Math.pow(2, 32)) / 600 / 1e18) // EH/s
 
+// Hashprice = USD earned per 1 TH/s per day. Uses the same expected-blocks formula
+// as the profitability table below (hashrate * seconds/day * reward / (difficulty * 2^32)),
+// so the Hashprice card, EH/s revenue card, and per-miner table all agree.
 function hashprice(btcPrice: number, difficulty: number) {
-  return (btcPrice * BLOCK_REWARD * BLOCKS_PER_DAY) / ((difficulty * Math.pow(2, 32)) / 1e12)
+  const dailyBtcPerTH = (1e12 * 86400 * BLOCK_REWARD) / (difficulty * Math.pow(2, 32))
+  return dailyBtcPerTH * btcPrice
 }
 
 interface LiveMetric {
@@ -41,7 +47,10 @@ function generateHistory(endPrice: number, days: number): ChartPoint[] {
   let price = endPrice * 0.80
   for (let i = 0; i < days; i++) {
     const pct = (Math.sin(i * 0.15) * 0.035) + (i / days) * 0.22
-    price = endPrice * (0.80 + pct + (Math.random() * 0.015 - 0.0075))
+    // Deterministic jitter (no Math.random) so server and client render identically
+    // — avoids React hydration mismatch on this SSR client component.
+    const jitter = Math.sin(i * 1.7) * 0.006 + Math.cos(i * 0.6) * 0.004
+    price = endPrice * (0.80 + pct + jitter)
     const hp = hashprice(price, DIFFICULTY * (1 + i * 0.001))
     pts.push({ day: i, hp: parseFloat(hp.toFixed(4)), price: Math.round(price) })
   }
