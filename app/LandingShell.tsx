@@ -52,8 +52,8 @@ export default function LandingShell() {
           className="landing-headline text-5xl md:text-7xl font-black text-white mb-6 leading-none tracking-tight"
           style={{ letterSpacing: '-0.03em', textShadow: '0 2px 40px rgba(0,0,0,0.6)' }}
         >
-          The Bloomberg<br />
-          <span style={{ color: '#f7931a' }}>of Bitcoin Mining</span>
+          The Independent Standard<br />
+          <span style={{ color: '#f7931a' }}>for Bitcoin Mining</span>
         </h1>
 
         {/* Subline */}

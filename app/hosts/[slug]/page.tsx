@@ -27,10 +27,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-function CheckIcon({ yes }: { yes: boolean }) {
-  return <span style={{ color: yes ? '#00d4aa' : '#ff4757' }}>{yes ? '✓' : '✗'}</span>
-}
-
 function priceLabel(p: ReturnType<typeof getProviderBySlug>): string {
   if (!p) return '—'
   if (p.flatMonthly) return `$${p.flatMonthly}/month flat all-in`
@@ -305,7 +301,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
           <div className="rounded-2xl p-5" style={{ background: '#111827', border: '1px solid #1f2937' }}>
             <h3 className="font-semibold text-white mb-2">Not sure this is right for you?</h3>
-            <p className="text-sm text-gray-400 mb-3">Answer 3 questions and we'll find the best hosting match for your miner and budget.</p>
+            <p className="text-sm text-gray-400 mb-3">Answer 3 questions and we&apos;ll find the best hosting match for your miner and budget.</p>
             <Link href="/hosting-match" className="block text-center text-sm py-2 rounded-lg border border-gray-600 text-gray-300 hover:border-[#00d4aa] hover:text-white transition-colors">
               Get Free Hosting Match →
             </Link>

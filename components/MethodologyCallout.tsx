@@ -1,4 +1,3 @@
-const BORDER = '#222222'
 
 interface Props {
   context?: 'hosting' | 'miners' | 'profitability'

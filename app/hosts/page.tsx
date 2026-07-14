@@ -177,7 +177,7 @@ export default function HostsPage() {
       {/* CTA */}
       <div className="mt-12 rounded-2xl p-8 text-center" style={{ background: '#111827', border: '1px solid #1f2937' }}>
         <h2 className="text-xl font-bold text-white mb-2">Not Sure Which Provider to Choose?</h2>
-        <p className="text-gray-400 mb-6 max-w-lg mx-auto">Tell us your miner model and budget. We'll match you with the best available hosting option — free, no obligation.</p>
+        <p className="text-gray-400 mb-6 max-w-lg mx-auto">Tell us your miner model and budget. We&apos;ll match you with the best available hosting option — free, no obligation.</p>
         <Link href="/hosting-match" className="inline-block text-sm font-semibold px-6 py-3 rounded-lg" style={{ background: '#00d4aa', color: '#0a0e17' }}>
           Get My Free Hosting Match →
         </Link>

@@ -356,7 +356,7 @@ function DealAnalyzerContent() {
             <div className="rounded-2xl p-8 text-center h-full flex flex-col items-center justify-center" style={{ background: '#111827', border: '1px solid #1f2937' }}>
               <div className="text-4xl mb-4">📊</div>
               <h2 className="text-lg font-semibold text-white mb-2">Your Deal Score Will Appear Here</h2>
-              <p className="text-sm text-gray-500">Fill in your deal details on the left and click "Score My Deal" to see your full analysis.</p>
+              <p className="text-sm text-gray-500">Fill in your deal details on the left and click &ldquo;Score My Deal&rdquo; to see your full analysis.</p>
               <div className="mt-6 grid grid-cols-2 gap-3 w-full max-w-xs text-xs text-gray-500">
                 {['Hardware Score', 'Hosting Score', 'Efficiency Score', 'Profitability Score', 'Risk Score', 'Overall Deal Score'].map(s => (
                   <div key={s} className="rounded-lg p-3" style={{ background: '#0a0e17', border: '1px solid #1f2937' }}>{s}</div>

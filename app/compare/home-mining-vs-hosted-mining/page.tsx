@@ -42,7 +42,6 @@ const faqSchema = {
 export default function HomeVsHostedPage() {
   // S21 Pro at home vs hosted cost comparison
   const MINER_WATTS = 3510
-  const MINER_PRICE = 3800
   const HOSTING_FLAT = 225
 
   function monthlyCost(rate: number) {

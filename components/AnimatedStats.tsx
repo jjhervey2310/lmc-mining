@@ -73,7 +73,6 @@ export default function AnimatedStats({ btcLive }: Props) {
         }
       },
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // BTC counter — fires when live price arrives after section has entered

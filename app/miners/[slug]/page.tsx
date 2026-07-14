@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getMinerBySlug, MINERS_DATA, getCompatibleProviders, getRelatedMiners } from '@/lib/data'
-import { SITE_NAME } from '@/lib/constants'
 import type { Metadata } from 'next'
 import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
@@ -55,7 +54,6 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
   // ROI analysis at three BTC price scenarios
   const difficulty = 113_757_508_517_000 // approximate current difficulty
   const dailyBTC = calcDailyBTC(miner.default_hashrate_th, difficulty)
-  const dailyPower_kWh = (miner.power_watts / 1000) * 24
   const hostingCostPerDay = compatibleProviders[0]?.flatMonthly ? compatibleProviders[0].flatMonthly / 30 : null
 
   const scenarios = [
