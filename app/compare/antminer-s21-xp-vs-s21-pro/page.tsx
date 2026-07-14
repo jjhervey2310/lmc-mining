@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/compare/antminer-s21-xp-vs-s21-pro' },
@@ -70,6 +71,8 @@ export default function CompareS21XPvsS21ProPage() {
         <Link href="/" className="hover:text-white">Home</Link> /{' '}
         <Link href="/miners" className="hover:text-white">Hardware</Link> / S21 XP vs S21 Pro
       </div>
+
+      <AffiliateDisclosure />
 
       <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
         Antminer S21 XP vs S21 Pro:<br />Which Should You Buy in 2026?

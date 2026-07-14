@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export const metadata: Metadata = {
   title: 'Abundant Mines Review 2026 — $225/Month Flat Fee Hosting',
@@ -62,6 +63,10 @@ export default function AbundantMinersPage() {
             Real hydroelectric power, professional infrastructure, and straightforward pricing —
             built for serious bitcoin miners.
           </p>
+
+          <div className="text-left mb-8">
+            <AffiliateDisclosure />
+          </div>
 
           <a
             href={AFFILIATE_URL}

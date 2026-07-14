@@ -921,7 +921,7 @@ Network difficulty used in this example: 133,869,853,540,305 (a snapshot value �
 
 <h3>Hosting Fees and Electricity</h3>
 <p>Monthly hosting fees are fully deductible as ordinary business operating expenses in the year paid. For an S21 Pro at $225/month over 12 months, that is $2,700 in deductible expenses per machine. At 10 machines, $27,000 in annual deductions. Keep all hosting invoices — they are straightforward audit support for a frequently deducted expense category.</p>
-<p>If you pay electricity directly rather than a flat hosting fee, electricity costs are deductible as a business expense. If your flat hosting fee includes electricity (as with Abundant Miners' all-inclusive $225/month), the entire hosting fee is deductible as one line item.</p>
+<p>If you pay electricity directly rather than a flat hosting fee, <a href="/university/bitcoin-mining-electricity-costs">electricity costs</a> are deductible as a business expense. If your flat hosting fee includes electricity (as with Abundant Miners' all-inclusive $225/month), the entire hosting fee is deductible as one line item.</p>
 
 <h3>Pool Fees, Software, and Professional Services</h3>
 <p>Mining pool fees (1-2.5% of gross revenue) are deductible as a cost of generating income. For a single S21 Pro generating $30,000 gross annually, pool fees at 1.5% represent $450 in deductible costs. Crypto tax software subscriptions, accounting fees, CPA fees, and legal costs for mining business operations are also deductible.</p>
@@ -1570,7 +1570,7 @@ Network difficulty used in this example: 133,869,853,540,305 (a snapshot value �
 
 <h2>Common Mistakes in Mining Financing</h2>
 <ul>
-<li><strong>Not including interest in the total hardware cost.</strong> $38,000 financed at 10% APR over 36 months costs $43,500+ total. ROI and payback period calculations that use $38,000 as the cost are materially wrong — they understate the actual investment by 14%.</li>
+<li><strong>Not including interest in the total hardware cost.</strong> $38,000 financed at 10% APR over 36 months costs $43,500+ total. <a href="/university/how-to-calculate-bitcoin-mining-roi">ROI and payback period calculations</a> that use $38,000 as the cost are materially wrong — they understate the actual investment by 14%.</li>
 <li><strong>Only modeling the base case.</strong> The financing decision must be evaluated against the stress case. If the stress case produces negative monthly cash flow, you're taking on more risk than most operators should accept.</li>
 <li><strong>Ignoring personal guarantee clauses.</strong> Most mining financing (vendor or third-party) includes a personal guarantee that makes you personally liable if the business entity defaults. Understand this before signing — it means your personal assets are at risk if mining economics deteriorate severely.</li>
 <li><strong>Financing hardware that doesn't survive the 2028 halving.</strong> Any hardware purchase with a 36-month financing term will run past the April 2028 halving. If the hardware's post-halving breakeven is too high, you may be making payments on machines running at a loss. Only finance hardware that passes the post-halving stress test — see our <a href="/university/bitcoin-halving-effect-on-mining">halving profitability guide</a>.</li>
@@ -2050,7 +2050,7 @@ Network difficulty used in this example: 133,869,853,540,305 (a snapshot value �
 <p>This guide does the complete math: full electricity cost comparison at multiple rate levels, the one-time infrastructure costs that are often ignored, the noise and heat management realities, and an honest assessment of exactly when home mining makes financial sense — because there are real scenarios where it does.</p>
 
 <h2>The Core Economics: Electricity</h2>
-<p>The fundamental question in hosted vs home mining is electricity cost. Professional hosting providers like <a href="/hosts/abundant-miners">Abundant Miners</a> can offer $225/month flat-fee rates because they operate at scale in facilities with industrial electricity contracts at $0.04-0.06/kWh — rates unavailable to residential customers.</p>
+<p>The fundamental question in hosted vs home mining is electricity cost. Professional hosting providers like <a href="/hosts/abundant-miners">Abundant Miners</a> can offer $225/month flat-fee rates because they operate at scale in facilities with industrial electricity contracts at $0.04-0.06/kWh — rates unavailable to residential customers. For a full breakdown of how each per-kWh tier translates into profit, see our guide to <a href="/university/bitcoin-mining-electricity-costs">Bitcoin mining electricity costs</a>.</p>
 
 <h3>What the S21 Pro Costs to Run at Home</h3>
 <p>The Antminer S21 Pro draws 3,510 W continuously. Running 24/7 for 30 days:</p>
@@ -2224,7 +2224,7 @@ Network difficulty used in this example: 133,869,853,540,305 (a snapshot value �
 
 <h2>The Bottom Line</h2>
 <p>For the majority of US operators without access to sub-$0.09/kWh electricity, professional hosted mining at $225/month with <a href="/hosts/abundant-miners">Abundant Miners</a> or equivalent providers delivers better economics, lower operational complexity, and zero infrastructure investment. The "savings" of eliminating the hosting fee are more than consumed by higher electricity costs, infrastructure expenses, and time — before accounting for noise, heat, and insurance complications.</p>
-<p>The exception is real: operators with industrial electricity accounts, solar net metering with sub-$0.07/kWh effective rates, or rural property with existing 3-phase infrastructure can legitimately beat hosted economics. If that describes your situation, run the numbers carefully with our <a href="/">calculator</a> and consider a <a href="/audit">profitability audit</a> to model the comparison with your specific inputs before committing to either path.</p>`,
+<p>The exception is real: operators with industrial electricity accounts, solar net metering with sub-$0.07/kWh effective rates, or rural property with existing 3-phase infrastructure can legitimately beat hosted economics. If that describes your situation, run the numbers carefully with our <a href="/">calculator</a> — our step-by-step <a href="/university/how-to-calculate-bitcoin-mining-roi">mining ROI guide</a> walks through exactly how — and consider a <a href="/audit">profitability audit</a> to model the comparison with your specific inputs before committing to either path.</p>`,
   },
   {
     slug: 'mining-contract-red-flags',
@@ -2279,7 +2279,7 @@ Network difficulty used in this example: 133,869,853,540,305 (a snapshot value �
 <h2>Red Flag #3: No Pool Flexibility</h2>
 <p>Pool flexibility — the ability to direct your machines to any mining pool of your choice — is a fundamental right that every reputable hosting provider offers. If a contract requires you to mine on the host's designated pool, or restricts your pool choices in any way, this is a serious red flag.</p>
 <p>Why providers restrict pools: they may operate their own pool and earn fees from your hashrate, they may have commercial arrangements with specific pools that generate undisclosed revenue, or in the worst case, they may be silently redirecting a portion of your hashrate to themselves (hashrate theft).</p>
-<p>The financial impact: if you're locked into a 2.5% fee pool when 0.75% FPPS is available (Foundry USA), you're losing approximately $525/year per machine. Over a 10-machine fleet on a 12-month contract: $5,250 in hidden costs embedded in the contract terms.</p>
+<p>The financial impact: if you're locked into a 2.5% fee pool when 0.75% <a href="/university/mining-pool-fees-explained">FPPS</a> is available (Foundry USA), you're losing approximately $525/year per machine. Over a 10-machine fleet on a 12-month contract: $5,250 in hidden costs embedded in the contract terms.</p>
 <p>Non-negotiable: full pool flexibility with the ability to change pool assignment in real time, without approval from the hosting provider.</p>
 
 <h2>Red Flag #4: Floating Electricity Rates</h2>
@@ -3987,7 +3987,7 @@ const LM_ARTICLES: ArticleData[] = [
 <h2>Hardware ROI vs Operating ROI</h2>
 <p>These are two different metrics that are often confused. <strong>Operating ROI</strong> measures whether mining covers its daily costs — is daily revenue above daily costs? This is determined by BTC price and hardware efficiency versus hosting cost.</p>
 <p><strong>Hardware ROI</strong> measures whether you eventually recoup the upfront cost of buying the machine. This takes longer and depends on both profitability margin and time. Hardware ROI is the number most relevant to capital allocation decisions: how long until I get my money back?</p>
-<p>The key insight: a machine can be cash-flow positive (operating ROI positive) long before it has paid back the hardware cost. And a machine can still pay back before the next halving even if it takes several months — the 2028 halving gives operators 2+ years from 2026.</p>`,
+<p>The key insight: a machine can be cash-flow positive (operating ROI positive) long before it has paid back the hardware cost. And a machine can still pay back before the next halving even if it takes several months — the 2028 halving gives operators 2+ years from 2026. If you want an independent expert to pressure-test your ROI assumptions before committing capital, our <a href="/audit">profitability audit</a> delivers a written analysis within 48 hours.</p>`,
   },
   {
     slug: 'bitcoin-mining-electricity-costs',
@@ -4205,7 +4205,7 @@ const LM_ARTICLES: ArticleData[] = [
 <h2>Efficiency vs Price: Finding the Sweet Spot</h2>
 <p>Higher efficiency machines cost more upfront. The S21 XP at 13.5 J/TH costs ~$5,200 vs the S21 Pro at 15 J/TH at ~$3,800. Is the extra $1,400 justified?</p>
 <p>The efficiency gain of 1.5 J/TH at 270 TH/s = (1.5 × 270 × 24 / 3,600,000) × $0.07 × 30 days = approximately $2.27/month in electricity savings. The $1,400 price premium is recovered in 617 months — not worth it purely on electricity savings. The S21 XP's real advantage is future-proofing: its superior efficiency makes it more resilient to difficulty growth and the 2028 halving, not just current operating cost.</p>
-<p>Use our <a href="/calculator">calculator</a> to compare the actual ROI of any two miners with your specific hosting cost and BTC price assumptions.</p>`,
+<p>Use our <a href="/calculator">calculator</a> to compare the actual ROI of any two miners with your specific hosting cost and BTC price assumptions. And for a full independent review of a specific miner-plus-hosting deal before you buy, book a <a href="/audit">profitability audit</a>.</p>`,
   },
   {
     slug: 'mining-pool-fees-explained',
@@ -4238,7 +4238,7 @@ const LM_ARTICLES: ArticleData[] = [
 
 <h2>How Pool Fees Work</h2>
 <p>The pool operator retains a percentage of each block's revenue as their fee for running the infrastructure. This fee comes off your payout before you receive it. A 1% fee on an $11.54/day gross (S21 Pro at $105,000 BTC) means you receive approximately $11.42/day from the pool. A 2.5% fee means you receive approximately $11.25/day.</p>
-<p>On an annual basis: 1% fee = $292/year per machine. 2.5% fee = $730/year per machine. The difference matters but is much smaller than the impact of hardware efficiency or hosting cost. Do not prioritize pool fee optimization over hardware or hosting decisions.</p>
+<p>On an annual basis: 1% fee = $292/year per machine. 2.5% fee = $730/year per machine. The difference matters but is much smaller than the impact of <a href="/university/asic-miner-efficiency-explained">hardware efficiency</a> or hosting cost. Do not prioritize pool fee optimization over hardware or hosting decisions.</p>
 
 <h2>Understanding Payout Schemes</h2>
 <h3>FPPS (Full Pay Per Share)</h3>
@@ -4357,7 +4357,7 @@ const LM_ARTICLES: ArticleData[] = [
 <li>Anyone scaling beyond 1-2 machines who lacks commercial space</li>
 <li>First-time miners who want to learn the economics before investing in infrastructure</li>
 </ul>
-<p>See our <a href="/hosting">verified hosting comparison</a> for current provider options. If you want help evaluating your specific situation, use our <a href="/review">free deal review</a>.</p>`,
+<p>See our <a href="/hosting">verified hosting comparison</a> for current provider options. Electricity rates are the single biggest driver of this decision — our guide to <a href="/university/bitcoin-mining-electricity-costs">Bitcoin mining electricity costs</a> breaks down exactly what rate you need to make home mining work. If you want help evaluating your specific situation, use our <a href="/review">free deal review</a>.</p>`,
   },
   {
     slug: 'bitcoin-mining-tax-basics',
@@ -4392,7 +4392,7 @@ const LM_ARTICLES: ArticleData[] = [
 <ul>
 <li><strong>Hardware:</strong> The cost of ASIC miners purchased for the business.</li>
 <li><strong>Hosting fees:</strong> Monthly fees paid to a hosting provider.</li>
-<li><strong>Electricity:</strong> Electricity costs attributable to mining (if mining at home, only the portion used for mining is deductible).</li>
+<li><strong>Electricity:</strong> Electricity costs attributable to mining (if you are <a href="/university/hosted-vs-home-mining">mining at home</a>, only the portion used for mining is deductible).</li>
 <li><strong>Internet:</strong> The portion of internet costs attributable to mining operations.</li>
 <li><strong>Maintenance and repairs:</strong> Costs to repair or service mining equipment.</li>
 <li><strong>Professional fees:</strong> Accountant and legal fees related to the mining business.</li>

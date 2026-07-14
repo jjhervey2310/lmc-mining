@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getMinerBySlug, MINERS_DATA, getCompatibleProviders, getRelatedMiners } from '@/lib/data'
 import { SITE_NAME } from '@/lib/constants'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export async function generateStaticParams() {
   return MINERS_DATA.filter(m => m.slug).map(m => ({ slug: m.slug! }))
@@ -129,6 +130,8 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{miner.name} Review and Specs 2026</h1>
         <p className="text-gray-400">{miner.manufacturer} · Released {miner.release_date?.slice(0, 7) ?? 'N/A'} · {miner.cooling_type.charAt(0).toUpperCase() + miner.cooling_type.slice(1)}-cooled Bitcoin ASIC</p>
       </div>
+
+      <AffiliateDisclosure />
 
       {/* Hero stats bar */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">

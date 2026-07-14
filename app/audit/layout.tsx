@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/audit' },
-  title: 'Bitcoin Mining Audit — $97 Deal Audit & $297 Build Plan',
-  description: 'Get a professional review of your Bitcoin mining deal. $97 Mining Deal Audit or $297 Mining Build Plan. Profitability analysis, risk assessment, and go/no-go recommendation. Human analysis, 48-hour delivery.',
+  title: 'Bitcoin Mining Build Plan — $297 Deep Dive & $97 Deal Audit',
+  description: 'Independent, numbers-first review of your Bitcoin mining deal. The $297 Mining Build Plan covers profitability, deployment, hardware, financing, tax, and a live call. Personally reviewed by a founder with 8 years in Bitcoin mining. Delivered within 72 hours.',
 }
 
 export default function AuditLayout({ children }: { children: React.ReactNode }) {

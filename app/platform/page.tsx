@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 const DifficultyWidget = dynamic(() => import('@/components/DifficultyWidget'), { ssr: false })
 const HashpriceChart = dynamic(() => import('@/components/HashpriceChart'), { ssr: false })
 
@@ -249,6 +250,13 @@ export default function PlatformPage() {
               Get a Free Deal Review
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Affiliate disclosure */}
+      <section className="pt-6 px-4">
+        <div className="max-w-4xl mx-auto">
+          <AffiliateDisclosure />
         </div>
       </section>
 

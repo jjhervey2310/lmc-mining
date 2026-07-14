@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { MINERS_DATA, PROVIDERS_DATA } from '@/lib/data'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 const BLOCK_REWARD = 3.125
 const DIFFICULTY = 113_757_508_517_000
@@ -235,6 +236,10 @@ function DealAnalyzerContent() {
         <p className="text-gray-500 mt-2">Enter your deal details. Our system scores your deal across 5 dimensions and tells you if it&apos;s worth doing.</p>
       </div>
 
+      <div className="mb-8">
+        <AffiliateDisclosure />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Form */}
         <div className="space-y-6">
@@ -411,6 +416,33 @@ function DealAnalyzerContent() {
                     style={{ background: 'rgba(0,212,170,0.15)', color: '#00d4aa', border: '1px solid rgba(0,212,170,0.3)' }}>
                     Book a $97 Audit for Peace of Mind →
                   </a>
+                </div>
+              )}
+
+              {/* $297 Deep Dive bridge — high-budget / complex deals */}
+              {((parseFloat(hardwarePrice) || 0) >= 10000 || useFinancing || parseInt(contractMonths, 10) >= 24) && (
+                <div className="rounded-2xl p-5" style={{ background: '#0d1117', border: '1px solid rgba(0,212,170,0.25)', borderLeft: '4px solid #00d4aa' }}>
+                  <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#00d4aa' }}>
+                    Larger deployment detected
+                  </div>
+                  <h3 className="font-semibold text-white mb-1">This is a bigger commitment — consider the $297 Deep Dive</h3>
+                  <p className="text-sm text-gray-400 mb-3">
+                    {useFinancing
+                      ? 'Financed and multi-year deals have more moving parts.'
+                      : 'A five-figure hardware spend deserves a full model.'}{' '}
+                    The Deep Dive adds a 24-month cash-flow model, exit-strategy planning, and a 30-minute video call — not just the single-machine snapshot the Standard Audit covers.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <a href="https://buy.stripe.com/6oU8wQfmY2m86Zu7gwf7i00" target="_blank" rel="noopener noreferrer"
+                      className="text-sm font-bold px-4 py-2.5 rounded-lg"
+                      style={{ background: '#00d4aa', color: '#0a0e17' }}>
+                      Book $297 Deep Dive →
+                    </a>
+                    <Link href="/audit#pricing" className="text-sm font-semibold px-4 py-2.5 rounded-lg" style={{ background: '#111827', color: '#9ca3af', border: '1px solid #374151' }}>
+                      Compare both tiers
+                    </Link>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">Same money-back guarantee. Not sure? Start with the $97 audit above.</p>
                 </div>
               )}
 

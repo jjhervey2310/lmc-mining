@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/best-bitcoin-mining-hosting' },
@@ -231,6 +232,8 @@ export default function BestBitcoinMiningHostingPage() {
           Bitcoin mining hosting has become a mature industry — but it&apos;s still full of bad actors, hidden fees, and confusing pricing. This guide cuts through the noise. We cover how hosting works, what it costs, which providers we recommend, and exactly what to look for when evaluating a hosting deal.
         </p>
       </div>
+
+      <AffiliateDisclosure />
 
       {/* Table of contents */}
       <nav className="rounded-2xl p-5 mb-12" style={{ background: '#111827', border: '1px solid #1f2937' }}>

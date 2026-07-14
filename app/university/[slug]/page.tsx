@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ARTICLES, getArticleBySlug } from '@/lib/articles'
 import type { Metadata } from 'next'
 import ArticleEmailCapture from '@/components/ArticleEmailCapture'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export async function generateStaticParams() {
   return ARTICLES.map(a => ({ slug: a.slug }))
@@ -29,7 +30,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-function addInternalLinks(content: string): string {
+function addInternalLinks(content: string, currentSlug?: string): string {
+  const selfHref = currentSlug ? `/university/${currentSlug}` : null
   const LINKS: [string, string][] = [
     // Money pages — high priority
     ['profitability audit', '/audit'],
@@ -73,6 +75,7 @@ function addInternalLinks(content: string): string {
     ['S21 Pro review', '/university/antminer-s21-pro-review'],
   ]
   for (const [phrase, href] of LINKS) {
+    if (href === selfHref) continue // never link an article to itself
     if (content.includes(`href="${href}"`)) continue
     const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     let replaced = false
@@ -193,6 +196,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             </div>
           </div>
 
+          {/* Affiliate disclosure — only when the article body links to an affiliate partner */}
+          {(article.content.includes('abundantmines') || article.content.includes('kaboomracks')) && (
+            <AffiliateDisclosure />
+          )}
+
           {/* Article Content */}
           <div
             className="article-content text-gray-300 text-[15px] leading-7"
@@ -200,7 +208,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               '--heading-color': '#ffffff',
               '--link-color': '#00d4aa',
             } as React.CSSProperties}
-            dangerouslySetInnerHTML={{ __html: addInternalLinks(article.content) }}
+            dangerouslySetInnerHTML={{ __html: addInternalLinks(article.content, slug) }}
           />
 
           <ArticleEmailCapture />

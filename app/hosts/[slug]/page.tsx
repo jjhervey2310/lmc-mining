@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getProviderBySlug, PROVIDERS_DATA, MINERS_DATA } from '@/lib/data'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export async function generateStaticParams() {
   return PROVIDERS_DATA.map(p => ({ slug: p.id }))
@@ -100,6 +101,8 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
       <div className="text-xs text-gray-500 mb-6">
         <Link href="/" className="hover:text-white">Home</Link> / <Link href="/hosts" className="hover:text-white">Hosting</Link> / {p.name}
       </div>
+
+      {p.affiliateLink && <AffiliateDisclosure />}
 
       {/* Hero */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">

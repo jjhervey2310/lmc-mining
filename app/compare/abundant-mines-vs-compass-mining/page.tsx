@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/compare/abundant-mines-vs-compass-mining' },
@@ -25,9 +26,7 @@ export default function AbundantVsCompassPage() {
         <Link href="/hosts" className="hover:text-white">Hosting</Link> / Abundant Mines vs Compass Mining
       </div>
 
-      <div className="mb-2 text-xs font-semibold px-3 py-1 rounded-full inline-block" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
-        Affiliate disclosure: Lightning Mines earns a commission from Abundant Mines. Compass Mining is not an affiliate — our comparison is independent.
-      </div>
+      <AffiliateDisclosure />
 
       <h1 className="text-3xl md:text-4xl font-bold text-white mt-4 mb-3 leading-tight">
         Abundant Mines vs Compass Mining:<br />Hosting Comparison 2026

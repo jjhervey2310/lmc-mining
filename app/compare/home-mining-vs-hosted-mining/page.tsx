@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/compare/home-mining-vs-hosted-mining' },
@@ -55,6 +56,8 @@ export default function HomeVsHostedPage() {
       <div className="text-xs text-gray-500 mb-6">
         <Link href="/" className="hover:text-white">Home</Link> / Home Mining vs Hosted Mining
       </div>
+
+      <AffiliateDisclosure />
 
       <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
         Home Mining vs Hosted Mining:<br />The Real Cost Comparison 2026

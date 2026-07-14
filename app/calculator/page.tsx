@@ -137,6 +137,19 @@ export default async function CalculatorPage() {
           <div className="text-xs text-gray-500">Get an expert eye on your specific deal before you commit</div>
         </Link>
       </div>
+
+      {/* Paid next step — calculator numbers pressure-tested by an expert */}
+      <div className="mt-6 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style={{ background: '#111111', border: '1px solid rgba(247,147,26,0.35)' }}>
+        <div>
+          <div className="text-base md:text-lg font-bold text-white mb-1">Numbers look good? Get them pressure-tested before you wire money.</div>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            A calculator can&apos;t read your actual contract, difficulty assumptions, or hosting fine print. The Mining Deal Audit ($97) delivers a written go / no-go on your specific deal within 48 hours — or the full Build Plan ($297) if you&apos;re deploying at scale.
+          </p>
+        </div>
+        <Link href="/audit#pricing" className="shrink-0 text-sm font-semibold px-6 py-3 rounded-lg text-center whitespace-nowrap" style={{ background: '#f7931a', color: '#000' }}>
+          See Audit Options →
+        </Link>
+      </div>
     </div>
   )
 }

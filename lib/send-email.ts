@@ -114,6 +114,13 @@ export async function sendAuditConfirmationEmail(email: string, name: string | n
       </div>
       <p style="color:#94a3b8;font-size:14px;">Or pay now to skip the wait:</p>
       <a href="${stripeLink}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000000;font-weight:bold;padding:16px 32px;border-radius:8px;text-decoration:none;margin:8px 0;">Pay Now — ${tierLabel} →</a>
+      ${isDeepDive ? '' : `
+      <div style="background:#111111;border:1px solid rgba(247,147,26,0.35);border-radius:8px;padding:20px;margin:24px 0;">
+        <div style="color:#f59e0b;font-weight:bold;margin-bottom:8px;">Deploying more than one machine, or using financing?</div>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 12px;">The Deep Dive ($297) adds a full deployment checklist, hardware purchase plan, financing evaluation, tax strategy, and a 30-minute call — delivered in 72 hours. Most multi-machine buyers start here. Reply to this email and I'll switch your request over, or book it directly:</p>
+        <a href="https://buy.stripe.com/6oU8wQfmY2m86Zu7gwf7i00" style="display:inline-block;background:#111111;color:#f59e0b;font-weight:bold;padding:12px 24px;border-radius:8px;text-decoration:none;border:1px solid #f59e0b;">Upgrade to the $297 Build Plan →</a>
+      </div>
+      `}
       <p style="color:#64748b;font-size:14px;margin-top:32px;">100% money-back guarantee if you don't get at least one concrete actionable insight.</p>
       <p style="color:#64748b;font-size:14px;">— Jacob H., Founder of Lightning Mines</p>
     </div>
