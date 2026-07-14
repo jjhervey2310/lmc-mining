@@ -5,6 +5,7 @@ import { PROVIDERS_DATA } from '@/lib/data'
 import type { HostingProvider } from '@/lib/types'
 import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 import MethodologyCallout from '@/components/MethodologyCallout'
+import QuickAnswer from '@/components/QuickAnswer'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/hosting' },
@@ -149,6 +150,11 @@ export default function HostingPage() {
 
       <MethodologyCallout context="hosting" />
       <AffiliateDisclosure />
+
+      <QuickAnswer question="What is the best Bitcoin mining hosting provider in 2026?">
+        The best Bitcoin mining hosting keeps your all-in cost at or below roughly $0.08/kWh (or about $225/month flat per machine), runs a verifiable facility with a named power source, and states pricing, uptime, and a clear exit clause in writing.
+        {topPick ? <> Our current top-rated verified provider is {topPick.name} ({priceLabel(topPick)}, {topPick.facilityLocations[0]}).</> : null} Compare every verified provider — with last-verified dates — in the table below, and confirm current terms in writing before you deposit.
+      </QuickAnswer>
 
       {/* Verification notice */}
       <div className="mb-8 mt-4">

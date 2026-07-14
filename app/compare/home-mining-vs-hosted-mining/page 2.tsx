@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import AffiliateDisclosure from '@/components/AffiliateDisclosure'
-import QuickAnswer from '@/components/QuickAnswer'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/compare/home-mining-vs-hosted-mining' },
@@ -66,10 +65,6 @@ export default function HomeVsHostedPage() {
       <p className="text-gray-400 mb-10 text-lg">
         The honest numbers on whether mining from your home or using a professional hosting facility makes more financial sense. Spoiler: the answer depends almost entirely on your electricity rate.
       </p>
-
-      <QuickAnswer question="Is home mining or hosted mining cheaper?">
-        Home mining only beats hosted mining when your all-in electricity rate is below roughly $0.07/kWh. Above that, professional hosting at about $225/month flat is usually cheaper once you account for cooling, noise, downtime, and hardware wear. Most US residential rates ($0.12–$0.20/kWh) make hosting the clear financial winner for a single S21-class miner — home mining wins mainly for those with genuinely cheap industrial or off-grid power.
-      </QuickAnswer>
 
       {/* Electricity cost table */}
       <h2 className="text-2xl font-bold text-white mb-3">Electricity Cost Comparison</h2>
