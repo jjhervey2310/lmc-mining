@@ -45,12 +45,20 @@ export async function getLivePriceData(): Promise<LivePriceData | { error: strin
 
   try {
     const apiKey = process.env.COINGECKO_API_KEY
-    const url = apiKey ? `${COINGECKO_URL}&x_cg_demo_api_key=${apiKey}` : COINGECKO_URL
+    const keyedUrl = apiKey ? `${COINGECKO_URL}&x_cg_demo_api_key=${apiKey}` : COINGECKO_URL
 
-    const [priceRes, difficulty] = await Promise.all([
-      fetch(url, { next: { revalidate: 600 } }),
+    const [firstRes, difficulty] = await Promise.all([
+      fetch(keyedUrl, { next: { revalidate: 600 } }),
       fetchNetworkDifficulty(),
     ])
+
+    // CoinGecko's public endpoint works WITHOUT a key. If a bad/expired demo key
+    // triggers an auth error, transparently retry the keyless free endpoint so
+    // live prices keep working (rotating the key later just raises rate limits).
+    let priceRes = firstRes
+    if (!priceRes.ok && apiKey && (priceRes.status === 401 || priceRes.status === 403)) {
+      priceRes = await fetch(COINGECKO_URL, { next: { revalidate: 600 } })
+    }
 
     if (!priceRes.ok) throw new Error(`CoinGecko error: ${priceRes.status}`)
 
