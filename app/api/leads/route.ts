@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { Resend } from 'resend'
 import type { LeadType } from '@/lib/types'
-import { sendWelcomeEmail, sendDealAnalysisEmail, sendAuditConfirmationEmail } from '@/lib/send-email'
+import { sendWelcomeEmail, sendDealAnalysisEmail, sendAuditConfirmationEmail, sendDealReviewConfirmationEmail } from '@/lib/send-email'
 
 function extractEntities(formData: Record<string, unknown>) {
   const text = JSON.stringify(formData).toLowerCase()
@@ -104,6 +104,8 @@ export async function POST(req: NextRequest) {
           } else if (lead_type === 'audit_inquiry') {
             const tier = typeof notes === 'string' && notes.includes('297') ? '$297 Deep Dive' : '$97 Basic'
             emailResult = await sendAuditConfirmationEmail(email, name, tier)
+          } else if (lead_type === 'deal_review') {
+            emailResult = await sendDealReviewConfirmationEmail(email, name)
           } else if (lead_type === 'email_capture') {
             emailResult = await sendWelcomeEmail(email)
             // Track email1 so the cron sequence skips it

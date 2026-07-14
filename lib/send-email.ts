@@ -90,6 +90,28 @@ export async function sendDealAnalysisEmail(email: string, minerSlug: string, sc
   return send(email, `Your mining deal analysis: ${score}/100 — ${verdict}`, html)
 }
 
+export async function sendDealReviewConfirmationEmail(email: string, name: string | null): Promise<unknown> {
+  const html = `
+    <div style="background:#0a0a0a;color:#ffffff;font-family:sans-serif;padding:40px;max-width:600px;margin:0 auto;">
+      <div style="color:#f59e0b;font-size:22px;font-weight:bold;margin-bottom:24px;">⚡ Lightning Mines</div>
+      <h1 style="color:#ffffff;font-size:26px;margin-bottom:16px;">Your Free Deal Review Is In</h1>
+      <p style="color:#94a3b8;font-size:16px;line-height:1.6;">Hi ${name ?? 'there'}, thanks for sending over your deal. I personally review every submission and I'll get back to you with an honest <strong style="color:#ffffff;">pass or avoid</strong> verdict — usually within 1 business day.</p>
+      <div style="background:#111111;border:1px solid #1e293b;border-radius:8px;padding:24px;margin:24px 0;">
+        <div style="color:#f59e0b;font-weight:bold;margin-bottom:12px;">What happens next:</div>
+        <ol style="color:#94a3b8;line-height:2.2;padding-left:20px;">
+          <li>I check your numbers against live BTC price and network difficulty</li>
+          <li>You get a plain-English verdict with the reasoning</li>
+          <li>No cost, no obligation, no sales pitch</li>
+        </ol>
+      </div>
+      <p style="color:#94a3b8;font-size:14px;">While you wait, model your own numbers:</p>
+      <a href="https://lightningmines.com/calculator" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000000;font-weight:bold;padding:16px 32px;border-radius:8px;text-decoration:none;margin:8px 0;">Open the Free ROI Calculator →</a>
+      <p style="color:#64748b;font-size:14px;margin-top:32px;">— Jacob H., Founder of Lightning Mines</p>
+    </div>
+  `
+  return send(email, 'Your free mining deal review — received ✓', html)
+}
+
 export async function sendAuditConfirmationEmail(email: string, name: string | null, tier: string): Promise<unknown> {
   const isDeepDive = tier.includes('297') || tier.toLowerCase().includes('deep')
   const tierLabel = isDeepDive ? 'Deep Dive ($297)' : 'Standard ($97)'
