@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 
-const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
 const BORDER = '#222222'
 

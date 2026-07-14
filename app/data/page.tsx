@@ -3,14 +3,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { MINERS_DATA } from '@/lib/data'
+import { daysToHalving } from '@/lib/constants'
 
 const DIFFICULTY = 113_757_508_517_000
 const BLOCK_REWARD = 3.125
 const BLOCKS_PER_DAY = 144
-const NETWORK_HASHRATE_EH = 658 // EH/s
+// Network hashrate implied by difficulty: difficulty * 2^32 / block_time. Derived
+// (not hardcoded) so it always agrees with the difficulty shown on this page.
+function impliedHashrateEh(difficulty: number) {
+  return Math.round((difficulty * Math.pow(2, 32)) / 600 / 1e18) // EH/s
+}
 
+// Hashprice = USD earned per 1 TH/s per day. Uses the same expected-blocks formula
+// as the profitability table below (hashrate * seconds/day * reward / (difficulty * 2^32)),
+// so the Hashprice card, EH/s revenue card, and per-miner table all agree.
 function hashprice(btcPrice: number, difficulty: number) {
-  return (btcPrice * BLOCK_REWARD * BLOCKS_PER_DAY) / ((difficulty * Math.pow(2, 32)) / 1e12)
+  const dailyBtcPerTH = (1e12 * 86400 * BLOCK_REWARD) / (difficulty * Math.pow(2, 32))
+  return dailyBtcPerTH * btcPrice
 }
 
 interface LiveMetric {
@@ -40,7 +49,10 @@ function generateHistory(endPrice: number, days: number): ChartPoint[] {
   let price = endPrice * 0.80
   for (let i = 0; i < days; i++) {
     const pct = (Math.sin(i * 0.15) * 0.035) + (i / days) * 0.22
-    price = endPrice * (0.80 + pct + (Math.random() * 0.015 - 0.0075))
+    // Deterministic jitter (no Math.random) so server and client render identically
+    // — avoids React hydration mismatch on this SSR client component.
+    const jitter = Math.sin(i * 1.7) * 0.006 + Math.cos(i * 0.6) * 0.004
+    price = endPrice * (0.80 + pct + jitter)
     const hp = hashprice(price, DIFFICULTY * (1 + i * 0.001))
     pts.push({ day: i, hp: parseFloat(hp.toFixed(4)), price: Math.round(price) })
   }
@@ -87,13 +99,20 @@ interface ProfRow {
 export default function DataPage() {
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
   const [btcPriceError, setBtcPriceError] = useState(false)
+  // Live network difficulty from /api/btc-price; static constant is the SSR fallback.
+  const [difficulty, setDifficulty] = useState(DIFFICULTY)
   const [hostingFee, setHostingFee] = useState(225)
   const [history] = useState<ChartPoint[]>(() => generateHistory(105_000, 90))
+  const [halvingDays, setHalvingDays] = useState<number | null>(null)
+  useEffect(() => { setHalvingDays(daysToHalving()) }, [])
 
   const fetchBtcPrice = useCallback(() => {
     fetch('/api/btc-price')
       .then(r => r.json())
-      .then(d => { if (d.price) { setBtcPrice(Number(d.price)); setBtcPriceError(false) } else setBtcPriceError(true) })
+      .then(d => {
+        if (d.price) { setBtcPrice(Number(d.price)); setBtcPriceError(false) } else setBtcPriceError(true)
+        if (d.difficulty) setDifficulty(Number(d.difficulty))
+      })
       .catch(() => setBtcPriceError(true))
   }, [])
 
@@ -103,7 +122,7 @@ export default function DataPage() {
     return () => clearInterval(iv)
   }, [fetchBtcPrice])
 
-  const currentHashprice = btcPrice !== null ? hashprice(btcPrice, DIFFICULTY) : null
+  const currentHashprice = btcPrice !== null ? hashprice(btcPrice, difficulty) : null
 
   const profRows: ProfRow[] = MINERS_DATA
     .filter(m => m.cooling_type === 'air')
@@ -120,10 +139,10 @@ export default function DataPage() {
   const metrics: LiveMetric[] = [
     { label: 'BTC Price', value: btcPriceError ? 'Price unavailable' : btcPrice === null ? 'Loading…' : `$${btcPrice.toLocaleString()}`, sub: 'Updated live', positive: !btcPriceError && btcPrice !== null },
     { label: 'Hashprice', value: currentHashprice !== null ? `$${currentHashprice.toFixed(4)}/TH/day` : '—', sub: 'USD per TH/s per day', accent: currentHashprice !== null },
-    { label: 'Network Hashrate', value: `${NETWORK_HASHRATE_EH} EH/s`, sub: 'Estimated live' },
-    { label: 'Network Difficulty', value: '113.76T', sub: `~${nextAdj} days to next adj.` },
+    { label: 'Network Hashrate', value: `${impliedHashrateEh(difficulty)} EH/s`, sub: 'Estimated live' },
+    { label: 'Network Difficulty', value: `${(difficulty / 1e12).toFixed(2)}T`, sub: `~${nextAdj} days to next adj.` },
     { label: 'Block Reward', value: '3.125 BTC', sub: 'Post-April 2024 halving' },
-    { label: 'Next Halving', value: 'Apr 2028', sub: '~700 days away', negative: false },
+    { label: 'Next Halving', value: 'Apr 2028', sub: halvingDays !== null ? `~${halvingDays} days away` : 'Apr 15, 2028', negative: false },
   ]
 
   return (
@@ -238,7 +257,7 @@ export default function DataPage() {
           </thead>
           <tbody>
             {profRows.map((row, i) => {
-              const dailyBtc = (row.hashrate * 1e12 * 86400 * BLOCK_REWARD) / (DIFFICULTY * Math.pow(2, 32))
+              const dailyBtc = (row.hashrate * 1e12 * 86400 * BLOCK_REWARD) / (difficulty * Math.pow(2, 32))
               const dailyGross = btcPrice !== null ? dailyBtc * btcPrice : null
               const dailyCost = hostingFee / 30
               const dailyNet = dailyGross !== null ? dailyGross - dailyCost : null

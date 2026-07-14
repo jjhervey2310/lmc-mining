@@ -2,15 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-
-const HALVING_DATE = new Date('2028-04-15T00:00:00Z')
-
-function getDaysToHalving() {
-  return Math.max(0, Math.ceil((HALVING_DATE.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-}
+import { daysToHalving } from '@/lib/constants'
 
 const STATIC_ITEMS = [
-  `Days to Halving: ${getDaysToHalving()}`,
   'Block Reward: 3.125 BTC',
   'Best Efficiency: 13.5 J/TH (S21 XP)',
   'Abundant Mines: $225/mo flat rate — Cascade Locks, OR',
@@ -28,6 +22,11 @@ export default function TickerBar() {
   const [btcPrice, setBtcPrice] = useState<string | null>(null)
   const [hashprice, setHashprice] = useState<string | null>(null)
   const [networkEH, setNetworkEH] = useState<string | null>(null)
+  const [halvingDays, setHalvingDays] = useState<number | null>(null)
+
+  // Compute halving countdown on the client so every page shows the same live
+  // number (static pages would otherwise bake a stale build-time value).
+  useEffect(() => { setHalvingDays(daysToHalving()) }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -61,6 +60,7 @@ export default function TickerBar() {
     btcPrice ? `BTC: ${btcPrice}` : 'BTC: Loading...',
     hashprice ? `Hashprice: ${hashprice}` : null,
     networkEH ? `Network Hashrate: ${networkEH}` : null,
+    halvingDays !== null ? `Days to Halving: ${halvingDays}` : null,
     ...STATIC_ITEMS,
   ].filter(Boolean) as string[]
 

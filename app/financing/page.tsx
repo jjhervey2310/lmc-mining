@@ -6,7 +6,7 @@ import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 const FINANCING_OPTIONS = [
   {
-    provider: 'Abundant Miners',
+    provider: 'Abundant Mines',
     slug: 'abundant-miners',
     type: 'Vendor Financing',
     max_amount: 140000,
@@ -252,9 +252,9 @@ export default function FinancingPage() {
       {/* CTA */}
       <div className="text-center rounded-2xl p-8" style={{ background: '#111827', border: '1px solid #1f2937' }}>
         <h2 className="text-xl font-bold text-white mb-2">Ready to Finance Your Operation?</h2>
-        <p className="text-gray-400 mb-6 max-w-lg mx-auto">Contact Abundant Miners about their vendor financing program — up to $140,000 at 10% APR with 10% down.</p>
+        <p className="text-gray-400 mb-6 max-w-lg mx-auto">Contact Abundant Mines about their vendor financing program — up to $140,000 at 10% APR with 10% down.</p>
         <Link href="/hosts/abundant-miners" className="inline-block text-sm font-semibold px-6 py-3 rounded-lg mr-3" style={{ background: '#00d4aa', color: '#0a0e17' }}>
-          View Abundant Miners →
+          View Abundant Mines →
         </Link>
         <Link href="/deal-analyzer" className="inline-block text-sm font-semibold px-6 py-3 rounded-lg border border-gray-700 text-gray-300 hover:text-white transition-colors">
           Analyze My Deal

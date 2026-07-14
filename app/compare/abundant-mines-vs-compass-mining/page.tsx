@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
+import QuickAnswer from '@/components/QuickAnswer'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/compare/abundant-mines-vs-compass-mining' },
@@ -25,9 +27,7 @@ export default function AbundantVsCompassPage() {
         <Link href="/hosts" className="hover:text-white">Hosting</Link> / Abundant Mines vs Compass Mining
       </div>
 
-      <div className="mb-2 text-xs font-semibold px-3 py-1 rounded-full inline-block" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
-        Affiliate disclosure: Lightning Mines earns a commission from Abundant Mines. Compass Mining is not an affiliate — our comparison is independent.
-      </div>
+      <AffiliateDisclosure />
 
       <h1 className="text-3xl md:text-4xl font-bold text-white mt-4 mb-3 leading-tight">
         Abundant Mines vs Compass Mining:<br />Hosting Comparison 2026
@@ -35,6 +35,10 @@ export default function AbundantVsCompassPage() {
       <p className="text-gray-400 mb-10 text-lg">
         Two of the most commonly considered hosting providers for US-based Bitcoin miners. Here&apos;s an independent side-by-side breakdown.
       </p>
+
+      <QuickAnswer question="Abundant Mines or Compass Mining — which is better?">
+        For most individual miners (1–20 machines), Abundant Mines is the stronger choice: a flat $225/month all-in rate with no machine minimum and month-to-month terms makes costs predictable and lowers the barrier to entry. Compass Mining fits larger operators better — its per-kWh billing ($0.05–0.09/kWh) and multi-site network reward those deploying at scale who can absorb minimums and longer contracts.
+      </QuickAnswer>
 
       {/* Head-to-head table */}
       <div className="rounded-2xl overflow-hidden mb-10" style={{ border: '1px solid #1f2937' }}>

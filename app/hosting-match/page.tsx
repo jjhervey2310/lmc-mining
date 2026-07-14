@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 const QUESTIONS = [
   {
@@ -158,6 +159,8 @@ export default function HostingMatchPage() {
           Answer 5 questions and get an instant, personalized hosting recommendation based on your budget, cooling needs, and contract preferences.
         </p>
       </div>
+
+      <AffiliateDisclosure />
 
       {/* Progress bar */}
       <div className="mb-8">

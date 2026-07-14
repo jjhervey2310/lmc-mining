@@ -153,11 +153,47 @@ export default function ReviewPage() {
         </div>
       </div>
 
-      <div className="mt-10 text-center text-sm text-gray-600">
-        Want a deeper analysis?{' '}
-        <Link href="/audit" className="hover:text-white transition-colors" style={{ color: ORANGE }}>
-          See our $97 Mining Deal Audit →
+      {/* Free → $97 bridge: show the paid audit as the clear next step */}
+      <div className="mt-12 rounded-2xl p-6 md:p-8" style={{ background: CARD_BG, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${ORANGE}` }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: ORANGE }}>
+          Next step
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">
+          Need more than a Pass / Avoid verdict?
+        </h2>
+        <p className="text-gray-400 text-sm mb-5">
+          The free review gives you a fast go / no-go read. The <strong className="text-white">$97 Mining Deal Audit</strong> is
+          the full workup — the exact numbers, the fixes, and a clear recommendation you can act on before you spend a dollar.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm">
+          <div className="rounded-xl p-4" style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}>
+            <div className="font-semibold mb-2" style={{ color: '#00d4aa' }}>Free Review (this page)</div>
+            <ul className="text-gray-400 space-y-1.5">
+              <li>Pass / Pass with Conditions / Avoid verdict</li>
+              <li>Turnaround within 48 hours</li>
+              <li>High-level read on the deal</li>
+            </ul>
+          </div>
+          <div className="rounded-xl p-4" style={{ background: '#0a0a0a', border: `1px solid ${ORANGE}` }}>
+            <div className="font-semibold mb-2" style={{ color: ORANGE }}>$97 Mining Deal Audit</div>
+            <ul className="text-gray-400 space-y-1.5">
+              <li>Full profitability model for your exact setup</li>
+              <li>Hosting recommendation + 12-month ROI at 3 BTC scenarios</li>
+              <li>Written go / no-go report in 48 hours</li>
+              <li>Money-back guarantee</li>
+            </ul>
+          </div>
+        </div>
+        <Link
+          href="/audit"
+          className="inline-block text-sm font-bold px-6 py-3 rounded-lg transition-opacity hover:opacity-90"
+          style={{ background: ORANGE, color: '#0a0a0a' }}
+        >
+          See the $97 Mining Deal Audit →
         </Link>
+        <p className="text-xs text-gray-600 mt-3">
+          Planning a larger or financed deployment? The audit page also covers the $297 Deep Dive.
+        </p>
       </div>
     </div>
   )

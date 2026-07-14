@@ -60,7 +60,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-white mb-3">4. Affiliate Links and Third-Party Services</h2>
-          <p className="mb-3">Lightning Mines contains affiliate links. When you click a link to a hosting provider or marketplace and make a purchase, we may receive a commission at no additional cost to you. Our primary affiliate relationship is with Abundant Miners (abundantmines.com). We also link to hardware marketplaces and exchanges.</p>
+          <p className="mb-3">Lightning Mines contains affiliate links. When you click a link to a hosting provider or marketplace and make a purchase, we may receive a commission at no additional cost to you. Our primary affiliate relationship is with Abundant Mines (abundantmines.com). We also link to hardware marketplaces and exchanges.</p>
           <p>Affiliate compensation does not influence our reviews, ratings, or data. We maintain independent editorial standards.</p>
         </section>
 

@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
+import QuickAnswer from '@/components/QuickAnswer'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/compare/antminer-s21-xp-vs-s21-pro' },
@@ -71,12 +73,18 @@ export default function CompareS21XPvsS21ProPage() {
         <Link href="/miners" className="hover:text-white">Hardware</Link> / S21 XP vs S21 Pro
       </div>
 
+      <AffiliateDisclosure />
+
       <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight">
         Antminer S21 XP vs S21 Pro:<br />Which Should You Buy in 2026?
       </h1>
       <p className="text-gray-400 mb-10 text-lg">
         Two of the best air-cooled Bitcoin miners on the market, $1,400 apart. Here&apos;s exactly how they compare on specs, profitability, and ROI.
       </p>
+
+      <QuickAnswer question="Antminer S21 XP or S21 Pro — which should you buy?">
+        For most 2026 deployments the Antminer S21 XP is the better buy: at 13.5 J/TH and 270 TH/s it out-earns the S21 Pro (15 J/TH, 234 TH/s), and its efficiency edge widens as network difficulty rises. Choose the cheaper S21 Pro only when the roughly $1,400 lower upfront price matters more than long-run margin — for example a single machine, a short holding horizon, or a tight initial budget.
+      </QuickAnswer>
 
       {/* Head-to-head specs */}
       <div className="rounded-2xl overflow-hidden mb-10" style={{ border: '1px solid #1f2937' }}>

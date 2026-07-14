@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getProviderBySlug, PROVIDERS_DATA, MINERS_DATA } from '@/lib/data'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export async function generateStaticParams() {
   return PROVIDERS_DATA.map(p => ({ slug: p.id }))
@@ -24,10 +25,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       images: [`/api/og?title=${encodeURIComponent(pageTitle)}`],
     },
   }
-}
-
-function CheckIcon({ yes }: { yes: boolean }) {
-  return <span style={{ color: yes ? '#00d4aa' : '#ff4757' }}>{yes ? '✓' : '✗'}</span>
 }
 
 function priceLabel(p: ReturnType<typeof getProviderBySlug>): string {
@@ -68,7 +65,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
       q: `Does ${p.name} offer financing?`,
       a: p.financingAvailable
         ? `Yes, ${p.name} offers financing options. Contact them directly for current terms.`
-        : `${p.name} does not currently list financing options. Consider Abundant Miners if financing is important — they offer up to $140k at 10% APR over 36 months.`,
+        : `${p.name} does not currently list financing options. Consider Abundant Mines if financing is important — they offer up to $140k at 10% APR over 36 months.`,
     },
   ]
 
@@ -101,6 +98,8 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
         <Link href="/" className="hover:text-white">Home</Link> / <Link href="/hosts" className="hover:text-white">Hosting</Link> / {p.name}
       </div>
 
+      {p.affiliateLink && <AffiliateDisclosure />}
+
       {/* Hero */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
@@ -126,7 +125,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
           <a href={p.affiliateLink ?? p.website} target="_blank" rel="noopener noreferrer"
             className="text-sm font-semibold px-6 py-3 rounded-xl"
             style={{ background: '#00d4aa', color: '#0a0e17' }}>
-            {p.tier === 1 ? 'Get Started with Abundant Miners →' : `Visit ${p.name} →`}
+            {p.tier === 1 ? 'Get Started with Abundant Mines →' : `Visit ${p.name} →`}
           </a>
         )}
       </div>
@@ -189,14 +188,14 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
             </table>
           </section>
 
-          {/* Abundant Miners specific section */}
+          {/* Abundant Mines specific section */}
           {isAbundant && (
             <section className="rounded-2xl p-6" style={{ background: '#00d4aa10', border: '1px solid #00d4aa30' }}>
-              <h2 className="text-lg font-semibold text-white mb-4">Why Abundant Miners is Rated #1</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">Why Abundant Mines is Rated #1</h2>
               <div className="space-y-4 text-sm text-gray-300">
                 <div>
                   <h3 className="font-medium text-white mb-1">The $225/Month Flat Fee — What It Includes</h3>
-                  <p>Abundant Miners charges a flat $225/month per air-cooled miner. This covers electricity (no matter how much your miner draws), cooling infrastructure, routine maintenance, insurance on your equipment, and internet connectivity. No surprise bills, no electricity rate fluctuations.</p>
+                  <p>Abundant Mines charges a flat $225/month per air-cooled miner. This covers electricity (no matter how much your miner draws), cooling infrastructure, routine maintenance, insurance on your equipment, and internet connectivity. No surprise bills, no electricity rate fluctuations.</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-1">The $500 Deposit Structure</h3>
@@ -204,11 +203,11 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-1">Financing Up to $140,000</h3>
-                  <p>Abundant Miners offers vendor financing for hardware purchases up to $140,000 at 10% APR over 36 months with 10% down. This allows operators to deploy at scale without full upfront capital.</p>
+                  <p>Abundant Mines offers vendor financing for hardware purchases up to $140,000 at 10% APR over 36 months with 10% down. This allows operators to deploy at scale without full upfront capital.</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-1">Hydro & Immersion Timeline (~2027)</h3>
-                  <p>Abundant Miners is currently air-cooled only. Hydro cooling infrastructure is in development targeting approximately 2027.</p>
+                  <p>Abundant Mines is currently air-cooled only. Hydro cooling infrastructure is in development targeting approximately 2027.</p>
                 </div>
               </div>
             </section>
@@ -292,7 +291,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
               <a href={p.affiliateLink ?? p.website} target="_blank" rel="noopener noreferrer"
                 className="block text-center text-sm font-semibold py-2.5 rounded-lg"
                 style={{ background: '#00d4aa', color: '#0a0e17' }}>
-                {p.tier === 1 ? 'Get Started with Abundant Miners →' : `Visit ${p.name} →`}
+                {p.tier === 1 ? 'Get Started with Abundant Mines →' : `Visit ${p.name} →`}
               </a>
             )}
             {p.affiliateProgram && (
@@ -302,7 +301,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
           <div className="rounded-2xl p-5" style={{ background: '#111827', border: '1px solid #1f2937' }}>
             <h3 className="font-semibold text-white mb-2">Not sure this is right for you?</h3>
-            <p className="text-sm text-gray-400 mb-3">Answer 3 questions and we'll find the best hosting match for your miner and budget.</p>
+            <p className="text-sm text-gray-400 mb-3">Answer 3 questions and we&apos;ll find the best hosting match for your miner and budget.</p>
             <Link href="/hosting-match" className="block text-center text-sm py-2 rounded-lg border border-gray-600 text-gray-300 hover:border-[#00d4aa] hover:text-white transition-colors">
               Get Free Hosting Match →
             </Link>

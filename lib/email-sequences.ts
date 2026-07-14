@@ -341,3 +341,51 @@ export const EMAIL5 = {
     </div>
   `,
 }
+
+// ─── POST-PURCHASE UPSELL — sent after a $97 Standard Audit is booked ──────
+// Bridges the $97 buyer to the $297 Deep Dive. Wire this into send-email.ts
+// (e.g. a sendPostPurchaseUpsellEmail() called from the audit-booking flow
+// when the purchased tier is Standard / $97).
+
+export const POST_PURCHASE_UPSELL = {
+  subject: 'One thing to decide before I start your audit',
+  html: `
+    <div style="background:#0a0a0a;color:#ffffff;font-family:sans-serif;padding:40px;max-width:600px;margin:0 auto;">
+      ${header('Your $97 Standard Audit is confirmed')}
+      <h1 style="color:#ffffff;font-size:26px;margin-bottom:8px;">Your Standard Audit is in — here's when the Deep Dive is worth it</h1>
+      <p style="color:#94a3b8;font-size:16px;line-height:1.6;">
+        Thanks for booking the $97 Standard Audit. That's the right call for most single-machine decisions,
+        and it's exactly what I'll deliver. Before I dig in, one quick decision worth 60 seconds of your time.
+      </p>
+      <p style="color:#94a3b8;font-size:15px;line-height:1.6;">
+        If you're deploying <strong style="color:#ffffff;">multiple machines, financing the hardware, or committing to a
+        multi-year contract</strong>, the numbers get more sensitive — a single point of BTC price or difficulty moves the
+        whole model. That's what the <strong style="color:#ffffff;">Deep Dive</strong> is built for.
+      </p>
+      ${card(`
+        <div style="color:#00d4aa;font-weight:bold;margin-bottom:12px;">What the Deep Dive adds on top of your Standard Audit</div>
+        <ul style="color:#94a3b8;font-size:14px;line-height:2.2;padding-left:20px;margin:0;">
+          <li>24-month cash-flow model (not just a 12-month ROI snapshot)</li>
+          <li>Exit-strategy planning — when to sell hardware, when to hold</li>
+          <li>Downside stress test across multiple BTC + difficulty scenarios</li>
+          <li>A 30-minute video call to walk through every number with you</li>
+        </ul>
+      `, '#064e3b')}
+      ${card(`
+        <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0;">
+          The upgrade is <strong style="color:#f59e0b;">$200 more</strong> ($297 total). On a multi-machine or financed
+          deployment worth tens of thousands, that's rounding error for a full cash-flow model and a live call.
+          Not sure you need it? Then don't — the Standard Audit already tells you go or no-go.
+        </p>
+      `)}
+      <p style="color:#94a3b8;font-size:15px;margin-top:8px;">
+        Want the Deep Dive instead? Grab it here and I'll roll your $97 into it — just reply to this email and let me know:
+      </p>
+      ${cta(STRIPE_297, 'Upgrade to the $297 Deep Dive →')}
+      <p style="color:#94a3b8;font-size:14px;margin-top:8px;">
+        Happy with the Standard Audit? Do nothing — I'm already on it, and your report lands within 48 hours.
+      </p>
+      ${footer(`The Deep Dive money-back guarantee is the same as your Standard Audit: at least one concrete, actionable insight or a full refund.`)}
+    </div>
+  `,
+}

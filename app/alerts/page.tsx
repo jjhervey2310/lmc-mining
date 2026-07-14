@@ -107,7 +107,7 @@ export default function AlertsPage() {
         <div className="rounded-2xl p-8 text-center" style={{ background: '#111827', border: '1px solid #00d4aa' }}>
           <div className="text-4xl mb-4">✓</div>
           <h2 className="text-xl font-bold text-white mb-2">Alerts Set Up Successfully</h2>
-          <p className="text-gray-400 mb-2">We'll email <span className="text-white">{email}</span> when your thresholds are triggered.</p>
+          <p className="text-gray-400 mb-2">We&apos;ll email <span className="text-white">{email}</span> when your thresholds are triggered.</p>
           <p className="text-xs text-gray-500">Check your inbox for a confirmation email. Alerts may take up to 15 minutes to activate.</p>
           <div className="mt-6 flex justify-center gap-3">
             <Link href="/data" className="text-sm font-semibold px-5 py-2 rounded-lg" style={{ background: '#00d4aa', color: '#0a0e17' }}>

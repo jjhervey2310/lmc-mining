@@ -19,7 +19,7 @@ function extractEntities(formData: Record<string, unknown>) {
     text.includes('hydro') ? 'hydro' :
     text.includes('air') ? 'air' : null
 
-  const providers = ['abundant miners', 'compass', 'core scientific', 'blockware', 'sabre56', 'bit5ive']
+  const providers = ['abundant mines', 'abundant miners', 'compass', 'core scientific', 'blockware', 'sabre56', 'bit5ive']
   const hosting_provider_mentioned = providers.find((p) => text.includes(p)) || null
 
   const budget_range = (formData.budget_range as string) || null

@@ -78,10 +78,45 @@ const UNIVERSITY_LINKS = [
 const LEGAL_DISCLAIMER =
   'This site provides educational Bitcoin mining profitability analysis only. Nothing on this site constitutes financial, legal, or tax advice. Mining profitability is subject to change based on Bitcoin price, network difficulty, hardware performance, and hosting costs. Always conduct your own due diligence before making investment decisions.'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lightningmines.com'
+
+// Sitewide entity schema — gives Google and AI answer engines a clear
+// Organization + WebSite entity to attribute and cite.
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Lightning Mines',
+  url: SITE_URL,
+  logo: `${SITE_URL}/icon`,
+  description:
+    'Independent Bitcoin mining intelligence: ROI calculator, verified hosting comparison, hardware reviews, and expert mining deal audits. No sponsored rankings.',
+  email: 'contact@lightningmines.com',
+  founder: { '@type': 'Person', name: 'Jacob Hervey', jobTitle: 'Founder' },
+  knowsAbout: [
+    'Bitcoin mining',
+    'Bitcoin mining hosting',
+    'ASIC miners',
+    'Mining profitability',
+    'Mining ROI',
+  ],
+}
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Lightning Mines',
+  url: SITE_URL,
+  description:
+    'Independent Bitcoin mining profitability, hosting comparison, and hardware intelligence.',
+  publisher: { '@type': 'Organization', name: 'Lightning Mines' },
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col" style={{ background: '#0a0a0a', color: '#e2e8f0' }}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
         <AmbientEffects />
         <TickerBar />
         <Navbar />
@@ -155,6 +190,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</a>
               <span>·</span>
               <a href="/terms" className="hover:text-gray-400 transition-colors">Terms of Service</a>
+              <span>·</span>
+              <a href="/disclosures" className="hover:text-gray-400 transition-colors">Affiliate Disclosure</a>
             </div>
           </div>
         </footer>

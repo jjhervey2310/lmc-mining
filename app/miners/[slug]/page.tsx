@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getMinerBySlug, MINERS_DATA, getCompatibleProviders, getRelatedMiners } from '@/lib/data'
-import { SITE_NAME } from '@/lib/constants'
 import type { Metadata } from 'next'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export async function generateStaticParams() {
   return MINERS_DATA.filter(m => m.slug).map(m => ({ slug: m.slug! }))
@@ -35,6 +35,8 @@ const COOLING_COLORS: Record<string, string> = { air: '#3d7aed', hydro: '#00d4aa
 const COOLING_LABELS: Record<string, string> = { air: 'Air Cooling', hydro: 'Hydro Cooling', immersion: 'Immersion Cooling' }
 
 function formatUSD(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n) }
+// Cents precision for small daily figures so gross − hosting = net reconciles on screen.
+function formatUSDc(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) }
 
 function calcDailyBTC(hashrate: number, difficulty: number) {
   return (hashrate * 1e12 * 86400 * 3.125) / (difficulty * Math.pow(2, 32))
@@ -52,7 +54,6 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
   // ROI analysis at three BTC price scenarios
   const difficulty = 113_757_508_517_000 // approximate current difficulty
   const dailyBTC = calcDailyBTC(miner.default_hashrate_th, difficulty)
-  const dailyPower_kWh = (miner.power_watts / 1000) * 24
   const hostingCostPerDay = compatibleProviders[0]?.flatMonthly ? compatibleProviders[0].flatMonthly / 30 : null
 
   const scenarios = [
@@ -72,7 +73,7 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
     },
     {
       q: `What hosting providers support the ${miner.name}?`,
-      a: `The ${miner.name} uses ${COOLING_LABELS[miner.cooling_type]}. Compatible hosting providers include ${compatibleProviders.slice(0, 3).map(p => p.name).join(', ')}. Abundant Miners is recommended for air-cooled miners at a flat $225/month all-in rate.`,
+      a: `The ${miner.name} uses ${COOLING_LABELS[miner.cooling_type]}. Compatible hosting providers include ${compatibleProviders.slice(0, 3).map(p => p.name).join(', ')}. Abundant Mines is recommended for air-cooled miners at a flat $225/month all-in rate.`,
     },
     {
       q: `What is the efficiency of the ${miner.name}?`,
@@ -129,6 +130,8 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{miner.name} Review and Specs 2026</h1>
         <p className="text-gray-400">{miner.manufacturer} · Released {miner.release_date?.slice(0, 7) ?? 'N/A'} · {miner.cooling_type.charAt(0).toUpperCase() + miner.cooling_type.slice(1)}-cooled Bitcoin ASIC</p>
       </div>
+
+      <AffiliateDisclosure />
 
       {/* Hero stats bar */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
@@ -231,7 +234,7 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
           {/* ROI analysis */}
           <section className="rounded-2xl p-6" style={{ background: '#111827', border: '1px solid #1f2937' }}>
             <h2 className="text-lg font-semibold text-white mb-1">ROI Analysis</h2>
-            <p className="text-xs text-gray-500 mb-4">Based on current network difficulty. Assumes Abundant Miners hosting at $225/month flat fee.</p>
+            <p className="text-xs text-gray-500 mb-4">Based on current network difficulty. Assumes Abundant Mines hosting at $225/month flat fee.</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {scenarios.map(s => {
                 const dailyGross = dailyBTC * s.btc
@@ -244,15 +247,15 @@ export default async function MinerPage({ params }: { params: Promise<{ slug: st
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
                         <span className="text-gray-500">Daily gross</span>
-                        <span className="text-white font-mono">{formatUSD(dailyGross)}</span>
+                        <span className="text-white font-mono">{formatUSDc(dailyGross)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Daily hosting</span>
-                        <span className="text-white font-mono">-{formatUSD(dailyHosting)}</span>
+                        <span className="text-white font-mono">-{formatUSDc(dailyHosting)}</span>
                       </div>
                       <div className="flex justify-between border-t border-gray-800 pt-1">
                         <span className="text-gray-400 font-medium">Daily net</span>
-                        <span className="font-mono font-semibold" style={{ color: dailyNet > 0 ? '#00d4aa' : '#ff4757' }}>{formatUSD(dailyNet)}</span>
+                        <span className="font-mono font-semibold" style={{ color: dailyNet > 0 ? '#00d4aa' : '#ff4757' }}>{formatUSDc(dailyNet)}</span>
                       </div>
                       {breakevenDays && (
                         <div className="flex justify-between">

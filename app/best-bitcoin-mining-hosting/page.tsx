@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
+import QuickAnswer from '@/components/QuickAnswer'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/best-bitcoin-mining-hosting' },
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
 
 const HOSTING_PROVIDERS = [
   {
-    name: 'Abundant Miners',
+    name: 'Abundant Mines',
     badge: '#1 Recommended',
     badgeColor: '#f59e0b',
     cooling: 'Air',
@@ -25,7 +27,7 @@ const HOSTING_PROVIDERS = [
     contract: 'Month-to-month',
     pros: ['Flat $225/month all-in — no hidden fees', 'No minimum machine count', 'Month-to-month — no lockup', 'Integrated financing available', 'US-based operations'],
     cons: ['Air cooling only — no immersion/hydro', 'Best for S21-class machines and below'],
-    verdict: 'Best for most miners. Transparent pricing, no games, and low barrier to entry make Abundant Miners the default recommendation for anyone running air-cooled hardware.',
+    verdict: 'Best for most miners. Transparent pricing, no games, and low barrier to entry make Abundant Mines the default recommendation for anyone running air-cooled hardware.',
     href: 'https://abundantmines.com/ref/72/',
     affiliate: true,
     highlight: true,
@@ -137,11 +139,11 @@ const COOLING_TYPES = [
 const FAQ = [
   {
     q: 'What does Bitcoin mining hosting actually cost in 2026?',
-    a: 'Flat-fee hosting for standard air-cooled miners runs $180–$300/month per machine depending on the provider and power rates in the facility location. Abundant Miners charges $225/month all-in — one of the most transparent pricing models available. kWh-based pricing typically runs $0.05–0.09/kWh plus a management fee of $20–$50/month per machine.',
+    a: 'Flat-fee hosting for standard air-cooled miners runs $180–$300/month per machine depending on the provider and power rates in the facility location. Abundant Mines charges $225/month all-in — one of the most transparent pricing models available. kWh-based pricing typically runs $0.05–0.09/kWh plus a management fee of $20–$50/month per machine.',
   },
   {
     q: 'How many machines do I need to start hosted mining?',
-    a: "Most retail-focused hosts like Abundant Miners accept single machines. Larger facilities typically have minimums of 5–50 machines. If you're starting out, find a host with no minimum machine requirement so you can test before scaling.",
+    a: "Most retail-focused hosts like Abundant Mines accept single machines. Larger facilities typically have minimums of 5–50 machines. If you're starting out, find a host with no minimum machine requirement so you can test before scaling.",
   },
   {
     q: 'What is the difference between colocation and managed hosting?',
@@ -214,7 +216,7 @@ export default function BestBitcoinMiningHostingPage() {
         <div className="text-xs font-bold text-yellow-500 mb-2 tracking-widest">SUMMARY — WHAT TO KNOW</div>
         <ul className="space-y-2 text-sm text-gray-300">
           <li>· The all-in flat fee model ($225/month per machine) is the most transparent and beginner-friendly pricing structure</li>
-          <li>· Abundant Miners is the top recommendation for air-cooled hosting with no minimum machine count and month-to-month terms</li>
+          <li>· Abundant Mines is the top recommendation for air-cooled hosting with no minimum machine count and month-to-month terms</li>
           <li>· Red flags to watch: guaranteed returns, Telegram-only support, vague pricing, long lock-in contracts on first sign-up</li>
           <li>· Air, hydro, and immersion cooling require different hosting infrastructure — verify compatibility before shipping machines</li>
           <li>· Self-hosting only makes economic sense at 100+ machines; below that, hosted rates are usually better than the overhead cost</li>
@@ -231,6 +233,12 @@ export default function BestBitcoinMiningHostingPage() {
           Bitcoin mining hosting has become a mature industry — but it&apos;s still full of bad actors, hidden fees, and confusing pricing. This guide cuts through the noise. We cover how hosting works, what it costs, which providers we recommend, and exactly what to look for when evaluating a hosting deal.
         </p>
       </div>
+
+      <AffiliateDisclosure />
+
+      <QuickAnswer question="What is the best Bitcoin mining hosting in 2026?">
+        The best Bitcoin mining hosting in 2026 keeps your all-in cost at or below roughly $0.08/kWh (or about $225/month flat per machine), runs a verifiable facility with a named power source, and puts pricing, uptime, and a clear exit clause in writing. Flat-rate hosting suits beginners who want predictable bills; per-kWh hosting rewards operators who can commit volume at cheap power. Whichever you choose, confirm the current terms in writing before you send a deposit.
+      </QuickAnswer>
 
       {/* Table of contents */}
       <nav className="rounded-2xl p-5 mb-12" style={{ background: '#111827', border: '1px solid #1f2937' }}>
@@ -540,7 +548,7 @@ export default function BestBitcoinMiningHostingPage() {
       <section className="rounded-2xl p-6 mb-12" style={{ background: 'rgba(0,212,170,0.07)', border: '1px solid #00d4aa30' }}>
         <h2 className="text-xl font-bold text-white mb-3">Bottom Line</h2>
         <p className="text-gray-300 mb-2">
-          For most miners in 2026, Abundant Miners at $225/month flat is the cleanest, most transparent hosting option available. No long contracts, no minimum machine counts, and no hidden fees.
+          For most miners in 2026, Abundant Mines at $225/month flat is the cleanest, most transparent hosting option available. No long contracts, no minimum machine counts, and no hidden fees.
         </p>
         <p className="text-gray-400 mb-4">
           Before you sign with any host, run the deal through our Deal Analyzer to confirm the numbers work at your specific hardware efficiency and the hosting rate you&apos;re being quoted. A deal that looks profitable at $150K BTC may be unprofitable at $75K — know your margin of safety.
@@ -552,7 +560,7 @@ export default function BestBitcoinMiningHostingPage() {
             rel="noopener noreferrer"
             className="text-sm font-bold px-6 py-3 rounded-xl btn-gold"
           >
-            Get Hosting Quote from Abundant Miners →
+            Get Hosting Quote from Abundant Mines →
           </a>
           <Link href="/deal-analyzer" className="text-sm font-semibold px-6 py-3 rounded-xl" style={{ background: '#1f2937', color: '#fff' }}>
             Open Deal Analyzer

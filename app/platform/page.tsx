@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
+import AffiliateDisclosure from '@/components/AffiliateDisclosure'
+import HalvingDays from '@/components/HalvingDays'
 const DifficultyWidget = dynamic(() => import('@/components/DifficultyWidget'), { ssr: false })
 const HashpriceChart = dynamic(() => import('@/components/HashpriceChart'), { ssr: false })
 
@@ -11,10 +13,6 @@ const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
 const BORDER = '#222222'
 
-const HALVING_DATE = new Date('2028-04-15T00:00:00Z')
-function daysToHalving() {
-  return Math.max(0, Math.ceil((HALVING_DATE.getTime() - Date.now()) / 86400000))
-}
 function calcHashprice(price: number, difficulty: number): number {
   return (2.7e20 * price) / (difficulty * 4294967296)
 }
@@ -252,6 +250,13 @@ export default function PlatformPage() {
         </div>
       </section>
 
+      {/* Affiliate disclosure */}
+      <section className="pt-6 px-4">
+        <div className="max-w-4xl mx-auto">
+          <AffiliateDisclosure />
+        </div>
+      </section>
+
       {/* Trust Bar */}
       <section className="border-y py-8" style={{ borderColor: BORDER }}>
         <div className="max-w-4xl mx-auto px-4">
@@ -282,7 +287,7 @@ export default function PlatformPage() {
                 value: difficulty ? `~${(difficulty * 4294967296 / 600 / 1e18).toFixed(0)} EH/s` : '—',
                 live: true,
               },
-              { label: 'Next Halving', value: `~${daysToHalving()} days`, live: false },
+              { label: 'Next Halving', value: <>~<HalvingDays /></>, live: false },
             ].map(s => (
               <div key={s.label} className="rounded-xl p-4 text-center" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
                 <div className="flex items-center justify-center gap-1.5 mb-1">
