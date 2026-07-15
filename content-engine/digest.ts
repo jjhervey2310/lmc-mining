@@ -10,8 +10,9 @@ function gateLine(g: ReviewedScript['gates'][number]): string {
 function scriptBlock(r: ReviewedScript): string {
   const s = r.script
   const status = r.passedAll ? '✅ PASSED ALL GATES' : '⛔ HAS ISSUES — do not approve as-is'
+  const rev = r.revisions > 0 ? `  ·  ${r.revisions} cross-check revision${r.revisions > 1 ? 's' : ''}` : ''
   return [
-    `### ${s.platform}  ·  ${status}`,
+    `### ${s.platform}  ·  ${status}${rev}`,
     ``,
     `**Hook:** ${s.hook}`,
     ``,

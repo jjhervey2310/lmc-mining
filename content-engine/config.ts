@@ -40,7 +40,11 @@ export const AFFILIATE_TRIGGERS = ['abundant mines', 'abundantmines', 'kraken', 
 export const FACT_TOLERANCE = 0.05
 
 // GPT reviewer must score >= this to pass the subjective gate.
-export const REVIEW_PASS_SCORE = 80
+export const REVIEW_PASS_SCORE = Number(process.env.CE_REVIEW_PASS_SCORE || 80)
+
+// Dual-brain cross-check: when a gate fails, Claude revises against the reviewer's
+// notes and we re-check — up to this many rounds before it goes to you flagged.
+export const MAX_REVISIONS = 2
 
 // Weekly pillar rotation (BRAND.md). getUTCDay(): 0=Sun ... 6=Sat.
 export const PILLAR_BY_WEEKDAY: Record<number, Pillar> = {

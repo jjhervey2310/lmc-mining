@@ -73,6 +73,7 @@ export interface ReviewedScript {
   script: Script
   gates: GateResult[]
   passedAll: boolean
+  revisions: number // how many Claude↔GPT cross-check rounds it took
 }
 
 export interface PipelineResult {

@@ -1,30 +1,45 @@
-import { PipelineResult, ReviewedScript, Pillar } from './types'
+import { PipelineResult, ReviewedScript, Pillar, Script, ContentBrief, GateResult } from './types'
 import { getLiveNumbers } from './liveData'
 import { buildBrief, generateScripts } from './generate'
+import { reviseScript } from './revise'
 import { factGate } from './gates/factGate'
 import { brandGate } from './gates/brandGate'
 import { reviewGate } from './gates/reviewGate'
-import { PILLAR_BY_WEEKDAY, ALL_PLATFORMS } from './config'
+import { PILLAR_BY_WEEKDAY, ALL_PLATFORMS, MAX_REVISIONS } from './config'
+
+/** Run all gates on a single script. */
+async function runGates(script: Script, brief: ContentBrief, mode: 'dry' | 'live'): Promise<GateResult[]> {
+  return [factGate(script, brief), brandGate(script), await reviewGate(script, brief, mode)]
+}
 
 /**
- * The brain. Ideate from live data -> generate per-platform scripts -> run every
- * gate. Nothing here posts anything: it produces reviewed scripts for the human
- * approval digest. Rendering (HeyGen) and posting (Blotato) hang off the approved
- * output once those keys/accounts exist.
+ * The brain. Ideate from live data -> generate -> gates -> (Claude↔GPT revise loop
+ * until it passes or MAX_REVISIONS) -> approval digest. Nothing here posts anything.
+ * Rendering (HeyGen) and posting (Blotato) hang off the approved output.
  */
 export async function runPipeline(mode: 'dry' | 'live', opts: { pillar?: string } = {}): Promise<PipelineResult> {
   const live = await getLiveNumbers()
   const pillar = (opts.pillar as Pillar) || PILLAR_BY_WEEKDAY[new Date().getUTCDay()]
   const brief = buildBrief(live, pillar)
 
-  // One vertical asset repurposes to the short platforms; X gets a text-native cut.
   const platforms = ALL_PLATFORMS
-  const scripts = await generateScripts(brief, platforms, mode)
+  const initialScripts = await generateScripts(brief, platforms, mode)
 
   const reviewed: ReviewedScript[] = []
-  for (const script of scripts) {
-    const gates = [factGate(script, brief), brandGate(script), await reviewGate(script, brief, mode)]
-    reviewed.push({ script, gates, passedAll: gates.every((g) => g.pass) })
+  for (const initial of initialScripts) {
+    let script = initial
+    let gates = await runGates(script, brief, mode)
+    let revisions = 0
+
+    // Cross-check loop: Claude rewrites against the reviewer's notes, then re-gate.
+    while (!gates.every((g) => g.pass) && revisions < MAX_REVISIONS && mode === 'live') {
+      const issues = gates.filter((g) => !g.pass).flatMap((g) => g.issues)
+      script = await reviseScript(script, brief, issues)
+      gates = await runGates(script, brief, mode)
+      revisions++
+    }
+
+    reviewed.push({ script, gates, passedAll: gates.every((g) => g.pass), revisions })
   }
 
   return { brief, reviewed, generatedAt: new Date().toISOString(), mode }
