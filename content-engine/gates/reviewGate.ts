@@ -8,15 +8,25 @@ import { openaiReady, reviewJSON } from '../llm/openai'
  * rubric — the "checks and balances" step. In DRY mode (no OpenAI key) it returns
  * a neutral note so the pipeline still runs end-to-end.
  */
-export async function reviewGate(script: Script, brief: ContentBrief, mode: 'dry' | 'live'): Promise<GateResult> {
-  if (mode === 'live' && openaiReady()) {
+export async function reviewGate(script: Script, brief: ContentBrief, _mode: 'dry' | 'live'): Promise<GateResult> {
+  // Run the real GPT critique whenever the OpenAI key exists — independent of
+  // whether the generator (Claude) is live. Each stage uses its own key.
+  if (openaiReady()) {
     const user = `LIVE DATA BRIEF:
 ${JSON.stringify({ date: brief.date, pillar: brief.pillar, live: brief.live, miner: brief.featuredMiner }, null, 2)}
 
 SCRIPT TO REVIEW:
 ${JSON.stringify(script, null, 2)}`
 
-    const raw = await reviewJSON(REVIEW_RUBRIC, user)
+    let raw: string
+    try {
+      raw = await reviewJSON(REVIEW_RUBRIC, user)
+    } catch (e) {
+      // Surface API/auth/billing errors as a gate issue instead of crashing.
+      const msg = e instanceof Error ? e.message : String(e)
+      return { gate: 'review — GPT second opinion', pass: false, issues: [`OpenAI API error: ${msg}`] }
+    }
+
     try {
       const r = JSON.parse(raw) as { score?: number; pass?: boolean; issues?: string[]; strengths?: string[] }
       const score = typeof r.score === 'number' ? r.score : 0
