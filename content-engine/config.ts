@@ -46,6 +46,17 @@ export const REVIEW_PASS_SCORE = Number(process.env.CE_REVIEW_PASS_SCORE || 80)
 // notes and we re-check — up to this many rounds before it goes to you flagged.
 export const MAX_REVISIONS = 2
 
+// --- HeyGen rendering (Jacob's avatar) ---
+export const HEYGEN_API_KEY = process.env.HEYGEN_API_KEY || ''
+// "Broadcaster in a grey hoodie" — the one motion-capable look, and Jacob's pick.
+// Generated looks render as talking_photo, not avatar.
+export const HEYGEN_TALKING_PHOTO_ID = process.env.HEYGEN_TALKING_PHOTO_ID || '41920dc9d7e44063b3725b4a36818085'
+export const HEYGEN_VOICE_ID = process.env.HEYGEN_VOICE_ID || 'f6a3f8a4c96542ebb2f295c140614aea'
+// The look is a landscape studio shot; this zoom fills the 9:16 frame without letterboxing.
+export const HEYGEN_SCALE = Number(process.env.HEYGEN_SCALE || 3.2)
+export const RENDER_WIDTH = 720
+export const RENDER_HEIGHT = 1280
+
 // Weekly pillar rotation (BRAND.md). getUTCDay(): 0=Sun ... 6=Sat.
 export const PILLAR_BY_WEEKDAY: Record<number, Pillar> = {
   1: 'hashprice_check',

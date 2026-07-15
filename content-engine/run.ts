@@ -25,6 +25,8 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true })
   const file = path.join(outDir, `${result.brief.date}-${result.brief.pillar}.md`)
   fs.writeFileSync(file, md)
+  // Machine-readable result for the render/post steps (content:render reads this).
+  fs.writeFileSync(path.join(outDir, `${result.brief.date}-${result.brief.pillar}.json`), JSON.stringify(result, null, 2))
 
   console.log(md)
   console.log(`\n📄 Digest written to ${path.relative(process.cwd(), file)}`)
