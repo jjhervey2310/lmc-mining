@@ -176,6 +176,7 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
             className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
             style={{ background: '#1f2937', color: '#e2e8f0', border: '1px solid #374151' }}
             placeholder="e.g. 335"
+            aria-label="Hashrate in TH/s"
             value={hashrate}
             onChange={(e) => setHashrate(e.target.value)}
           />
@@ -191,6 +192,7 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
             className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
             style={{ background: '#1f2937', color: '#e2e8f0', border: '1px solid #374151' }}
             placeholder="e.g. 3250"
+            aria-label="Power consumption in watts"
             value={power}
             onChange={(e) => setPower(e.target.value)}
           />
@@ -206,6 +208,7 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
             className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
             style={{ background: '#1f2937', color: '#e2e8f0', border: '1px solid #374151' }}
             placeholder="e.g. 0.077"
+            aria-label="Electricity rate in dollars per kWh"
             value={electricityRate}
             onChange={(e) => setElectricityRate(e.target.value)}
           />
@@ -226,6 +229,7 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
           className="w-full rounded px-2 py-1.5 text-sm font-mono"
           style={{ background: '#1f2937', color: '#e2e8f0', border: '1px solid #374151' }}
           placeholder="e.g. 4500"
+          aria-label="Hardware cost, optional"
           value={hardwareCost}
           onChange={(e) => setHardwareCost(e.target.value)}
         />
