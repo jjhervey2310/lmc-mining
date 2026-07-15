@@ -134,7 +134,7 @@ export default function LeadForm({ leadType, fields, submitLabel, successMessage
         type="submit"
         disabled={submitting}
         className="w-full py-3 rounded-lg font-semibold text-sm transition-opacity disabled:opacity-60"
-        style={{ background: '#00d4aa', color: '#0a0e17' }}
+        style={{ background: '#f7931a', color: '#000000' }}
       >
         {submitting ? 'Submitting...' : submitLabel}
       </button>

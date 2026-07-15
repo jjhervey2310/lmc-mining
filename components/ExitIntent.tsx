@@ -8,6 +8,14 @@ export default function ExitIntent() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  // Close on Escape while open (a11y 2.1.2 — no keyboard trap).
+  useEffect(() => {
+    if (!visible) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setVisible(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [visible])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (sessionStorage.getItem('exit_intent_shown')) return
@@ -58,11 +66,15 @@ export default function ExitIntent() {
       onClick={e => { if (e.target === e.currentTarget) setVisible(false) }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Get the free Mining ROI Spreadsheet"
         className="w-full max-w-md rounded-2xl p-8 relative"
         style={{ background: '#111827', border: '1px solid #1f2937', boxShadow: '0 25px 60px rgba(0,0,0,0.6)' }}
       >
         <button
           onClick={() => setVisible(false)}
+          aria-label="Close"
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-white hover:bg-gray-800 transition-colors text-sm"
         >
           ✕

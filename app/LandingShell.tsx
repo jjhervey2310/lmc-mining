@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import MiningBackground from '@/components/MiningBackground'
 
 const NAV_LINKS = [
@@ -12,6 +13,7 @@ const NAV_LINKS = [
 ]
 
 export default function LandingShell() {
+  const [menuOpen, setMenuOpen] = useState(false)
   return (
     <MiningBackground
       overlay={0.74}
@@ -19,10 +21,10 @@ export default function LandingShell() {
     >
       {/* Minimal nav */}
       <nav className="relative z-20 flex items-center justify-between px-6 md:px-12 py-6">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <span style={{ color: '#f7931a', fontSize: '1.1rem', fontWeight: 700 }}>⚡</span>
           <span className="text-white font-bold text-sm tracking-wide">Lightning Mines</span>
-        </div>
+        </Link>
         <div className="hidden md:flex items-center gap-6">
           {NAV_LINKS.map(l => (
             <Link
@@ -34,7 +36,42 @@ export default function LandingShell() {
             </Link>
           ))}
         </div>
+        <button
+          className="md:hidden text-gray-300 hover:text-white p-1"
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(o => !o)}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {menuOpen
+              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+          </svg>
+        </button>
       </nav>
+      {menuOpen && (
+        <div className="md:hidden relative z-20 px-6 pb-4 flex flex-col gap-1">
+          {NAV_LINKS.map(l => (
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={() => setMenuOpen(false)}
+              className="text-sm text-gray-300 hover:text-white py-2 border-b"
+              style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+            >
+              {l.label}
+            </Link>
+          ))}
+          <Link
+            href="/review"
+            onClick={() => setMenuOpen(false)}
+            className="mt-2 text-sm font-semibold text-center py-2.5 rounded-lg"
+            style={{ background: '#f7931a', color: '#000' }}
+          >
+            Free Review
+          </Link>
+        </div>
+      )}
 
       {/* Hero content — vertically centered */}
       <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-6 py-20">

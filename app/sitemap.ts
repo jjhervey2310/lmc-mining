@@ -24,7 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/terms`, lastModified: NOW, changeFrequency: 'yearly', priority: 0.2 },
     // Legacy pages preserved but lower priority
     { url: `${BASE_URL}/deal-analyzer`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${BASE_URL}/hosts`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.7 },
+    // /hosts index canonicalizes to /hosting (see app/hosts/layout.tsx) — omitted here to avoid cannibalization.
     { url: `${BASE_URL}/data`, lastModified: NOW, changeFrequency: 'daily', priority: 0.75 },
     { url: `${BASE_URL}/profitable`, lastModified: NOW, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE_URL}/best-bitcoin-mining-hosting`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.8 },
