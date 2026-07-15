@@ -258,7 +258,7 @@ export default function HostingPage() {
                       Verify Direct
                     </span>
                   )}
-                  <div className="text-[11px] text-gray-600 mt-1">Last reviewed: {lastVerifiedLabel(p)}</div>
+                  <div className="text-[11px] text-gray-400 mt-1">Last reviewed: {lastVerifiedLabel(p)}</div>
                 </td>
                 <td className="py-4 pr-4 text-xs">
                   {p.affiliateProgram && p.affiliateLink ? (
@@ -292,12 +292,12 @@ export default function HostingPage() {
                 <span
                   className="text-xs px-2 py-0.5 rounded-full"
                   style={p.verificationStatus === 'verified'
-                    ? { background: 'rgba(0,212,170,0.15)', color: '#00d4aa' }
+                    ? { background: 'rgba(247,147,26,0.15)', color: '#f7931a' }
                     : { background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}
                 >
-                  {p.verificationStatus === 'verified' ? '✓ Verified' : 'Verify Direct'}
+                  {p.verificationStatus === 'verified' ? 'ⓘ Listed — verify direct' : 'Verify Direct'}
                 </span>
-                <div className="text-[11px] text-gray-600 mt-1">Last reviewed: {lastVerifiedLabel(p)}</div>
+                <div className="text-[11px] text-gray-400 mt-1">Last reviewed: {lastVerifiedLabel(p)}</div>
               </div>
               {p.affiliateProgram && p.affiliateLink && (
                 <a href={p.affiliateLink} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: ORANGE, color: '#000' }}>
