@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar'
 import EmailCapture from '@/components/EmailCapture'
 import TickerBar from '@/components/TickerBar'
 import ExitIntent from '@/components/ExitIntent'
+import StickyMobileCTA from '@/components/StickyMobileCTA'
 import AmbientEffects from '@/components/AmbientEffects'
 import CookieConsent from '@/components/CookieConsent'
 
@@ -115,6 +116,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col overflow-x-hidden" style={{ background: '#0a0a0a', color: '#e2e8f0' }}>
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-white focus:text-black focus:font-semibold">Skip to content</a>
@@ -123,6 +126,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
         <ExitIntent />
         <main id="main" className="flex-1 pb-16 md:pb-0">{children}</main>
+        <StickyMobileCTA />
 
         <footer className="border-t mt-16" style={{ borderColor: '#222222' }}>
           <div className="max-w-6xl mx-auto px-4 py-10">

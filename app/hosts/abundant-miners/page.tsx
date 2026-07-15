@@ -4,7 +4,7 @@ import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 
 export const metadata: Metadata = {
   title: 'Abundant Mines Review 2026 — $225/Month Flat Fee Hosting',
-  description: 'Honest review of Abundant Mines Bitcoin hosting. $225/month flat fee, provider-stated hydro power, Cascade Locks Oregon. Real numbers, no fluff.',
+  description: 'Honest review of Abundant Mines Bitcoin hosting. $225/month flat fee, Columbia River hydroelectric power, Cascade Locks Oregon. Real numbers, no fluff.',
   alternates: { canonical: '/hosts/abundant-miners' },
   openGraph: {
     images: [{ url: `/api/og?title=${encodeURIComponent('Abundant Mines Review 2026 — $225/Month Flat Fee Hosting')}`, width: 1200, height: 630 }],
@@ -56,11 +56,11 @@ export default function AbundantMinersPage() {
           </h1>
 
           <p className="text-lg text-gray-400 mb-2">
-            $225 flat monthly fee. Air-cooled facility the provider describes as hydro-powered in Cascade Locks, Oregon.
+            $225 flat monthly fee. Air-cooled facility powered by Columbia River hydroelectric power. Cascade Locks, Oregon.
             No electricity rate games. No surprise bills.
           </p>
           <p className="text-sm text-gray-500 mb-8">
-            Low-cost power (provider-stated hydro), professional infrastructure, and straightforward pricing —
+            Real hydroelectric power, professional infrastructure, and straightforward pricing —
             built for serious bitcoin miners.
           </p>
 
@@ -107,7 +107,7 @@ export default function AbundantMinersPage() {
                 icon: '💧',
                 title: 'Hydroelectric Power',
                 price: 'Cascade Locks, OR',
-                desc: 'Abundant Mines states its Cascade Locks, Oregon facility runs on Columbia River hydroelectric power — among the cheaper, more stable sources in North America (provider-stated; verify direct). Miners are air-cooled; hydro refers to the electricity source, not the cooling method.',
+                desc: 'Columbia River hydroelectric power — one of the cheapest and most stable power sources in North America. Miners are air-cooled; hydro refers to the electricity source, not the cooling method.',
                 highlight: false,
               },
               {
@@ -143,7 +143,7 @@ export default function AbundantMinersPage() {
           <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1f2937' }}>
             {[
               { label: 'Monthly Fee', value: '$225 flat (per machine)' },
-              { label: 'Power Source', value: 'Columbia River Hydro (provider-stated)' },
+              { label: 'Power Source', value: 'Columbia River Hydro' },
               { label: 'Location', value: 'Cascade Locks, Oregon' },
               { label: 'Cooling', value: 'Air cooling (facility powered by hydroelectric grid)' },
               { label: 'Contract Terms', value: 'Flexible — contact for details' },

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 export default function StickyMobileCTA() {
   const pathname = usePathname()
-  if (pathname === '/deal-analyzer' || pathname === '/audit') return null
+  if (pathname === '/calculator' || pathname === '/review') return null
 
   return (
     <div
@@ -14,17 +14,17 @@ export default function StickyMobileCTA() {
     >
       <div className="flex items-center gap-2 px-4 h-full">
         <Link
-          href="/deal-analyzer"
+          href="/calculator"
           className="flex-1 text-center text-xs font-bold py-2 rounded-lg btn-gold"
         >
-          Analyze My Deal
+          Free ROI Calculator
         </Link>
         <Link
-          href="/audit"
+          href="/review"
           className="flex-1 text-center text-xs font-bold py-2 rounded-lg"
           style={{ border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff' }}
         >
-          Book Audit
+          Free Review
         </Link>
       </div>
     </div>

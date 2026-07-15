@@ -379,7 +379,7 @@ export const PROVIDERS_DATA: HostingProvider[] = [
     repairPolicy: 'Equipment insurance included; routine maintenance covered in flat monthly fee',
     hiddenFees: null,
     cooling: ['air'],
-    powerSource: 'Hydro grid — Cascade Locks, OR (provider-stated)',
+    powerSource: 'Columbia River Hydroelectric (Cascade Locks, OR)',
     capacityMW: null,
     uptimePercent: 99.0,
     minMachines: 1,

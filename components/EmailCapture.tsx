@@ -102,7 +102,7 @@ function FallbackEmailForm({ onSubmit }: { onSubmit: () => void }) {
         type="submit"
         disabled={loading}
         className="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap disabled:opacity-60"
-        style={{ background: '#00d4aa', color: '#0a0e17' }}
+        style={{ background: '#f7931a', color: '#000000' }}
       >
         {loading ? '...' : <><span className="hidden sm:inline">Get the Free Spreadsheet</span><span className="sm:hidden">Get Spreadsheet</span></>}
       </button>
