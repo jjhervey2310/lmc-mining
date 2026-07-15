@@ -57,3 +57,5 @@ Vercel/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+content-engine/out/
+.ce-out/
