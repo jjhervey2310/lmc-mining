@@ -10,7 +10,8 @@
     "seed": "ts-node --project tsconfig.scripts.json scripts/seed.ts",
     "content:run": "ts-node --project content-engine/tsconfig.json content-engine/run.ts",
     "content:dry": "ts-node --project content-engine/tsconfig.json content-engine/run.ts --dry",
-    "content:render": "ts-node --project content-engine/tsconfig.json content-engine/render.ts"
+    "content:render": "ts-node --project content-engine/tsconfig.json content-engine/render.ts",
+    "content:post": "ts-node --project content-engine/tsconfig.json content-engine/post.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

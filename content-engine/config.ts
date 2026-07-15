@@ -57,6 +57,10 @@ export const HEYGEN_SCALE = Number(process.env.HEYGEN_SCALE || 3.2)
 export const RENDER_WIDTH = 720
 export const RENDER_HEIGHT = 1280
 
+// --- Postiz posting (multi-platform publish of approved content) ---
+export const POSTIZ_API_KEY = process.env.POSTIZ_API_KEY || ''
+export const POSTIZ_API_URL = process.env.POSTIZ_API_URL || 'https://api.postiz.com/public/v1'
+
 // Weekly pillar rotation (BRAND.md). getUTCDay(): 0=Sun ... 6=Sat.
 export const PILLAR_BY_WEEKDAY: Record<number, Pillar> = {
   1: 'hashprice_check',
