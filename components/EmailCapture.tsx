@@ -91,6 +91,7 @@ function FallbackEmailForm({ onSubmit }: { onSubmit: () => void }) {
       <input
         type="email"
         required
+        aria-label="Email address"
         placeholder="your@email.com"
         className="flex-1 rounded-lg px-3 py-2 text-sm"
         style={{ background: '#1f2937', color: '#e2e8f0', border: '1px solid #374151' }}

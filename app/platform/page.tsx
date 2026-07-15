@@ -6,6 +6,8 @@ import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import AffiliateDisclosure from '@/components/AffiliateDisclosure'
 import HalvingDays from '@/components/HalvingDays'
+import DealChecklist from '@/components/DealChecklist'
+import FounderBlock from '@/components/FounderBlock'
 const DifficultyWidget = dynamic(() => import('@/components/DifficultyWidget'), { ssr: false })
 const HashpriceChart = dynamic(() => import('@/components/HashpriceChart'), { ssr: false })
 
@@ -271,6 +273,14 @@ export default function PlatformPage() {
         </div>
       </section>
 
+      {/* What we check + who's behind it */}
+      <section className="py-10 px-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <DealChecklist />
+          <FounderBlock />
+        </div>
+      </section>
+
       {/* Live Market Data — hashprice widget */}
       <section className="border-b" style={{ borderColor: BORDER }}>
         <div className="max-w-5xl mx-auto px-4 py-6">
@@ -503,7 +513,8 @@ export default function PlatformPage() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
-                className="flex-1 rounded-lg px-4 py-3 text-sm outline-none"
+                aria-label="Email address"
+                className="flex-1 rounded-lg px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#f7931a]"
                 style={{ background: CARD_BG, border: `1px solid ${BORDER}`, color: 'white' }}
               />
               <button
