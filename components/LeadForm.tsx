@@ -71,13 +71,14 @@ export default function LeadForm({ leadType, fields, submitLabel, successMessage
     <form onSubmit={handleSubmit} className="space-y-4">
       {fields.map((field) => (
         <div key={field.name}>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+          <label htmlFor={field.name} className="block text-sm font-medium text-gray-300 mb-1.5">
             {field.label}
             {field.required && <span className="text-red-400 ml-1">*</span>}
           </label>
 
           {field.type === 'textarea' ? (
             <textarea
+              id={field.name}
               name={field.name}
               required={field.required}
               placeholder={field.placeholder}
@@ -89,6 +90,7 @@ export default function LeadForm({ leadType, fields, submitLabel, successMessage
             />
           ) : field.type === 'select' ? (
             <select
+              id={field.name}
               name={field.name}
               required={field.required}
               className="w-full rounded-lg px-3 py-2.5 text-sm"
@@ -106,6 +108,7 @@ export default function LeadForm({ leadType, fields, submitLabel, successMessage
           ) : (
             <input
               type={field.type}
+              id={field.name}
               name={field.name}
               required={field.required}
               placeholder={field.placeholder}

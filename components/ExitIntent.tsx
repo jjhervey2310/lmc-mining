@@ -91,6 +91,7 @@ export default function ExitIntent() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
+                aria-label="Email address"
                 required
                 className="w-full text-sm px-4 py-3 rounded-xl text-white focus:outline-none"
                 style={{

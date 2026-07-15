@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import DealChecklist from '@/components/DealChecklist'
+import FounderBlock from '@/components/FounderBlock'
 
 const ORANGE = '#f7931a'
 const CARD_BG = '#111111'
@@ -215,6 +217,14 @@ export default function AuditPage() {
         </div>
       </div>
 
+      <div className="mb-12">
+        <DealChecklist />
+      </div>
+
+      <div className="mb-12">
+        <FounderBlock />
+      </div>
+
       {/* ---------- WHAT YOU RECEIVE & BY WHEN ---------- */}
       <div id="pricing" className="scroll-mt-24 rounded-2xl p-6 md:p-8 mb-12" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
         <h2 className="text-xl md:text-2xl font-bold text-white mb-6">What you receive, and by when</h2>
@@ -410,47 +420,47 @@ export default function AuditPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Your Name *</label>
+                <label className="text-xs text-gray-400 block mb-1">Your Name *</label>
                 <input
-                  type="text" value={name} onChange={e => setName(e.target.value)} required
+                  type="text" value={name} onChange={e => setName(e.target.value)} required aria-label="Your name"
                   placeholder="First and last name"
-                  className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 outline-none"
+                  className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-500 outline-none focus-visible:ring-2 focus-visible:ring-[#f7931a]"
                   style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Email Address *</label>
+                <label className="text-xs text-gray-400 block mb-1">Email Address *</label>
                 <input
-                  type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                  type="email" value={email} onChange={e => setEmail(e.target.value)} required aria-label="Email address"
                   placeholder="you@example.com"
-                  className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 outline-none"
+                  className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-500 outline-none focus-visible:ring-2 focus-visible:ring-[#f7931a]"
                   style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Which miner(s) are you considering?</label>
+              <label className="text-xs text-gray-400 block mb-1">Which miner(s) are you considering?</label>
               <input
-                type="text" value={miners} onChange={e => setMiners(e.target.value)}
+                type="text" value={miners} onChange={e => setMiners(e.target.value)} aria-label="Miners you are considering"
                 placeholder="e.g. Antminer S21 Pro, Whatsminer M60S"
-                className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 outline-none"
+                className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-500 outline-none focus-visible:ring-2 focus-visible:ring-[#f7931a]"
                 style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}
               />
             </div>
 
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Which hosting provider(s) are you considering?</label>
+              <label className="text-xs text-gray-400 block mb-1">Which hosting provider(s) are you considering?</label>
               <input
-                type="text" value={providers} onChange={e => setProviders(e.target.value)}
+                type="text" value={providers} onChange={e => setProviders(e.target.value)} aria-label="Hosting providers you are considering"
                 placeholder="e.g. Abundant Mines, Compass Mining, or I don't know yet"
-                className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 outline-none"
+                className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-500 outline-none focus-visible:ring-2 focus-visible:ring-[#f7931a]"
                 style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}
               />
             </div>
 
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Hardware budget</label>
+              <label className="text-xs text-gray-400 block mb-1">Hardware budget</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {BUDGET_OPTIONS.map(opt => (
                   <button
@@ -469,9 +479,9 @@ export default function AuditPage() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-500 block mb-1">What&apos;s your main question about this deal?</label>
+              <label className="text-xs text-gray-400 block mb-1">What&apos;s your main question about this deal?</label>
               <textarea
-                value={question} onChange={e => setQuestion(e.target.value)} rows={3}
+                value={question} onChange={e => setQuestion(e.target.value)} rows={3} aria-label="Your main question about this deal"
                 placeholder="e.g. I want to know if this deal makes sense at current BTC prices and what happens if price drops..."
                 className="w-full text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 outline-none resize-none"
                 style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}
