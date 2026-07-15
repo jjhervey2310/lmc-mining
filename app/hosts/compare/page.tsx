@@ -38,7 +38,7 @@ function CompareContent() {
     { label: 'KYC Required', get: p => p.kycRequired ? 'Yes' : 'No' },
     { label: 'Uptime', get: p => p.uptimePercent ? `${p.uptimePercent}%` : '—' },
     { label: 'Hidden Fees', get: p => p.hiddenFees ?? 'None noted' },
-    { label: 'Verification', get: p => p.verificationStatus === 'verified' ? '✓ Verified' : p.verificationStatus === 'contact_only' ? '✉ Contact only' : '⚠ Pending' },
+    { label: 'Verification', get: p => p.verificationStatus === 'verified' ? 'Listed — verify direct' : p.verificationStatus === 'contact_only' ? '✉ Contact only' : '⚠ Pending' },
   ]
 
   return (
