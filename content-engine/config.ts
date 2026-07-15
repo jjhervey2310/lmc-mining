@@ -23,8 +23,10 @@ export const HOSTING_MONTHLY_USD = 225
 export const REQUIRED_CTA = 'Run your own numbers free at lightningmines.com'
 
 // Hype / FOMO vocabulary that hard-fails the brand gate.
+// Pure hype/FOMO vocabulary. "guaranteed"/"risk-free" are handled separately in
+// brandGate with negation awareness, since "not guaranteed" is honest, not hype.
 export const BANNED_TERMS = [
-  '🚀', 'to the moon', 'moon', 'guaranteed', 'risk-free', 'riskless',
+  '🚀', 'to the moon',
   'get rich', 'passive income', "can't lose", 'easy money', 'fomo',
   "don't miss out", 'act now', 'limited spots', 'once in a lifetime',
   '100x', 'lambo', 'diamond hands', 'hodl',

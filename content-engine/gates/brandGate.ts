@@ -14,8 +14,11 @@ export function brandGate(script: Script): GateResult {
     if (hay.includes(term.toLowerCase())) issues.push(`Banned hype/FOMO term: "${term}"`)
   }
 
-  if (/\bguarantee(d)?\b|\brisk[- ]?free\b|\briskless\b/.test(hay)) {
-    issues.push('Guaranteed-return / risk-free language')
+  // Flag PROMISES of guaranteed upside, not honest "not guaranteed" disclaimers.
+  const promisesGuarantee = /\bguarantee(d|s)?\s+(return|profit|income|roi|money|gains?|upside|\$|\d)/.test(hay)
+  const riskFree = /\brisk[-\s]?free\b|\briskless\b/.test(hay)
+  if (promisesGuarantee || riskFree) {
+    issues.push('Guaranteed-return / risk-free claim')
   }
 
   // Required CTA must be present. Repeating the SAME CTA (spoken script + caption)

@@ -18,7 +18,8 @@ export function factGate(script: Script, brief: ContentBrief): GateResult {
       m.breakevenBtcPrice,
       m.hostingMonthly,
       m.dailyHostingUsd,
-      m.hashrateTh
+      m.hashrateTh,
+      Math.abs(m.breakevenBtcPrice - brief.live.btcPrice) // the "how far from breakeven" gap
     )
   }
 
