@@ -60,8 +60,12 @@ export default function DifficultyWidget() {
   const { d, h, m } = msToCountdown(data.remainingTime)
   const change = data.difficultyChange
   const isUp = change >= 0
-  const changeColor = isUp ? GREEN : RED
+  // For an existing miner, RISING difficulty is unfavorable (more competition,
+  // less BTC per machine); falling difficulty is favorable. Color by mining
+  // impact — not a generic up=green convention.
+  const changeColor = isUp ? RED : GREEN
   const avgSec = data.timeAvg / 1000
+  // Faster blocks => network hashrate rising => tougher for miners.
   const blocksFaster = avgSec < 600
 
   return (
@@ -118,19 +122,22 @@ export default function DifficultyWidget() {
             {isUp ? '+' : ''}{change.toFixed(2)}%
           </div>
           <div className="text-xs mt-0.5" style={{ color: changeColor }}>
-            {isUp ? '▲ diff increasing' : '▼ diff decreasing'}
+            {isUp ? '▲ up — tougher to mine' : '▼ down — better for miners'}
           </div>
         </div>
         <div className="rounded-xl p-3" style={{ background: '#0a0a0a', border: `1px solid ${BORDER}` }}>
           <div className="text-xs text-gray-500 mb-1">Avg Block Time</div>
-          <div className="text-xl font-bold font-mono" style={{ color: blocksFaster ? GREEN : ORANGE }}>
+          <div className="text-xl font-bold font-mono" style={{ color: blocksFaster ? RED : GREEN }}>
             {avgSec.toFixed(0)}s
           </div>
-          <div className="text-xs mt-0.5" style={{ color: blocksFaster ? GREEN : ORANGE }}>
+          <div className="text-xs mt-0.5" style={{ color: blocksFaster ? RED : GREEN }}>
             {blocksFaster ? '▲ fast — hashrate rising' : '▼ slow — hashrate falling'}
           </div>
         </div>
       </div>
+      <p className="text-[11px] text-gray-500 mt-3 leading-relaxed">
+        <span style={{ color: GREEN }}>Green</span> = moves in miners&apos; favor, <span style={{ color: RED }}>red</span> = against. Rising difficulty and network hashrate mean more competition for the same block rewards.
+      </p>
     </div>
   )
 }
