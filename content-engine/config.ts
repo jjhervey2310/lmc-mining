@@ -87,9 +87,11 @@ export const PILLAR_BY_WEEKDAY: Record<number, Pillar> = {
 export const SHORT_PLATFORMS: Platform[] = ['youtube_shorts', 'instagram_reels', 'tiktok']
 export const ALL_PLATFORMS: Platform[] = [...SHORT_PLATFORMS, 'x']
 
+// Niche-first per both growth reviewers (2026-07-17): generic #bitcoin/#crypto tags bury
+// small accounts; specific tags reach people actually shopping for mining answers.
 export const HASHTAGS_BY_PLATFORM: Record<Platform, string[]> = {
-  youtube_shorts: ['#bitcoinmining', '#bitcoin', '#mining'],
-  instagram_reels: ['#bitcoinmining', '#bitcoin', '#crypto', '#mining', '#asicminer'],
-  tiktok: ['#bitcoinmining', '#bitcoin', '#crypto', '#mining'],
-  x: ['#Bitcoin', '#BitcoinMining'],
+  youtube_shorts: ['#bitcoinmining', '#hashprice', '#asicminer'],
+  instagram_reels: ['#bitcoinmining', '#asicminer', '#hashprice', '#minerhosting', '#antminer'],
+  tiktok: ['#bitcoinmining', '#asicminer', '#hashprice', '#antminer'],
+  x: ['#BitcoinMining', '#Hashprice'],
 }
