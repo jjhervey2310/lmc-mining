@@ -13,8 +13,8 @@ export interface DailyNumbers {
   profitable: boolean
 }
 
-const S21_HASHRATE_TH = 234
-const S21_LABEL = 'Antminer S21 Pro (234 TH/s)'
+const S21_HASHRATE_TH = 270
+const S21_LABEL = 'Antminer S21 XP (270 TH/s)'
 const HOSTING_DAY = 7.5 // $225/month flat
 const BLOCK_REWARD = 3.125
 
@@ -146,7 +146,7 @@ function buildSlides(n: DailyNumbers): Slide[] {
     },
     {
       tag: 'The verdict',
-      headline: 'Antminer S21 Pro',
+      headline: 'Antminer S21 XP',
       value: netStr,
       tone: n.profitable ? 'pos' : 'neg',
       sub: n.profitable
@@ -253,7 +253,7 @@ export function buildDailyDrop(n: DailyNumbers, date: Date): DailyDrop {
       { label: 'DIFFICULTY', value: `${(n.difficulty / 1e12).toFixed(1)}T`, tone: 'neutral' },
       { label: 'HASHPRICE', value: `$${usd(n.hashpricePerThDay, 4)}/TH`, tone: 'neutral' },
       {
-        label: 'S21 PRO NET / DAY',
+        label: 'S21 XP NET / DAY',
         value: n.profitable ? `+$${usd(n.s21NetDay)}` : `-$${usd(Math.abs(n.s21NetDay))}`,
         tone: n.profitable ? 'pos' : 'neg',
       },
