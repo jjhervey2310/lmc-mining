@@ -6,10 +6,10 @@ import { anthropicReady, generateJSON } from './llm/anthropic'
 
 // Which pillars feature a specific machine's real math.
 const FEATURE_MINER: Record<Pillar, string | null> = {
-  hashprice_check: 'antminer-s21-pro',
-  hardware_reality: 'antminer-s21-pro',
-  week_recap: 'antminer-s21-pro',
-  longform: 'antminer-s21-pro',
+  hashprice_check: 'antminer-s21-xp',
+  hardware_reality: 'antminer-s21-xp',
+  week_recap: 'antminer-s21-xp',
+  longform: 'antminer-s21-xp',
   red_flag: null,
   explainer: null,
   myth_bust: null,
@@ -93,6 +93,9 @@ function mockScript(brief: ContentBrief, platform: Platform): Script {
 function userPrompt(brief: ContentBrief, platform: Platform): string {
   return `Write one ${platform.replace('_', ' ')} script for pillar "${brief.pillar}".
 
+LENGTH BUDGET (hard requirement): the spoken "body" must be 110-150 words — roughly 45-60 seconds
+aloud. Shorter retains viewers better and costs less to render. Cut setup, keep the mechanics.
+
 LIVE DATA BRIEF (use ONLY these numbers):
 ${JSON.stringify({ date: brief.date, angle: brief.angle, live: brief.live, featuredMiner: brief.featuredMiner }, null, 2)}
 
@@ -109,7 +112,7 @@ Return strict JSON with this exact shape:
 }
 
 // Extract the first balanced JSON object — models sometimes append prose after the JSON.
-function firstJsonObject(raw: string): string {
+export function firstJsonObject(raw: string): string {
   const start = raw.indexOf('{')
   if (start < 0) return '{}'
   let depth = 0
@@ -128,7 +131,7 @@ function firstJsonObject(raw: string): string {
 
 // Escape raw control characters that appear INSIDE string values (models write
 // real newlines into multi-sentence fields, which is invalid JSON).
-function escapeControlCharsInStrings(json: string): string {
+export function escapeControlCharsInStrings(json: string): string {
   let out = ''
   let inString = false
   for (let i = 0; i < json.length; i++) {

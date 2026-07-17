@@ -151,6 +151,7 @@ async function main() {
   }
 
   const dateArg = args.find((a) => a.startsWith('--date='))?.split('=')[1]
+  const videoArg = args.find((a) => a.startsWith('--video='))?.split('=')[1]
   const outDir = path.resolve(process.cwd(), 'content-engine/out')
   const jsons = fs
     .readdirSync(outDir)
@@ -160,8 +161,9 @@ async function main() {
   if (!file) throw new Error('No pipeline JSON in content-engine/out — run content:run first')
 
   const result: PipelineResult = JSON.parse(fs.readFileSync(path.join(outDir, file), 'utf8'))
-  const videoFile = path.join(outDir, `${result.brief.date}.mp4`)
-  if (!fs.existsSync(videoFile)) throw new Error(`${videoFile} not found — run content:render first`)
+  // --video lets banked files (date-suffixed) or $0 motion-graphic MP4s ship with the day's captions.
+  const videoFile = videoArg ? path.resolve(videoArg) : path.join(outDir, `${result.brief.date}.mp4`)
+  if (!fs.existsSync(videoFile)) throw new Error(`${videoFile} not found — run content:render first (or pass --video=path)`)
 
   await publishDay(result, videoFile)
 }

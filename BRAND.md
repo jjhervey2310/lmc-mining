@@ -44,6 +44,24 @@ Every piece of content ends the same way:
 The calculator is the gateway — it converts to audit bookings ($97/$297) and
 Abundant Mines affiliate signups. Do not stack multiple CTAs.
 
+## Sounding Human (spoken scripts — lessons accumulate here after every video)
+
+The avatar reads exactly what we write. Write for the EAR, not the page:
+
+1. **Contractions, always.** "That's / you're / it'd / don't." Writing "that is" to be safe
+   for TTS is the #1 robot-tell. (Learned: Ep. 1–2, 2026-07-16.)
+2. **Vary sentence length.** A three-word sentence after a long one sounds like a person.
+3. **Spoken connectors, sparingly.** "Look," "Okay — now the honest part," "And here's the
+   thing." One or two per script, no more.
+4. **Max one perfectly-parallel triad per script.** "No trading, no charts, no timing" once
+   is punchy; three of those patterns is an essay.
+5. **Talk TO one viewer.** "Your power bill," "before you spend a dollar" — never "one" or
+   "users."
+6. **Pace: ~3 spoken words/second** on our HeyGen voice. A 60-second video needs ~200+ words;
+   90 seconds ~270. (Learned: Ep. 1 v2 first cut, 148 words = 49s.)
+7. **Read it aloud before rendering.** If you wouldn't say the sentence to a friend at a bar,
+   rewrite it.
+
 ## Visual Style
 
 - Dark background (#0a0a0a), amber/gold accents (#f59e0b), teal for positive

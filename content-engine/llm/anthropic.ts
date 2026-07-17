@@ -14,12 +14,12 @@ export function anthropicReady(): boolean {
 }
 
 /** Generator (Claude). Returns raw text (expected to be JSON). Throws if no key. */
-export async function generateJSON(system: string, user: string): Promise<string> {
+export async function generateJSON(system: string, user: string, maxTokens = 2000): Promise<string> {
   const c = getClient()
   if (!c) throw new Error('ANTHROPIC_API_KEY not set')
   const msg = await c.messages.create({
     model: GENERATOR_MODEL,
-    max_tokens: 2000,
+    max_tokens: maxTokens,
     system,
     messages: [{ role: 'user', content: user }],
   })

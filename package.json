@@ -11,7 +11,8 @@
     "content:run": "ts-node --project content-engine/tsconfig.json content-engine/run.ts",
     "content:dry": "ts-node --project content-engine/tsconfig.json content-engine/run.ts --dry",
     "content:render": "ts-node --project content-engine/tsconfig.json content-engine/render.ts",
-    "content:post": "ts-node --project content-engine/tsconfig.json content-engine/post.ts"
+    "content:post": "ts-node --project content-engine/tsconfig.json content-engine/post.ts",
+    "content:ideas": "ts-node --project content-engine/tsconfig.json content-engine/ideas.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

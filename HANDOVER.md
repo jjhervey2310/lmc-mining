@@ -88,6 +88,29 @@ npm run content:post     MP4 + per-platform captions → YouTube/Instagram/TikTo
 3. Daily schedule (cron) for content:run + render; post stays behind approval.
 4. Analytics feedback loop (what performs → informs briefs). 5. Cheap-model routing. 6. Banners (section 5).
 
+## 7b. Content operating pattern (agreed 2026-07-16 night)
+- **One video/day, fixed hour (7am MT target).** Decision rule each morning: (1) if a bullish trigger in
+  `content-engine/ideas.md` is TRUE per live data → that's the day's video; (2) else weekday pillar; (3) school
+  episodes (Lightning Lessons, numbered curriculum) own the Thu explainer + Sun slots.
+- **3-post evergreen buffer, always.** Banked now: Ep 2 (`out/2026-07-16-ep2.mp4`) + Ep 3 (`out/2026-07-17-lessons-ep3.mp4`,
+  all 4 captions gate-passed in `-lessons-ep3.json`). Slot 3 = cloud-mining myth-bust: scripts in `out/2026-07-17-cloudmining.json`
+  but IG + X captions FAILED brand gate (quoting "guaranteed returns" while debunking trips the check) — needs a wording
+  revision + render. Only evergreen content gets banked (stale-numbers rule). Post one → replace within 48h.
+- **Renderer mix (cost control):** HeyGen avatar ONLY for school eps / face-worthy content; daily numbers posts use the
+  $0 silent motion-graphic pipeline (`marketing/video/`, launchd 7:10am → ~/LightningMines-Content/). Publish any MP4 via
+  `content:post -- --video=<path>` (new flag) with the day's captions. Scripts now hard-capped at 110-150 words (~45-60s)
+  — better retention AND ~half the render cost.
+- **HeyGen quota reality (2026-07-16 night): 65 API units left** (~1 render at old length, ~2 short). Burn was ~39 units
+  per ~80s render. Daily avatar-everything needs a paid plan (~$100/mo API tier — verify current pricing); the mix above
+  keeps it $0-30/mo.
+- **Research loop:** `npm run content:ideas` weekly (Sun) — Claude proposes school/bullish/evergreen topics, GPT scores →
+  ranked backlog in `content-engine/ideas.md` (12 seeded, school eps 3-8 scored 85-95). Bullish ideas carry explicit
+  live-data triggers; post only when the trigger is true.
+- **Sunday analytics review (manual until scripted):** per video log views/watch-through/likes/comments/follows against
+  pillar+hook+length; write one lesson/week into BRAND.md; never react to a single video, only patterns across 5+.
+- **Engagement human-jobs (Jacob, not automatable):** reply to every comment in hour 1; on X, reply useful math to 3-5
+  big mining accounts daily; TikTok video-replies to good comments.
+
 ## 8. Growth plan sketch ($500 / 30-day discussion, 2026-07-15)
 Honest expectation set: $10k/30d is tail outcome; $1.5–4k + compounding machine is realistic.
 Key moves agreed worth pursuing: post 2–3×/day (marginal cost ~0), design a **$997 "Done-With-You Mining Setup"** tier
