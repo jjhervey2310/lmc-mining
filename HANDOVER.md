@@ -44,15 +44,30 @@ npm run content:post     MP4 + per-platform captions → YouTube/Instagram/TikTo
 - **YouTube note:** vertical <3 min auto-becomes a Short — one upload covers "YouTube + Shorts". Long-form = Phase 2.
 - **Proof artifacts:** `content-engine/out/2026-07-15.mp4` (real daily video, 71s) + Desktop `lmc-heygen-demo-v3.mp4` (15s teaser, correct framing).
 
-## 4. THE ONLY BLOCKER — Jacob's human setup (do in this order)
-1. **Platform accounts** (may be partially done — Jacob was setting up Instagram on 2026-07-15):
-   TikTok, Instagram (**must switch to Creator/Business** + link a Facebook page), YouTube **brand channel**, X.
-   Same handle everywhere (@lightningmines or agreed fallback). Bio links to lightningmines.com — never the affiliate link.
-2. **Postiz** (decided: try FREE tier before paying for Blotato; swapping later is a one-file change):
-   postiz.com → sign up → connect all 4 channels (OAuth) → Settings → Public API → key into `.env.local` as `POSTIZ_API_KEY=`.
-   If the free tier paywalls the Public API, stop and reassess (Blotato ~$29/mo is the fallback).
-3. Then: `npm run content:post -- --check` to verify channels, then first real post.
-4. Housekeeping: HeyGen key still sits in plain text in `~/Desktop/Jacob's /HeyGEN .docx` — move to 1Password, delete doc.
+## 4. BLOCKER STATUS (updated 2026-07-15 evening) — Postiz DONE, first post ON HOLD for handles
+- **Postiz LIVE:** free tier, Public API not paywalled. `POSTIZ_API_KEY` in `.env.local`. `--check` verified:
+  `youtube` (Jacob Hervey) · `tiktok` (swerve23) · `x` (SWERVE — identifier is literal `x`, post.ts match OK) ·
+  `instagram-standalone` (Jacob).
+- **TikTok "swerve23" label is NOT the wrong account (verified 2026-07-16 evening).** The Postiz TikTok channel's
+  `profile` field is `lightningmines` and its cached avatar is pixel-identical to @lightningmines' brand avatar;
+  "swerve23" is only a stale cached *display name* from before the rename. The separate @swerve23 account that still
+  exists on TikTok has a default grey avatar/no bio and is NOT what's connected. Do NOT delete/reconnect the channel
+  again — silent re-adds never hit TikTok (Postiz restores its stored token server-side), which is why every
+  reconnect attempt "came back as swerve23". Cosmetic only; label should refresh on a future token refresh.
+- **⚠ TikTok Ep. 1 retry post is GONE:** the quota-error retry queued for 2026-07-17T00:15Z no longer exists in
+  Postiz (`GET /posts` shows only the published IG reel) — almost certainly cascade-deleted when the TikTok channel
+  was deleted/re-added during the 2026-07-16 reconnect attempts. Needs re-queueing (remember post.ts lacks the
+  required tiktok settings block — see content-engine memory / §gotchas — use the direct API call pattern).
+- **HOLD (Jacob's call):** those are personal accounts, not @lightningmines. No post until handles are fixed.
+  Jacob's remaining human steps, in order:
+  1. Rename/re-point all 4 accounts to @lightningmines (or agreed fallback); bio → lightningmines.com, never affiliate.
+  2. Instagram: switch to Creator/Business linked to a Facebook Page on his EXISTING personal Facebook
+     (decision changed 2026-07-15 — new FB account signup failed). Then in Postiz: Add Channel →
+     **Instagram (Facebook Business)** → select the Page; remove the old `instagram-standalone` channel
+     (post.ts's substring match will target it and standalone likely can't publish Reels via API).
+  3. HeyGen key still in plain text in `~/Desktop/Jacob's /HeyGEN .docx` — move to 1Password, delete doc.
+- **When posting resumes:** re-run `content:run` + `content:render` that day (numbers must be fresh — don't post a
+  stale-dated video), then `content:post -- --check`, then `content:post` = the approval tap.
 
 ## 5. Brand assets (Desktop: ~/LightningMines-Brand/)
 - **profile-photo-1024.png / -400.png** — Jacob's avatar photo (best frame from demo video), USE AS PROFILE PIC on all socials

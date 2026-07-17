@@ -17,10 +17,10 @@ async function runGates(script: Script, brief: ContentBrief, mode: 'dry' | 'live
  * until it passes or MAX_REVISIONS) -> approval digest. Nothing here posts anything.
  * Rendering (HeyGen) and posting (Blotato) hang off the approved output.
  */
-export async function runPipeline(mode: 'dry' | 'live', opts: { pillar?: string } = {}): Promise<PipelineResult> {
+export async function runPipeline(mode: 'dry' | 'live', opts: { pillar?: string; angle?: string } = {}): Promise<PipelineResult> {
   const live = await getLiveNumbers()
   const pillar = (opts.pillar as Pillar) || PILLAR_BY_WEEKDAY[new Date().getUTCDay()]
-  const brief = buildBrief(live, pillar)
+  const brief = buildBrief(live, pillar, opts.angle)
 
   const platforms = ALL_PLATFORMS
   const initialScripts = await generateScripts(brief, platforms, mode)

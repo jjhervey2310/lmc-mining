@@ -15,7 +15,7 @@ const FEATURE_MINER: Record<Pillar, string | null> = {
   myth_bust: null,
 }
 
-export function buildBrief(live: LiveNumbers, pillar: Pillar): ContentBrief {
+export function buildBrief(live: LiveNumbers, pillar: Pillar, angleOverride?: string): ContentBrief {
   const slug = FEATURE_MINER[pillar]
   const miner = slug ? minerEconomics(slug, live) || undefined : undefined
   const date = new Date().toISOString().slice(0, 10)
@@ -31,7 +31,7 @@ export function buildBrief(live: LiveNumbers, pillar: Pillar): ContentBrief {
       : `${miner.name} loses $${Math.abs(miner.dailyProfitUsd).toFixed(2)}/day at $${Math.round(live.btcPrice).toLocaleString()} BTC — do not buy this today.`
   }
 
-  return { date, pillar, hookNumber, featuredMiner: miner, live, angle }
+  return { date, pillar, hookNumber, featuredMiner: miner, live, angle: angleOverride || angle }
 }
 
 function claimedNumbers(brief: ContentBrief): ClaimedNumber[] {
@@ -108,11 +108,49 @@ Return strict JSON with this exact shape:
 }`
 }
 
+// Extract the first balanced JSON object — models sometimes append prose after the JSON.
+function firstJsonObject(raw: string): string {
+  const start = raw.indexOf('{')
+  if (start < 0) return '{}'
+  let depth = 0
+  let inString = false
+  for (let i = start; i < raw.length; i++) {
+    const ch = raw[i]
+    if (inString) {
+      if (ch === '\\') i++
+      else if (ch === '"') inString = false
+    } else if (ch === '"') inString = true
+    else if (ch === '{') depth++
+    else if (ch === '}' && --depth === 0) return raw.slice(start, i + 1)
+  }
+  return raw.slice(start)
+}
+
+// Escape raw control characters that appear INSIDE string values (models write
+// real newlines into multi-sentence fields, which is invalid JSON).
+function escapeControlCharsInStrings(json: string): string {
+  let out = ''
+  let inString = false
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i]
+    if (inString) {
+      if (ch === '\\') {
+        out += ch + (json[i + 1] || '')
+        i++
+        continue
+      }
+      if (ch === '"') inString = false
+      if (ch === '\n') { out += '\\n'; continue }
+      if (ch === '\r') { out += '\\r'; continue }
+      if (ch === '\t') { out += '\\t'; continue }
+    } else if (ch === '"') inString = true
+    out += ch
+  }
+  return out
+}
+
 function parseScript(raw: string, brief: ContentBrief, platform: Platform): Script {
-  const jsonStart = raw.indexOf('{')
-  const jsonEnd = raw.lastIndexOf('}')
-  const slice = jsonStart >= 0 ? raw.slice(jsonStart, jsonEnd + 1) : '{}'
-  const p = JSON.parse(slice)
+  const p = JSON.parse(escapeControlCharsInStrings(firstJsonObject(raw)))
   return {
     platform,
     pillar: brief.pillar,

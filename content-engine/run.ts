@@ -9,6 +9,7 @@ async function main() {
   const args = process.argv.slice(2)
   const forceDry = args.includes('--dry')
   const pillar = args.find((a) => a.startsWith('--pillar='))?.split('=')[1]
+  const angle = args.find((a) => a.startsWith('--angle='))?.split('=').slice(1).join('=')
 
   // Live only when the generator key exists and dry isn't forced.
   const mode: 'dry' | 'live' = !forceDry && anthropicReady() ? 'live' : 'dry'
@@ -16,9 +17,10 @@ async function main() {
   console.log(`\n⚙  Lightning Mines content-engine — mode: ${mode.toUpperCase()}`)
   console.log(`   generator (Claude): ${anthropicReady() ? 'ready' : 'no key'}   ·   reviewer (GPT): ${openaiReady() ? 'ready' : 'no key'}`)
   if (pillar) console.log(`   pillar override: ${pillar}`)
+  if (angle) console.log(`   angle override: ${angle}`)
   console.log('')
 
-  const result = await runPipeline(mode, { pillar })
+  const result = await runPipeline(mode, { pillar, angle })
   const md = buildDigest(result)
 
   const outDir = path.resolve(process.cwd(), 'content-engine/out')

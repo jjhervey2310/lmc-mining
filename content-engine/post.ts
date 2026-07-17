@@ -60,6 +60,14 @@ export function captionFor(r: ReviewedScript): string {
   return [s.caption, s.hashtags.join(' '), s.disclosures.join(' ')].filter(Boolean).join('\n\n')
 }
 
+/** X is text-native and hard-capped at 280 chars: caption + hashtags, trimmed to fit. */
+export function tweetFor(r: ReviewedScript): string {
+  const s = r.script
+  let text = [s.caption, s.hashtags.join(' ')].filter(Boolean).join('\n\n')
+  if (text.length > 280) text = s.caption.length <= 280 ? s.caption : s.caption.slice(0, 279) + '…'
+  return text
+}
+
 /**
  * Publish the day's approved content: the vertical MP4 to YouTube/IG/TikTok with
  * per-platform captions, and the text-native script to X. Running this command IS
@@ -84,17 +92,34 @@ export async function publishDay(result: PipelineResult, videoFile: string, when
     }
 
     const isVideoPlatform = r.script.platform !== 'x'
+
+    // Per-provider settings blocks Postiz validates hard on (400s without them).
+    const SETTINGS_BY_PLATFORM: Record<Platform, object | undefined> = {
+      youtube_shorts: { title: r.script.hook.slice(0, 95), type: 'public' },
+      instagram_reels: { post_type: 'post' },
+      tiktok: {
+        privacy_level: 'PUBLIC_TO_EVERYONE',
+        duet: false,
+        stitch: false,
+        comment: true,
+        autoAddMusic: 'no',
+        brand_content_toggle: false,
+        brand_organic_toggle: false,
+        content_posting_method: 'DIRECT_POST',
+      },
+      x: { who_can_reply_post: 'everyone' },
+    }
+    const settings = SETTINGS_BY_PLATFORM[r.script.platform]
+
     posts.push({
       integration: { id: integration.id },
       value: [
         {
-          content: isVideoPlatform ? captionFor(r) : [r.script.hook, r.script.body, r.script.cta, captionFor(r)].join('\n\n'),
-          ...(isVideoPlatform ? { image: [{ id: media.id, path: media.path }] } : {}),
+          content: isVideoPlatform ? captionFor(r) : tweetFor(r),
+          image: isVideoPlatform ? [{ id: media.id, path: media.path }] : [],
         },
       ],
-      ...(r.script.platform === 'youtube_shorts'
-        ? { settings: { title: r.script.hook.slice(0, 95), type: 'public' } }
-        : {}),
+      ...(settings ? { settings } : {}),
     })
   }
 
@@ -102,7 +127,7 @@ export async function publishDay(result: PipelineResult, videoFile: string, when
 
   await postiz('/posts', {
     method: 'POST',
-    body: JSON.stringify({ type: 'now', date, shortLink: false, posts }),
+    body: JSON.stringify({ type: 'now', date, shortLink: false, tags: [], posts }),
   })
   console.log(`✅ Published ${posts.length} post(s) via Postiz`)
 }
