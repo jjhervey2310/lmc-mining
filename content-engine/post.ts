@@ -60,7 +60,18 @@ export function captionFor(r: ReviewedScript): string {
   return [s.caption, s.hashtags.join(' '), s.disclosures.join(' ')].filter(Boolean).join('\n\n')
 }
 
-/** X is text-native and hard-capped at 280 chars: caption + hashtags, trimmed to fit. */
+/**
+ * X long-form: the generator writes a distinct multi-paragraph piece for X (hook + body,
+ * CTA already inside the body). Account has Premium, so long posts are allowed. The video
+ * is attached as native media — bare link-card posts all render the same preview and read
+ * as duplicates (and X downranks them).
+ */
+export function xPostFor(r: ReviewedScript): string {
+  const s = r.script
+  return [s.hook, s.body, s.hashtags.join(' ')].filter(Boolean).join('\n\n')
+}
+
+/** 280-char fallback if the long X post is rejected (e.g. Premium lapses). */
 export function tweetFor(r: ReviewedScript): string {
   const s = r.script
   let text = [s.caption, s.hashtags.join(' ')].filter(Boolean).join('\n\n')
@@ -115,8 +126,10 @@ export async function publishDay(result: PipelineResult, videoFile: string, when
       integration: { id: integration.id },
       value: [
         {
-          content: isVideoPlatform ? captionFor(r) : tweetFor(r),
-          image: isVideoPlatform ? [{ id: media.id, path: media.path }] : [],
+          // Every platform gets the video; X pairs it with its own written breakdown
+          // instead of a caption, so the X feed never shows two identical link cards.
+          content: isVideoPlatform ? captionFor(r) : xPostFor(r),
+          image: [{ id: media.id, path: media.path }],
         },
       ],
       ...(settings ? { settings } : {}),
@@ -125,10 +138,27 @@ export async function publishDay(result: PipelineResult, videoFile: string, when
 
   if (!posts.length) throw new Error('Nothing to post — no passing scripts matched a connected channel')
 
-  await postiz('/posts', {
-    method: 'POST',
-    body: JSON.stringify({ type: 'now', date, shortLink: false, tags: [], posts }),
-  })
+  const send = (batch: any[]) =>
+    postiz('/posts', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'now', date, shortLink: false, tags: [], posts: batch }),
+    })
+
+  // X ships separately so a long-post rejection can fall back without re-posting the others.
+  const xPost = posts.find((p) => integrations.find((i) => i.id === p.integration.id)?.identifier === 'x')
+  const rest = posts.filter((p) => p !== xPost)
+
+  if (rest.length) await send(rest)
+  if (xPost) {
+    try {
+      await send([xPost])
+    } catch (e) {
+      console.log(`⚠ long X post rejected (${(e as Error).message.slice(0, 120)}) — retrying 280-char version`)
+      const rx = result.reviewed.find((r) => r.script.platform === 'x')!
+      xPost.value[0].content = tweetFor(rx)
+      await send([xPost])
+    }
+  }
   console.log(`✅ Published ${posts.length} post(s) via Postiz`)
 }
 
