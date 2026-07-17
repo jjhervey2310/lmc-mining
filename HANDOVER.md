@@ -100,6 +100,14 @@ npm run content:post     MP4 + per-platform captions → YouTube/Instagram/TikTo
   $0 silent motion-graphic pipeline (`marketing/video/`, launchd 7:10am → ~/LightningMines-Content/). Publish any MP4 via
   `content:post -- --video=<path>` (new flag) with the day's captions. Scripts now hard-capped at 110-150 words (~45-60s)
   — better retention AND ~half the render cost.
+- **X format (fixed 2026-07-17 after Jacob flagged duplicate-looking feed):** X gets the VIDEO attached natively plus its
+  own long-form written breakdown (`xPostFor`: hook + body + hashtags — account has Premium), NOT a short caption + bare
+  link. Bare-link posts all render the identical lightningmines.com preview card → feed reads as reposted spam, and X
+  downranks link-only posts. X ships as a separate /posts call with auto-fallback to the 280-char `tweetFor` version if
+  the long post is rejected.
+- **Avatar wardrobe rotation (2026-07-17):** 4 extra motion looks live; pillar→look map `HEYGEN_LOOK_BY_PILLAR` in
+  content-engine/config.ts (sweater=numbers days, olive=red flags, studio=myth-busts, navy=hardware, grey hoodie
+  reserved for Lightning Lessons). IDs in memory + config comments.
 - **HeyGen quota reality (2026-07-16 night): 65 API units left** (~1 render at old length, ~2 short). Burn was ~39 units
   per ~80s render. Daily avatar-everything needs a paid plan (~$100/mo API tier — verify current pricing); the mix above
   keeps it $0-30/mo.
