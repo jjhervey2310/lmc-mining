@@ -4,6 +4,7 @@ import { Script, PipelineResult } from './types'
 import {
   HEYGEN_API_KEY,
   HEYGEN_TALKING_PHOTO_ID,
+  HEYGEN_LOOK_BY_PILLAR,
   HEYGEN_VOICE_ID,
   HEYGEN_SCALE,
   RENDER_WIDTH,
@@ -56,7 +57,8 @@ export async function renderScriptVideo(script: Script, outFile: string, title: 
         {
           character: {
             type: 'talking_photo',
-            talking_photo_id: HEYGEN_TALKING_PHOTO_ID,
+            // Wardrobe rotation: pillar-specific look, falling back to the grey hoodie.
+            talking_photo_id: HEYGEN_LOOK_BY_PILLAR[script.pillar] || HEYGEN_TALKING_PHOTO_ID,
             scale: HEYGEN_SCALE,
           },
           voice: { type: 'text', voice_id: HEYGEN_VOICE_ID, input_text: spokenText(script) },

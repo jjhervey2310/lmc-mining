@@ -54,6 +54,18 @@ export const HEYGEN_TALKING_PHOTO_ID = process.env.HEYGEN_TALKING_PHOTO_ID || '4
 export const HEYGEN_VOICE_ID = process.env.HEYGEN_VOICE_ID || 'f6a3f8a4c96542ebb2f295c140614aea'
 // The look is a landscape studio shot; this zoom fills the 9:16 frame without letterboxing.
 export const HEYGEN_SCALE = Number(process.env.HEYGEN_SCALE || 3.2)
+
+// Wardrobe rotation: same face/voice, different outfit per pillar so each series has a
+// consistent look. All are motion-enabled looks in Jacob's avatar group (added 2026-07-17).
+// School episodes keep the original grey hoodie — that's the classroom identity.
+export const HEYGEN_LOOK_BY_PILLAR: Record<string, string> = {
+  hashprice_check: '5412fd52d175431182c8c6bc526abf6b', // grey sweater
+  week_recap: '5412fd52d175431182c8c6bc526abf6b', // grey sweater
+  red_flag: '8b4eeda46b3a46618747bd402750b781', // olive shirt
+  myth_bust: 'ae7617f1a11f487c9cbfc68797606198', // studio setting
+  hardware_reality: '79fe785cd16c4b5f950a733b19f02505', // navy hoodie
+  // explainer + longform fall through to HEYGEN_TALKING_PHOTO_ID (grey hoodie)
+}
 export const RENDER_WIDTH = 720
 export const RENDER_HEIGHT = 1280
 
