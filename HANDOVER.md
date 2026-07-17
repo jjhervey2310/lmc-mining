@@ -119,6 +119,33 @@ npm run content:post     MP4 + per-platform captions → YouTube/Instagram/TikTo
 - **Engagement human-jobs (Jacob, not automatable):** reply to every comment in hour 1; on X, reply useful math to 3-5
   big mining accounts daily; TikTok video-replies to good comments.
 
+## 7c. SOCIAL MEDIA WORK FLOW — live state snapshot (2026-07-17 night)
+The session running this is titled "SOCIAL MEDIA WORK FLOW". A fresh session picking this up needs to know:
+- **Scheduled & guaranteed (Postiz server-side, fires even with everything closed):** 8 posts queued —
+  Sat 7/18 cloud-mining warning (studio look, "3 Red Flags" chart-open) + Sun 7/19 Lightning Lessons Ep 4 (grey hoodie,
+  "Ep. 4" card open); each day X 9am / YT 2pm / IG 6pm / TikTok 8pm ET. Hand-tuned YouTube titles are saved INSIDE the
+  script JSONs (`out/2026-07-17-cloudmining-v2.json`, `out/2026-07-17-lessons-ep4.json` → youtube_shorts script.title).
+- **Session-only automations (die with the session — RECREATE in a new session):**
+  (a) daily 6:47am content-lead maintenance: keep Postiz 2 days ahead with the next EVERGREEN item (Lightning Lessons
+  Ep 5 = breakeven formula is next, alternate with myth-bust/red-flag from content-engine/ideas.md), chain =
+  content:run --pillar/--angle → content:render --date=<exact json prefix> (wardrobe auto) → chart-open → frame-check →
+  `NODE_PATH=<repo>/node_modules node content-engine/tools/schedule-ahead.js <json> <mp4> <D+2>`; idempotency guard first
+  (skip if D+2 already has 4 QUEUE posts). (b) Sun 7/19 7:33pm one-shot: full week-1 analytics report + dual-brain
+  (Claude generateJSON + GPT reviewJSON) traction analysis + apply cheap fixes + BRAND.md lessons entry.
+- **Analytics baseline (Fri 7/17 ~11am, for Sunday deltas):** YT 2 subs, Shorts 1/3/1 views · TikTok 2 followers/1 like ·
+  IG 2 followers · X 9 followers.
+- **Tools:** `marketing/video/chart-open.swift <main.mp4> <out.mp4> <bigText> <label> [spark]` — 2s animated open
+  (spark = chart mode for same-day numbers content only, from lightningmines.com/api/daily-script chart.points;
+  no spark = episode card for evergreen). `content-engine/tools/schedule-ahead.js` — schedules one day's 4 posts at the
+  staggered times (times hardcoded inside, July EDT offsets).
+- **HeyGen wallet:** ~2,575 units; $50 = 3,000 units (≈1.7¢/unit), renders ≈80 units (≈$1.35/video, ~$1/min).
+  Top-up at https://app.heygen.com/settings?nav=API when under 300.
+- **Jacob's open human items:** (1) Instagram bio still missing the lightningmines.com link (Edit profile → Links) —
+  only clickable path from Reels; (2) daily 30-60min outbound replies on bigger mining/BTC accounts — both growth
+  reviewers ranked this the #1 lever, above everything automated; (3) reply to own-post comments within the hour.
+- **Live post URLs so far:** YT _iXYcyWgeWw + 7hND0G0zaT4 + 3qsUNllV-lA · IG Da3gK_qCoa6 + Da4EGUvij4j + Da5jgzDgVD_ ·
+  X status 2077934972154130936 + 2078141973765218702 · TikTok on @lightningmines profile.
+
 ## 8. Growth plan sketch ($500 / 30-day discussion, 2026-07-15)
 Honest expectation set: $10k/30d is tail outcome; $1.5–4k + compounding machine is realistic.
 Key moves agreed worth pursuing: post 2–3×/day (marginal cost ~0), design a **$997 "Done-With-You Mining Setup"** tier
