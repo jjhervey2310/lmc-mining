@@ -5,6 +5,13 @@ import { POSTIZ_API_KEY, POSTIZ_API_URL } from './config'
 
 // Postiz providerIdentifier for each engine platform. One vertical MP4 serves
 // the three short platforms; X gets the text-native cut (no video required).
+// Title for display surfaces: the dedicated title, else the hook cut at a word boundary.
+export function titleFor(s: { title?: string; hook: string }): string {
+  if (s.title && s.title.length <= 100) return s.title
+  const h = s.hook.slice(0, 95)
+  return h.length < s.hook.length ? h.slice(0, h.lastIndexOf(' ')) : h
+}
+
 const PROVIDER_BY_PLATFORM: Record<Platform, string> = {
   youtube_shorts: 'youtube',
   instagram_reels: 'instagram',
@@ -106,7 +113,7 @@ export async function publishDay(result: PipelineResult, videoFile: string, when
 
     // Per-provider settings blocks Postiz validates hard on (400s without them).
     const SETTINGS_BY_PLATFORM: Record<Platform, object | undefined> = {
-      youtube_shorts: { title: r.script.hook.slice(0, 95), type: 'public' },
+      youtube_shorts: { title: titleFor(r.script), type: 'public' },
       instagram_reels: { post_type: 'post' },
       tiktok: {
         privacy_level: 'PUBLIC_TO_EVERYONE',

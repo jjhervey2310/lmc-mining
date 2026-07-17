@@ -102,6 +102,7 @@ ${JSON.stringify({ date: brief.date, angle: brief.angle, live: brief.live, featu
 Return strict JSON with this exact shape:
 {
   "hook": string,            // first line, ~1.5s, leads with the surprising number
+  "title": string,           // display/YouTube title, <=90 chars: curiosity-driven, a reason to tap, never a lie, evergreen pieces must not say "today"
   "body": string,            // spoken script for the AI presenter, ends with the required CTA
   "onScreenText": string[],  // 2-4 big on-screen numbers/labels
   "caption": string,         // platform caption
@@ -158,6 +159,7 @@ function parseScript(raw: string, brief: ContentBrief, platform: Platform): Scri
     platform,
     pillar: brief.pillar,
     hook: String(p.hook || ''),
+    title: String(p.title || ''),
     body: String(p.body || ''),
     onScreenText: Array.isArray(p.onScreenText) ? p.onScreenText.map(String) : [],
     caption: String(p.caption || ''),

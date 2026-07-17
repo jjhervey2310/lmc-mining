@@ -52,6 +52,7 @@ export interface Script {
   platform: Platform
   pillar: Pillar
   hook: string
+  title?: string // display/YouTube title, <=90 chars, curiosity-driven but honest
   body: string
   onScreenText?: string[]
   caption: string
