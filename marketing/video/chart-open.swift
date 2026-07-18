@@ -24,11 +24,20 @@ func draw(_ ctx: CGContext, t: Double) {
   ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
   let ease = 1 - pow(1 - min(t / 0.9, 1), 3) // ease-out over first 0.9s
 
+  // Auto-shrinks to fit within the frame (minus side margins) so long labels never clip off-screen.
   func text(_ s: String, size: CGFloat, color: CGColor, weight: NSFont.Weight, y: CGFloat, alpha: CGFloat = 1) {
-    let font = NSFont.systemFont(ofSize: size, weight: weight)
-    let attr = NSAttributedString(string: s, attributes: [.font: font, .foregroundColor: NSColor(cgColor: color)!.withAlphaComponent(alpha)])
-    let line = CTLineCreateWithAttributedString(attr)
-    let b = CTLineGetBoundsWithOptions(line, .useOpticalBounds)
+    let maxWidth = CGFloat(W) - 80
+    var fitSize = size
+    var line: CTLine
+    var b: CGRect
+    repeat {
+      let font = NSFont.systemFont(ofSize: fitSize, weight: weight)
+      let attr = NSAttributedString(string: s, attributes: [.font: font, .foregroundColor: NSColor(cgColor: color)!.withAlphaComponent(alpha)])
+      line = CTLineCreateWithAttributedString(attr)
+      b = CTLineGetBoundsWithOptions(line, .useOpticalBounds)
+      if b.width <= maxWidth || fitSize <= 14 { break }
+      fitSize -= 2
+    } while true
     ctx.textPosition = CGPoint(x: (CGFloat(W) - b.width) / 2, y: y)
     CTLineDraw(line, ctx)
   }
