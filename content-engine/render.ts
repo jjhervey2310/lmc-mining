@@ -25,9 +25,10 @@ function speechify(text: string): string {
   return text.replace(/lightningmines\.com/gi, 'lightning mines dot com')
 }
 
-/** What the avatar actually says: hook -> body -> the one CTA. */
+/** What the avatar actually says: hook -> body. Body already ends with the CTA
+ * (the generator prompt requires it), so appending script.cta here would repeat it. */
 export function spokenText(script: Script): string {
-  return speechify([script.hook, script.body, script.cta].filter(Boolean).join(' '))
+  return speechify([script.hook, script.body].filter(Boolean).join(' '))
 }
 
 async function heygen<T = any>(pathname: string, init?: RequestInit): Promise<T> {
