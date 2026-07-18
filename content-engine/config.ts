@@ -53,7 +53,9 @@ export const HEYGEN_API_KEY = process.env.HEYGEN_API_KEY || ''
 export const HEYGEN_TALKING_PHOTO_ID = process.env.HEYGEN_TALKING_PHOTO_ID || '41920dc9d7e44063b3725b4a36818085'
 export const HEYGEN_VOICE_ID = process.env.HEYGEN_VOICE_ID || 'f6a3f8a4c96542ebb2f295c140614aea'
 // The look is a landscape studio shot; this zoom fills the 9:16 frame without letterboxing.
-export const HEYGEN_SCALE = Number(process.env.HEYGEN_SCALE || 3.2)
+// Lowered 3.2 -> 2.7 (2026-07-18): tight zoom was amplifying normal head motion into a
+// visible bob/twitch over 70-110s clips. Less zoom = less amplification, same framing intent.
+export const HEYGEN_SCALE = Number(process.env.HEYGEN_SCALE || 2.7)
 
 // Wardrobe rotation: same face/voice, different outfit per pillar so each series has a
 // consistent look. All are motion-enabled looks in Jacob's avatar group (added 2026-07-17).
