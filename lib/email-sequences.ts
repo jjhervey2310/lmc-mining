@@ -285,38 +285,39 @@ export const EMAIL5 = {
       </p>
 
       ${card(`
-        <div style="color:#ef4444;font-weight:bold;font-size:16px;margin-bottom:16px;">❌ DEAL A — Losing money every month</div>
+        <div style="color:#ef4444;font-weight:bold;font-size:16px;margin-bottom:16px;">❌ DEAL A — Losing money every day</div>
         <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:12px;">
-          <tr><td style="color:#64748b;padding:6px 0;">Hardware</td><td style="color:#94a3b8;text-align:right;">Antminer S19 Pro (110 TH/s)</td></tr>
-          <tr><td style="color:#64748b;padding:6px 0;">Setup</td><td style="color:#94a3b8;text-align:right;">Home mining, $0.12/kWh</td></tr>
-          <tr><td style="color:#64748b;padding:6px 0;">Hardware price</td><td style="color:#94a3b8;text-align:right;">$2,800</td></tr>
-          <tr><td style="color:#64748b;padding:6px 0;">Monthly electricity</td><td style="color:#94a3b8;text-align:right;">$234 (3,250W × 720h × $0.10)</td></tr>
-          <tr><td style="color:#64748b;padding:6px 0;">Monthly revenue at $64k BTC</td><td style="color:#94a3b8;text-align:right;">~$180</td></tr>
-          <tr style="border-top:1px solid #1e293b;"><td style="color:#ef4444;padding:8px 0;font-weight:bold;">Monthly loss</td><td style="color:#ef4444;text-align:right;font-weight:bold;">-$54/month</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Hardware</td><td style="color:#94a3b8;text-align:right;">Antminer S19j Pro (122 TH/s)</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Setup</td><td style="color:#94a3b8;text-align:right;">Home mining, $0.12/kWh residential</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Hardware price</td><td style="color:#94a3b8;text-align:right;">$1,800 used</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Daily electricity</td><td style="color:#94a3b8;text-align:right;">$9.66 (3,355W × 24h × $0.12)</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Daily revenue at $100k BTC</td><td style="color:#94a3b8;text-align:right;">~$7.40</td></tr>
+          <tr style="border-top:1px solid #1e293b;"><td style="color:#ef4444;padding:8px 0;font-weight:bold;">Daily net</td><td style="color:#ef4444;text-align:right;font-weight:bold;">-$2.26/day</td></tr>
         </table>
         <p style="color:#64748b;font-size:13px;margin:0;">
-          At this rate: losing $648/year on electricity alone. The S19 Pro is a 5th-gen miner — its efficiency
-          (29.5 J/TH) can't compete at residential electricity rates.
+          That's about -$825/year on electricity alone — and hardware ROI: never, at current difficulty.
+          The S19j Pro is a 5th-gen miner — its 27.5 J/TH efficiency can't compete at residential rates
+          when current-generation machines run at 15 J/TH.
         </p>
       `, '#7f1d1d')}
 
       ${card(`
         <div style="color:#00d4aa;font-weight:bold;font-size:16px;margin-bottom:16px;">✅ DEAL B — Profitable today</div>
         <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:12px;">
-          <tr><td style="color:#64748b;padding:6px 0;">Hardware</td><td style="color:#94a3b8;text-align:right;">Antminer S21 XP (216 TH/s)</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Hardware</td><td style="color:#94a3b8;text-align:right;">Antminer S21 Pro (234 TH/s)</td></tr>
           <tr><td style="color:#64748b;padding:6px 0;">Setup</td><td style="color:#94a3b8;text-align:right;">Hosted at Abundant Mines, $225/mo flat</td></tr>
-          <tr><td style="color:#64748b;padding:6px 0;">Hardware price</td><td style="color:#94a3b8;text-align:right;">$5,500</td></tr>
-          <tr><td style="color:#64748b;padding:6px 0;">Monthly hosting</td><td style="color:#94a3b8;text-align:right;">$225 flat</td></tr>
-          <tr><td style="color:#64748b;padding:6px 0;">Monthly revenue at $64k BTC</td><td style="color:#94a3b8;text-align:right;">~$340</td></tr>
-          <tr style="border-top:1px solid #1e293b;"><td style="color:#00d4aa;padding:8px 0;font-weight:bold;">Monthly profit</td><td style="color:#00d4aa;text-align:right;font-weight:bold;">~$115/month</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Hardware price</td><td style="color:#94a3b8;text-align:right;">$3,800</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Daily hosting</td><td style="color:#94a3b8;text-align:right;">$7.50 ($225 ÷ 30)</td></tr>
+          <tr><td style="color:#64748b;padding:6px 0;">Daily revenue at $100k BTC</td><td style="color:#94a3b8;text-align:right;">~$14.90</td></tr>
+          <tr style="border-top:1px solid #1e293b;"><td style="color:#00d4aa;padding:8px 0;font-weight:bold;">Daily net</td><td style="color:#00d4aa;text-align:right;font-weight:bold;">~+$7.40/day</td></tr>
         </table>
         <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px;">
-          <tr><td style="color:#64748b;padding:4px 0;">Payback period at $64k BTC</td><td style="color:#94a3b8;text-align:right;">~38 months</td></tr>
-          <tr><td style="color:#64748b;padding:4px 0;">Payback period at $100k BTC</td><td style="color:#94a3b8;text-align:right;">~19 months</td></tr>
-          <tr><td style="color:#64748b;padding:4px 0;">Payback period at $150k BTC</td><td style="color:#94a3b8;text-align:right;">~12 months</td></tr>
+          <tr><td style="color:#64748b;padding:4px 0;">Payback period at $100k BTC</td><td style="color:#94a3b8;text-align:right;">~18 months</td></tr>
+          <tr><td style="color:#64748b;padding:4px 0;">Payback period at $150k BTC</td><td style="color:#94a3b8;text-align:right;">~11 months</td></tr>
+          <tr><td style="color:#64748b;padding:4px 0;">Breakeven BTC price</td><td style="color:#94a3b8;text-align:right;">~$51,000</td></tr>
         </table>
         <p style="color:#64748b;font-size:13px;margin:0;">
-          The S21 XP is 7th-gen hardware (15 J/TH efficiency). At flat-fee hosted rates, profitability
+          The S21 Pro is current-generation hardware (15 J/TH efficiency). At flat-fee hosted rates, profitability
           improves dramatically if BTC appreciates — you keep all the upside.
         </p>
       `, '#064e3b')}
@@ -325,7 +326,7 @@ export const EMAIL5 = {
       <p style="color:#94a3b8;font-size:15px;line-height:1.6;">
         <strong style="color:#ffffff;">Hardware generation and hosting rate matter more than anything else.</strong>
         A 5th-gen miner at residential rates is almost always a money-loser at current difficulty.
-        A 7th-gen miner at a flat-fee hosted facility can be profitable today and much more profitable if BTC rises.
+        A current-generation miner at a flat-fee hosted facility can be profitable today and much more profitable if BTC rises.
       </p>
       <p style="color:#94a3b8;font-size:15px;line-height:1.6;">
         Before you commit to anything, run your specific deal through the analyzer:

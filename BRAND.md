@@ -36,6 +36,11 @@ audit, and use our affiliate links.
    "Run your own numbers" is the CTA, never "buy now."
 7. **No attacking competitors by name** without documented evidence (scam-alerts
    standards apply).
+8. **Reference machine for live numbers is the Antminer S21 XP (270 TH/s).**
+   Daily content, the weekly newsletter, and any "current profitability" figure
+   run from the S21 XP until Jacob changes this. Evergreen case studies may use
+   other models (e.g. the S19j Pro vs S21 Pro deal comparison) where the
+   contrast itself is the point.
 
 ## The One CTA
 

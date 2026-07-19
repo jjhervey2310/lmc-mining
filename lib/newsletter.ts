@@ -37,15 +37,16 @@ export function buildNewsletter(snapshots: WeekSnapshot[], date: Date) {
   const hpChange = ((last.hashprice_usd - first.hashprice_usd) / first.hashprice_usd) * 100
   const diffChanged = last.difficulty !== first.difficulty
 
-  // S21 Pro reference economics at week close ($225/mo hosting)
-  const dailyBtc = (234e12 * 86400 * 3.125) / (last.difficulty * 2 ** 32)
+  // S21 XP reference economics at week close ($225/mo hosting) — site-wide
+  // reference machine is the Antminer S21 XP (270 TH/s), matching lib/daily-content.ts
+  const dailyBtc = (270e12 * 86400 * 3.125) / (last.difficulty * 2 ** 32)
   const gross = dailyBtc * last.btc_price
   const net = gross - 7.5
   const breakeven = 7.5 / dailyBtc
 
   const verdict = net > 0
-    ? `At week's close, a hosted S21 Pro nets about $${net.toFixed(2)}/day — a thin but positive margin. Breakeven sits near $${usd0(breakeven)} BTC, so watch that line.`
-    : `At week's close, a hosted S21 Pro runs at a loss of about $${Math.abs(net).toFixed(2)}/day. Until BTC clears roughly $${usd0(breakeven)}, standard hosted mining stays underwater. That's not doom — it's the number to watch.`
+    ? `At week's close, a hosted S21 XP nets about $${net.toFixed(2)}/day — a thin but positive margin. Breakeven sits near $${usd0(breakeven)} BTC, so watch that line.`
+    : `At week's close, a hosted S21 XP runs at a loss of about $${Math.abs(net).toFixed(2)}/day. Until BTC clears roughly $${usd0(breakeven)}, standard hosted mining stays underwater. That's not doom — it's the number to watch.`
 
   const guide = FEATURED_GUIDES[getISOWeek(date) % FEATURED_GUIDES.length]
 
@@ -61,7 +62,7 @@ export function buildNewsletter(snapshots: WeekSnapshot[], date: Date) {
 ${row('BTC price', `$${usd0(last.btc_price)} <span style="color:${priceChange >= 0 ? '#00d4aa' : '#ef4444'}">${pct(priceChange)} this week</span>`)}
 ${row('Hashprice', `$${(last.hashprice_usd / 1000).toFixed(4)}/TH/day <span style="color:${hpChange >= 0 ? '#00d4aa' : '#ef4444'}">${pct(hpChange)}</span>`)}
 ${row('Network difficulty', `${(last.difficulty / 1e12).toFixed(1)}T${diffChanged ? ' (adjusted this week)' : ' (no adjustment this week)'}`)}
-${row('S21 Pro net/day', `<span style="color:${net >= 0 ? '#00d4aa' : '#ef4444'}">${net >= 0 ? '+' : '-'}$${Math.abs(net).toFixed(2)}</span>`)}
+${row('S21 XP net/day', `<span style="color:${net >= 0 ? '#00d4aa' : '#ef4444'}">${net >= 0 ? '+' : '-'}$${Math.abs(net).toFixed(2)}</span>`)}
 ${row('Operating breakeven', `~$${usd0(breakeven)} BTC`)}
 </table>
 <h2 style="color:#f59e0b;font-size:15px;margin:24px 0 8px;">What it means</h2>
@@ -71,7 +72,7 @@ ${row('Operating breakeven', `~$${usd0(breakeven)} BTC`)}
 <div style="text-align:center;margin:28px 0;">
 <a href="https://www.lightningmines.com/calculator" style="background:#f59e0b;color:#000;font-weight:700;padding:12px 28px;border-radius:10px;text-decoration:none;font-size:14px;">Run your own numbers free →</a>
 </div>
-<p style="color:#6b7280;font-size:11px;line-height:1.6;margin-top:28px;">You're receiving this because you signed up for weekly profitability alerts at lightningmines.com. Reference figures use an Antminer S21 Pro at $225/month hosting; your results depend on your hardware and rates. Not financial advice.<br/><a href="__UNSUB_URL__" style="color:#6b7280;">Unsubscribe</a></p>
+<p style="color:#6b7280;font-size:11px;line-height:1.6;margin-top:28px;">You're receiving this because you signed up for weekly profitability alerts at lightningmines.com. Reference figures use an Antminer S21 XP at $225/month hosting; your results depend on your hardware and rates. Not financial advice.<br/><a href="__UNSUB_URL__" style="color:#6b7280;">Unsubscribe</a></p>
 </div>`
 
   return { subject, htmlBody }

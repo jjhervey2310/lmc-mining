@@ -71,15 +71,37 @@ export async function GET(request: NextRequest) {
 
   const results = { processed: 0, sent: 0, skipped: 0, errors: 0 }
 
+  // Dedupe by email: a repeat signup creates a second lead row, and processing
+  // rows independently re-runs the whole sequence for that person (observed:
+  // duplicate email5 sends). Merge rows per email — earliest signup drives the
+  // schedule, sent_emails is the union across rows, and updates write to every
+  // row so the merged state stays consistent.
+  type MergedLead = { ids: string[]; email: string; createdAt: Date; sentEmails: string[] }
+  const byEmail = new Map<string, MergedLead>()
   for (const lead of (leads ?? []) as Lead[]) {
+    const key = lead.email.toLowerCase().trim()
+    const rowSent: string[] = Array.isArray(lead.sent_emails) ? (lead.sent_emails as string[]) : []
+    const existing = byEmail.get(key)
+    if (existing) {
+      // Rows are ordered by created_at ascending, so `existing` keeps the earliest signup date
+      existing.ids.push(lead.id)
+      existing.sentEmails = [...new Set([...existing.sentEmails, ...rowSent])]
+    } else {
+      byEmail.set(key, {
+        ids: [lead.id],
+        email: lead.email,
+        createdAt: new Date(lead.created_at),
+        sentEmails: rowSent,
+      })
+    }
+  }
+
+  for (const lead of byEmail.values()) {
     results.processed++
-    const createdAt = new Date(lead.created_at)
     const daysSinceSignup = Math.floor(
-      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - lead.createdAt.getTime()) / (1000 * 60 * 60 * 24)
     )
-    let sentEmails: string[] = Array.isArray(lead.sent_emails)
-      ? (lead.sent_emails as string[])
-      : []
+    let sentEmails = lead.sentEmails
 
     let anySentThisRun = false
 
@@ -99,14 +121,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Single DB update per lead to record all newly sent emails
+    // Single DB update per person — write merged sent_emails to ALL their rows
     if (anySentThisRun) {
       await supabase
         .from('leads')
         .update({ sent_emails: sentEmails })
-        .eq('id', lead.id)
+        .in('id', lead.ids)
         .then(({ error: updateErr }) => {
-          if (updateErr) console.error('[email-sequence] Update error for', lead.id, updateErr)
+          if (updateErr) console.error('[email-sequence] Update error for', lead.ids.join(','), updateErr)
         })
     } else {
       results.skipped++
