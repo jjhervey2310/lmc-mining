@@ -5,7 +5,7 @@ import { reviseScript } from './revise'
 import { factGate } from './gates/factGate'
 import { brandGate } from './gates/brandGate'
 import { reviewGate } from './gates/reviewGate'
-import { PILLAR_BY_WEEKDAY, ALL_PLATFORMS, MAX_REVISIONS } from './config'
+import { DEFAULT_PILLAR, ALL_PLATFORMS, MAX_REVISIONS } from './config'
 
 /** Run all gates on a single script. */
 async function runGates(script: Script, brief: ContentBrief, mode: 'dry' | 'live'): Promise<GateResult[]> {
@@ -19,7 +19,9 @@ async function runGates(script: Script, brief: ContentBrief, mode: 'dry' | 'live
  */
 export async function runPipeline(mode: 'dry' | 'live', opts: { pillar?: string; angle?: string } = {}): Promise<PipelineResult> {
   const live = await getLiveNumbers()
-  const pillar = (opts.pillar as Pillar) || PILLAR_BY_WEEKDAY[new Date().getUTCDay()]
+  // Default to the standard bullish+caveat format; an explicit --pillar= (e.g. scheduled
+  // Lightning Lessons episodes) still overrides it.
+  const pillar = (opts.pillar as Pillar) || DEFAULT_PILLAR
   const brief = buildBrief(live, pillar, opts.angle)
 
   const platforms = ALL_PLATFORMS

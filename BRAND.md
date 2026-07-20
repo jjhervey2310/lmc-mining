@@ -49,6 +49,24 @@ Every piece of content ends the same way:
 The calculator is the gateway — it converts to audit bookings ($97/$297) and
 Abundant Mines affiliate signups. Do not stack multiple CTAs.
 
+## Standard Daily Format (default — Jacob, 2026-07-20)
+
+The default daily video is a single repeatable format — pillar `bullish_caveat` in the
+content engine:
+
+- **~30 seconds** (70–90 spoken words). Tight and punchy; cut all setup.
+- **Always the bullish case, with a mandatory "but" caveat.** Lead with the strongest
+  *honest* bullish point about the S21 XP, then one clear caveat a real miner needs
+  (breakeven, rising-difficulty risk, or "at today's price it still loses money"). The
+  caveat is what keeps "always bullish" honest — bullish is never blind.
+- **Always references the Antminer S21 XP** (the reference machine, rule 8 below).
+- **Brand at both ends:** the hook opens with "Lightning Mines"; the closing CTA carries
+  lightningmines.com. Say each number and idea once — no end-of-video repetition, no
+  doubled CTA.
+
+Scheduled evergreen series (e.g. Lightning Lessons) still run their own pillars via an
+explicit `--pillar=` override; the *default* every day is this bullish-caveat format.
+
 ## Sounding Human (spoken scripts — lessons accumulate here after every video)
 
 The avatar reads exactly what we write. Write for the EAR, not the page:

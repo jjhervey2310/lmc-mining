@@ -1,11 +1,20 @@
 import { ContentBrief, LiveNumbers, Pillar, Platform, Script, ClaimedNumber } from './types'
 import { minerEconomics } from './liveData'
 import { BRAND_SYSTEM_PROMPT } from './rubric'
-import { REQUIRED_CTA, AI_DISCLOSURE, AFFILIATE_DISCLOSURE, HASHTAGS_BY_PLATFORM } from './config'
+import {
+  REQUIRED_CTA,
+  AI_DISCLOSURE,
+  AFFILIATE_DISCLOSURE,
+  HASHTAGS_BY_PLATFORM,
+  BRAND_OPEN,
+  BULLISH_WORD_MIN,
+  BULLISH_WORD_MAX,
+} from './config'
 import { anthropicReady, generateJSON } from './llm/anthropic'
 
 // Which pillars feature a specific machine's real math.
 const FEATURE_MINER: Record<Pillar, string | null> = {
+  bullish_caveat: 'antminer-s21-xp', // standard daily format always runs the S21 XP
   hashprice_check: 'antminer-s21-xp',
   hardware_reality: 'antminer-s21-xp',
   week_recap: 'antminer-s21-xp',
@@ -31,6 +40,16 @@ export function buildBrief(live: LiveNumbers, pillar: Pillar, angleOverride?: st
       : `${miner.name} loses $${Math.abs(miner.dailyProfitUsd).toFixed(2)}/day at $${Math.round(live.btcPrice).toLocaleString()} BTC — do not buy this today.`
   }
 
+  // Standard format: lead with the bullish case for the S21 XP, then the honest "but".
+  if (pillar === 'bullish_caveat' && miner) {
+    const btc = Math.round(live.btcPrice).toLocaleString()
+    angle = miner.profitable
+      ? `Bullish case: the ${miner.name} nets $${miner.dailyProfitUsd.toFixed(2)}/day at $${btc} BTC on $${miner.hostingMonthly}/mo flat hosting. ` +
+        `But: that only holds above breakeven ($${Math.round(miner.breakevenBtcPrice).toLocaleString()} BTC) and rising difficulty erodes it.`
+      : `Bullish case: the ${miner.name} is the most efficient machine you can host and it turns profitable the moment BTC clears its breakeven ($${Math.round(miner.breakevenBtcPrice).toLocaleString()}). ` +
+        `But: at today's $${btc} BTC it still loses $${Math.abs(miner.dailyProfitUsd).toFixed(2)}/day after hosting — don't buy in expecting profit today.`
+  }
+
   return { date, pillar, hookNumber, featuredMiner: miner, live, angle: angleOverride || angle }
 }
 
@@ -52,6 +71,32 @@ function claimedNumbers(brief: ContentBrief): ClaimedNumber[] {
 function mockScript(brief: ContentBrief, platform: Platform): Script {
   const m = brief.featuredMiner
   const btc = Math.round(brief.live.btcPrice).toLocaleString()
+
+  // Standard format: brand-open hook, bullish case, honest "but", single CTA at the close.
+  if (brief.pillar === 'bullish_caveat' && m) {
+    const profit = Math.abs(m.dailyProfitUsd).toFixed(2)
+    const breakeven = Math.round(m.breakevenBtcPrice).toLocaleString()
+    const bcHook = `${BRAND_OPEN} here — the ${m.name} ${m.profitable ? 'makes' : 'loses'} $${profit} a day right now.`
+    const bcBody = m.profitable
+      ? `Bullish case: at $${btc} BTC on $${m.hostingMonthly}/month flat hosting, the ${m.name}'s ${m.hashrateTh} terahash nets $${profit} a day — real profit from the most efficient machine you can host. But here's the honest part: that only holds above breakeven, $${breakeven} BTC, and rising difficulty chips at it every day. ${REQUIRED_CTA}.`
+      : `Bullish case: the ${m.name} is the most efficient machine you can host, and it flips profitable the moment BTC clears breakeven, $${breakeven}. But here's the honest part: at today's $${btc} BTC it still loses $${profit} a day after $${m.hostingMonthly}/month hosting — don't buy in expecting profit today. ${REQUIRED_CTA}.`
+    return {
+      platform,
+      pillar: brief.pillar,
+      hook: bcHook,
+      title: `S21 XP: ${m.profitable ? `+$${profit}/day` : `-$${profit}/day`} — the bullish case (and the catch)`,
+      body: bcBody,
+      onScreenText: [m.name, `${m.profitable ? '+' : '-'}$${profit}/day`, `Breakeven $${breakeven}`],
+      caption:
+        platform === 'x'
+          ? `${bcHook} ${REQUIRED_CTA}`
+          : `${bcHook} Full math + your own numbers at lightningmines.com.`,
+      hashtags: HASHTAGS_BY_PLATFORM[platform],
+      cta: REQUIRED_CTA,
+      disclosures: [AI_DISCLOSURE],
+      claimedNumbers: claimedNumbers(brief),
+    }
+  }
 
   const hook = m
     ? `The ${m.name} ${m.profitable ? 'makes' : 'loses'} $${Math.abs(m.dailyProfitUsd).toFixed(2)} a day right now.`
@@ -90,11 +135,36 @@ function mockScript(brief: ContentBrief, platform: Platform): Script {
   }
 }
 
+// Format-specific structure. The default bullish_caveat format is the one Jacob asked for:
+// ~30s, bullish case + honest "but", S21 XP always, brand named at the open, CTA at the close.
+function formatGuidance(brief: ContentBrief): string {
+  if (brief.pillar === 'bullish_caveat') {
+    return `LENGTH BUDGET (hard requirement): the spoken "body" must be ${BULLISH_WORD_MIN}-${BULLISH_WORD_MAX} words —
+roughly 30 seconds aloud. This is a tight, punchy format. Cut all setup.
+
+STRUCTURE (follow exactly — this is a bullish-case-with-a-caveat video):
+1. OPEN by naming the brand in the "hook": start with "${BRAND_OPEN}" and then the day's most
+   surprising S21 XP number (e.g. "${BRAND_OPEN} here — the S21 XP makes $X a day right now.").
+2. BULLISH CASE (first half of body): the strongest HONEST bullish point about the Antminer S21 XP
+   using the brief's numbers — daily profit if it's profitable, or efficiency + "profitable the
+   moment BTC clears breakeven" if it's not.
+3. THE "BUT" (second half of body): one clear, honest caveat that a real miner needs — breakeven
+   price, rising-difficulty risk, or that at today's price it still loses money. Never hide this.
+4. CLOSE: end the body with EXACTLY the required CTA, once. The CTA already contains
+   lightningmines.com, so the brand is named at the open and the URL at the close.
+
+DO NOT REPEAT (this fixes a real bug): say each number and each idea ONCE. Do NOT restate the hook
+number or recap at the end, and do NOT write the CTA or "lightningmines.com" more than once. End
+cleanly on the single CTA — no trailing repetition.`
+  }
+  return `LENGTH BUDGET (hard requirement): the spoken "body" must be 110-150 words — roughly 45-60 seconds
+aloud. Shorter retains viewers better and costs less to render. Cut setup, keep the mechanics.`
+}
+
 function userPrompt(brief: ContentBrief, platform: Platform): string {
   return `Write one ${platform.replace('_', ' ')} script for pillar "${brief.pillar}".
 
-LENGTH BUDGET (hard requirement): the spoken "body" must be 110-150 words — roughly 45-60 seconds
-aloud. Shorter retains viewers better and costs less to render. Cut setup, keep the mechanics.
+${formatGuidance(brief)}
 
 LIVE DATA BRIEF (use ONLY these numbers):
 ${JSON.stringify({ date: brief.date, angle: brief.angle, live: brief.live, featuredMiner: brief.featuredMiner }, null, 2)}

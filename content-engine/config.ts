@@ -22,6 +22,17 @@ export const HOSTING_MONTHLY_USD = 225
 // BRAND.md "The One CTA" — every piece ends with exactly this.
 export const REQUIRED_CTA = 'Run your own numbers free at lightningmines.com'
 
+// Every video bookends the brand: open by naming Lightning Mines, close on the CTA URL.
+export const BRAND_OPEN = 'Lightning Mines'
+
+// Standard daily format (Jacob, 2026-07-20): every default video is a ~30s bullish case
+// on the Antminer S21 XP with a mandatory honest "but" caveat. The caveat keeps us on
+// brand ("honest enough to tell you when NOT to buy") — bullish is never blind.
+export const DEFAULT_PILLAR: Pillar = 'bullish_caveat'
+// ~30 seconds at our HeyGen pace (~2.5-3 spoken words/sec). Hard budget for the default format.
+export const BULLISH_WORD_MIN = 70
+export const BULLISH_WORD_MAX = 90
+
 // Hype / FOMO vocabulary that hard-fails the brand gate.
 // Pure hype/FOMO vocabulary. "guaranteed"/"risk-free" are handled separately in
 // brandGate with negation awareness, since "not guaranteed" is honest, not hype.
@@ -61,6 +72,7 @@ export const HEYGEN_SCALE = Number(process.env.HEYGEN_SCALE || 2.7)
 // consistent look. All are motion-enabled looks in Jacob's avatar group (added 2026-07-17).
 // School episodes keep the original grey hoodie — that's the classroom identity.
 export const HEYGEN_LOOK_BY_PILLAR: Record<string, string> = {
+  bullish_caveat: '5412fd52d175431182c8c6bc526abf6b', // grey sweater — the daily-numbers look
   hashprice_check: '5412fd52d175431182c8c6bc526abf6b', // grey sweater
   week_recap: '5412fd52d175431182c8c6bc526abf6b', // grey sweater
   red_flag: '8b4eeda46b3a46618747bd402750b781', // olive shirt
