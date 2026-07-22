@@ -3,6 +3,7 @@
 export type Platform = 'youtube_shorts' | 'instagram_reels' | 'tiktok' | 'x'
 
 export type Pillar =
+  | 'bullish_caveat'    // DEFAULT daily format: bullish case + honest "but" caveat, S21 XP, ~30s
   | 'hashprice_check'   // Mon/Fri
   | 'red_flag'          // Tue
   | 'hardware_reality'  // Wed

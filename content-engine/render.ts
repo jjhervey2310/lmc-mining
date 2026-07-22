@@ -6,6 +6,7 @@ import {
   HEYGEN_TALKING_PHOTO_ID,
   HEYGEN_LOOK_BY_PILLAR,
   HEYGEN_VOICE_ID,
+  HEYGEN_VOICE_LOCALE,
   HEYGEN_SCALE,
   RENDER_WIDTH,
   RENDER_HEIGHT,
@@ -25,10 +26,37 @@ function speechify(text: string): string {
   return text.replace(/lightningmines\.com/gi, 'lightning mines dot com')
 }
 
+// Normalize a sentence for duplicate detection: lowercase, drop punctuation, collapse spaces.
+function normalizeSentence(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * Drop repeated sentences so the avatar doesn't say the same thing twice at the end
+ * (a real bug: models sometimes recap the hook or re-emit the CTA before signing off).
+ * Splits on sentence-ending punctuation followed by whitespace — the "." in
+ * "lightningmines.com" has no trailing space, so the URL stays intact. Keeps the first
+ * occurrence of each sentence; since duplicates cluster at the end, the CTA still lands last.
+ */
+export function dedupeSpeech(text: string): string {
+  const sentences = text.split(/(?<=[.!?])\s+/)
+  const seen = new Set<string>()
+  const kept: string[] = []
+  for (const sentence of sentences) {
+    const norm = normalizeSentence(sentence)
+    if (!norm) continue
+    if (seen.has(norm)) continue
+    seen.add(norm)
+    kept.push(sentence.trim())
+  }
+  return kept.join(' ')
+}
+
 /** What the avatar actually says: hook -> body. Body already ends with the CTA
- * (the generator prompt requires it), so appending script.cta here would repeat it. */
+ * (the generator prompt requires it), so appending script.cta here would repeat it.
+ * dedupeSpeech is a safety net that strips any duplicate sentence (e.g. a doubled CTA). */
 export function spokenText(script: Script): string {
-  return speechify([script.hook, script.body].filter(Boolean).join(' '))
+  return speechify(dedupeSpeech([script.hook, script.body].filter(Boolean).join(' ')))
 }
 
 async function heygen<T = any>(pathname: string, init?: RequestInit): Promise<T> {
@@ -62,7 +90,7 @@ export async function renderScriptVideo(script: Script, outFile: string, title: 
             talking_photo_id: HEYGEN_LOOK_BY_PILLAR[script.pillar] || HEYGEN_TALKING_PHOTO_ID,
             scale: HEYGEN_SCALE,
           },
-          voice: { type: 'text', voice_id: HEYGEN_VOICE_ID, input_text: spokenText(script) },
+          voice: { type: 'text', voice_id: HEYGEN_VOICE_ID, input_text: spokenText(script), locale: HEYGEN_VOICE_LOCALE },
         },
       ],
       dimension: { width: RENDER_WIDTH, height: RENDER_HEIGHT },
