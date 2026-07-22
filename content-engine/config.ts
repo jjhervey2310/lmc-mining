@@ -63,6 +63,9 @@ export const HEYGEN_API_KEY = process.env.HEYGEN_API_KEY || ''
 // Generated looks render as talking_photo, not avatar.
 export const HEYGEN_TALKING_PHOTO_ID = process.env.HEYGEN_TALKING_PHOTO_ID || '41920dc9d7e44063b3725b4a36818085'
 export const HEYGEN_VOICE_ID = process.env.HEYGEN_VOICE_ID || 'f6a3f8a4c96542ebb2f295c140614aea'
+// Pin the spoken language so HeyGen can't drift the clone's accent (it rendered en-AU once).
+// Override via HEYGEN_VOICE_LOCALE if the voice is ever intentionally non-US-English.
+export const HEYGEN_VOICE_LOCALE = process.env.HEYGEN_VOICE_LOCALE || 'en-US'
 // The look is a landscape studio shot; this zoom fills the 9:16 frame without letterboxing.
 // Lowered 3.2 -> 2.7 (2026-07-18): tight zoom was amplifying normal head motion into a
 // visible bob/twitch over 70-110s clips. Less zoom = less amplification, same framing intent.
