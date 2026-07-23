@@ -250,6 +250,30 @@ function parseScript(raw: string, brief: ContentBrief, platform: Platform): Scri
   }
 }
 
+// Models occasionally emit malformed JSON (unescaped quote, truncation). Retry with
+// the parse error fed back instead of crashing the whole run — a dead pipeline is a
+// missed posting day, and the gates still validate whatever ultimately parses.
+const JSON_ATTEMPTS = 3
+
+async function generateOneScript(brief: ContentBrief, platform: Platform): Promise<Script> {
+  let lastError = ''
+  for (let attempt = 1; attempt <= JSON_ATTEMPTS; attempt++) {
+    const prompt =
+      userPrompt(brief, platform) +
+      (lastError
+        ? `\n\nIMPORTANT: your previous response was not parseable JSON (${lastError}). Return ONLY one complete, valid JSON object — escape any double quotes inside string values, no trailing text.`
+        : '')
+    const raw = await generateJSON(BRAND_SYSTEM_PROMPT, prompt, 3000)
+    try {
+      return parseScript(raw, brief, platform)
+    } catch (e) {
+      lastError = (e instanceof Error ? e.message : String(e)).slice(0, 150)
+      console.log(`⚠ ${platform}: invalid JSON from generator (attempt ${attempt}/${JSON_ATTEMPTS}) — ${lastError}`)
+    }
+  }
+  throw new Error(`${platform}: generator returned invalid JSON ${JSON_ATTEMPTS} times — ${lastError}`)
+}
+
 export async function generateScripts(
   brief: ContentBrief,
   platforms: Platform[],
@@ -258,8 +282,7 @@ export async function generateScripts(
   if (mode === 'live' && anthropicReady()) {
     const out: Script[] = []
     for (const p of platforms) {
-      const raw = await generateJSON(BRAND_SYSTEM_PROMPT, userPrompt(brief, p))
-      out.push(parseScript(raw, brief, p))
+      out.push(await generateOneScript(brief, p))
     }
     return out
   }
