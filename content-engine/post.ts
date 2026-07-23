@@ -209,6 +209,8 @@ export async function printQueue(): Promise<void> {
  *   npm run content:post -- --date=2026-07-15
  *   npm run content:post -- --check        list connected channels and exit
  *   npm run content:post -- --queue        show what's scheduled/published around today
+ *   npm run content:post -- --platforms=tiktok,x   post only these (fill a missed platform
+ *                                          without duplicating the ones that succeeded)
  */
 async function main() {
   if (!postizReady()) throw new Error('POSTIZ_API_KEY not set in .env.local')
@@ -228,6 +230,9 @@ async function main() {
 
   const dateArg = args.find((a) => a.startsWith('--date='))?.split('=')[1]
   const videoArg = args.find((a) => a.startsWith('--video='))?.split('=')[1]
+  // --platforms=tiktok,x → post only those. Accepts engine names (instagram_reels)
+  // or short provider names (instagram); anything unrecognized fails loudly.
+  const platformsArg = args.find((a) => a.startsWith('--platforms='))?.split('=')[1]
   const outDir = path.resolve(process.cwd(), 'content-engine/out')
   const jsons = fs
     .readdirSync(outDir)
@@ -240,6 +245,21 @@ async function main() {
   // --video lets banked files (date-suffixed) or $0 motion-graphic MP4s ship with the day's captions.
   const videoFile = videoArg ? path.resolve(videoArg) : path.join(outDir, `${result.brief.date}.mp4`)
   if (!fs.existsSync(videoFile)) throw new Error(`${videoFile} not found — run content:render first (or pass --video=path)`)
+
+  if (platformsArg) {
+    const wanted = platformsArg.split(',').map((p) => p.trim().toLowerCase()).filter(Boolean)
+    const matches = (platform: Platform) =>
+      wanted.includes(platform) || wanted.includes(PROVIDER_BY_PLATFORM[platform])
+    const unknown = wanted.filter(
+      (w) => !Object.keys(PROVIDER_BY_PLATFORM).includes(w) && !Object.values(PROVIDER_BY_PLATFORM).includes(w)
+    )
+    if (unknown.length) {
+      throw new Error(`Unknown platform(s): ${unknown.join(', ')} — use ${Object.values(PROVIDER_BY_PLATFORM).join(', ')}`)
+    }
+    result.reviewed = result.reviewed.filter((r) => matches(r.script.platform))
+    if (!result.reviewed.length) throw new Error(`No scripts match --platforms=${platformsArg}`)
+    console.log(`Posting ONLY: ${result.reviewed.map((r) => r.script.platform).join(', ')}`)
+  }
 
   await publishDay(result, videoFile)
 }
