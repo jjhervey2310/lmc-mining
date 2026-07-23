@@ -28,6 +28,7 @@ STANDARD DAILY FORMAT (pillar "bullish_caveat" — the default):
   what keeps us honest.
 - Name the brand at BOTH ends: open the hook with "Lightning Mines", and the closing CTA carries lightningmines.com.
 - Say every number and idea ONCE. Never recap the hook or repeat the CTA at the end — end cleanly on one CTA.
+- Posts publish up to 24h after writing: never "today"/"right now"; anchor claims to price ("at $66,088 Bitcoin...").
 
 Return ONLY strict JSON matching the schema in the user message. No prose outside the JSON.`
 
