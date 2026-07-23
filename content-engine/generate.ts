@@ -151,6 +151,15 @@ NEVER say "today", "right now", "tonight", "this morning", or reference the date
 claim to the price instead: "At $66,088 Bitcoin, the S21 XP nets $1.32 a day." Price-conditional
 statements stay true as long as the price holds; date-stamped ones go stale overnight.
 
+SPOKEN NUMBERS (the "body" is read aloud by a voice clone — write numbers for the EAR):
+- In the body, round and humanize every figure the way a person actually talks:
+  "$64,716" → "around sixty-five thousand dollars" · "$1.14/day" → "a dollar fourteen a day" ·
+  "$56,193" → "about fifty-six thousand" · "127.17 trillion" → "over a hundred twenty-seven trillion".
+  Reciting long exact digits is the #1 robot-tell in the finished video.
+- Maximum 2-3 spoken numbers in the body — pick the ones that carry the story.
+- EXACT figures go in "onScreenText" and "caption" — the screen carries the digits, the voice
+  carries the meaning. Never round far enough to change the verdict.
+
 STRUCTURE (follow exactly — this is a bullish-case-with-a-caveat video):
 1. OPEN by naming the brand in the "hook": start with "${BRAND_OPEN}" and then the most
    surprising S21 XP number, price-anchored (e.g. "${BRAND_OPEN} here — at $X Bitcoin, the S21 XP

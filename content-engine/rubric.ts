@@ -38,7 +38,7 @@ Return strict JSON: { "score": number (0-100), "pass": boolean, "issues": string
 PASS only if score >= 80 AND there is no hard-rule violation.
 
 Check:
-1. NUMBERS — every figure appears in the provided live-data brief; nothing invented. The profit/loss verdict matches the math.
+1. NUMBERS — every figure appears in the provided live-data brief; nothing invented. The profit/loss verdict matches the math. The spoken "body" SHOULD round numbers conversationally ("around sixty-five thousand" for $64,716) — that is correct, not a mismatch — as long as onScreenText/caption carry the exact figures and no rounding changes the verdict. Flag a body that recites long exact digits (robotic) or rounds so far the verdict shifts.
 2. HONESTY — the downside is stated plainly; no guaranteed-return or hype/FOMO language.
 3. HOOK — the first line lands a surprising, specific number in ~1.5s. Would a scrolling miner stop?
 4. VOICE — calm, precise, Bloomberg-desk; not crypto-bro; zero cringe.

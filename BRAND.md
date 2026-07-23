@@ -84,6 +84,10 @@ The avatar reads exactly what we write. Write for the EAR, not the page:
    90 seconds ~270. (Learned: Ep. 1 v2 first cut, 148 words = 49s.)
 7. **Read it aloud before rendering.** If you wouldn't say the sentence to a friend at a bar,
    rewrite it.
+8. **Round spoken numbers; screen carries the digits.** (Learned 2026-07-23 — Jacob: "I sound
+   like a robot when I say numbers.") The voice says "around sixty-five thousand dollars" and
+   "a dollar fourteen a day"; the exact $64,716 / $1.14 live in on-screen text and captions.
+   Max 2-3 spoken numbers per 30s script. Never round enough to change the verdict.
 
 ## Visual Style
 
