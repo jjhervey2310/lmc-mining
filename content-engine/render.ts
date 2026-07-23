@@ -5,6 +5,7 @@ import {
   HEYGEN_API_KEY,
   HEYGEN_TALKING_PHOTO_ID,
   HEYGEN_LOOK_BY_PILLAR,
+  bullishLookForDate,
   HEYGEN_VOICE_ID,
   HEYGEN_VOICE_LOCALE,
   HEYGEN_SCALE,
@@ -75,8 +76,15 @@ async function heygen<T = any>(pathname: string, init?: RequestInit): Promise<T>
  * Render one script as a vertical avatar video: submit -> poll -> download.
  * Returns the local MP4 path. Costs HeyGen quota — only call on approved scripts.
  */
-export async function renderScriptVideo(script: Script, outFile: string, title: string): Promise<string> {
+export async function renderScriptVideo(script: Script, outFile: string, title: string, dateISO?: string): Promise<string> {
   if (!heygenReady()) throw new Error('HEYGEN_API_KEY not set in .env.local')
+
+  // Daily bullish videos rotate wardrobe every day (never the grey hoodie — that's the
+  // Lightning Lessons look). Other pillars keep their fixed look, hoodie as fallback.
+  const look =
+    script.pillar === 'bullish_caveat'
+      ? bullishLookForDate(dateISO || new Date().toISOString().slice(0, 10))
+      : HEYGEN_LOOK_BY_PILLAR[script.pillar] || HEYGEN_TALKING_PHOTO_ID
 
   const { video_id } = await heygen<{ video_id: string }>('/v2/video/generate', {
     method: 'POST',
@@ -86,8 +94,7 @@ export async function renderScriptVideo(script: Script, outFile: string, title: 
         {
           character: {
             type: 'talking_photo',
-            // Wardrobe rotation: pillar-specific look, falling back to the grey hoodie.
-            talking_photo_id: HEYGEN_LOOK_BY_PILLAR[script.pillar] || HEYGEN_TALKING_PHOTO_ID,
+            talking_photo_id: look,
             scale: HEYGEN_SCALE,
           },
           voice: { type: 'text', voice_id: HEYGEN_VOICE_ID, input_text: spokenText(script), locale: HEYGEN_VOICE_LOCALE },
@@ -147,7 +154,7 @@ async function main() {
 
   const outFile = path.join(outDir, `${result.brief.date}.mp4`)
   console.log(`🎬 Rendering ${result.brief.date} ${result.brief.pillar} (${short.script.platform}) via HeyGen...`)
-  await renderScriptVideo(short.script, outFile, `LMC ${result.brief.date} — ${result.brief.pillar}`)
+  await renderScriptVideo(short.script, outFile, `LMC ${result.brief.date} — ${result.brief.pillar}`, result.brief.date)
   console.log(`✅ Video written to ${path.relative(process.cwd(), outFile)}`)
 }
 

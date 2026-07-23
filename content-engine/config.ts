@@ -74,8 +74,27 @@ export const HEYGEN_SCALE = Number(process.env.HEYGEN_SCALE || 2.7)
 // Wardrobe rotation: same face/voice, different outfit per pillar so each series has a
 // consistent look. All are motion-enabled looks in Jacob's avatar group (added 2026-07-17).
 // School episodes keep the original grey hoodie — that's the classroom identity.
+// Daily bullish videos rotate wardrobe EVERY video (Jacob, 2026-07-23) so the feed
+// never looks copy-pasted. Grey hoodie is excluded — it's reserved for Lightning Lessons.
+// Navy leads: Jacob noticed the darker top pulled the most views (single-video signal,
+// 2026-07-23) — treat as a hypothesis until confirmed across 5+ videos at the review.
+export const HEYGEN_BULLISH_ROTATION = [
+  '79fe785cd16c4b5f950a733b19f02505', // navy hoodie
+  '5412fd52d175431182c8c6bc526abf6b', // grey sweater
+  '8b4eeda46b3a46618747bd402750b781', // olive shirt
+  'ae7617f1a11f487c9cbfc68797606198', // studio setting
+]
+
+/** Deterministic per-day look for the daily bullish video: rotates through the
+ * non-hoodie wardrobe by day-of-year, so consecutive days never repeat an outfit. */
+export function bullishLookForDate(dateISO: string): string {
+  const d = new Date(`${dateISO}T00:00:00Z`)
+  const start = Date.UTC(d.getUTCFullYear(), 0, 0)
+  const dayOfYear = Math.floor((d.getTime() - start) / 86_400_000)
+  return HEYGEN_BULLISH_ROTATION[dayOfYear % HEYGEN_BULLISH_ROTATION.length]
+}
+
 export const HEYGEN_LOOK_BY_PILLAR: Record<string, string> = {
-  bullish_caveat: '5412fd52d175431182c8c6bc526abf6b', // grey sweater — the daily-numbers look
   hashprice_check: '5412fd52d175431182c8c6bc526abf6b', // grey sweater
   week_recap: '5412fd52d175431182c8c6bc526abf6b', // grey sweater
   red_flag: '8b4eeda46b3a46618747bd402750b781', // olive shirt
