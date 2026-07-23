@@ -169,12 +169,46 @@ export async function publishDay(result: PipelineResult, videoFile: string, when
   console.log(`✅ Published ${posts.length} post(s) via Postiz`)
 }
 
+/** List what's actually scheduled/published in Postiz around today, grouped by day.
+ * Answers "did everything go out?" without opening the dashboard. TikTok's 8pm ET
+ * slot is stored as 00:00Z next day, so the range spans yesterday..+2 days. */
+export async function printQueue(): Promise<void> {
+  const start = new Date(); start.setUTCDate(start.getUTCDate() - 1)
+  const end = new Date(); end.setUTCDate(end.getUTCDate() + 2)
+  const qs = `?startDate=${start.toISOString()}&endDate=${end.toISOString()}`
+  const data = await postiz<any>(`/posts${qs}`)
+  const posts: any[] = Array.isArray(data) ? data : data.posts || []
+  const integrations = await listIntegrations()
+
+  if (!posts.length) {
+    console.log('⚠ Postiz returned ZERO posts in the window (yesterday → +2 days). Nothing is queued.')
+    return
+  }
+  const byDay = new Map<string, any[]>()
+  for (const p of posts) {
+    const when = p.publishDate || p.date || p.createdAt || ''
+    const day = String(when).slice(0, 10) || 'unknown'
+    byDay.set(day, [...(byDay.get(day) || []), p])
+  }
+  for (const day of [...byDay.keys()].sort()) {
+    console.log(`\n${day}:`)
+    for (const p of byDay.get(day)!) {
+      const integ = integrations.find((i) => i.id === (p.integration?.id || p.integrationId))
+      const label = integ?.identifier || p.integration?.providerIdentifier || 'unknown-channel'
+      const time = String(p.publishDate || p.date || '').slice(11, 16)
+      console.log(`  ${time}Z  ${label.padEnd(22)} ${p.state || p.status || ''}`)
+    }
+  }
+  console.log('\nExpect 4/day: x · youtube · instagram · tiktok (tiktok 8pm ET shows as 00:00Z NEXT day).')
+}
+
 /**
  * CLI: post the day's rendered video + captions.
  *
  *   npm run content:post                   latest JSON + MP4 in out/
  *   npm run content:post -- --date=2026-07-15
  *   npm run content:post -- --check        list connected channels and exit
+ *   npm run content:post -- --queue        show what's scheduled/published around today
  */
 async function main() {
   if (!postizReady()) throw new Error('POSTIZ_API_KEY not set in .env.local')
@@ -184,6 +218,11 @@ async function main() {
     const list = await listIntegrations()
     console.log('Connected Postiz channels:')
     for (const i of list) console.log(`  ${i.identifier}  ${i.name}${i.disabled ? '  (disabled)' : ''}`)
+    return
+  }
+
+  if (args.includes('--queue')) {
+    await printQueue()
     return
   }
 

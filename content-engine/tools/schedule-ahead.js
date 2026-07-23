@@ -20,6 +20,11 @@ const SETTINGS = {
 }
 const caption = (s) => [s.caption, s.hashtags.join(' '), s.disclosures.join(' ')].filter(Boolean).join('\n\n')
 const xText = (s) => [s.hook, s.body, s.hashtags.join(' ')].filter(Boolean).join('\n\n')
+// 280-char fallback if the long X post is rejected (same behavior as post.ts).
+const xShort = (s) => {
+  const t = [s.caption, s.hashtags.join(' ')].filter(Boolean).join('\n\n')
+  return t.length <= 280 ? t : (s.caption.length <= 280 ? s.caption : s.caption.slice(0, 279) + '…')
+}
 
 function dateFor(day, provider) {
   const t = TIMES_UTC[provider]
@@ -41,17 +46,34 @@ function dateFor(day, provider) {
   const media = await up.json()
   if (!media.id) throw new Error('upload failed: ' + JSON.stringify(media))
 
+  // A platform that fails to schedule must fail the whole run loudly — a silent
+  // "3 of 4" is how a day gets missed without anyone noticing.
+  const failed = []
   for (const r of result.reviewed) {
-    if (!r.passedAll) { console.log('skip (gates):', r.script.platform); continue }
+    if (!r.passedAll) { console.log('skip (gates):', r.script.platform); failed.push(r.script.platform); continue }
     const prov = PROVIDER[r.script.platform]
     const integ = ints.find((i) => i.identifier?.includes(prov) && !i.disabled)
-    if (!integ) { console.log('skip (no channel):', prov); continue }
+    if (!integ) { console.log('skip (no channel):', prov); failed.push(prov); continue }
     const when = dateFor(day, prov)
-    const body = {
-      type: 'date', date: when, shortLink: false, tags: [],
-      posts: [{ integration: { id: integ.id }, value: [{ content: r.script.platform === 'x' ? xText(r.script) : caption(r.script), image: [{ id: media.id, path: media.path }] }], settings: SETTINGS[r.script.platform](r.script) }],
+    const send = (content) =>
+      fetch(URL + '/posts', {
+        method: 'POST', headers: { ...H, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'date', date: when, shortLink: false, tags: [],
+          posts: [{ integration: { id: integ.id }, value: [{ content, image: [{ id: media.id, path: media.path }] }], settings: SETTINGS[r.script.platform](r.script) }],
+        }),
+      })
+    let res = await send(r.script.platform === 'x' ? xText(r.script) : caption(r.script))
+    if (!res.ok && r.script.platform === 'x') {
+      console.log('x long post rejected — retrying 280-char version')
+      res = await send(xShort(r.script))
     }
-    const res = await fetch(URL + '/posts', { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     console.log(prov, when, res.status, res.ok ? 'SCHEDULED' : (await res.text()).slice(0, 120))
+    if (!res.ok) failed.push(prov)
   }
+  if (failed.length) {
+    console.error(`\n⛔ NOT fully scheduled — missing: ${failed.join(', ')}. Fix and re-run for those platforms.`)
+    process.exit(1)
+  }
+  console.log(`\n✅ All 4 platforms scheduled for ${day}`)
 })().catch((e) => { console.error(e); process.exit(1) })
