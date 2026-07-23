@@ -47,7 +47,7 @@ export function buildBrief(live: LiveNumbers, pillar: Pillar, angleOverride?: st
       ? `Bullish case: the ${miner.name} nets $${miner.dailyProfitUsd.toFixed(2)}/day at $${btc} BTC on $${miner.hostingMonthly}/mo flat hosting. ` +
         `But: that only holds above breakeven ($${Math.round(miner.breakevenBtcPrice).toLocaleString()} BTC) and rising difficulty erodes it.`
       : `Bullish case: the ${miner.name} is the most efficient machine you can host and it turns profitable the moment BTC clears its breakeven ($${Math.round(miner.breakevenBtcPrice).toLocaleString()}). ` +
-        `But: at today's $${btc} BTC it still loses $${Math.abs(miner.dailyProfitUsd).toFixed(2)}/day after hosting — don't buy in expecting profit today.`
+        `But: at $${btc} BTC it still loses $${Math.abs(miner.dailyProfitUsd).toFixed(2)}/day after hosting — don't buy in expecting instant profit.`
   }
 
   return { date, pillar, hookNumber, featuredMiner: miner, live, angle: angleOverride || angle }
@@ -76,10 +76,10 @@ function mockScript(brief: ContentBrief, platform: Platform): Script {
   if (brief.pillar === 'bullish_caveat' && m) {
     const profit = Math.abs(m.dailyProfitUsd).toFixed(2)
     const breakeven = Math.round(m.breakevenBtcPrice).toLocaleString()
-    const bcHook = `${BRAND_OPEN} here — the ${m.name} ${m.profitable ? 'makes' : 'loses'} $${profit} a day right now.`
+    const bcHook = `${BRAND_OPEN} here — at $${btc} Bitcoin, the ${m.name} ${m.profitable ? 'makes' : 'loses'} $${profit} a day.`
     const bcBody = m.profitable
       ? `Bullish case: at $${btc} BTC on $${m.hostingMonthly}/month flat hosting, the ${m.name}'s ${m.hashrateTh} terahash nets $${profit} a day — real profit from the most efficient machine you can host. But here's the honest part: that only holds above breakeven, $${breakeven} BTC, and rising difficulty chips at it every day. ${REQUIRED_CTA}.`
-      : `Bullish case: the ${m.name} is the most efficient machine you can host, and it flips profitable the moment BTC clears breakeven, $${breakeven}. But here's the honest part: at today's $${btc} BTC it still loses $${profit} a day after $${m.hostingMonthly}/month hosting — don't buy in expecting profit today. ${REQUIRED_CTA}.`
+      : `Bullish case: the ${m.name} is the most efficient machine you can host, and it flips profitable the moment BTC clears breakeven, $${breakeven}. But here's the honest part: at $${btc} BTC it still loses $${profit} a day after $${m.hostingMonthly}/month hosting — don't buy in expecting instant profit. ${REQUIRED_CTA}.`
     return {
       platform,
       pillar: brief.pillar,
@@ -143,12 +143,18 @@ function formatGuidance(brief: ContentBrief): string {
 roughly 30 seconds aloud. This is a tight, punchy format. Cut all setup.
 
 TONE: energetic and impactful — make the viewer feel that mining is a real, live opportunity worth
-getting excited about TODAY. The excitement must come from the specificity of the numbers (real
+getting excited about. The excitement must come from the specificity of the numbers (real
 dollars, real breakeven, real headroom), never from hype vocabulary. Short sentences. Momentum.
 
+TIMELESS PHRASING (hard requirement): this post may publish up to 24 hours after you write it.
+NEVER say "today", "right now", "tonight", "this morning", or reference the date. Anchor every
+claim to the price instead: "At $66,088 Bitcoin, the S21 XP nets $1.32 a day." Price-conditional
+statements stay true as long as the price holds; date-stamped ones go stale overnight.
+
 STRUCTURE (follow exactly — this is a bullish-case-with-a-caveat video):
-1. OPEN by naming the brand in the "hook": start with "${BRAND_OPEN}" and then the day's most
-   surprising S21 XP number (e.g. "${BRAND_OPEN} here — the S21 XP makes $X a day right now.").
+1. OPEN by naming the brand in the "hook": start with "${BRAND_OPEN}" and then the most
+   surprising S21 XP number, price-anchored (e.g. "${BRAND_OPEN} here — at $X Bitcoin, the S21 XP
+   makes $Y a day.").
 2. BULLISH CASE (first half of body): the strongest HONEST bullish point about the Antminer S21 XP
    using the brief's numbers — daily profit if it's profitable, or efficiency + "profitable the
    moment BTC clears breakeven" if it's not.

@@ -30,6 +30,13 @@ export function brandGate(script: Script): GateResult {
     if (hay.includes(c)) issues.push(`Competing CTA ("${c}") — BRAND.md allows only the calculator CTA`)
   }
 
+  // Buffered posts publish up to 24h after generation — date-stamped phrasing goes
+  // stale overnight. The standard daily format must anchor claims to price instead.
+  if (script.pillar === 'bullish_caveat') {
+    const dated = hay.match(/\b(today|right now|tonight|this morning|as of now|currently)\b/)
+    if (dated) issues.push(`Date-stamped phrasing ("${dated[1]}") — buffered posts must use price-conditional wording ("at $X BTC")`)
+  }
+
   // AI presenter disclosure always required.
   if (!script.disclosures.some((d) => d.toLowerCase().includes('ai'))) {
     issues.push('Missing AI-presenter disclosure')

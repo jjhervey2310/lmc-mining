@@ -1,11 +1,12 @@
 #!/bin/bash
 # Lightning Mines — durable daily content chain (launchd, no Claude session required).
-# Generates today's bullish_caveat script from live data, renders via HeyGen
-# (wardrobe auto-rotates, never the grey hoodie), and schedules today's 4 posts
-# in Postiz (X 9am / YT 2pm / IG 6pm / TikTok 8pm ET via tools/schedule-ahead.js).
-#
-# Numbers are computed at run time, so same-day scheduling keeps them fresh
-# (stale-numbers rule). Idempotent: exits early if today's MP4 already exists.
+# BUFFER MODE (Jacob, 2026-07-22): each run generates from live data, renders via
+# HeyGen (wardrobe auto-rotates, never the grey hoodie), and schedules TOMORROW's
+# 4 posts in Postiz (X 9am / YT 2pm / IG 6pm / TikTok 8pm ET). Result: at any
+# moment the next day is already queued — a standing >=24h content buffer.
+# Scripts use price-conditional phrasing ("at $66,088 BTC...") so the ~1-day lag
+# never makes a claim stale.
+# Idempotent: skips if the target day was already scheduled (marker file).
 set -euo pipefail
 
 # launchd runs with a bare PATH; include Homebrew + system node locations.
@@ -15,14 +16,15 @@ REPO="${LMC_REPO:-$HOME/Desktop/lmc-mining}"
 LOG_DIR="$HOME/LightningMines-Content/logs"
 mkdir -p "$LOG_DIR"
 TODAY="$(date +%F)"
+TARGET="$(date -v+1d +%F)"
 exec >>"$LOG_DIR/chain-$TODAY.log" 2>&1
 
-echo "=== $(date) — daily content chain start ==="
+echo "=== $(date) — daily content chain start (buffering $TARGET) ==="
 cd "$REPO"
 
-MP4="content-engine/out/$TODAY.mp4"
-if [ -f "$MP4" ]; then
-  echo "Already rendered today ($MP4 exists) — assuming scheduled; exiting."
+MARKER="$HOME/LightningMines-Content/.scheduled-$TARGET"
+if [ -f "$MARKER" ]; then
+  echo "$TARGET already scheduled ($MARKER exists) — exiting."
   exit 0
 fi
 
@@ -36,6 +38,8 @@ if [ -z "$JSON" ]; then
 fi
 
 npm run content:render -- --date="$TODAY"
+MP4="content-engine/out/$TODAY.mp4"
 
-NODE_PATH="$REPO/node_modules" node content-engine/tools/schedule-ahead.js "$JSON" "$MP4" "$TODAY"
-echo "=== $(date) — chain complete: $TODAY queued on all 4 platforms ==="
+NODE_PATH="$REPO/node_modules" node content-engine/tools/schedule-ahead.js "$JSON" "$MP4" "$TARGET"
+touch "$MARKER"
+echo "=== $(date) — chain complete: $TARGET queued on all 4 platforms ==="
