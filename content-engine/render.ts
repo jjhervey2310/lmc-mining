@@ -81,10 +81,13 @@ export async function renderScriptVideo(script: Script, outFile: string, title: 
 
   // Daily bullish videos rotate wardrobe every day (never the grey hoodie — that's the
   // Lightning Lessons look). Other pillars keep their fixed look, hoodie as fallback.
+  // HEYGEN_LOOK_OVERRIDE forces a specific look for one run (e.g. re-rendering a day
+  // whose rotation slot already aired, so the redo doesn't repeat the outfit).
   const look =
-    script.pillar === 'bullish_caveat'
+    process.env.HEYGEN_LOOK_OVERRIDE ||
+    (script.pillar === 'bullish_caveat'
       ? bullishLookForDate(dateISO || new Date().toISOString().slice(0, 10))
-      : HEYGEN_LOOK_BY_PILLAR[script.pillar] || HEYGEN_TALKING_PHOTO_ID
+      : HEYGEN_LOOK_BY_PILLAR[script.pillar] || HEYGEN_TALKING_PHOTO_ID)
 
   const { video_id } = await heygen<{ video_id: string }>('/v2/video/generate', {
     method: 'POST',
