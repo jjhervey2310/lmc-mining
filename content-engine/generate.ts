@@ -142,6 +142,10 @@ function formatGuidance(brief: ContentBrief): string {
     return `LENGTH BUDGET (hard requirement): the spoken "body" must be ${BULLISH_WORD_MIN}-${BULLISH_WORD_MAX} words —
 roughly 30 seconds aloud. This is a tight, punchy format. Cut all setup.
 
+TONE: energetic and impactful — make the viewer feel that mining is a real, live opportunity worth
+getting excited about TODAY. The excitement must come from the specificity of the numbers (real
+dollars, real breakeven, real headroom), never from hype vocabulary. Short sentences. Momentum.
+
 STRUCTURE (follow exactly — this is a bullish-case-with-a-caveat video):
 1. OPEN by naming the brand in the "hook": start with "${BRAND_OPEN}" and then the day's most
    surprising S21 XP number (e.g. "${BRAND_OPEN} here — the S21 XP makes $X a day right now.").
