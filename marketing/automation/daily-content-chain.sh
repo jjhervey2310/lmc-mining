@@ -32,13 +32,18 @@ fi
 git pull --ff-only origin main || echo "WARN: git pull failed — running with local code"
 
 npm run content:run
-JSON="$(ls -t content-engine/out/"$TODAY"-*.json 2>/dev/null | head -1)"
+# The engine names outputs by UTC date, which is a day ahead of Mountain Time in
+# the evening — so select the NEWEST files rather than matching today's local date.
+JSON="$(ls -t content-engine/out/*.json 2>/dev/null | head -1)"
 if [ -z "$JSON" ]; then
-  echo "ERROR: content:run produced no JSON for $TODAY"; exit 1
+  echo "ERROR: content:run produced no pipeline JSON"; exit 1
 fi
 
-npm run content:render -- --date="$TODAY"
-MP4="content-engine/out/$TODAY.mp4"
+npm run content:render
+MP4="$(ls -t content-engine/out/*.mp4 2>/dev/null | head -1)"
+if [ -z "$MP4" ]; then
+  echo "ERROR: content:render produced no MP4"; exit 1
+fi
 
 NODE_PATH="$REPO/node_modules" node content-engine/tools/schedule-ahead.js "$JSON" "$MP4" "$TARGET"
 touch "$MARKER"
