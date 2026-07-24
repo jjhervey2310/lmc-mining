@@ -28,6 +28,21 @@ if [ -f "$MARKER" ]; then
   exit 0
 fi
 
+# Wait for network: a 6:45am run on a just-woken Mac can have no DNS for a bit.
+# Retry every 15 min for up to 2h instead of dying on the first ENOTFOUND
+# (2026-07-24: one blip cost the day's buffer).
+NET_OK=""
+for attempt in $(seq 1 8); do
+  if curl -fsS --max-time 10 "https://www.lightningmines.com/api/btc-price" >/dev/null 2>&1; then
+    NET_OK=1; break
+  fi
+  echo "network not ready (attempt $attempt/8) — sleeping 15 min"
+  sleep 900
+done
+if [ -z "$NET_OK" ]; then
+  echo "ERROR: no network after 2h of retries — giving up for today"; exit 1
+fi
+
 # Stay current with main so format changes ship without manual pulls.
 git pull --ff-only origin main || echo "WARN: git pull failed — running with local code"
 
