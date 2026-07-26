@@ -145,6 +145,19 @@ function varietyGate(script: Script, otherHooks: string[]): GateResult {
   return { gate: 'variety (no repeated hooks across the week)', pass: issues.length === 0, issues }
 }
 
+/** Lessons the weekly dual-brain analytics review confirmed — fed into every script's brief. */
+async function activeLessons(): Promise<string[]> {
+  const supabase = createServiceClient()
+  if (!supabase) return []
+  const { data } = await supabase
+    .from('content_lessons')
+    .select('lesson')
+    .eq('active', true)
+    .order('created_at', { ascending: false })
+    .limit(5)
+  return (data || []).map((r) => r.lesson)
+}
+
 /** Hooks already cached for the surrounding week, so the variety gate has something to compare against. */
 async function nearbyHooks(targetDate: string): Promise<string[]> {
   const supabase = createServiceClient()
@@ -187,6 +200,11 @@ async function engineDrop(deadline: number, targetDate: string): Promise<MakeDro
     ` HOOK ANGLE for this piece (${targetDate}): ${HOOK_SEED[pillar] || HOOK_SEED.explainer}.` +
     (pillar === 'hardware_reality' ? HARDWARE_NO_PRICE : '')
   const brief = buildBrief(live, pillar, pillar === 'bullish_caveat' ? undefined : evergreenAngle)
+
+  const lessons = await activeLessons()
+  if (lessons.length) {
+    brief.angle += ` LESSONS FROM OUR OWN ANALYTICS (both reviewers agreed — apply them): ${lessons.join(' | ')}`
+  }
 
   const otherHooks = await nearbyHooks(targetDate)
 
