@@ -41,6 +41,9 @@ Check:
 1. NUMBERS — every figure appears in the provided live-data brief; nothing invented. The profit/loss verdict matches the math. The spoken "body" SHOULD round numbers conversationally ("around sixty-five thousand" for $64,716) — that is correct, not a mismatch — as long as onScreenText/caption carry the exact figures and no rounding changes the verdict. Flag a body that recites long exact digits (robotic) or rounds so far the verdict shifts.
 2. HONESTY — the downside is stated plainly; no guaranteed-return or hype/FOMO language.
 3. HOOK — the first line lands a surprising, specific number in ~1.5s. Would a scrolling miner stop?
+   EXCEPTION: for an EVERGREEN piece (the brief's angle forbids price numbers), a sharp
+   Bitcoin-mining question hook ("Is Bitcoin mining still worth it?") is correct — do not
+   penalize the missing number, and do not penalize the absence of live figures anywhere.
 4. VOICE — calm, precise, Bloomberg-desk; not crypto-bro; zero cringe.
 5. DISCLOSURES — AI presenter disclosed; affiliate disclosed if Abundant Mines/Kraken/Koinly appear.
 6. CTA — exactly one, and it is "Run your own numbers free at lightningmines.com". It must appear ONCE; flag any script that repeats the CTA or recaps the hook number at the end (end-repetition is a defect).

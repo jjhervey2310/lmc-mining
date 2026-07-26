@@ -12,8 +12,11 @@ async function handle(req: Request) {
   }
 
   try {
-    const refresh = new URL(req.url).searchParams.get('refresh') === '1'
-    const drop = await getMakeDrop({ refresh })
+    const params = new URL(req.url).searchParams
+    const drop = await getMakeDrop({
+      refresh: params.get('refresh') === '1',
+      date: params.get('date') || undefined,
+    })
     return NextResponse.json({
       ...drop,
       make: {
