@@ -136,6 +136,8 @@ export function Shell({
     `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(q)}&location=Denver%2C%20Colorado&f_TPR=r86400`
   return (
     <div className="min-h-screen bg-black font-mono text-neutral-300">
+      {/* The terminal is full-screen: hide the public site chrome (ticker, navbar, footer, banners). */}
+      <style>{`body > :not(#main) { display: none !important; } #main { padding-bottom: 0 !important; }`}</style>
       <div className="mx-auto max-w-[1400px] px-3 py-2">
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-amber-500/40 pb-2">
           <div className="flex items-baseline gap-4">
