@@ -35,29 +35,29 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
           <div className="space-y-2">
             {Object.entries(byDay).sort().map(([d, list]) => (
               <div key={d}>
-                <div className="text-[11px] font-bold text-amber-500">{d}</div>
+                <div className="text-[12px] font-bold text-amber-500">{d}</div>
                 {(list ?? []).sort((a, b) => a.publishDate.localeCompare(b.publishDate)).map((p) => (
-                  <div key={p.id} className="grid grid-cols-[70px_90px_70px_1fr] gap-2 text-[12px]">
-                    <span className="text-neutral-500">{denverTime(p.publishDate)}</span>
-                    <span className="text-neutral-300">{p.platform}</span>
-                    <span className={p.state === 'QUEUE' ? 'text-yellow-500' : p.state === 'PUBLISHED' ? 'text-green-500' : 'text-red-500'}>{p.state}</span>
-                    <span className="truncate text-neutral-600">{p.content.split('\n')[0].slice(0, 90)}</span>
+                  <div key={p.id} className="grid grid-cols-[70px_90px_70px_1fr] gap-2 text-[13px]">
+                    <span className="text-neutral-600">{denverTime(p.publishDate)}</span>
+                    <span className="text-neutral-800">{p.platform}</span>
+                    <span className={p.state === 'QUEUE' ? 'text-yellow-600' : p.state === 'PUBLISHED' ? 'text-green-600' : 'text-red-600'}>{p.state}</span>
+                    <span className="truncate text-neutral-500">{p.content.split('\n')[0].slice(0, 90)}</span>
                   </div>
                 ))}
               </div>
             ))}
           </div>
         ) : (
-          <span className="text-[12px] text-red-500">Postiz unreachable or queue empty.</span>
+          <span className="text-[13px] text-red-600">Postiz unreachable or queue empty.</span>
         )}
       </Panel>
 
       <div className="mt-3 space-y-3">
         {cacheRows.map((c) => (
           <Panel key={c.cache_date} title={`${c.cache_date} — ${c.payload?.theme || c.source}`}
-            right={<span className={`text-[10px] ${c.source === 'engine' ? 'text-green-500' : 'text-yellow-500'}`}>{c.source}{c.payload?.gates ? ` · gates ${c.payload.gates.filter((g) => g.pass).length}/${c.payload.gates.length}` : ''}</span>}>
-            <div className="text-[12px] text-amber-400">{c.payload?.hook}</div>
-            <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-neutral-400">{c.payload?.script}</p>
+            right={<span className={`text-[11px] ${c.source === 'engine' ? 'text-green-600' : 'text-yellow-600'}`}>{c.source}{c.payload?.gates ? ` · gates ${c.payload.gates.filter((g) => g.pass).length}/${c.payload.gates.length}` : ''}</span>}>
+            <div className="text-[13px] text-amber-600">{c.payload?.hook}</div>
+            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-700">{c.payload?.script}</p>
           </Panel>
         ))}
       </div>

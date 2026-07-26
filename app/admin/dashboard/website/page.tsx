@@ -39,18 +39,18 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <Panel title="By type">
           {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
-            <div key={k} className="flex justify-between text-[12px]"><span className="text-neutral-400">{k.replace('_', ' ')}</span><span className="text-amber-400">{v}</span></div>
+            <div key={k} className="flex justify-between text-[13px]"><span className="text-neutral-700">{k.replace('_', ' ')}</span><span className="text-amber-600">{v}</span></div>
           ))}
         </Panel>
         <Panel title="By source">
           {Object.entries(bySource).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => (
-            <div key={k} className="flex justify-between text-[12px]"><span className="truncate text-neutral-400">{k}</span><span className="text-amber-400">{v}</span></div>
+            <div key={k} className="flex justify-between text-[13px]"><span className="truncate text-neutral-700">{k}</span><span className="text-amber-600">{v}</span></div>
           ))}
         </Panel>
       </div>
 
-      <p className="mt-3 text-[11px] text-neutral-500">
-        Full lead list: <Link href={`/admin/leads?secret=${secret}`} className="text-amber-400 hover:underline">/admin/leads</Link> ·
+      <p className="mt-3 text-[12px] text-neutral-600">
+        Full lead list: <Link href={`/admin/leads?secret=${secret}`} className="text-amber-600 hover:underline">/admin/leads</Link> ·
         GA4 traffic + revenue counters: phase 2.
       </p>
     </Shell>

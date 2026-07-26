@@ -27,7 +27,7 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
         <Tile label="BTC" value={n ? `$${usd(n.btcPrice, 0)}` : '—'} />
         <Tile label="Hashprice $/TH/d" value={n ? `$${usd(n.hashpricePerThDay, 4)}` : '—'} />
         <Tile label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'} />
-        <Tile label="Breakeven BTC" value={n ? `$${usd(n.breakevenBtcPrice, 0)}` : '—'} sub="at $225/mo hosting" />
+        <Tile label="Breakeven BTC" value={n ? `$${usd(n.breakevenBtcPrice, 0)}` : '—'} sub="Abundant Mines $225/mo flat all-in" />
         <Tile label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(2)}T` : '—'} />
         <Tile label="S21 XP gross/day" value={n ? `$${usd(n.s21GrossDay)}` : '—'} />
         <Tile label="Margin above breakeven" value={n ? `${(((n.btcPrice - n.breakevenBtcPrice) / n.breakevenBtcPrice) * 100).toFixed(1)}%` : '—'} tone={n && n.btcPrice > n.breakevenBtcPrice ? 'pos' : 'neg'} />
@@ -37,15 +37,15 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
       <div className="mt-3">
         <Panel title={`BTC — last ${series.length} snapshots`}>
           <Spark points={series} w={640} h={120} />
-          <table className="mt-3 w-full text-[12px]">
-            <thead><tr className="text-left text-[10px] uppercase tracking-widest text-neutral-600"><th>date</th><th>BTC</th><th>difficulty</th><th>hashprice</th></tr></thead>
+          <table className="mt-3 w-full text-[13px]">
+            <thead><tr className="text-left text-[11px] uppercase tracking-widest text-neutral-500"><th>date</th><th>BTC</th><th>difficulty</th><th>hashprice</th></tr></thead>
             <tbody>
               {rows.slice(0, 14).map((r) => (
-                <tr key={r.snapshot_date} className="border-t border-neutral-900">
-                  <td className="py-0.5 text-neutral-500">{r.snapshot_date}</td>
-                  <td className="text-amber-400">${usd(Number(r.btc_price), 0)}</td>
-                  <td className="text-neutral-400">{r.difficulty ? `${(Number(r.difficulty) / 1e12).toFixed(1)}T` : '—'}</td>
-                  <td className="text-neutral-400">{r.hashprice_usd_per_th_day ? `$${usd(Number(r.hashprice_usd_per_th_day), 4)}` : '—'}</td>
+                <tr key={r.snapshot_date} className="border-t border-neutral-100">
+                  <td className="py-0.5 text-neutral-600">{r.snapshot_date}</td>
+                  <td className="text-amber-600">${usd(Number(r.btc_price), 0)}</td>
+                  <td className="text-neutral-700">{r.difficulty ? `${(Number(r.difficulty) / 1e12).toFixed(1)}T` : '—'}</td>
+                  <td className="text-neutral-700">{r.hashprice_usd_per_th_day ? `$${usd(Number(r.hashprice_usd_per_th_day), 4)}` : '—'}</td>
                 </tr>
               ))}
             </tbody>

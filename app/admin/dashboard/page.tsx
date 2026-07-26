@@ -65,17 +65,17 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       {/* Today's schedule: next-up focus + timeline strip */}
       <Panel
         title="Today's posts"
-        right={<span className="text-[10px] text-neutral-600">{today} DEN</span>}
+        right={<span className="text-[11px] text-neutral-500">{today} DEN</span>}
       >
         {nextPost ? (
-          <div className="mb-3 flex flex-wrap items-baseline gap-3 border border-amber-500/50 bg-amber-500/5 px-3 py-2">
-            <span className="text-[10px] uppercase tracking-widest text-neutral-500">Next up</span>
-            <span className="text-2xl text-amber-400">{denverTime(nextPost.publishDate)} {PLATFORM_ICON[nextPost.platform] || ''} {nextPost.platform.toUpperCase()}</span>
-            <span className="text-lg text-green-500">T-{countdown}</span>
-            <span className="w-full truncate text-[11px] text-neutral-500 sm:w-auto sm:flex-1">{nextPost.content.split('\n')[0].slice(0, 80)}</span>
+          <div className="mb-3 flex flex-wrap items-baseline gap-3 border border-amber-400 bg-amber-50 px-3 py-2">
+            <span className="text-[11px] uppercase tracking-widest text-neutral-600">Next up</span>
+            <span className="text-2xl text-amber-600">{denverTime(nextPost.publishDate)} {PLATFORM_ICON[nextPost.platform] || ''} {nextPost.platform.toUpperCase()}</span>
+            <span className="text-lg text-green-600">T-{countdown}</span>
+            <span className="w-full truncate text-[12px] text-neutral-600 sm:w-auto sm:flex-1">{nextPost.content.split('\n')[0].slice(0, 80)}</span>
           </div>
         ) : (
-          <div className="mb-3 text-[12px] text-neutral-500">
+          <div className="mb-3 text-[13px] text-neutral-600">
             {todayPosts.length ? 'All of today’s posts are out.' : 'Nothing scheduled today — check the CONTENT tab.'}
           </div>
         )}
@@ -85,7 +85,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
             const isNext = p.id === nextPost?.id
             return (
               <div key={p.id}
-                className={`border px-2 py-1 text-[12px] ${isNext ? 'border-amber-500 text-amber-400' : past ? 'border-neutral-800 text-neutral-600' : 'border-neutral-700 text-neutral-300'}`}>
+                className={`border px-2 py-1 text-[13px] ${isNext ? 'border-amber-500 text-amber-600' : past ? 'border-neutral-200 text-neutral-500' : 'border-neutral-300 text-neutral-800'}`}>
                 {denverTime(p.publishDate)} {PLATFORM_ICON[p.platform] || ''} {p.platform}{past ? ' ✓' : ''}
               </div>
             )
@@ -94,11 +94,11 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       </Panel>
 
       {/* Health line */}
-      <div className="my-3 flex flex-wrap gap-4 border border-neutral-800 bg-black px-3 py-1.5 text-[11px]">
+      <div className="my-3 flex flex-wrap gap-4 border border-neutral-200 bg-white px-3 py-1.5 text-[12px]">
         {health.map((h) => (
-          <span key={h.label} className={h.ok ? 'text-green-500' : 'text-red-500'}>● {h.label}</span>
+          <span key={h.label} className={h.ok ? 'text-green-600' : 'text-red-600'}>● {h.label}</span>
         ))}
-        <span className="text-neutral-600">PA watchdog 6am — fixes first, emails only when needed</span>
+        <span className="text-neutral-500">PA watchdog 6am — fixes first, emails only when needed</span>
       </div>
 
       {/* Big numbers + deltas + sparklines */}
@@ -107,7 +107,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
           prev={btcSeries.length > 1 ? `$${usd(btcSeries[btcSeries.length - 2], 0)}` : undefined}
           changePct={n && btcSeries.length > 1 ? ((n.btcPrice - btcSeries[btcSeries.length - 2]) / btcSeries[btcSeries.length - 2]) * 100 : undefined} />
         <Tile label="Hashprice $/TH/d" value={n ? `$${usd(n.hashpricePerThDay, 4)}` : '—'} />
-        <Tile label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'} sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)}` : undefined} />
+        <Tile label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'} sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)} · Abundant Mines $225/mo flat` : undefined} />
         <Tile label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'} />
         <Tile label="Leads 7d" value={String(leads7d)} tone={leads7d >= leadsPrev7d ? 'pos' : 'neg'} prev={String(leadsPrev7d)}
           changePct={leadsPrev7d ? ((leads7d - leadsPrev7d) / leadsPrev7d) * 100 : undefined} sub={`total ${leadRows.length}`} />
@@ -136,15 +136,15 @@ export default async function Overview({ searchParams }: { searchParams: Promise
           {cacheRows.length ? (
             <div className="space-y-1">
               {cacheRows.map((c) => (
-                <div key={c.cache_date} className="grid grid-cols-[70px_120px_1fr] gap-2 text-[12px]">
+                <div key={c.cache_date} className="grid grid-cols-[70px_120px_1fr] gap-2 text-[13px]">
                   <span className="text-amber-500">{c.cache_date.slice(5)}</span>
-                  <span className={c.source === 'engine' ? 'text-green-500' : 'text-yellow-500'}>{c.payload?.theme || c.source}</span>
-                  <span className="truncate text-neutral-500">{c.payload?.hook}</span>
+                  <span className={c.source === 'engine' ? 'text-green-600' : 'text-yellow-600'}>{c.payload?.theme || c.source}</span>
+                  <span className="truncate text-neutral-600">{c.payload?.hook}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <span className="text-[12px] text-red-500">Nothing banked — the 6am watchdog regenerates; see CONTENT tab.</span>
+            <span className="text-[13px] text-red-600">Nothing banked — the 6am watchdog regenerates; see CONTENT tab.</span>
           )}
         </Panel>
       </div>

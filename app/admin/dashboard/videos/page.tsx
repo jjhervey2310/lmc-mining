@@ -33,21 +33,21 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
 
       <div className="mt-3">
         <Panel title="Per-video (latest snapshot, Sundays 8pm)">
-          <table className="w-full text-[12px]">
-            <thead><tr className="text-left text-[10px] uppercase tracking-widest text-neutral-600"><th>published</th><th>title</th><th className="text-right">views</th><th className="text-right">likes</th><th className="text-right">comments</th></tr></thead>
+          <table className="w-full text-[13px]">
+            <thead><tr className="text-left text-[11px] uppercase tracking-widest text-neutral-500"><th>published</th><th>title</th><th className="text-right">views</th><th className="text-right">likes</th><th className="text-right">comments</th></tr></thead>
             <tbody>
               {vids.map((v) => (
-                <tr key={v.video_ref} className="border-t border-neutral-900">
-                  <td className="py-0.5 text-neutral-500">{(v.published_at || '').slice(0, 10)}</td>
+                <tr key={v.video_ref} className="border-t border-neutral-100">
+                  <td className="py-0.5 text-neutral-600">{(v.published_at || '').slice(0, 10)}</td>
                   <td className="max-w-[380px] truncate pr-2">
-                    <a href={`https://youtube.com/watch?v=${v.video_ref}`} target="_blank" rel="noreferrer" className="text-neutral-300 hover:text-amber-400">{v.title}</a>
+                    <a href={`https://youtube.com/watch?v=${v.video_ref}`} target="_blank" rel="noreferrer" className="text-neutral-800 hover:text-amber-700">{v.title}</a>
                   </td>
-                  <td className="text-right text-amber-400">{v.views}</td>
-                  <td className="text-right text-neutral-400">{v.likes}</td>
-                  <td className="text-right text-neutral-400">{v.comments}</td>
+                  <td className="text-right text-amber-600">{v.views}</td>
+                  <td className="text-right text-neutral-700">{v.likes}</td>
+                  <td className="text-right text-neutral-700">{v.comments}</td>
                 </tr>
               ))}
-              {!vids.length && <tr><td colSpan={5} className="py-2 text-neutral-500">First snapshot lands Sunday 8pm.</td></tr>}
+              {!vids.length && <tr><td colSpan={5} className="py-2 text-neutral-600">First snapshot lands Sunday 8pm.</td></tr>}
             </tbody>
           </table>
         </Panel>
@@ -57,9 +57,9 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
         <div className="mt-3">
           <Panel title="Lessons learned (dual-model confirmed)">
             {(lessons?.data ?? []).map((l) => (
-              <div key={l.lesson} className="mb-2 text-[12px]">
-                <div className="text-amber-400">{l.lesson}</div>
-                <div className="text-neutral-500">{l.rationale}</div>
+              <div key={l.lesson} className="mb-2 text-[13px]">
+                <div className="text-amber-600">{l.lesson}</div>
+                <div className="text-neutral-600">{l.rationale}</div>
               </div>
             ))}
           </Panel>

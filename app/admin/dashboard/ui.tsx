@@ -107,21 +107,21 @@ export function Tile({
   prev?: string
   changePct?: number
 }) {
-  const color = tone === 'pos' ? 'text-green-500' : tone === 'neg' ? 'text-red-500' : tone === 'dim' ? 'text-neutral-400' : 'text-amber-500'
+  const color = tone === 'pos' ? 'text-green-600' : tone === 'neg' ? 'text-red-600' : tone === 'dim' ? 'text-neutral-700' : 'text-amber-500'
   const up = (changePct ?? 0) >= 0
   return (
-    <div className="border border-neutral-800 border-t-2 border-t-amber-600/70 bg-black px-3 py-2">
-      <div className="text-[10px] uppercase tracking-widest text-neutral-500">{label}</div>
+    <div className="rounded-lg border border-neutral-200 border-t-4 border-t-amber-500 bg-white px-3 py-2 shadow-sm">
+      <div className="text-[11px] uppercase tracking-widest text-neutral-600">{label}</div>
       <div className={`font-mono text-2xl leading-tight ${color}`}>{value}</div>
       {(prev !== undefined || changePct !== undefined) && (
-        <div className="mt-0.5 flex gap-3 text-[10px] text-neutral-500">
+        <div className="mt-0.5 flex gap-3 text-[11px] text-neutral-600">
           {prev !== undefined && <span>prev {prev}</span>}
           {changePct !== undefined && (
-            <span className={up ? 'text-green-500' : 'text-red-500'}>{up ? '▲' : '▼'} {Math.abs(changePct).toFixed(1)}%</span>
+            <span className={up ? 'text-green-600' : 'text-red-600'}>{up ? '▲' : '▼'} {Math.abs(changePct).toFixed(1)}%</span>
           )}
         </div>
       )}
-      {sub && <div className="text-[11px] text-neutral-500">{sub}</div>}
+      {sub && <div className="text-[12px] text-neutral-600">{sub}</div>}
       {spark && spark.length > 1 && <div className="mt-1"><Spark points={spark} /></div>}
     </div>
   )
@@ -131,12 +131,12 @@ const DONUT_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444', '#1
 
 export function Legend({ data }: { data: { label: string; value: number }[] }) {
   return (
-    <div className="space-y-1 text-[11px]">
+    <div className="space-y-1 text-[12px]">
       {data.map((d, i) => (
         <div key={d.label} className="flex items-center gap-2">
           <span className="inline-block h-2 w-2" style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-          <span className="text-neutral-400">{d.label}</span>
-          <span className="ml-auto text-amber-400">{d.value}</span>
+          <span className="text-neutral-700">{d.label}</span>
+          <span className="ml-auto text-amber-600">{d.value}</span>
         </div>
       ))}
     </div>
@@ -145,7 +145,7 @@ export function Legend({ data }: { data: { label: string; value: number }[] }) {
 
 export function DonutChart({ data, size = 110, center }: { data: { label: string; value: number }[]; size?: number; center?: string }) {
   const total = data.reduce((s, d) => s + d.value, 0)
-  if (!total) return <div className="text-[11px] text-neutral-600">no data</div>
+  if (!total) return <div className="text-[12px] text-neutral-500">no data</div>
   const r = size / 2 - 8
   const c = 2 * Math.PI * r
   let acc = 0
@@ -172,9 +172,9 @@ export function DonutChart({ data, size = 110, center }: { data: { label: string
 
 export function Panel({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div className="border border-neutral-800 bg-black">
-      <div className="flex items-baseline justify-between border-b border-neutral-800 px-3 py-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-amber-500">{title}</span>
+    <div className="rounded-lg border border-neutral-200 bg-white shadow-sm">
+      <div className="flex items-baseline justify-between border-b border-neutral-200 px-3 py-1.5">
+        <span className="text-[12px] font-bold uppercase tracking-widest text-amber-500">{title}</span>
         {right}
       </div>
       <div className="p-3">{children}</div>
@@ -200,28 +200,28 @@ export function Shell({
   const li = (q: string) =>
     `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(q)}&location=Denver%2C%20Colorado&f_TPR=r86400`
   return (
-    <div className="min-h-screen bg-black font-mono text-neutral-300">
+    <div className="min-h-screen bg-slate-100 font-sans text-neutral-800">
       {/* The terminal is full-screen: hide the public site chrome (ticker, navbar, footer, banners). */}
       <style>{`body > :not(#main) { display: none !important; } #main { padding-bottom: 0 !important; }`}</style>
       <div className="mx-auto max-w-[1400px] px-3 py-2">
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-amber-500/40 pb-2">
           <div className="flex items-baseline gap-4">
             <span className="text-sm font-bold text-amber-500">⚡ LMC TERMINAL</span>
-            <nav className="flex gap-3 text-[11px]">
+            <nav className="flex gap-3 text-[12px]">
               {tabs.map((t) => (
                 <Link key={t.id} href={t.href}
-                  className={t.id === active ? 'text-amber-400 underline underline-offset-4' : 'text-neutral-500 hover:text-amber-400'}>
+                  className={t.id === active ? 'text-amber-600 underline underline-offset-4' : 'text-neutral-600 hover:text-amber-700'}>
                   {t.label}
                 </Link>
               ))}
             </nav>
           </div>
-          <span className="text-[10px] text-neutral-600">
+          <span className="text-[11px] text-neutral-500">
             {new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })} DEN · refresh 5m
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-neutral-900 py-1.5 text-[10px] uppercase tracking-wider">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-neutral-100 py-1.5 text-[11px] uppercase tracking-wider">
           {[
             ['Gmail', 'https://mail.google.com'],
             ['Calendar', 'https://calendar.google.com'],
@@ -234,7 +234,7 @@ export function Shell({
             ['Supabase', 'https://supabase.com/dashboard'],
             ['Stripe', 'https://dashboard.stripe.com'],
           ].map(([label, href]) => (
-            <a key={label} href={href} target="_blank" rel="noreferrer" className="text-neutral-500 hover:text-amber-400">↗ {label}</a>
+            <a key={label} href={href} target="_blank" rel="noreferrer" className="text-neutral-600 hover:text-amber-700">↗ {label}</a>
           ))}
         </div>
 
@@ -245,25 +245,25 @@ export function Shell({
             <Panel title="🤖 PA — ask me anything">
               <ChatWindow secret={secret} />
             </Panel>
-            <Panel title="💼 Job wire" right={<span className="text-[10px] text-neutral-600">6am sweep</span>}>
+            <Panel title="💼 Job wire" right={<span className="text-[11px] text-neutral-500">6am sweep</span>}>
               {jobs.length ? (
                 <div className="space-y-2">
                   {jobs.slice(0, 12).map((j) => (
-                    <a key={j.url} href={j.url} target="_blank" rel="noreferrer" className="block border-l-2 border-amber-500/60 pl-2 hover:bg-neutral-900">
-                      <div className="text-[12px] leading-snug text-neutral-200">{j.title}</div>
-                      <div className="text-[10px] text-neutral-500">
+                    <a key={j.url} href={j.url} target="_blank" rel="noreferrer" className="block border-l-2 border-amber-500/60 pl-2 hover:bg-amber-50">
+                      <div className="text-[13px] leading-snug text-neutral-900">{j.title}</div>
+                      <div className="text-[11px] text-neutral-600">
                         {j.company || '—'} · {j.source} · {j.found_at.slice(5, 10)}
                       </div>
                     </a>
                   ))}
                 </div>
               ) : (
-                <div className="text-[11px] text-neutral-500">No matches banked yet — first sweep runs 6am.</div>
+                <div className="text-[12px] text-neutral-600">No matches banked yet — first sweep runs 6am.</div>
               )}
-              <div className="mt-3 border-t border-neutral-800 pt-2 text-[11px]">
-                <div className="mb-1 text-[10px] uppercase tracking-widest text-neutral-500">LinkedIn · last 24h · Denver</div>
+              <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px]">
+                <div className="mb-1 text-[11px] uppercase tracking-widest text-neutral-600">LinkedIn · last 24h · Denver</div>
                 {['bitcoin', 'crypto', 'data center operations'].map((q) => (
-                  <a key={q} href={li(q)} target="_blank" rel="noreferrer" className="mr-3 text-amber-400 hover:underline">{q}</a>
+                  <a key={q} href={li(q)} target="_blank" rel="noreferrer" className="mr-3 text-amber-600 hover:underline">{q}</a>
                 ))}
               </div>
             </Panel>
