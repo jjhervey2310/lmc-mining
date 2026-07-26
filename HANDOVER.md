@@ -30,8 +30,15 @@ session of confused debugging on 7/25. Do not repeat that: keep this file curren
   - `LMC Publish` now posts PER-PLATFORM captions (caption_x / caption_youtube / caption_instagram
     / caption_tiktok, new fields in datastore 152060) — all with CTA + AI disclosure, all gate-passed.
   - Day's drop is generated ONCE and cached in Supabase `make_content_cache` (service-role only);
-    pg_cron job `make-content-warm` (jobid 4, 11:45 UTC) pre-warms it before Make's 12:15 run.
+    pg_cron job `make-content-warm` (jobid 4, 00:30 UTC) pre-warms it before Make's run.
     `?refresh=1` forces regeneration; `?date=YYYY-MM-DD` serves a future day (weekly batching).
+  - **SCHEDULE CHANGED (Jacob, 2026-07-25 night): Make Generate now runs 7pm MT (01:00 UTC,
+    Make-time 02:00) and makes the NEXT day's posts the evening before** — render + all 4 Postiz
+    posts are queued by ~7:10pm MT, visible in Postiz overnight, publishing next day at the usual
+    slots (X 7:30am / YT noon / IG 4pm / TikTok 6:30pm MT). The UTC date rolls at 6pm MT, so the
+    endpoint's "today" and Publish's date math line up with no code changes. First run under the
+    new schedule: Sun 7/26 7pm MT → Monday's posts (already cached). Sunday 7/26's own posts were
+    made manually this session (execution 6657665... SUCCESS, engine content, GPT 95).
   - Fallback chain: engine gates fail / API down → pre-approved template drop from
     lib/daily-content.ts (computed numbers, fixed copy) → never a wrong or CTA-less post.
 - **CONTENT RULES (Jacob, 2026-07-25 night):** (1) hooks ALWAYS name Bitcoin mining — preferred
