@@ -220,7 +220,7 @@ export async function getMakeDrop(opts: { refresh?: boolean; date?: string } = {
 
   let drop: MakeDrop
   try {
-    drop = await engineDrop(Date.now() + 40_000, target)
+    drop = await engineDrop(Date.now() + 180_000, target)
   } catch (e) {
     console.error('make-content: engine path failed —', e instanceof Error ? e.message : e)
     // The template fallback carries today's numbers, so it's only valid same-day.

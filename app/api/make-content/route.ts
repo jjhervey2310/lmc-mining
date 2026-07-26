@@ -37,4 +37,5 @@ async function handle(req: Request) {
 export const GET = handle
 export const POST = handle
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+// Full generate → GPT review → revise round can run several minutes; fluid compute allows 300s.
+export const maxDuration = 300
