@@ -69,6 +69,11 @@ function evergreenGate(script: Script): GateResult {
   if (/\$\s?\d/.test(text)) {
     issues.push('Evergreen post contains a dollar figure — price numbers are Sunday-only')
   }
+  // Live network readings ("difficulty just hit 126.2 trillion") go stale mid-week just
+  // like prices. Hardware specs ("270 terahash") are stable and stay allowed.
+  if (/\b\d[\d.,]*\s*(trillion|billion)\b/i.test(text)) {
+    issues.push('Evergreen post quotes a live network figure (difficulty/hashrate) — live numbers are Sunday-only')
+  }
   if (!/bitcoin mining|mining bitcoin|btc mining/i.test(script.hook)) {
     issues.push('Hook does not name Bitcoin mining')
   }
