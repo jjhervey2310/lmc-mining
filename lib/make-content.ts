@@ -44,9 +44,23 @@ const EVERGREEN_ANGLE =
   'short punchy sentences, and ONE genuinely funny line or vivid image per script (dry wit, never ' +
   'cringe, never hype vocabulary, no emoji). The honesty is the entertainment — the joke lands ' +
   'because the math is real. ' +
-  'The hook must still name Bitcoin mining — the worth-it question works without a price: ' +
-  '"Is Bitcoin mining still worth it? Here\'s what most people miss." End the body with the ' +
-  'required CTA once.'
+  'The hook must still name Bitcoin mining, and the worth-it question works without a price — ' +
+  'but write FRESH wording every time: this runs in a weekly batch and the exact phrase ' +
+  '"Here\'s what most people miss" is BANNED (it was copy-pasted across a whole week once). ' +
+  'End the body with the required CTA once.'
+
+// Per-pillar hook direction so a week of evergreen posts never opens the same way twice.
+const HOOK_SEED: Record<string, string> = {
+  explainer: 'tease the one mining concept almost everyone gets wrong',
+  red_flag: 'tease the specific scam or contract trap you are about to expose',
+  hardware_reality: 'tease the hardware-buying mistake that costs people the most',
+  myth_bust: 'name the myth you are about to take apart',
+}
+
+const HARDWARE_NO_PRICE =
+  ' HARDWARE RULE: stay completely dollar-free — compare machines by efficiency (joules per ' +
+  'terahash), hardware generation, cooling, and used-market risk. If you feel the urge to quote ' +
+  'a price, describe it qualitatively ("flagship money", "used-market cheap") instead.'
 
 /** Deterministic evergreen gate: Mon–Sat posts must carry no dollar figures at all. */
 function evergreenGate(script: Script): GateResult {
@@ -131,7 +145,11 @@ async function engineDrop(deadline: number, targetDate: string): Promise<MakeDro
   // The Sunday numbers post is only valid generated same-day — a week-old price is
   // exactly the staleness the evergreen rule exists to prevent.
   const pillar: Pillar = dow === 0 && targetDate === today ? 'bullish_caveat' : EVERGREEN_PILLAR_BY_DOW[dow] || 'myth_bust'
-  const brief = buildBrief(live, pillar, pillar === 'bullish_caveat' ? undefined : EVERGREEN_ANGLE)
+  const evergreenAngle =
+    EVERGREEN_ANGLE +
+    ` HOOK ANGLE for this piece (${targetDate}): ${HOOK_SEED[pillar] || HOOK_SEED.explainer}.` +
+    (pillar === 'hardware_reality' ? HARDWARE_NO_PRICE : '')
+  const brief = buildBrief(live, pillar, pillar === 'bullish_caveat' ? undefined : evergreenAngle)
 
   const gatesFor = async (s: Script) => {
     const g = await runGates(s, brief)
