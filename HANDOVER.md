@@ -50,6 +50,17 @@ session of confused debugging on 7/25. Do not repeat that: keep this file curren
   Human #9); (2) **price/dollar numbers are SUNDAY-ONLY** — Mon–Sat is evergreen educational content
   with ZERO dollar figures (deterministic evergreen gate in lib/make-content.ts), so posts can be
   banked a week ahead without going stale. Sunday = the live "worth it at $X" numbers check.
+- **Postiz UI shows queued videos with NO preview — that's cosmetic.** upload-from-url returns
+  `thumbnail: null` (Postiz doesn't thumbnail URL-uploaded video); the mp4 is really stored and
+  attached (verified: uploads.postiz.com file serves video/mp4) and publishes fine. Don't panic,
+  don't re-upload.
+- **Cost guardrails (Jacob, 2026-07-26):** HeyGen balance was 929 units after this week's 7
+  renders; a week burns ~300–550. `heygen-quota-alert` pg_cron (jobid 5, Sat 5pm MT, before the
+  batch) hits /api/cron/heygen-quota-check → emails Jacob if balance < 600 (HEYGEN_API_KEY +
+  threshold in Vercel env). Magic number: ~$30–45/mo at current lengths; $50 top-up ≈ 3–4 weeks.
+  Gates now run CHEAPEST-FIRST: deterministic (fact/brand/evergreen/variety) free, GPT review only
+  on drafts that passed them; reviewer receives brief.angle so it can enforce format rules; the
+  variety gate compares hooks across the cached week so duplicates bounce before any render.
 - **WEEK OF 7/26–8/1 was generated + queued live this session:** Sun 7/26 numbers post (GPT 95)
   + Mon–Sat evergreen (all gates passed; distinct hooks; tone = bullish/funny/human per Jacob).
   Evergreen gate also blocks live difficulty/hashrate figures ("126.2 trillion"), not just $.
