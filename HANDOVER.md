@@ -95,6 +95,18 @@ session of confused debugging on 7/25. Do not repeat that: keep this file curren
   Gates now run CHEAPEST-FIRST: deterministic (fact/brand/evergreen/variety) free, GPT review only
   on drafts that passed them; reviewer receives brief.angle so it can enforce format rules; the
   variety gate compares hooks across the cached week so duplicates bounce before any render.
+- **DESKTOP APP + PA + JOB WIRE v2 (2026-07-26 afternoon):** Native macOS app **"LMC Terminal"
+  on Jacob's Desktop** — Swift/AppKit WKWebView wrapper (source `~/.lightningmines/terminal-app/
+  main.swift`, secret embedded from ADMIN_SECRET, NOT in repo; rebuild: `swiftc -O -framework
+  Cocoa -framework WebKit main.swift -o "LMC Terminal.app/Contents/MacOS/LMCTerminal"`). Opens as
+  a tall right-edge panel; Cmd+R reloads. Dashboard is light/clear theme; PA chat is now
+  **ChatGPT-voiced (gpt-4o) with Claude as silent verifier** (Jacob's pick — reverse of before);
+  18-rig S21 XP fleet P&L box (simulated, Abundant $225/mo/rig) on Overview. Job sweep: RemoteOK/
+  WWR REMOVED; **Adzuna** fetcher (Indeed aggregator WITH salary) + fit ranking (ops/growth/
+  founder/BD) live but **BLOCKED on Jacob: free ADZUNA_APP_ID + ADZUNA_APP_KEY from
+  developer.adzuna.com → Vercel env**. job_finds gained salary + fit_score columns. Direct
+  Indeed/LinkedIn scrapers were requested and refused (no API / bot-blocked / ToS) — deep-links
+  in the brief instead.
 - **WEEK OF 7/26–8/1 was generated + queued live this session:** Sun 7/26 numbers post (GPT 95)
   + Mon–Sat evergreen (all gates passed; distinct hooks; tone = bullish/funny/human per Jacob).
   Evergreen gate also blocks live difficulty/hashrate figures ("126.2 trillion"), not just $.
