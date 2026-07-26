@@ -226,8 +226,8 @@ export function buildDailyDrop(n: DailyNumbers, date: Date): DailyDrop {
   }
 
   const stat = n.profitable
-    ? `S21 Pro net today: +$${usd(n.s21NetDay)}/day`
-    : `S21 Pro net today: -$${usd(Math.abs(n.s21NetDay))}/day`
+    ? `S21 XP net today: +$${usd(n.s21NetDay)}/day`
+    : `S21 XP net today: -$${usd(Math.abs(n.s21NetDay))}/day`
 
   const disclosure = 'Narration is AI-generated. Not financial advice — data from public network stats.'
 

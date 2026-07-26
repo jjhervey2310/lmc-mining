@@ -37,6 +37,12 @@ export function brandGate(script: Script): GateResult {
     if (dated) issues.push(`Date-stamped phrasing ("${dated[1]}") — buffered posts must use price-conditional wording ("at $X BTC")`)
   }
 
+  // Hooks always name Bitcoin mining (Jacob, 2026-07-25): a cold viewer must know the
+  // topic in the first line, and "is Bitcoin mining still worth it" is the question we own.
+  if (script.pillar === 'bullish_caveat' && !/bitcoin mining|mining bitcoin|btc mining/i.test(script.hook)) {
+    issues.push('Hook does not name Bitcoin mining — daily hooks must say "Bitcoin mining" explicitly')
+  }
+
   // AI presenter disclosure always required.
   if (!script.disclosures.some((d) => d.toLowerCase().includes('ai'))) {
     issues.push('Missing AI-presenter disclosure')

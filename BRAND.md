@@ -88,6 +88,10 @@ The avatar reads exactly what we write. Write for the EAR, not the page:
    like a robot when I say numbers.") The voice says "around sixty-five thousand dollars" and
    "a dollar fourteen a day"; the exact $64,716 / $1.14 live in on-screen text and captions.
    Max 2-3 spoken numbers per 30s script. Never round enough to change the verdict.
+9. **Hooks always name Bitcoin mining.** (Jacob, 2026-07-25.) A cold viewer must know the
+   topic in the first line — say "Bitcoin mining" explicitly, and prefer the question we own:
+   "Is Bitcoin mining still worth it at $X?" Vary the wording daily; never drop the phrase.
+   Enforced by the brand gate for the daily bullish_caveat format.
 
 ## Visual Style
 

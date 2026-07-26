@@ -161,9 +161,11 @@ SPOKEN NUMBERS (the "body" is read aloud by a voice clone — write numbers for 
   carries the meaning. Never round far enough to change the verdict.
 
 STRUCTURE (follow exactly — this is a bullish-case-with-a-caveat video):
-1. OPEN by naming the brand in the "hook": start with "${BRAND_OPEN}" and then the most
-   surprising S21 XP number, price-anchored (e.g. "${BRAND_OPEN} here — at $X Bitcoin, the S21 XP
-   makes $Y a day.").
+1. OPEN by naming the brand AND Bitcoin mining in the "hook": start with "${BRAND_OPEN}", say
+   "Bitcoin mining" explicitly, and land the most surprising S21 XP number, price-anchored.
+   Preferred framing is the worth-it question (Jacob, 2026-07-25): "${BRAND_OPEN} here — is
+   Bitcoin mining still worth it at $X? The S21 XP makes $Y a day." Vary the wording day to
+   day, but the hook must always contain the words "Bitcoin mining".
 2. BULLISH CASE (first half of body): the strongest HONEST bullish point about the Antminer S21 XP
    using the brief's numbers — daily profit if it's profitable, or efficiency + "profitable the
    moment BTC clears breakeven" if it's not.
