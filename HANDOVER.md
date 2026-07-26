@@ -72,6 +72,18 @@ session of confused debugging on 7/25. Do not repeat that: keep this file curren
   Human #9); (2) **price/dollar numbers are SUNDAY-ONLY** — Mon–Sat is evergreen educational content
   with ZERO dollar figures (deterministic evergreen gate in lib/make-content.ts), so posts can be
   banked a week ahead without going stale. Sunday = the live "worth it at $X" numbers check.
+- **FRAMING BUG FOUND+FIXED 2026-07-26 morning (Jacob spotted it): the 7/24-era HeyGen call
+  letterboxed every video** — v3 /v3/videos with type:avatar has NO scale/offset controls, so the
+  landscape studio looks rendered as a small 16:9 strip inside the 9:16 canvas (file measures
+  1080×1920, picture doesn't fill it — probe dimensions AND eyeball a frame: `qlmanage -t` is $0).
+  Fix: Weekly Batch now uses the content-engine's proven call — POST /v2/video/generate,
+  character type **talking_photo** + **scale 2.7** + dimension 720×1280 (same look IDs).
+  HeyGen account-level webhook now registered (avatar_video.success → the Make hook), since v2
+  has no per-request callback_url. The whole week was re-rendered + re-queued (first batch of 7
+  renders wasted ~$8 — RULE: one test render + frame check BEFORE any batch). Sunday 7/26's
+  7:30am X post went out letterboxed (only casualty; delete/repost manually if desired).
+  ⚠ **HeyGen v2 API sunsets 2026-10-31** — before then, migrate to v3 (needs scale support or
+  reframed 9:16 looks); reminder: check developers.heygen.com when v3 gains framing controls.
 - **Postiz UI shows queued videos with NO preview — that's cosmetic.** upload-from-url returns
   `thumbnail: null` (Postiz doesn't thumbnail URL-uploaded video); the mp4 is really stored and
   attached (verified: uploads.postiz.com file serves video/mp4) and publishes fine. Don't panic,
