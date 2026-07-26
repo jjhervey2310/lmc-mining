@@ -1,6 +1,6 @@
 # Lightning Mines — Project Handover
 
-_Last updated: 2026-07-15 (afternoon) — pipeline code-complete; Postiz signup is the only blocker to posting_
+_Last updated: 2026-07-23 (evening) — daily pipeline AUTOMATED end-to-end; cloud session has live Postiz access_
 
 ## 1. What this is
 **Lightning Mines** (lightningmines.com) — an independent Bitcoin-mining intelligence / lead-gen site.
@@ -10,154 +10,115 @@ from live network data. Revenue = affiliate (Abundant Mines hosting) + paid audi
 - **Repo:** github.com/jjhervey2310/lmc-mining · **Local:** ~/Desktop/lmc-mining
 - **Stack:** Next.js 14 (App Router), TypeScript, Tailwind v4, Supabase, Resend, Stripe, Vercel, Cloudflare
 - **Voice/rules source of truth:** `BRAND.md` · **Owner:** Jacob Hervey (jjhervey1@gmail.com)
-
----
+- **Jacob is non-technical.** Explain everything plainly; give SINGLE-LINE terminal commands only
+  (multi-line pastes leave the last line waiting for Enter — this caused two incidents on 7/23,
+  including a triple-render that duplicate-scheduled a day; banned since).
 
 ## 2. Website — current state (all LIVE on production)
-- **Security fixed:** `leads` table RLS hardened (was publicly readable via anon key); all DB access service-role only.
-- **Correctness/trust:** hashprice calc bug fixed (~350× off); /data uses live difficulty; rising difficulty shows RED;
-  "Verified" softened to "Listed — verify direct"; fake scarcity removed; tagline "The Independent Standard for Bitcoin Mining".
-- **UX/SEO/a11y/perf sweep done** (mobile nav/tables, JSON-LD, skip links, contrast, cache headers, sticky CTA, etc.).
-- Forms tested end-to-end (Supabase leads + Resend email). GA4 + Clarity live.
-- Backlog (non-blocking): centralize difficulty constant, extract duplicated formulas, newsletter idempotency,
-  remaining a11y, minor schema, self-host hero image.
+Unchanged from prior handover: leads RLS hardened; hashprice calc fixed; live difficulty; forms
+tested end-to-end; GA4 (G-PSP0VE8ZJJ) + Clarity live. Backlog (non-blocking): centralize difficulty
+constant, extract duplicated formulas, newsletter idempotency, remaining a11y, self-host hero image.
 
----
+## 3. DAILY VIDEO PIPELINE — FULLY AUTOMATED (as of 2026-07-23)
 
-## 3. Content Engine — CODE-COMPLETE end-to-end (`content-engine/` in repo)
-The full daily workflow, all tested live:
+### The format (Jacob's spec, locked 7/22-23)
+- **Every default daily video = `bullish_caveat` pillar:** ~30s (70-90 spoken words), always the
+  **Antminer S21 XP**, bullish case + mandatory honest "but" caveat, **"Lightning Mines" spoken in
+  the first line**, single CTA closing (carries lightningmines.com). See BRAND.md §Standard Daily Format.
+- **Timeless phrasing (hard, machine-enforced):** posts publish up to 24h after writing, so scripts
+  NEVER say "today"/"right now"/"currently" — claims anchor to price ("At $66,088 Bitcoin...").
+  brandGate deterministically fails violations (X failed exactly this on 7/23 and was auto-skipped).
+- **Spoken numbers are rounded** ("a dollar fourteen a day"), max 2-3 per script; EXACT figures live
+  in onScreenText/captions. Merged 7/23 evening — first video with this: **Sat 7/25. Jacob should
+  listen and judge** (his complaint: "I sound like a robot when I say numbers").
+- **Wardrobe rotates every video, never the grey hoodie** (reserved for Lightning Lessons):
+  navy → grey sweater → olive → studio, keyed to day-of-year (`HEYGEN_BULLISH_ROTATION`,
+  navy first = Jacob's "darker top got most views" hypothesis — confirm at Sunday review across 5+).
+  One-off override: `HEYGEN_LOOK_OVERRIDE=<talking_photo_id>` env var.
+- Voice pinned `locale: en-US` (accent drifted Australian once; also verify HEYGEN_VOICE_ID in
+  .env.local = f6a3f8a4c96542ebb2f295c140614aea if it ever sounds off).
+- Generator retries invalid JSON 3x with error feedback (crashed a whole run twice on 7/23 pre-fix).
 
-```
-npm run content:run      live data → Claude writes scripts → 3 gates + GPT review (+revise loop) → approval digest + JSON
-npm run content:render   approved script → HeyGen (Jacob's avatar) → out/<date>.mp4 (720×1280 vertical)
-npm run content:post     MP4 + per-platform captions → YouTube/Instagram/TikTok via Postiz; text-native post → X
-```
+### The automation (survives with NO session alive)
+- **launchd `com.lightningmines.contentchain` — 6:45am daily** on Jacob's Mac, runs
+  `~/.lightningmines/daily-content-chain.sh` (installed from `marketing/automation/` via `install.sh`;
+  re-run install.sh after editing the chain). **PROVEN firing (7/23 6:48am).** TCC was NOT an issue.
+- **BUFFER MODE:** each run `git pull`s main (self-updating), generates from live data, renders via
+  HeyGen, and schedules **TOMORROW's** 4 posts in Postiz (X 9am / YT 2pm / IG 6pm / TikTok 8pm ET via
+  `content-engine/tools/schedule-ahead.js`). Result: a standing ≥24h queue — a dead Mac only ever
+  risks the day AFTER tomorrow.
+- Idempotency: marker files `~/LightningMines-Content/.scheduled-<date>`. Logs:
+  `~/LightningMines-Content/logs/chain-<date>.log` (chain prints nothing to Terminal).
+- Gotcha class fixed 7/23: engine names outputs by **UTC date** (rolls at 6pm MT) — chain now picks
+  newest files instead of date-matching; schedule-ahead exits non-zero if ANY platform fails and has
+  a 280-char X fallback.
 
-- **Gates:** fact (deterministic $-check vs lib/calculator.ts), brand+FTC (BRAND.md rules), GPT review ≥80.
-  On fail: Claude revises against reviewer notes up to MAX_REVISIONS, then escalates. Last live run scored **95/100**.
-- **Approval is human:** running `content:post` IS the one-tap approval. It refuses gate-failed scripts.
-  `npm run content:post -- --check` lists connected Postiz channels.
-- **HeyGen (working):** key in `.env.local` (verified; ~900 API quota units). Render defaults locked:
-  look `41920dc9d7e44063b3725b4a36818085` ("Broadcaster in a grey hoodie" — Jacob's pick, matches his hearted in-app video;
-  render as `talking_photo`, NOT `avatar`), voice `f6a3f8a4c96542ebb2f295c140614aea`, scale 3.2 (fills 9:16, no letterbox).
-  All overridable via env (`HEYGEN_TALKING_PHOTO_ID`, `HEYGEN_VOICE_ID`, `HEYGEN_SCALE`).
-- **YouTube note:** vertical <3 min auto-becomes a Short — one upload covers "YouTube + Shorts". Long-form = Phase 2.
-- **Proof artifacts:** `content-engine/out/2026-07-15.mp4` (real daily video, 71s) + Desktop `lmc-heygen-demo-v3.mp4` (15s teaser, correct framing).
+### CLI toolbox (all on Jacob's Mac, repo root)
+- `npm run content:post -- --queue` — what's scheduled/published, yesterday→+2 days
+- `npm run content:post -- --platforms=tiktok` — repost ONE platform without duplicating others
+- `npm run content:post -- --check` — list connected Postiz channels
+- Full manual chain: `npm run content:run && npm run content:render && npm run content:post` (posts NOW)
 
-## 4. BLOCKER STATUS (updated 2026-07-15 evening) — Postiz DONE, first post ON HOLD for handles
-- **Postiz LIVE:** free tier, Public API not paywalled. `POSTIZ_API_KEY` in `.env.local`. `--check` verified:
-  `youtube` (Jacob Hervey) · `tiktok` (swerve23) · `x` (SWERVE — identifier is literal `x`, post.ts match OK) ·
-  `instagram-standalone` (Jacob).
-- **TikTok "swerve23" label is NOT the wrong account (verified 2026-07-16 evening).** The Postiz TikTok channel's
-  `profile` field is `lightningmines` and its cached avatar is pixel-identical to @lightningmines' brand avatar;
-  "swerve23" is only a stale cached *display name* from before the rename. The separate @swerve23 account that still
-  exists on TikTok has a default grey avatar/no bio and is NOT what's connected. Do NOT delete/reconnect the channel
-  again — silent re-adds never hit TikTok (Postiz restores its stored token server-side), which is why every
-  reconnect attempt "came back as swerve23". Cosmetic only; label should refresh on a future token refresh.
-- **⚠ TikTok Ep. 1 retry post is GONE:** the quota-error retry queued for 2026-07-17T00:15Z no longer exists in
-  Postiz (`GET /posts` shows only the published IG reel) — almost certainly cascade-deleted when the TikTok channel
-  was deleted/re-added during the 2026-07-16 reconnect attempts. Needs re-queueing (remember post.ts lacks the
-  required tiktok settings block — see content-engine memory / §gotchas — use the direct API call pattern).
-- **HOLD (Jacob's call):** those are personal accounts, not @lightningmines. No post until handles are fixed.
-  Jacob's remaining human steps, in order:
-  1. Rename/re-point all 4 accounts to @lightningmines (or agreed fallback); bio → lightningmines.com, never affiliate.
-  2. Instagram: switch to Creator/Business linked to a Facebook Page on his EXISTING personal Facebook
-     (decision changed 2026-07-15 — new FB account signup failed). Then in Postiz: Add Channel →
-     **Instagram (Facebook Business)** → select the Page; remove the old `instagram-standalone` channel
-     (post.ts's substring match will target it and standalone likely can't publish Reels via API).
-  3. HeyGen key still in plain text in `~/Desktop/Jacob's /HeyGEN .docx` — move to 1Password, delete doc.
-- **When posting resumes:** re-run `content:run` + `content:render` that day (numbers must be fresh — don't post a
-  stale-dated video), then `content:post -- --check`, then `content:post` = the approval tap.
+## 4. CLOUD SESSION POWERS (new 7/23 — big change)
+- **Postiz API access works FROM THE CLOUD.** Jacob added `POSTIZ_API_KEY` env var + network allow
+  for api.postiz.com in the claude.ai/code environment settings (applies to new sessions).
+  Auth header: `Authorization: <key>` (no Bearer). **Use curl — node fetch bypasses the proxy and 403s.**
+  - `GET /public/v1/posts?startDate=...&endDate=...` — the queue (note: TikTok's 8pm ET slot is
+    stored 00:00Z NEXT day, looks like tomorrow in UTC)
+  - `POST /public/v1/posts` — CAN post (did so 7/23: X text post, Jacob's explicit approval =
+    the approval tap). `value[0].image: []` is REQUIRED even for text-only.
+  - `DELETE /public/v1/posts/:id` — used twice on 7/23 to dedupe (keep NEWEST complete set of 4)
+- **HeyGen is NOT cloud-reachable** (no key in env, host not allowlisted) — rendering only happens
+  on the Mac. Cloud can check/queue/post/delete but not create videos.
+- ⚠️ **Postiz key was pasted in chat/screenshots — regenerate it** in Postiz Settings→API sometime,
+  then update .env.local AND the cloud env var. Not urgent, good hygiene.
 
-## 5. Brand assets (Desktop: ~/LightningMines-Brand/)
-- **profile-photo-1024.png / -400.png** — Jacob's avatar photo (best frame from demo video), USE AS PROFILE PIC on all socials
-  (decided: human face > logo for a personal trust brand).
-- **avatar-blaze.svg** — bold glowing bolt mark (best at small sizes) · **avatar-strike.svg** — realistic lightning
-  (spectacular full-size; recommended as X/YouTube BANNER art, not avatar). Banner builds not started — offer to make
-  1500×500 (X) + 2560×1440 (YT) with strike art + wordmark + tagline.
+## 5. STATE SNAPSHOT (2026-07-23 ~8:30pm MT)
+- **Thu 7/23: 4/4 PUBLISHED** — YT 9_kWnWu3540 · IG reel DbJMGYBigvM · TikTok @lightningmines ·
+  X status 2080342494769000889 (X was gate-skipped for "today" phrasing; clean text posted from
+  cloud with Jacob's approval)
+- **Fri 7/24: 4 QUEUED** (grey-sweater re-render; the near-duplicate navy set + 3 accidental
+  duplicate sets were deleted via API)
+- **Sat 7/25 onward: automatic** via 6:45am chain — first human-numbers video
+- Earlier this week: Tue 7/21 4/4 and Wed 7/22 4/4 published. No platform has ever received the
+  same video twice.
+- HeyGen wallet: ~2,575 units on 7/17; ~6 renders since (~80 units each incl. 3 wasted on the 7/23
+  paste-repeat) → roughly ~2,000 left ≈ 25 days. Top up under 300: app.heygen.com/settings?nav=API.
 
-## 6. Decisions locked
-- Human one-tap approval on everything; nothing posts automatically.
-- Avatar = HeyGen clone of Jacob (grey hoodie look). NO robotic TTS, no stock avatars.
-- GPT (OpenAI API) = independent reviewer/second brain vs Claude generator — two models on purpose.
-- Shorts-first; YouTube long-form Phase 2. Postiz free before Blotato. No Make.com — engine orchestrates in code.
+## 6. SCHEDULED / RECURRING
+- **Sunday 7:33pm MT weekly review** — per `docs/weekly-deep-dive.md` (pre-registered metrics +
+  KEEP/ADJUST/REVERT criteria; watch-through is THE metric; medians; % AND raw seconds; first-3s
+  hold on the "Lightning Mines" open; wardrobe breakdown). **Jul 26 = 5-day directional early read
+  only. Aug 2 = first full-week decision.** Pull Supabase-side data yourself (leads,
+  affiliate_clicks, analytics_events, hashprice_snapshots — project bngwwalucfirmcymqall); ask Jacob
+  to paste per-video platform stats.
+- ⚠️ The Sunday trigger lives as a SESSION-ONLY cron in the 7/22-23 session ("Postiz video posting
+  setup"). If that session is gone, RECREATE the schedule. A durable server-side Routine was blocked
+  on a permission approval — worth retrying create_trigger from an interactive session.
+- HeyGen avatar month trial ends ~8/22 (evaluate vs $0 motion-graphic pipeline / Remotion idea).
 
-## 7. Next milestones (in order)
-1. Jacob: accounts + Postiz key (section 4) → first live post same day.
-2. Approval transport: email/Slack digest with Approve button (replaces manually running content:post).
-3. Daily schedule (cron) for content:run + render; post stays behind approval.
-4. Analytics feedback loop (what performs → informs briefs). 5. Cheap-model routing. 6. Banners (section 5).
+## 7. OPEN ITEMS
+1. **Hosting-provider verification (Jacob's ask 7/23):** nobody has verified. Compass (Colby)
+   redirected 7/20 → email **marketing@compassmining.io**. Simple Mining (Adam, aobrien@) offered
+   2% referral then went silent after 6/24 follow-up → re-ping. Gmail drafts were offered, not yet
+   written.
+2. Regenerate + re-home Postiz key (see §4).
+3. Jacob's IG bio still missing lightningmines.com link; daily outbound replies remain the #1
+   organic growth lever per prior reviews.
+4. Later/nice-to-have: log wardrobe look per video into analytics; X revise-loop hardening (retry
+   handles most); Remotion motion-graphics exploration (parked — HeyGen month first); banners;
+   $997 tier landing page.
 
-## 7b. Content operating pattern (agreed 2026-07-16 night)
-- **One video/day, fixed hour (7am MT target).** Decision rule each morning: (1) if a bullish trigger in
-  `content-engine/ideas.md` is TRUE per live data → that's the day's video; (2) else weekday pillar; (3) school
-  episodes (Lightning Lessons, numbered curriculum) own the Thu explainer + Sun slots.
-- **3-post evergreen buffer, always.** Banked now: Ep 2 (`out/2026-07-16-ep2.mp4`) + Ep 3 (`out/2026-07-17-lessons-ep3.mp4`,
-  all 4 captions gate-passed in `-lessons-ep3.json`). Slot 3 = cloud-mining myth-bust: scripts in `out/2026-07-17-cloudmining.json`
-  but IG + X captions FAILED brand gate (quoting "guaranteed returns" while debunking trips the check) — needs a wording
-  revision + render. Only evergreen content gets banked (stale-numbers rule). Post one → replace within 48h.
-- **Renderer mix (cost control):** HeyGen avatar ONLY for school eps / face-worthy content; daily numbers posts use the
-  $0 silent motion-graphic pipeline (`marketing/video/`, launchd 7:10am → ~/LightningMines-Content/). Publish any MP4 via
-  `content:post -- --video=<path>` (new flag) with the day's captions. Scripts now hard-capped at 110-150 words (~45-60s)
-  — better retention AND ~half the render cost.
-- **X format (fixed 2026-07-17 after Jacob flagged duplicate-looking feed):** X gets the VIDEO attached natively plus its
-  own long-form written breakdown (`xPostFor`: hook + body + hashtags — account has Premium), NOT a short caption + bare
-  link. Bare-link posts all render the identical lightningmines.com preview card → feed reads as reposted spam, and X
-  downranks link-only posts. X ships as a separate /posts call with auto-fallback to the 280-char `tweetFor` version if
-  the long post is rejected.
-- **Avatar wardrobe rotation (2026-07-17):** 4 extra motion looks live; pillar→look map `HEYGEN_LOOK_BY_PILLAR` in
-  content-engine/config.ts (sweater=numbers days, olive=red flags, studio=myth-busts, navy=hardware, grey hoodie
-  reserved for Lightning Lessons). IDs in memory + config comments.
-- **HeyGen quota reality (2026-07-16 night): 65 API units left** (~1 render at old length, ~2 short). Burn was ~39 units
-  per ~80s render. Daily avatar-everything needs a paid plan (~$100/mo API tier — verify current pricing); the mix above
-  keeps it $0-30/mo.
-- **Research loop:** `npm run content:ideas` weekly (Sun) — Claude proposes school/bullish/evergreen topics, GPT scores →
-  ranked backlog in `content-engine/ideas.md` (12 seeded, school eps 3-8 scored 85-95). Bullish ideas carry explicit
-  live-data triggers; post only when the trigger is true.
-- **Sunday analytics review (manual until scripted):** per video log views/watch-through/likes/comments/follows against
-  pillar+hook+length; write one lesson/week into BRAND.md; never react to a single video, only patterns across 5+.
-- **Engagement human-jobs (Jacob, not automatable):** reply to every comment in hour 1; on X, reply useful math to 3-5
-  big mining accounts daily; TikTok video-replies to good comments.
-
-## 7c. SOCIAL MEDIA WORK FLOW — live state snapshot (2026-07-17 night)
-The session running this is titled "SOCIAL MEDIA WORK FLOW". A fresh session picking this up needs to know:
-- **Scheduled & guaranteed (Postiz server-side, fires even with everything closed):** 8 posts queued —
-  Sat 7/18 cloud-mining warning (studio look, "3 Red Flags" chart-open) + Sun 7/19 Lightning Lessons Ep 4 (grey hoodie,
-  "Ep. 4" card open); each day X 9am / YT 2pm / IG 6pm / TikTok 8pm ET. Hand-tuned YouTube titles are saved INSIDE the
-  script JSONs (`out/2026-07-17-cloudmining-v2.json`, `out/2026-07-17-lessons-ep4.json` → youtube_shorts script.title).
-- **Session-only automations (die with the session — RECREATE in a new session):**
-  (a) daily 6:47am content-lead maintenance: keep Postiz 2 days ahead with the next EVERGREEN item (Lightning Lessons
-  Ep 5 = breakeven formula is next, alternate with myth-bust/red-flag from content-engine/ideas.md), chain =
-  content:run --pillar/--angle → content:render --date=<exact json prefix> (wardrobe auto) → chart-open → frame-check →
-  `NODE_PATH=<repo>/node_modules node content-engine/tools/schedule-ahead.js <json> <mp4> <D+2>`; idempotency guard first
-  (skip if D+2 already has 4 QUEUE posts). (b) Sun 7/19 7:33pm one-shot: full week-1 analytics report + dual-brain
-  (Claude generateJSON + GPT reviewJSON) traction analysis + apply cheap fixes + BRAND.md lessons entry.
-- **Analytics baseline (Fri 7/17 ~11am, for Sunday deltas):** YT 2 subs, Shorts 1/3/1 views · TikTok 2 followers/1 like ·
-  IG 2 followers · X 9 followers.
-- **Tools:** `marketing/video/chart-open.swift <main.mp4> <out.mp4> <bigText> <label> [spark]` — 2s animated open
-  (spark = chart mode for same-day numbers content only, from lightningmines.com/api/daily-script chart.points;
-  no spark = episode card for evergreen). `content-engine/tools/schedule-ahead.js` — schedules one day's 4 posts at the
-  staggered times (times hardcoded inside, July EDT offsets).
-- **HeyGen wallet:** ~2,575 units; $50 = 3,000 units (≈1.7¢/unit), renders ≈80 units (≈$1.35/video, ~$1/min).
-  Top-up at https://app.heygen.com/settings?nav=API when under 300.
-- **Jacob's open human items:** (1) Instagram bio still missing the lightningmines.com link (Edit profile → Links) —
-  only clickable path from Reels; (2) daily 30-60min outbound replies on bigger mining/BTC accounts — both growth
-  reviewers ranked this the #1 lever, above everything automated; (3) reply to own-post comments within the hour.
-- **Live post URLs so far:** YT _iXYcyWgeWw + 7hND0G0zaT4 + 3qsUNllV-lA · IG Da3gK_qCoa6 + Da4EGUvij4j + Da5jgzDgVD_ ·
-  X status 2077934972154130936 + 2078141973765218702 · TikTok on @lightningmines profile.
-
-## 8. Growth plan sketch ($500 / 30-day discussion, 2026-07-15)
-Honest expectation set: $10k/30d is tail outcome; $1.5–4k + compounding machine is realistic.
-Key moves agreed worth pursuing: post 2–3×/day (marginal cost ~0), design a **$997 "Done-With-You Mining Setup"** tier
-(stacks with affiliate commission), subagent-assisted "whale hunting" (draft genuinely helpful math-first replies to
-high-intent Reddit/X/YouTube questions — always human-approved, never auto-posted), hold ad spend until an organic
-winner exists, then boost only proven videos. Landing page for $997 tier: not started.
+## 8. CONVENTIONS FOR THE ASSISTANT
+- PR flow: branch `claude/postiz-video-posting-v1z5o1` (restart from origin/main after each merge —
+  all of PRs #11-#19 are merged), draft PR, wait Vercel green, Jacob says "merge" (he sometimes
+  pre-authorizes with intent like "I want X done now"). Commits: imperative, one line.
+- Never push to main without clean `npm run build`. No edits to vercel.json / next.config.ts /
+  Cloudflare / Supabase IDs / Stripe.
+- Human approval rule stands: nothing posts without Jacob's action or explicit in-chat instruction.
+- Verify claims against Postiz/Supabase directly instead of trusting memory — "check the queue"
+  should always be answered with a fresh API read.
 
 ## 9. Costs (~monthly)
-OpenAI/Anthropic pennies · HeyGen ~$29–89 · Postiz $0 (target) · total well under $100/mo.
-Anthropic key: $20 credit, 90-day — rotate reminder Oct 5 2026 (on Google Calendar).
-
-## 10. Hard rules (don't touch without instruction)
-No edits to vercel.json / next.config.ts / Cloudflare-DNS. No changes to Supabase IDs/connection or Stripe price
-IDs/webhooks. **Never push to main without a clean `npm run build`.** Secrets only in `.env.local` (gitignored).
-Commits: imperative, one line.
+OpenAI/Anthropic pennies · HeyGen ~$40/mo at 1 video/day (after trial decision) · Postiz $0 ·
+total well under $100/mo. Anthropic key rotate reminder Oct 5 2026.
