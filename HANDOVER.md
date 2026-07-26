@@ -107,6 +107,12 @@ session of confused debugging on 7/25. Do not repeat that: keep this file curren
   developer.adzuna.com → Vercel env**. job_finds gained salary + fit_score columns. Direct
   Indeed/LinkedIn scrapers were requested and refused (no API / bot-blocked / ToS) — deep-links
   in the brief instead.
+- **PA HAS HANDS (2026-07-26 evening):** the dashboard chat (ChatGPT voice, Claude verifier)
+  now ACTS via server-side tools: list_queue / delete_post (confirm-first) / regenerate_content
+  (cache only, no re-render) / add_lesson (feeds every future script — Jacob can steer content
+  by chatting) / job_status / check_balance / run_watchdog / recent_leads. Deliberate boundary:
+  the web PA never gets deploy/DB/Make/shell powers — those stay in Claude Code sessions
+  (one leaked URL must not equal total compromise). Explained to and accepted by Jacob.
 - **WEEK OF 7/26–8/1 was generated + queued live this session:** Sun 7/26 numbers post (GPT 95)
   + Mon–Sat evergreen (all gates passed; distinct hooks; tone = bullish/funny/human per Jacob).
   Evergreen gate also blocks live difficulty/hashrate figures ("126.2 trillion"), not just $.
