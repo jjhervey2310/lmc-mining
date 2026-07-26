@@ -15,9 +15,17 @@ export function brandGate(script: Script): GateResult {
   }
 
   // Flag PROMISES of guaranteed upside, not honest "not guaranteed" disclaimers.
-  const promisesGuarantee = /\bguarantee(d|s)?\s+(return|profit|income|roi|money|gains?|upside|\$|\d)/.test(hay)
-  const riskFree = /\brisk[-\s]?free\b|\briskless\b/.test(hay)
-  if (promisesGuarantee || riskFree) {
+  // A negation in the same sentence right before the claim ("there are NO guaranteed
+  // returns", "mining is never risk-free") is our honesty voice, not hype.
+  const negatedNearby = (idx: number) =>
+    /\b(no|not|never|zero|without|nobody|nothing|isn't|isn’t|aren't|aren’t|cannot|can't|can’t|won't|won’t|doesn't|doesn’t)\b[^.!?]*$/.test(
+      hay.slice(Math.max(0, idx - 60), idx)
+    )
+  const claimMatches = [
+    ...hay.matchAll(/\bguarantee(d|s)?\s+(return|profit|income|roi|money|gains?|upside|\$|\d)/g),
+    ...hay.matchAll(/\brisk[-\s]?free\b|\briskless\b/g),
+  ]
+  if (claimMatches.some((m) => !negatedNearby(m.index ?? 0))) {
     issues.push('Guaranteed-return / risk-free claim')
   }
 
