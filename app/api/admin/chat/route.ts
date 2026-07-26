@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { getLivePriceData } from '@/lib/btc-price'
 import { computeDailyNumbers } from '@/lib/daily-content'
+import { getMakeDrop } from '@/lib/make-content'
 
 // The PA behind the terminal's chat window. Every request gets a fresh snapshot of
 // the whole operation, so answers are grounded in what is actually happening.
@@ -71,7 +72,107 @@ How his machine works (all automatic, no laptop involved):
 
 Use the live SNAPSHOT JSON in each request to answer questions about current state. If something looks broken, say what, why it matters, and the exact next step. If data is missing from the snapshot, say so rather than guessing.
 
-Adopt the expert lens each question calls for — data analyst for numbers, marketing strategist for content/growth, ops engineer for pipeline issues, recruiter for the job hunt — and answer as that expert would, still short and plain.`
+Adopt the expert lens each question calls for — data analyst for numbers, marketing strategist for content/growth, ops engineer for pipeline issues, recruiter for the job hunt — and answer as that expert would, still short and plain.
+
+You can ACT, not just answer, via your tools: list the post queue, delete a queued post, regenerate a day's content through the gates, add a standing content lesson that shapes every future script, and update job statuses. Rules: before any DESTRUCTIVE action (deleting a post), state exactly what you'll do and get Jacob's explicit yes in this chat first — then act on his confirmation. Never invent post ids: list the queue first. regenerate_content refreshes the script/captions cache only; it does NOT re-render or re-queue the video (tell Jacob that part still runs through Saturday's batch or Claude). After acting, report what actually happened based on the tool result.`
+
+// ── PA tools: the hands. Each runs server-side with the same keys the watchdog uses. ──
+
+const PA_TOOLS = [
+  { type: 'function' as const, function: { name: 'list_queue', description: 'List queued/scheduled posts for the next N days with ids, times (UTC), platforms, first caption line.', parameters: { type: 'object', properties: { days: { type: 'number', description: '1-14, default 7' } } } } },
+  { type: 'function' as const, function: { name: 'delete_post', description: 'Delete ONE queued Postiz post by its id. DESTRUCTIVE — only after Jacob explicitly confirmed in this conversation.', parameters: { type: 'object', properties: { post_id: { type: 'string' } }, required: ['post_id'] } } },
+  { type: 'function' as const, function: { name: 'regenerate_content', description: 'Regenerate a date\'s script+captions through all quality gates, overwriting the cached version. Does NOT re-render video.', parameters: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD' } }, required: ['date'] } } },
+  { type: 'function' as const, function: { name: 'add_lesson', description: 'Add a standing content lesson/directive that is injected into every future script generation (e.g. "shorter hooks", "more humor").', parameters: { type: 'object', properties: { lesson: { type: 'string' }, rationale: { type: 'string' } }, required: ['lesson'] } } },
+  { type: 'function' as const, function: { name: 'job_status', description: 'Update a job find\'s status: applied, seen, or hidden.', parameters: { type: 'object', properties: { url: { type: 'string' }, status: { type: 'string', enum: ['applied', 'seen', 'hidden'] } }, required: ['url', 'status'] } } },
+  { type: 'function' as const, function: { name: 'check_balance', description: 'Get the current HeyGen render balance in units.', parameters: { type: 'object', properties: {} } } },
+  { type: 'function' as const, function: { name: 'run_watchdog', description: 'Run the full watchdog sweep right now (health checks, auto-fixes, job sweep, sends Jacob the brief email).', parameters: { type: 'object', properties: {} } } },
+  { type: 'function' as const, function: { name: 'recent_leads', description: 'List the most recent website leads (email, type, date).', parameters: { type: 'object', properties: { limit: { type: 'number', description: '1-25, default 10' } } } } },
+]
+
+async function runTool(name: string, args: Record<string, unknown>): Promise<string> {
+  const supabase = createServiceClient()
+  try {
+    if (name === 'list_queue') {
+      const days = Math.min(14, Math.max(1, Number(args.days) || 7))
+      const res = await fetch(
+        `https://api.postiz.com/public/v1/posts?startDate=${new Date().toISOString()}&endDate=${new Date(Date.now() + days * 864e5).toISOString()}`,
+        { headers: { Authorization: process.env.POSTIZ_API_KEY || '' }, cache: 'no-store' }
+      )
+      if (!res.ok) return `Postiz error ${res.status}`
+      const posts = (((await res.json()).posts || []) as { id: string; publishDate: string; state: string; content?: string; integration?: { providerIdentifier?: string } }[])
+        .filter((p) => p.state === 'QUEUE')
+        .sort((a, b) => a.publishDate.localeCompare(b.publishDate))
+        .map((p) => ({ id: p.id, when_utc: p.publishDate, platform: (p.integration?.providerIdentifier || '?').replace('-standalone', ''), caption: (p.content || '').split('\n')[0].slice(0, 70) }))
+      return JSON.stringify(posts)
+    }
+    if (name === 'delete_post') {
+      const res = await fetch(`https://api.postiz.com/public/v1/posts/${args.post_id}`, {
+        method: 'DELETE', headers: { Authorization: process.env.POSTIZ_API_KEY || '' },
+      })
+      return res.ok ? `Deleted post ${args.post_id}.` : `Delete failed: HTTP ${res.status}`
+    }
+    if (name === 'regenerate_content') {
+      const drop = await getMakeDrop({ date: String(args.date), refresh: true })
+      return JSON.stringify({ ok: true, date: drop.date, source: drop.source, hook: drop.hook, gates: drop.gates.map((g) => `${g.gate}: ${g.pass ? 'pass' : 'FAIL'}`) })
+    }
+    if (name === 'add_lesson') {
+      if (!supabase) return 'Supabase unavailable'
+      await supabase.from('content_lessons').insert({ lesson: String(args.lesson), rationale: String(args.rationale || 'Jacob, via PA chat'), source: 'jacob-pa' })
+      return `Lesson saved — it now shapes every future script: "${args.lesson}"`
+    }
+    if (name === 'job_status') {
+      if (!supabase) return 'Supabase unavailable'
+      const { error } = await supabase.from('job_finds').update({ status: String(args.status) }).eq('url', String(args.url))
+      return error ? `Update failed: ${error.message}` : `Marked ${args.status}.`
+    }
+    if (name === 'check_balance') {
+      const res = await fetch('https://api.heygen.com/v2/user/remaining_quota', { headers: { 'x-api-key': process.env.HEYGEN_API_KEY || '' }, cache: 'no-store' })
+      if (!res.ok) return `HeyGen error ${res.status}`
+      return `HeyGen balance: ${(await res.json()).data?.remaining_quota} units (a week of 7 videos burns ~300-550; $50 buys ~3,000).`
+    }
+    if (name === 'run_watchdog') {
+      const res = await fetch('https://www.lightningmines.com/api/cron/morning-brief', {
+        method: 'POST', headers: { 'x-content-secret': process.env.DAILY_CONTENT_SECRET || '' }, cache: 'no-store',
+      })
+      return res.ok ? `Watchdog ran: ${await res.text()}` : `Watchdog failed: HTTP ${res.status}`
+    }
+    if (name === 'recent_leads') {
+      if (!supabase) return 'Supabase unavailable'
+      const { data } = await supabase.from('leads').select('email, lead_type, created_at').order('created_at', { ascending: false }).limit(Math.min(25, Number(args.limit) || 10))
+      return JSON.stringify(data || [])
+    }
+    return `Unknown tool ${name}`
+  } catch (e) {
+    return `Tool error: ${e instanceof Error ? e.message : e}`
+  }
+}
+
+/** GPT with tools: acts, observes results, then answers. Bounded loop. */
+async function gptWithTools(system: string, history: { role: string; content: string }[], key: string): Promise<string> {
+  const msgs: Record<string, unknown>[] = [{ role: 'system', content: system }, ...history]
+  for (let i = 0; i < 5; i++) {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4o', temperature: 0.4, max_tokens: 900, messages: msgs, tools: PA_TOOLS }),
+    })
+    if (!res.ok) throw new Error(`gpt ${res.status}`)
+    const m = (await res.json()).choices?.[0]?.message as { content?: string; tool_calls?: { id: string; function: { name: string; arguments: string } }[] } | undefined
+    if (!m) throw new Error('gpt empty response')
+    if (m.tool_calls?.length) {
+      msgs.push(m as Record<string, unknown>)
+      for (const tc of m.tool_calls) {
+        let parsed: Record<string, unknown> = {}
+        try { parsed = JSON.parse(tc.function.arguments || '{}') } catch { /* empty args */ }
+        const out = await runTool(tc.function.name, parsed)
+        msgs.push({ role: 'tool', tool_call_id: tc.id, content: out })
+      }
+      continue
+    }
+    return m.content || ''
+  }
+  return 'I hit my action limit on this one — ask me to continue.'
+}
 
 async function askClaude(system: string, messages: { role: string; content: string }[], key: string): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -83,22 +184,6 @@ async function askClaude(system: string, messages: { role: string; content: stri
   const data = (await res.json()) as { content?: { type: string; text?: string }[] }
   // Join ALL text blocks — answers can arrive split, and taking only the first truncates them.
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('')
-}
-
-/** ChatGPT drafts the PA's answers (Jacob's pick for the chat voice). */
-async function askGPT(system: string, messages: { role: string; content: string }[], key: string): Promise<string> {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      temperature: 0.5,
-      max_tokens: 900,
-      messages: [{ role: 'system', content: system }, ...messages],
-    }),
-  })
-  if (!res.ok) throw new Error(`gpt ${res.status}`)
-  return ((await res.json()).choices?.[0]?.message?.content as string) || ''
 }
 
 /** Claude cross-checks GPT's draft against the same snapshot. Null when it agrees. */
@@ -138,16 +223,16 @@ export async function POST(req: Request) {
   const question = history[history.length - 1].content
 
   try {
-    // Dual-brain, Jacob's arrangement: ChatGPT is the voice, Claude is the silent
-    // checker — GPT revises until Claude has no factual objections (bounded).
-    let reply = await askGPT(system, history, key)
+    // Dual-brain, Jacob's arrangement: ChatGPT is the voice AND the hands (tools),
+    // Claude is the silent checker — GPT revises until Claude has no objections.
+    let reply = await gptWithTools(system, history, key)
     let rounds = 0
     for (; rounds < 2; rounds++) {
       const objections = await claudeObjections(snapJson, question, reply)
       if (!objections) break
-      reply = await askGPT(
+      reply = await gptWithTools(
         system,
-        [...history, { role: 'assistant', content: reply }, { role: 'user', content: `An independent reviewer checked your answer against the live data and objects: "${objections}". Rewrite the answer fixing every valid objection. Answer only — no meta-commentary.` }],
+        [...history, { role: 'assistant', content: reply }, { role: 'user', content: `An independent reviewer checked your answer against the live data and objects: "${objections}". Rewrite the answer fixing every valid objection (you may use tools to re-check facts). Answer only — no meta-commentary.` }],
         key
       )
     }
@@ -158,4 +243,5 @@ export async function POST(req: Request) {
 }
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+// Tool loops (especially regenerate_content's full gate run) can take minutes.
+export const maxDuration = 300
