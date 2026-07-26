@@ -65,7 +65,22 @@ session of confused debugging on 7/25. Do not repeat that: keep this file curren
   + Mon–Sat evergreen (all gates passed; distinct hooks; tone = bullish/funny/human per Jacob).
   Evergreen gate also blocks live difficulty/hashrate figures ("126.2 trillion"), not just $.
   brandGate is now negation-aware ("no guaranteed returns" passes; promises still fail).
-- **NEXT MILESTONE:** Sunday analytics review → BRAND.md lessons ("learn from good videos").
+- **ANALYTICS LOOP LIVE (built 2026-07-26 ~4am):** `/api/cron/weekly-analytics` (secret-gated,
+  pg_cron jobid 6, Sundays 8pm MT) snapshots per-video stats into `video_metrics`, then Claude
+  proposes ≤2 lessons and GPT independently critiques — only lessons BOTH agree on land in
+  `content_lessons`, which lib/make-content.ts loads into every future script's brief. Emails
+  Jacob the weekly report. 5+ videos-with-data required before any lesson (brand rule).
+  **Jacob's one human step: create a free YouTube Data API key + find the channel ID, then add
+  `YOUTUBE_API_KEY` and `YOUTUBE_CHANNEL_ID` to Vercel prod env** — until then the report emails
+  "no metrics source connected". TikTok/IG/X metrics = phase 2 (need platform app approvals).
+- **Video polish tiers (discussed, not built):** tier 1 $0 = site-generated chart-card image as a
+  HeyGen opening scene (cloud version of chart-open.swift, /api/og pattern); tier 2 $30-50/mo =
+  Creatomate/Shotstack compositing (lower-thirds, captions, b-roll). Decide with analytics data.
+- **AI × Mining series (Jacob's idea, 2026-07-26):** origin story "they said AI would take over
+  mining, so I became the AI to find out" — approved direction: keep daily mining engine, add ONE
+  AI-vs-mining episode/week at the intersection (AI datacenters vs miners for power, AI vs ASIC
+  energy, can AI predict hashprice). Expand only if analytics beat mining episodes 4-6 weeks
+  straight. NOT built yet — needs an 'ai_mining' pillar in lib/make-content.ts when Jacob says go.
 - Postiz duplicate-detection does not exist; never run two pipelines at once.
 - 2026-07-26 scripts were generated locally (passed all gates, in `content-engine/out/`) but never
   rendered/scheduled (HeyGen 401). Make will cover 7/26 on its own at 6:15am.
