@@ -69,7 +69,47 @@ How his machine works (all automatic, no laptop involved):
 - Money: revenue = Abundant Mines hosting affiliate + $97/$297 audits; a $997 Done-With-You Setup tier is in progress. Jacob's first income goal is $3,000 and he is also job hunting (the job wire helps).
 - Known quirk: Postiz's calendar shows queued videos with no preview thumbnail — cosmetic; the video files are attached and publish fine.
 
-Use the live SNAPSHOT JSON in each request to answer questions about current state. If something looks broken, say what, why it matters, and the exact next step. If data is missing from the snapshot, say so rather than guessing.`
+Use the live SNAPSHOT JSON in each request to answer questions about current state. If something looks broken, say what, why it matters, and the exact next step. If data is missing from the snapshot, say so rather than guessing.
+
+Adopt the expert lens each question calls for — data analyst for numbers, marketing strategist for content/growth, ops engineer for pipeline issues, recruiter for the job hunt — and answer as that expert would, still short and plain.`
+
+async function askClaude(system: string, messages: { role: string; content: string }[], key: string): Promise<string> {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({ model: process.env.CE_GENERATOR_MODEL || 'claude-sonnet-5', max_tokens: 1200, system, messages }),
+  })
+  if (!res.ok) throw new Error(`claude ${res.status}`)
+  const data = (await res.json()) as { content?: { type: string; text?: string }[] }
+  // Join ALL text blocks — answers can arrive split, and taking only the first truncates them.
+  return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('')
+}
+
+/** GPT cross-check: same snapshot, fresh eyes. Returns null when it agrees. */
+async function gptObjections(snapJson: string, question: string, draft: string): Promise<string | null> {
+  const key = process.env.OPENAI_API_KEY
+  if (!key) return null
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: 'You are the independent second brain checking a PA\'s answer against live system data. Be the same kind of expert the question demands. Verify every factual claim against the snapshot and the logic of the advice. Return ONLY JSON: {"agree": boolean, "objections": string}. Object only to real errors or misleading framing — style is not your business.' },
+        { role: 'user', content: `SNAPSHOT:\n${snapJson}\n\nQUESTION: ${question}\n\nPA ANSWER TO CHECK:\n${draft}` },
+      ],
+    }),
+  })
+  if (!res.ok) return null
+  try {
+    const v = JSON.parse((await res.json()).choices?.[0]?.message?.content || '{}') as { agree?: boolean; objections?: string }
+    return v.agree ? null : v.objections || 'unspecified objection'
+  } catch {
+    return null
+  }
+}
 
 export async function POST(req: Request) {
   const body = (await req.json()) as { secret?: string; messages?: { role: 'user' | 'assistant'; content: string }[] }
@@ -85,22 +125,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No user message' }, { status: 400 })
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: process.env.CE_GENERATOR_MODEL || 'claude-sonnet-5',
-      max_tokens: 1000,
-      system: `${SYSTEM}\n\nSNAPSHOT (live, just fetched):\n${JSON.stringify(snap)}`,
-      messages: history,
-    }),
-  })
-  if (!res.ok) {
-    return NextResponse.json({ error: `model error ${res.status}` }, { status: 502 })
+  const snapJson = JSON.stringify(snap)
+  const system = `${SYSTEM}\n\nSNAPSHOT (live, just fetched):\n${snapJson}`
+  const question = history[history.length - 1].content
+
+  try {
+    // Dual-brain: Claude drafts, GPT independently checks against the same data,
+    // Claude revises until they agree (bounded so the chat stays responsive).
+    let reply = await askClaude(system, history, key)
+    let rounds = 0
+    for (; rounds < 2; rounds++) {
+      const objections = await gptObjections(snapJson, question, reply)
+      if (!objections) break
+      reply = await askClaude(
+        system,
+        [...history, { role: 'assistant', content: reply }, { role: 'user', content: `An independent reviewer checked your answer against the live data and objects: "${objections}". Rewrite the answer fixing every valid objection. Answer only — no meta-commentary.` }],
+        key
+      )
+    }
+    return NextResponse.json({ reply, checked: rounds === 0 ? 'agreed first pass' : `agreed after ${rounds} revision(s)` })
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'model error' }, { status: 502 })
   }
-  const data = (await res.json()) as { content?: { type: string; text?: string }[] }
-  const reply = (data.content || []).find((b) => b.type === 'text')?.text || ''
-  return NextResponse.json({ reply })
 }
 
 export const dynamic = 'force-dynamic'

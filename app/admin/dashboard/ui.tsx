@@ -77,31 +77,95 @@ export function Spark({ points, w = 120, h = 34 }: { points: number[]; w?: numbe
   const min = Math.min(...points)
   const max = Math.max(...points)
   const span = max - min || 1
-  const xy = points.map((p, i) => `${(i / (points.length - 1)) * w},${h - ((p - min) / span) * (h - 6) - 3}`)
+  const pts = points.map((p, i) => [(i / (points.length - 1)) * w, h - ((p - min) / span) * (h - 6) - 3])
+  const xy = pts.map(([x, y]) => `${x},${y}`)
   const up = points[points.length - 1] >= points[0]
+  const c = up ? '#22c55e' : '#ef4444'
+  const gid = `g${Math.abs(points[0] * 7919 + points.length) | 0}${w}`
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="block">
-      <polyline points={xy.join(' ')} fill="none" stroke={up ? '#22c55e' : '#ef4444'} strokeWidth="1.5" />
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={c} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={c} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={`0,${h} ${xy.join(' ')} ${w},${h}`} fill={`url(#${gid})`} />
+      <polyline points={xy.join(' ')} fill="none" stroke={c} strokeWidth="1.5" />
     </svg>
   )
 }
 
 export function Tile({
-  label, value, tone = 'amber', sub, spark,
+  label, value, tone = 'amber', sub, spark, prev, changePct,
 }: {
   label: string
   value: string
   tone?: 'amber' | 'pos' | 'neg' | 'dim'
   sub?: string
   spark?: number[]
+  prev?: string
+  changePct?: number
 }) {
   const color = tone === 'pos' ? 'text-green-500' : tone === 'neg' ? 'text-red-500' : tone === 'dim' ? 'text-neutral-400' : 'text-amber-500'
+  const up = (changePct ?? 0) >= 0
   return (
-    <div className="border border-neutral-800 bg-black px-3 py-2">
+    <div className="border border-neutral-800 border-t-2 border-t-amber-600/70 bg-black px-3 py-2">
       <div className="text-[10px] uppercase tracking-widest text-neutral-500">{label}</div>
       <div className={`font-mono text-2xl leading-tight ${color}`}>{value}</div>
+      {(prev !== undefined || changePct !== undefined) && (
+        <div className="mt-0.5 flex gap-3 text-[10px] text-neutral-500">
+          {prev !== undefined && <span>prev {prev}</span>}
+          {changePct !== undefined && (
+            <span className={up ? 'text-green-500' : 'text-red-500'}>{up ? '▲' : '▼'} {Math.abs(changePct).toFixed(1)}%</span>
+          )}
+        </div>
+      )}
       {sub && <div className="text-[11px] text-neutral-500">{sub}</div>}
       {spark && spark.length > 1 && <div className="mt-1"><Spark points={spark} /></div>}
+    </div>
+  )
+}
+
+const DONUT_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444', '#14b8a6', '#eab308']
+
+export function Legend({ data }: { data: { label: string; value: number }[] }) {
+  return (
+    <div className="space-y-1 text-[11px]">
+      {data.map((d, i) => (
+        <div key={d.label} className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2" style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+          <span className="text-neutral-400">{d.label}</span>
+          <span className="ml-auto text-amber-400">{d.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function DonutChart({ data, size = 110, center }: { data: { label: string; value: number }[]; size?: number; center?: string }) {
+  const total = data.reduce((s, d) => s + d.value, 0)
+  if (!total) return <div className="text-[11px] text-neutral-600">no data</div>
+  const r = size / 2 - 8
+  const c = 2 * Math.PI * r
+  let acc = 0
+  return (
+    <div className="flex items-center gap-4">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {data.map((d, i) => {
+          const frac = d.value / total
+          const off = acc
+          acc += frac
+          return (
+            <circle key={d.label} cx={size / 2} cy={size / 2} r={r} fill="none"
+              stroke={DONUT_COLORS[i % DONUT_COLORS.length]} strokeWidth="12"
+              strokeDasharray={`${c * frac - 2} ${c}`} strokeDashoffset={-c * off}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+          )
+        })}
+        {center && <text x={size / 2} y={size / 2 + 4} textAnchor="middle" fill="#f59e0b" fontSize="16" fontFamily="monospace" fontWeight="bold">{center}</text>}
+      </svg>
+      <Legend data={data} />
     </div>
   )
 }
