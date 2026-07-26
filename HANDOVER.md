@@ -1,6 +1,28 @@
 # Lightning Mines — Project Handover
 
-_Last updated: 2026-07-25 (night) — POSTING MOVED TO MAKE.COM; laptop chain DISABLED. Read §0 first._
+_Last updated: 2026-07-26 (~4:30am) — GATED WEEKLY PIPELINE FULLY AUTONOMOUS; analytics loop live. Read §0 first._
+
+## 0b. SESSION CLOSE-OUT 2026-07-26 (~4:30am) — what a fresh session must know first
+- **Jacob lives in DENVER (moved early) — everything is Mountain Time.** UTC crons drift an hour
+  at the November DST change; re-check then.
+- **YouTube analytics CONNECTED this session:** YOUTUBE_API_KEY + YOUTUBE_CHANNEL_ID
+  (UCez675kSdaqUrIlhmxSCLEw, @lightningmines23 "Lightning Mines", 12 videos) in Vercel prod.
+  First run: 12 snapshots, 0 lessons (models correctly refused — data too thin; lessons start
+  as views accumulate). Note: an EMPTY second channel @lightningmines (0 videos) also exists.
+- **MONEY — the priority now. Jacob has no job yet; first income goal $3,000.** Agreed plan:
+  (1) BUILD NEXT: $997 "Done-With-You Mining Setup" landing page (3 sales = goal; Jacob must
+  create the Stripe payment link — never touch existing Stripe config); (2) BUILD NEXT: daily
+  "whale hunting" digest — 5 high-intent Reddit/X questions + drafted math-first replies emailed
+  each morning, Jacob approves and posts BY HAND (never auto-post); (3) route audit buyers
+  ($97/$297, pages live) toward the $997 tier. Content machine = marketing dept; direct outreach
+  = where week-one revenue comes from (was already the #1 ranked growth lever).
+- **The autonomous weekly rhythm (all MT, nothing needs the laptop or Jacob):**
+  Sat 5pm HeyGen balance check (emails if <600 units) → Sat 6pm warm-generate next 7 days →
+  Sat 7pm Weekly Batch renders 7 videos + queues 28 Postiz posts → Sun 8pm analytics review
+  (snapshot → Claude proposes → GPT vets → agreed lessons auto-feed future scripts + email).
+  Week of 7/26–8/1 is fully queued. Next batch fires Sat 8/1 7pm MT.
+- Parked, ready when Jacob says go: free chart-card video opener (tier-1 polish), AI×Mining
+  weekly episode (pillar not built), TikTok/IG/X metrics (phase 2).
 
 ## 0. CURRENT STATE (2026-07-25) — Make.com is now THE posting pipeline
 

@@ -3,6 +3,7 @@
 
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import ChatWindow from './chat'
 
 export const AMBER = '#f59e0b'
 
@@ -176,7 +177,10 @@ export function Shell({
         <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_290px]">
           <div className="min-w-0">{children}</div>
 
-          <aside className="lg:sticky lg:top-2 lg:self-start">
+          <aside className="space-y-3 lg:sticky lg:top-2 lg:self-start">
+            <Panel title="🤖 PA — ask me anything">
+              <ChatWindow secret={secret} />
+            </Panel>
             <Panel title="💼 Job wire" right={<span className="text-[10px] text-neutral-600">6am sweep</span>}>
               {jobs.length ? (
                 <div className="space-y-2">
