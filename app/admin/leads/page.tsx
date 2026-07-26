@@ -38,9 +38,10 @@ export default async function AdminLeadsPage({
 }: {
   searchParams: Promise<{ secret?: string }>
 }) {
+  // Fail closed: no configured secret means no access, not open access.
   const adminSecret = process.env.ADMIN_SECRET
   const params = await searchParams
-  if (adminSecret && params.secret !== adminSecret) {
+  if (!adminSecret || params.secret !== adminSecret) {
     notFound()
   }
 

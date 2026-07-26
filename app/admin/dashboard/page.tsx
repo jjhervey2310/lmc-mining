@@ -1,0 +1,136 @@
+import type { Metadata } from 'next'
+import { createServiceClient } from '@/lib/supabase'
+import { getLivePriceData } from '@/lib/btc-price'
+import { computeDailyNumbers } from '@/lib/daily-content'
+import { Shell, Panel, Tile, Spark, checkAdmin, fetchPostiz, fetchHeygenQuota, denverDate, denverTime, usd } from './ui'
+
+export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
+export const dynamic = 'force-dynamic'
+
+const PLATFORM_ICON: Record<string, string> = { x: '𝕏', youtube: '▶', instagram: '📷', tiktok: '♪' }
+
+export default async function Overview({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
+  const { secret = '' } = await searchParams
+  checkAdmin(secret)
+
+  const supabase = createServiceClient()
+  const live = await getLivePriceData()
+  const n = live && !('error' in live) ? computeDailyNumbers(live.price, live.difficulty) : null
+
+  const today = denverDate()
+  const weekEnd = new Date(Date.now() + 8 * 864e5).toISOString()
+  const dayStart = new Date(Date.now() - 864e5).toISOString()
+
+  const [snapshots, leads, cache, jobs, posts, quota] = await Promise.all([
+    supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price').order('snapshot_date', { ascending: false }).limit(14) ?? null,
+    supabase?.from('leads').select('created_at') ?? null,
+    supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
+    supabase?.from('job_finds').select('title, company, url, source, found_at').order('found_at', { ascending: false }).limit(12) ?? null,
+    fetchPostiz(dayStart, weekEnd),
+    fetchHeygenQuota(),
+  ])
+
+  const allPosts = posts ?? []
+  const todayPosts = allPosts
+    .filter((p) => denverDate(new Date(p.publishDate)) === today)
+    .sort((a, b) => a.publishDate.localeCompare(b.publishDate))
+  const nowMs = Date.now()
+  const nextPost = todayPosts.find((p) => new Date(p.publishDate).getTime() > nowMs && p.state === 'QUEUE')
+  const queued = allPosts.filter((p) => p.state === 'QUEUE').length
+  const countdown = nextPost
+    ? (() => {
+        const mins = Math.round((new Date(nextPost.publishDate).getTime() - nowMs) / 60000)
+        return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m`
+      })()
+    : null
+
+  const leadRows = leads?.data ?? []
+  const leads7d = leadRows.filter((l) => Date.now() - new Date(l.created_at).getTime() < 7 * 864e5).length
+  const leadsPrev7d = leadRows.filter((l) => {
+    const age = Date.now() - new Date(l.created_at).getTime()
+    return age >= 7 * 864e5 && age < 14 * 864e5
+  }).length
+  const btcSeries = (snapshots?.data ?? []).map((r) => Number(r.btc_price)).reverse()
+  const cacheRows = (cache?.data ?? []) as { cache_date: string; source: string; payload: { theme?: string; hook?: string } }[]
+
+  const health: { label: string; ok: boolean }[] = [
+    { label: 'DATA FEED', ok: !!n },
+    { label: 'CONTENT BANKED', ok: cacheRows.length > 0 },
+    { label: 'QUEUE', ok: queued >= 4 },
+    { label: 'RENDER BUDGET', ok: (quota ?? 0) >= 600 },
+  ]
+
+  return (
+    <Shell secret={secret} active="overview" jobs={jobs?.data ?? []}>
+      {/* Today's schedule: next-up focus + timeline strip */}
+      <Panel
+        title="Today's posts"
+        right={<span className="text-[10px] text-neutral-600">{today} DEN</span>}
+      >
+        {nextPost ? (
+          <div className="mb-3 flex flex-wrap items-baseline gap-3 border border-amber-500/50 bg-amber-500/5 px-3 py-2">
+            <span className="text-[10px] uppercase tracking-widest text-neutral-500">Next up</span>
+            <span className="text-2xl text-amber-400">{denverTime(nextPost.publishDate)} {PLATFORM_ICON[nextPost.platform] || ''} {nextPost.platform.toUpperCase()}</span>
+            <span className="text-lg text-green-500">T-{countdown}</span>
+            <span className="w-full truncate text-[11px] text-neutral-500 sm:w-auto sm:flex-1">{nextPost.content.split('\n')[0].slice(0, 80)}</span>
+          </div>
+        ) : (
+          <div className="mb-3 text-[12px] text-neutral-500">
+            {todayPosts.length ? 'All of today’s posts are out.' : 'Nothing scheduled today — check the CONTENT tab.'}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {todayPosts.map((p) => {
+            const past = new Date(p.publishDate).getTime() <= nowMs || p.state === 'PUBLISHED'
+            const isNext = p.id === nextPost?.id
+            return (
+              <div key={p.id}
+                className={`border px-2 py-1 text-[12px] ${isNext ? 'border-amber-500 text-amber-400' : past ? 'border-neutral-800 text-neutral-600' : 'border-neutral-700 text-neutral-300'}`}>
+                {denverTime(p.publishDate)} {PLATFORM_ICON[p.platform] || ''} {p.platform}{past ? ' ✓' : ''}
+              </div>
+            )
+          })}
+        </div>
+      </Panel>
+
+      {/* Health line */}
+      <div className="my-3 flex flex-wrap gap-4 border border-neutral-800 bg-black px-3 py-1.5 text-[11px]">
+        {health.map((h) => (
+          <span key={h.label} className={h.ok ? 'text-green-500' : 'text-red-500'}>● {h.label}</span>
+        ))}
+        <span className="text-neutral-600">PA watchdog 6am — fixes first, emails only when needed</span>
+      </div>
+
+      {/* Big numbers + sparklines */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <Tile label="BTC" value={n ? `$${usd(n.btcPrice, 0)}` : '—'} spark={btcSeries} />
+        <Tile label="Hashprice $/TH/d" value={n ? `$${usd(n.hashpricePerThDay, 4)}` : '—'} />
+        <Tile label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'} sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)}` : undefined} />
+        <Tile label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'} />
+        <Tile label="Leads 7d" value={String(leads7d)} tone={leads7d >= leadsPrev7d ? 'pos' : 'neg'} sub={`prev 7d: ${leadsPrev7d} · total ${leadRows.length}`} />
+        <Tile label="Posts queued" value={String(queued)} tone={queued >= 4 ? 'amber' : 'neg'} sub="next 7 days" />
+        <Tile label="HeyGen units" value={quota !== null ? String(quota) : '—'} tone={(quota ?? 0) >= 600 ? 'amber' : (quota ?? 0) >= 300 ? 'dim' : 'neg'} sub="week burns ~300–550" />
+        <Tile label="Content banked" value={`${cacheRows.length}d`} tone={cacheRows.length ? 'amber' : 'neg'} sub="gate-passed days ahead" />
+      </div>
+
+      {/* Week strip */}
+      <div className="mt-3">
+        <Panel title="Week ahead — banked content">
+          {cacheRows.length ? (
+            <div className="space-y-1">
+              {cacheRows.map((c) => (
+                <div key={c.cache_date} className="grid grid-cols-[70px_120px_1fr] gap-2 text-[12px]">
+                  <span className="text-amber-500">{c.cache_date.slice(5)}</span>
+                  <span className={c.source === 'engine' ? 'text-green-500' : 'text-yellow-500'}>{c.payload?.theme || c.source}</span>
+                  <span className="truncate text-neutral-500">{c.payload?.hook}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[12px] text-red-500">Nothing banked — the 6am watchdog regenerates; see CONTENT tab.</span>
+          )}
+        </Panel>
+      </div>
+    </Shell>
+  )
+}
