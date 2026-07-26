@@ -1,6 +1,57 @@
 # Lightning Mines — Project Handover
 
-_Last updated: 2026-07-15 (afternoon) — pipeline code-complete; Postiz signup is the only blocker to posting_
+_Last updated: 2026-07-25 (night) — POSTING MOVED TO MAKE.COM; laptop chain DISABLED. Read §0 first._
+
+## 0. CURRENT STATE (2026-07-25) — Make.com is now THE posting pipeline
+
+**Jacob's decision 2026-07-25: option 2 — Make.com runs daily posting, because the laptop is
+rarely awake in time (missed runs 7/24 and 7/25 mornings prove it).** A previous Claude chat
+built this with Jacob on the evening of 7/24; it was never written down, which caused a full
+session of confused debugging on 7/25. Do not repeat that: keep this file current.
+
+- **Make scenarios (Jacob's account, eu1.make.com, team "My Team" id 527795):**
+  - `LMC Daily Generate` (id 3675754) — daily 6:15am MT (12:15 UTC), generates + schedules the
+    day's posts via Postiz API. 11 ops/run, Free plan (1,000 ops/mo — fine).
+  - `LMC Publish` (id 5764107) — webhook-triggered publisher. 7 historical errors, works now.
+- **Keys:** Postiz API key was ROTATED for Make (new key also in `.env.local`, plaintext, working).
+  HeyGen key was also rotated — the new one lives ONLY in Make; the copy in `.env.local` is DEAD
+  (401). Get it from Jacob if local rendering is ever needed again.
+- **Laptop chain DISABLED 2026-07-25:** `com.lightningmines.contentchain` launchd job unloaded,
+  plist renamed to `.plist.disabled` in `~/Library/LaunchAgents/`. Re-enable = rename back + `launchctl bootstrap`.
+  The 7:10am `com.lightningmines.dailyvideo` (silent motion-graphic + carousel, posts nothing) is STILL ON.
+- **QUALITY GAP FIXED 2026-07-26 (this session): Make is now GATED.** The content-engine
+  (Claude generate → fact gate → brand/FTC gate → GPT review → revise loop) was ported INTO the
+  site: `lib/make-content.ts` + secret-protected `/api/make-content` (header `x-content-secret`
+  = DAILY_CONTENT_SECRET, same as the cron endpoints). ANTHROPIC_API_KEY + OPENAI_API_KEY are now
+  in Vercel prod env — the laptop is fully out of the loop.
+  - `LMC Daily Generate` was REWIRED: its GPT self-generation + self-grading modules are GONE;
+    it now does one GET to /api/make-content and feeds the gate-passed script to the same HeyGen
+    render call (avatar rotation/callback untouched). Non-200 → `generate-failed` datastore record.
+  - `LMC Publish` now posts PER-PLATFORM captions (caption_x / caption_youtube / caption_instagram
+    / caption_tiktok, new fields in datastore 152060) — all with CTA + AI disclosure, all gate-passed.
+  - Day's drop is generated ONCE and cached in Supabase `make_content_cache` (service-role only);
+    pg_cron job `make-content-warm` (jobid 4, 11:45 UTC) pre-warms it before Make's 12:15 run.
+    `?refresh=1` forces regeneration; `?date=YYYY-MM-DD` serves a future day (weekly batching).
+  - Fallback chain: engine gates fail / API down → pre-approved template drop from
+    lib/daily-content.ts (computed numbers, fixed copy) → never a wrong or CTA-less post.
+- **CONTENT RULES (Jacob, 2026-07-25 night):** (1) hooks ALWAYS name Bitcoin mining — preferred
+  framing "Is Bitcoin mining still worth it…?" (in generator prompt + brand gate + BRAND.md §Sounding
+  Human #9); (2) **price/dollar numbers are SUNDAY-ONLY** — Mon–Sat is evergreen educational content
+  with ZERO dollar figures (deterministic evergreen gate in lib/make-content.ts), so posts can be
+  banked a week ahead without going stale. Sunday = the live "worth it at $X" numbers check.
+- **NEXT MILESTONE (Jacob's target, agreed 2026-07-25):** weekly batch — a Sunday Make run that
+  fetches /api/make-content?date= for all 7 days, renders 7 HeyGen videos, schedules all 28 Postiz
+  posts → Postiz calendar shows the full week ("see all scheduled posts"), refills every Sunday.
+  Endpoint is ready (date param + future-date staleness guard); the Make scenario redesign is NOT
+  built yet — it needs per-video datastore keying (key = HeyGen video_id) in Generate + Publish.
+  Second milestone: Sunday analytics review → BRAND.md lessons ("learn from good videos").
+- Postiz duplicate-detection does not exist; never run two pipelines at once.
+- 2026-07-26 scripts were generated locally (passed all gates, in `content-engine/out/`) but never
+  rendered/scheduled (HeyGen 401). Make will cover 7/26 on its own at 6:15am.
+
+---
+
+_Previous update: 2026-07-15 (afternoon) — pipeline code-complete; Postiz signup was the only blocker to posting_
 
 ## 1. What this is
 **Lightning Mines** (lightningmines.com) — an independent Bitcoin-mining intelligence / lead-gen site.
