@@ -38,9 +38,15 @@ const EVERGREEN_ANGLE =
   'any day, up to a week after writing. Do NOT state the Bitcoin price, hashprice, difficulty ' +
   'values, profit/loss dollar amounts, or ANY dollar figure — zero $ numbers anywhere, including ' +
   'the title and on-screen text. Teach one timeless idea from this pillar that a miner could ' +
-  'watch any week and still find true. The hook must still name Bitcoin mining — the worth-it ' +
-  'question works without a price: "Is Bitcoin mining still worth it? Here\'s what most people ' +
-  'miss." End the body with the required CTA once.'
+  'watch any week and still find true. ' +
+  'TONE (Jacob, 2026-07-25): bullish on Bitcoin mining as a thing worth learning — energetic, ' +
+  'fun, entertaining. Write like a sharp friend who actually mines, not a news desk: contractions, ' +
+  'short punchy sentences, and ONE genuinely funny line or vivid image per script (dry wit, never ' +
+  'cringe, never hype vocabulary, no emoji). The honesty is the entertainment — the joke lands ' +
+  'because the math is real. ' +
+  'The hook must still name Bitcoin mining — the worth-it question works without a price: ' +
+  '"Is Bitcoin mining still worth it? Here\'s what most people miss." End the body with the ' +
+  'required CTA once.'
 
 /** Deterministic evergreen gate: Mon–Sat posts must carry no dollar figures at all. */
 function evergreenGate(script: Script): GateResult {
