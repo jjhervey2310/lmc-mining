@@ -32,13 +32,17 @@ session of confused debugging on 7/25. Do not repeat that: keep this file curren
   - Day's drop is generated ONCE and cached in Supabase `make_content_cache` (service-role only);
     pg_cron job `make-content-warm` (jobid 4, 00:30 UTC) pre-warms it before Make's run.
     `?refresh=1` forces regeneration; `?date=YYYY-MM-DD` serves a future day (weekly batching).
-  - **SCHEDULE CHANGED (Jacob, 2026-07-25 night): Make Generate now runs 7pm MT (01:00 UTC,
-    Make-time 02:00) and makes the NEXT day's posts the evening before** — render + all 4 Postiz
-    posts are queued by ~7:10pm MT, visible in Postiz overnight, publishing next day at the usual
-    slots (X 7:30am / YT noon / IG 4pm / TikTok 6:30pm MT). The UTC date rolls at 6pm MT, so the
-    endpoint's "today" and Publish's date math line up with no code changes. First run under the
-    new schedule: Sun 7/26 7pm MT → Monday's posts (already cached). Sunday 7/26's own posts were
-    made manually this session (execution 6657665... SUCCESS, engine content, GPT 95).
+  - **WEEKLY BATCH LIVE (Jacob's design, built 2026-07-26 ~3am): `LMC Weekly Batch` (renamed
+    3675754) runs SATURDAYS 7pm MT** (weekly days:[0] time 02:00 Make-time = 01:00 UTC Sunday,
+    right after the week's last post) and makes the NEXT 7 DAYS: iterator offsets 0-6 →
+    GET /api/make-content?date=D → HeyGen render per day (day-keyed outfit rotation, Jacob's
+    voice f6a3...4aea, never raw footage) → datastore record keyed by HEYGEN VIDEO_ID carrying
+    per-platform captions + post_date/post_date_next. `LMC Publish` matches each render callback
+    to its record by video_id and schedules that day's 4 Postiz posts at the record's dates
+    (X 13:30Z / YT 18:00Z / IG 22:00Z / TT next-day 00:30Z). Offset 0 = Sunday's numbers post,
+    generated Saturday evening = freshest possible price while still banking the week.
+    pg_cron warm job (jobid 4) pre-generates all 7 at Sat 6pm MT ('0 0 * * 0', generate_series 0-6).
+    The whole coming week is visible in Postiz every Saturday night. Next auto-fire: Sat 8/1 7pm MT.
   - Fallback chain: engine gates fail / API down → pre-approved template drop from
     lib/daily-content.ts (computed numbers, fixed copy) → never a wrong or CTA-less post.
 - **CONTENT RULES (Jacob, 2026-07-25 night):** (1) hooks ALWAYS name Bitcoin mining — preferred
@@ -46,12 +50,11 @@ session of confused debugging on 7/25. Do not repeat that: keep this file curren
   Human #9); (2) **price/dollar numbers are SUNDAY-ONLY** — Mon–Sat is evergreen educational content
   with ZERO dollar figures (deterministic evergreen gate in lib/make-content.ts), so posts can be
   banked a week ahead without going stale. Sunday = the live "worth it at $X" numbers check.
-- **NEXT MILESTONE (Jacob's target, agreed 2026-07-25):** weekly batch — a Sunday Make run that
-  fetches /api/make-content?date= for all 7 days, renders 7 HeyGen videos, schedules all 28 Postiz
-  posts → Postiz calendar shows the full week ("see all scheduled posts"), refills every Sunday.
-  Endpoint is ready (date param + future-date staleness guard); the Make scenario redesign is NOT
-  built yet — it needs per-video datastore keying (key = HeyGen video_id) in Generate + Publish.
-  Second milestone: Sunday analytics review → BRAND.md lessons ("learn from good videos").
+- **WEEK OF 7/26–8/1 was generated + queued live this session:** Sun 7/26 numbers post (GPT 95)
+  + Mon–Sat evergreen (all gates passed; distinct hooks; tone = bullish/funny/human per Jacob).
+  Evergreen gate also blocks live difficulty/hashrate figures ("126.2 trillion"), not just $.
+  brandGate is now negation-aware ("no guaranteed returns" passes; promises still fail).
+- **NEXT MILESTONE:** Sunday analytics review → BRAND.md lessons ("learn from good videos").
 - Postiz duplicate-detection does not exist; never run two pipelines at once.
 - 2026-07-26 scripts were generated locally (passed all gates, in `content-engine/out/`) but never
   rendered/scheduled (HeyGen 401). Make will cover 7/26 on its own at 6:15am.
