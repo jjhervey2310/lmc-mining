@@ -125,8 +125,40 @@ async function liveNumbers(): Promise<LiveNumbers> {
   }
 }
 
-async function runGates(script: Script, brief: ContentBrief): Promise<GateResult[]> {
-  return [factGate(script, brief), brandGate(script), await reviewGate(script, brief, 'live')]
+/** Hooks must differ across the week — a feed of identical openers reads as copy-paste. */
+function varietyGate(script: Script, otherHooks: string[]): GateResult {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+  const h = norm(script.hook)
+  const toks = new Set(h.split(' '))
+  const issues: string[] = []
+  for (const o of otherHooks) {
+    const on = norm(o)
+    if (!on) continue
+    const otoks = new Set(on.split(' '))
+    const inter = [...toks].filter((t) => otoks.has(t)).length
+    const jaccard = inter / Math.max(1, new Set([...toks, ...otoks]).size)
+    if (h === on || jaccard > 0.7) {
+      issues.push(`Hook nearly duplicates another queued day's hook ("${o}") — write a different opener`)
+      break
+    }
+  }
+  return { gate: 'variety (no repeated hooks across the week)', pass: issues.length === 0, issues }
+}
+
+/** Hooks already cached for the surrounding week, so the variety gate has something to compare against. */
+async function nearbyHooks(targetDate: string): Promise<string[]> {
+  const supabase = createServiceClient()
+  if (!supabase) return []
+  const t = new Date(`${targetDate}T12:00:00Z`).getTime()
+  const lo = new Date(t - 6 * 864e5).toISOString().slice(0, 10)
+  const hi = new Date(t + 6 * 864e5).toISOString().slice(0, 10)
+  const { data } = await supabase
+    .from('make_content_cache')
+    .select('cache_date, payload')
+    .gte('cache_date', lo)
+    .lte('cache_date', hi)
+    .neq('cache_date', targetDate)
+  return (data || []).map((r) => (r.payload as MakeDrop)?.hook).filter(Boolean)
 }
 
 function captionFor(script: Script, platform: Platform): string {
@@ -156,10 +188,15 @@ async function engineDrop(deadline: number, targetDate: string): Promise<MakeDro
     (pillar === 'hardware_reality' ? HARDWARE_NO_PRICE : '')
   const brief = buildBrief(live, pillar, pillar === 'bullish_caveat' ? undefined : evergreenAngle)
 
+  const otherHooks = await nearbyHooks(targetDate)
+
+  // Free deterministic gates run first; the paid GPT review only grades drafts
+  // that already passed them — a known-bad draft never costs a review call.
   const gatesFor = async (s: Script) => {
-    const g = await runGates(s, brief)
-    if (pillar !== 'bullish_caveat') g.push(evergreenGate(s))
-    return g
+    const det = [factGate(s, brief), brandGate(s), varietyGate(s, otherHooks)]
+    if (pillar !== 'bullish_caveat') det.push(evergreenGate(s))
+    if (!det.every((g) => g.pass)) return det
+    return [...det, await reviewGate(s, brief, 'live')]
   }
 
   let script = (await generateScripts(brief, ['youtube_shorts'], 'live'))[0]

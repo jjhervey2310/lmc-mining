@@ -12,8 +12,8 @@ export async function reviewGate(script: Script, brief: ContentBrief, _mode: 'dr
   // Run the real GPT critique whenever the OpenAI key exists — independent of
   // whether the generator (Claude) is live. Each stage uses its own key.
   if (openaiReady()) {
-    const user = `LIVE DATA BRIEF:
-${JSON.stringify({ date: brief.date, pillar: brief.pillar, live: brief.live, miner: brief.featuredMiner }, null, 2)}
+    const user = `LIVE DATA BRIEF (the "angle" carries binding format rules — enforce them):
+${JSON.stringify({ date: brief.date, pillar: brief.pillar, angle: brief.angle, live: brief.live, miner: brief.featuredMiner }, null, 2)}
 
 SCRIPT TO REVIEW:
 ${JSON.stringify(script, null, 2)}`
