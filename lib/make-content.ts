@@ -57,6 +57,7 @@ function evergreenGate(script: Script): GateResult {
 
 export interface MakeDrop {
   date: string
+  dateNext: string // day after `date` — TikTok's 00:30Z slot lands there
   source: 'engine' | 'template'
   theme: string
   title: string
@@ -77,6 +78,7 @@ export interface MakeDrop {
 
 const usd = (n: number) => Math.abs(n).toFixed(2)
 const usd0 = (n: number) => Math.round(n).toLocaleString('en-US')
+const dayAfter = (iso: string) => new Date(new Date(`${iso}T12:00:00Z`).getTime() + 864e5).toISOString().slice(0, 10)
 
 async function liveNumbers(): Promise<LiveNumbers> {
   const live = await getLivePriceData()
@@ -148,6 +150,7 @@ async function engineDrop(deadline: number, targetDate: string): Promise<MakeDro
   const n = computeDailyNumbers(live.btcPrice, live.difficulty)
   return {
     date: targetDate,
+    dateNext: dayAfter(targetDate),
     source: 'engine',
     theme: pillar,
     title: (script.title || script.hook).slice(0, 90),
@@ -179,8 +182,10 @@ async function templateDrop(): Promise<MakeDrop> {
   const n = computeDailyNumbers(live.price, live.difficulty)
   const drop = buildDailyDrop(n, new Date())
   const sign = n.profitable ? '+' : '-'
+  const today = new Date().toISOString().slice(0, 10)
   return {
-    date: new Date().toISOString().slice(0, 10),
+    date: today,
+    dateNext: dayAfter(today),
     source: 'template',
     theme: drop.theme,
     title: `Is Bitcoin mining still worth it? S21 XP: ${sign}$${usd(n.s21NetDay)}/day at $${usd0(n.btcPrice)} BTC`.slice(0, 90),
