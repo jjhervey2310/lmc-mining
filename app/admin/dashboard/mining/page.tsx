@@ -16,7 +16,7 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
 
   const [snapshots, jobs] = await Promise.all([
     supabase?.from('hashprice_snapshots').select('*').order('snapshot_date', { ascending: false }).limit(30) ?? null,
-    supabase?.from('job_finds').select('title, company, url, source, found_at').order('found_at', { ascending: false }).limit(12) ?? null,
+    supabase?.from('job_finds').select('title, company, url, source, found_at, salary').order('found_at', { ascending: false }).limit(12) ?? null,
   ])
   const rows = (snapshots?.data ?? []) as { snapshot_date: string; btc_price: number; difficulty?: number; hashprice_usd_per_th_day?: number }[]
   const series = rows.map((r) => Number(r.btc_price)).reverse()

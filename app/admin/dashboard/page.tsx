@@ -25,7 +25,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price').order('snapshot_date', { ascending: false }).limit(14) ?? null,
     supabase?.from('leads').select('lead_type, created_at') ?? null,
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
-    supabase?.from('job_finds').select('title, company, url, source, found_at').order('found_at', { ascending: false }).limit(12) ?? null,
+    supabase?.from('job_finds').select('title, company, url, source, found_at, salary').order('found_at', { ascending: false }).limit(12) ?? null,
     fetchPostiz(dayStart, weekEnd),
     fetchHeygenQuota(),
   ])
@@ -127,6 +127,21 @@ export default async function Overview({ searchParams }: { searchParams: Promise
           <DonutChart center={String(leadRows.length)} data={Object.entries(
             leadRows.reduce<Record<string, number>>((a, l) => { const t = (l as { lead_type?: string }).lead_type || '?'; a[t] = (a[t] || 0) + 1; return a }, {})
           ).map(([label, value]) => ({ label: label.replace('_', ' '), value }))} />
+        </Panel>
+      </div>
+
+      {/* 18-rig fleet simulation (Jacob's fleet plan) */}
+      <div className="mt-3">
+        <Panel title="⛏ 18-rig fleet P&L — simulated" right={<span className="text-[11px] text-neutral-500">live price+difficulty · Abundant Mines $225/mo per rig</span>}>
+          {n ? (
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+              <Tile label="Gross/day" value={`$${usd(18 * n.s21GrossDay)}`} />
+              <Tile label="Hosting/day" value={`$${usd(18 * 7.5)}`} sub="$4,050/mo" />
+              <Tile label="Net/day" value={`${18 * n.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(18 * n.s21NetDay))}`} tone={18 * n.s21NetDay >= 0 ? 'pos' : 'neg'} />
+              <Tile label="Net/month" value={`${18 * n.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(18 * n.s21NetDay * 30), 0)}`} tone={18 * n.s21NetDay >= 0 ? 'pos' : 'neg'} />
+              <Tile label="Net/year" value={`${18 * n.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(18 * n.s21NetDay * 365), 0)}`} tone={18 * n.s21NetDay >= 0 ? 'pos' : 'neg'} sub="difficulty drift not modeled" />
+            </div>
+          ) : <span className="text-[13px] text-red-600">Live data unavailable</span>}
         </Panel>
       </div>
 

@@ -85,26 +85,34 @@ async function askClaude(system: string, messages: { role: string; content: stri
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('')
 }
 
-/** GPT cross-check: same snapshot, fresh eyes. Returns null when it agrees. */
-async function gptObjections(snapJson: string, question: string, draft: string): Promise<string | null> {
-  const key = process.env.OPENAI_API_KEY
-  if (!key) return null
+/** ChatGPT drafts the PA's answers (Jacob's pick for the chat voice). */
+async function askGPT(system: string, messages: { role: string; content: string }[], key: string): Promise<string> {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       model: 'gpt-4o',
-      temperature: 0,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'You are the independent second brain checking a PA\'s answer against live system data. Be the same kind of expert the question demands. Verify every factual claim against the snapshot and the logic of the advice. Return ONLY JSON: {"agree": boolean, "objections": string}. Object only to real errors or misleading framing — style is not your business.' },
-        { role: 'user', content: `SNAPSHOT:\n${snapJson}\n\nQUESTION: ${question}\n\nPA ANSWER TO CHECK:\n${draft}` },
-      ],
+      temperature: 0.5,
+      max_tokens: 900,
+      messages: [{ role: 'system', content: system }, ...messages],
     }),
   })
-  if (!res.ok) return null
+  if (!res.ok) throw new Error(`gpt ${res.status}`)
+  return ((await res.json()).choices?.[0]?.message?.content as string) || ''
+}
+
+/** Claude cross-checks GPT's draft against the same snapshot. Null when it agrees. */
+async function claudeObjections(snapJson: string, question: string, draft: string): Promise<string | null> {
+  const key = process.env.ANTHROPIC_API_KEY
+  if (!key) return null
   try {
-    const v = JSON.parse((await res.json()).choices?.[0]?.message?.content || '{}') as { agree?: boolean; objections?: string }
+    const raw = await askClaude(
+      'You are the independent second brain checking a PA\'s answer against live system data. Be the same kind of expert the question demands. Verify every factual claim against the snapshot and the logic of the advice. Return ONLY JSON: {"agree": boolean, "objections": string}. Object only to real errors or misleading framing — style is not your business.',
+      [{ role: 'user', content: `SNAPSHOT:\n${snapJson}\n\nQUESTION: ${question}\n\nPA ANSWER TO CHECK:\n${draft}` }],
+      key
+    )
+    const start = raw.indexOf('{')
+    const v = JSON.parse(raw.slice(start)) as { agree?: boolean; objections?: string }
     return v.agree ? null : v.objections || 'unspecified objection'
   } catch {
     return null
@@ -116,8 +124,8 @@ export async function POST(req: Request) {
   if (!process.env.ADMIN_SECRET || body.secret !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return NextResponse.json({ error: 'ANTHROPIC_API_KEY not set' }, { status: 503 })
+  const key = process.env.OPENAI_API_KEY
+  if (!key) return NextResponse.json({ error: 'OPENAI_API_KEY not set' }, { status: 503 })
 
   const snap = await snapshot()
   const history = (body.messages || []).slice(-12)
@@ -130,14 +138,14 @@ export async function POST(req: Request) {
   const question = history[history.length - 1].content
 
   try {
-    // Dual-brain: Claude drafts, GPT independently checks against the same data,
-    // Claude revises until they agree (bounded so the chat stays responsive).
-    let reply = await askClaude(system, history, key)
+    // Dual-brain, Jacob's arrangement: ChatGPT is the voice, Claude is the silent
+    // checker — GPT revises until Claude has no factual objections (bounded).
+    let reply = await askGPT(system, history, key)
     let rounds = 0
     for (; rounds < 2; rounds++) {
-      const objections = await gptObjections(snapJson, question, reply)
+      const objections = await claudeObjections(snapJson, question, reply)
       if (!objections) break
-      reply = await askClaude(
+      reply = await askGPT(
         system,
         [...history, { role: 'assistant', content: reply }, { role: 'user', content: `An independent reviewer checked your answer against the live data and objects: "${objections}". Rewrite the answer fixing every valid objection. Answer only — no meta-commentary.` }],
         key

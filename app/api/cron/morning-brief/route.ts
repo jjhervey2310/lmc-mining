@@ -11,43 +11,66 @@ const RECIPIENT = 'jjhervey1@gmail.com'
 // (missing day's content → regenerate), pulls new job listings into job_finds, and
 // sends one short morning brief. Urgent problems it can't fix are flagged on top.
 
-interface JobHit { title: string; company: string; url: string; source: string; location: string }
+interface JobHit { title: string; company: string; url: string; source: string; location: string; salary: string | null; fit_score: number }
 
 function keywords(): string[] {
   return (process.env.JOB_KEYWORDS || 'bitcoin,crypto,mining,web3')
     .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
 }
 
-async function fetchRemoteOK(kw: string[]): Promise<JobHit[]> {
-  try {
-    const res = await fetch('https://remoteok.com/api', { headers: { 'User-Agent': 'lightningmines-jobs' }, cache: 'no-store' })
-    if (!res.ok) return []
-    const rows = (await res.json()) as { position?: string; company?: string; url?: string; location?: string }[]
-    return rows
-      .filter((r) => r.position && r.url && kw.some((k) => `${r.position} ${r.company || ''}`.toLowerCase().includes(k)))
-      .slice(0, 15)
-      .map((r) => ({ title: r.position!, company: r.company || '', url: r.url!, source: 'remoteok', location: r.location || 'Remote' }))
-  } catch { return [] }
+// Fit against Jacob's background: operator/founder/growth/BD first, industry second.
+const FIT_CORE = ['operations', 'operator', 'growth', 'founder', 'business development', 'account executive', 'sales', 'general manager', 'chief of staff']
+const FIT_INDUSTRY = ['bitcoin', 'crypto', 'mining', 'data center', 'datacenter', 'web3', 'energy']
+
+function fitScore(title: string, company: string): number {
+  const hay = `${title} ${company}`.toLowerCase()
+  let score = 0
+  for (const t of FIT_CORE) if (hay.includes(t)) score += 2
+  for (const t of FIT_INDUSTRY) if (hay.includes(t)) score += 1
+  return score
 }
 
-async function fetchWWR(kw: string[]): Promise<JobHit[]> {
-  try {
-    const res = await fetch('https://weworkremotely.com/remote-jobs.rss', { cache: 'no-store' })
-    if (!res.ok) return []
-    const xml = await res.text()
-    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => m[1])
-    const hits: JobHit[] = []
-    for (const it of items) {
-      const title = (it.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/) || [])[1] || ''
-      const link = (it.match(/<link>(.*?)<\/link>/) || [])[1] || ''
-      if (title && link && kw.some((k) => title.toLowerCase().includes(k))) {
-        const [company, role] = title.includes(':') ? title.split(/:(.+)/) : ['', title]
-        hits.push({ title: (role || title).trim(), company: company.trim(), url: link.trim(), source: 'weworkremotely', location: 'Remote' })
+/** Highest number that appears in a salary string, for ranking. */
+function salaryMax(s: string | null): number {
+  if (!s) return -1
+  const nums = [...s.matchAll(/\d[\d,]*/g)].map((m) => Number(m[0].replace(/,/g, '')))
+  return nums.length ? Math.max(...nums) : -1
+}
+
+// Adzuna aggregates Indeed and other major boards and exposes salary estimates —
+// the legitimate route to salary data (Indeed has no public API; LinkedIn blocks bots).
+// Free keys: developer.adzuna.com → ADZUNA_APP_ID + ADZUNA_APP_KEY in Vercel env.
+async function fetchAdzuna(kw: string[]): Promise<JobHit[]> {
+  const id = process.env.ADZUNA_APP_ID
+  const key = process.env.ADZUNA_APP_KEY
+  if (!id || !key) return []
+  const hits: JobHit[] = []
+  const what = encodeURIComponent(kw.slice(0, 8).join(' '))
+  for (const where of ['Denver, Colorado', '']) {
+    try {
+      const res = await fetch(
+        `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=25&what_or=${what}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=3&sort_by=date`,
+        { cache: 'no-store' }
+      )
+      if (!res.ok) continue
+      const rows = ((await res.json()).results || []) as {
+        title?: string; company?: { display_name?: string }; redirect_url?: string
+        location?: { display_name?: string }; salary_min?: number; salary_max?: number
+      }[]
+      for (const r of rows) {
+        if (!r.title || !r.redirect_url) continue
+        const salary = r.salary_min || r.salary_max
+          ? `$${Math.round(r.salary_min || r.salary_max || 0).toLocaleString()}${r.salary_max && r.salary_min && r.salary_max !== r.salary_min ? `–$${Math.round(r.salary_max).toLocaleString()}` : ''}`
+          : null
+        hits.push({
+          title: r.title, company: r.company?.display_name || '', url: r.redirect_url,
+          source: 'adzuna', location: r.location?.display_name || (where ? 'Denver' : 'US'),
+          salary, fit_score: fitScore(r.title, r.company?.display_name || ''),
+        })
       }
-      if (hits.length >= 15) break
-    }
-    return hits
-  } catch { return [] }
+    } catch { /* one failed query never kills the sweep */ }
+  }
+  return hits
 }
 
 async function handle(req: Request) {
@@ -104,14 +127,18 @@ async function handle(req: Request) {
     if (quota !== null && quota < 300) alerts.push(`HeyGen balance critically low: ${quota} units — Saturday's batch will NOT complete. Top up: app.heygen.com/settings?nav=API`)
   }
 
-  // 5. Jobs sweep → job_finds (dedup on url)
+  // 5. Jobs sweep → job_finds (dedup on url), ranked by fit then salary (nulls last)
   const kw = keywords()
-  const found = [...(await fetchRemoteOK(kw)), ...(await fetchWWR(kw))]
+  const adzunaConfigured = !!(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY)
+  const found = await fetchAdzuna(kw)
   let newJobs: JobHit[] = []
   if (supabase && found.length) {
     const { data: existing } = await supabase.from('job_finds').select('url').in('url', found.map((j) => j.url))
     const known = new Set((existing || []).map((r) => r.url))
-    newJobs = found.filter((j) => !known.has(j.url))
+    const seen = new Set<string>()
+    newJobs = found
+      .filter((j) => !known.has(j.url) && !seen.has(j.url) && (seen.add(j.url), true))
+      .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
     if (newJobs.length) {
       await supabase.from('job_finds').insert(newJobs.map((j) => ({ ...j, status: 'new' })))
     }
@@ -131,8 +158,8 @@ ${fixes.length ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border
 ${numbers ? `⛏ BTC $${Math.round(numbers.btcPrice).toLocaleString()} · S21 XP ${numbers.profitable ? '+' : '-'}$${Math.abs(numbers.s21NetDay).toFixed(2)}/day · ` : ''}
 📬 ${queueTotal >= 0 ? `${queueTotal} posts queued` : 'queue unknown'} · 🎬 ${quota ?? '?'} HeyGen units
 </p>
-${newJobs.length ? `<h3 style="margin:16px 0 6px;">💼 ${newJobs.length} new job${newJobs.length > 1 ? 's' : ''} found</h3><ul style="margin:0 0 10px 18px;font-size:14px;">${newJobs.slice(0, 10).map((j) => `<li><a href="${j.url}">${j.title}</a> — ${j.company} <span style="color:#6b7280;">(${j.source})</span></li>`).join('')}</ul>` : '<p style="color:#6b7280;font-size:13px;">💼 No new job matches today.</p>'}
-<p style="font-size:13px;">LinkedIn quick searches: ${kw.slice(0, 4).map((k) => `<a href="${li(k)}">${k}</a>`).join(' · ')}</p>
+${newJobs.length ? `<h3 style="margin:16px 0 6px;">💼 Top ${Math.min(10, newJobs.length)} job matches (ranked by fit, then salary)</h3><table style="border-collapse:collapse;font-size:13px;"><tr><th style="padding:3px 8px;text-align:left;">Role</th><th style="padding:3px 8px;text-align:left;">Salary</th><th style="padding:3px 8px;text-align:left;">Fit</th></tr>${newJobs.slice(0, 10).map((j) => `<tr><td style="padding:3px 8px;"><a href="${j.url}">${j.title}</a> — ${j.company}</td><td style="padding:3px 8px;">${j.salary || '—'}</td><td style="padding:3px 8px;">${j.fit_score}</td></tr>`).join('')}</table>` : adzunaConfigured ? '<p style="color:#6b7280;font-size:13px;">💼 No new job matches today.</p>' : '<p style="color:#b45309;font-size:13px;">💼 Job sweep needs keys: grab free ADZUNA_APP_ID + ADZUNA_APP_KEY at developer.adzuna.com (2 min) — Adzuna aggregates Indeed and majors WITH salary data. Paste both to Claude to wire in.</p>'}
+<p style="font-size:13px;">Quick searches — LinkedIn: ${kw.slice(0, 3).map((k) => `<a href="${li(k)}">${k}</a>`).join(' · ')} · Indeed: ${kw.slice(0, 3).map((k) => `<a href="https://www.indeed.com/jobs?q=${encodeURIComponent(k)}&l=Denver%2C+CO&fromage=1">${k}</a>`).join(' · ')}</p>
 <p style="color:#6b7280;font-size:12px;margin-top:16px;">Full picture: lightningmines.com/admin/dashboard (your secret link). Reply-worthy issues only — everything else was handled.</p>
 </div>`
     await new Resend(apiKey).emails.send({
