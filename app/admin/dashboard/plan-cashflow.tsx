@@ -13,6 +13,12 @@ export default function PlanCashflow({ spotHashprice, liveSideIncome = 0 }: { sp
   const [earl36, setEarl36] = useState('37500')
   const [chest, setChest] = useState('50000')
   const [sunrise, setSunrise] = useState(false)
+  const [scenario, setScenario] = useState('base')
+  const [btcG, setBtcG] = useState('25')
+  const [diffG, setDiffG] = useState('25')
+
+  const SCENARIOS: Record<string, [string, string]> = { flat: ['0', '0'], bear: ['-20', '15'], base: ['25', '25'], bull: ['60', '35'] }
+  const pickScenario = (k: string) => { setScenario(k); if (SCENARIOS[k]) { setBtcG(SCENARIOS[k][0]); setDiffG(SCENARIOS[k][1]) } }
 
   const units = option === 'A' ? 25 : 18
   const loanMo = 3551 // AM $140k @10% 48mo, per plan
@@ -23,9 +29,12 @@ export default function PlanCashflow({ spotHashprice, liveSideIncome = 0 }: { sp
 
   const months: number[] = []
   let cum = option === 'A' ? parseFloat(chest) || 0 : 0
+  const bg = parseFloat(btcG) || 0
+  const dg = parseFloat(diffG) || 0
+  const hpAt = (m: number) => spotHashprice * Math.pow(1 + bg / 100, m / 12) / Math.pow(1 + dg / 100, m / 12)
   for (let m = 1; m <= 48; m++) {
     const hosting = units * (sunrise && m >= 7 ? 135 : 225)
-    const revenue = spotHashprice * thRig * units * 30.4
+    const revenue = hpAt(m) * thRig * units * 30.4
     let net = revenue - hosting - loanMo + sideMo
     if (m === 18) net -= e18
     if (m === 36) net -= e36
@@ -92,10 +101,32 @@ export default function PlanCashflow({ spotHashprice, liveSideIncome = 0 }: { sp
           <input type="checkbox" checked={sunrise} onChange={(e) => setSunrise(e.target.checked)} />
           Sunrise $135 from mo 7
         </label>
+        <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
+          scenario
+          <select value={scenario} onChange={(e) => pickScenario(e.target.value)}
+            className="border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500">
+            <option value="flat">flat (today forever)</option>
+            <option value="bear">bear</option>
+            <option value="base">base</option>
+            <option value="bull">bull</option>
+            <option value="custom">custom</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
+          BTC %/yr
+          <input value={btcG} onChange={(e) => { setBtcG(e.target.value); setScenario('custom') }}
+            className="w-14 border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
+          difficulty %/yr
+          <input value={diffG} onChange={(e) => { setDiffG(e.target.value); setScenario('custom') }}
+            className="w-14 border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
+        </label>
       </div>
 
       <div className="mb-2 flex flex-wrap gap-5 text-[13px]">
-        <span>monthly net (pre-Earl) <b className={monthlyNet >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(monthlyNet)}</b></span>
+        <span>net mo 1 <b className={monthlyNet >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(monthlyNet)}</b></span>
+        <span>hashprice mo 48 <b className="text-neutral-700">${hpAt(48).toFixed(4)}</b></span>
         <span>deepest hole <b className="text-red-600">{fmt(trough)}</b> <span className="text-neutral-500">(month {troughMo})</span></span>
         <span>cash at month 48 <b className={end48 >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(end48)}</b></span>
       </div>
@@ -111,7 +142,7 @@ export default function PlanCashflow({ spotHashprice, liveSideIncome = 0 }: { sp
         ) : null)}
       </svg>
       <div className="mt-1 text-[11px] text-neutral-500">
-        Assumes today&apos;s hashprice (${spotHashprice.toFixed(4)}/TH/day) holds flat — no difficulty drift, no BTC move. AM loan $3,551/mo for all 48 months.
+        Starts at today&apos;s hashprice (${spotHashprice.toFixed(4)}/TH/day) and drifts it by the scenario: hashprice grows with BTC and shrinks with difficulty. These are scenarios, not predictions — base assumes both rise ~25%/yr (hashprice roughly flat), which is the honest historical pattern. AM loan $3,551/mo for all 48 months.
         Current structure: Earl lends $50k held as war chest (curve starts there), Jacob&apos;s $20k is the machine deposit (sunk, not in the curve), AM loan $3,551/mo. Earl repayment split is editable — set it to whatever you two agree. The plan&apos;s layers (job bridge, side income, referrals) go in &quot;side income&quot;. Sunrise is AM&apos;s hydro target, not a promise.
       </div>
     </div>
