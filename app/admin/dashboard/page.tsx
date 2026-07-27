@@ -151,7 +151,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
             </div>
           ) : <span className="text-[13px] text-red-600">Live data unavailable</span>}
           {n && <FleetWhatIf spotHashprice={n.hashpricePerThDay} rigs={18} thPerRig={270} hostingDayFleet={18 * 7.5} />}
-          {n && <PlanCashflow spotHashprice={n.hashpricePerThDay} liveSideIncome={income30d} />}
+          {n && <PlanCashflow spotHashprice={n.hashpricePerThDay} btcPrice={n.btcPrice} liveSideIncome={income30d} />}
         </Panel>
       </div>
 
