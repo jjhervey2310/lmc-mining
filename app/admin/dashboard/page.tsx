@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase'
 import { getLivePriceData } from '@/lib/btc-price'
 import { computeDailyNumbers } from '@/lib/daily-content'
 import { Shell, Panel, Tile, DonutChart, checkAdmin, fetchPostiz, fetchHeygenQuota, denverDate, denverTime, usd } from './ui'
+import FleetWhatIf from './fleet-whatif'
 
 export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
 export const dynamic = 'force-dynamic'
@@ -142,6 +143,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
               <Tile label="Net/year" value={`${18 * n.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(18 * n.s21NetDay * 365), 0)}`} tone={18 * n.s21NetDay >= 0 ? 'pos' : 'neg'} sub="difficulty drift not modeled" />
             </div>
           ) : <span className="text-[13px] text-red-600">Live data unavailable</span>}
+          {n && <FleetWhatIf spotHashprice={n.hashpricePerThDay} rigs={18} thPerRig={270} hostingDayFleet={18 * 7.5} />}
         </Panel>
       </div>
 
