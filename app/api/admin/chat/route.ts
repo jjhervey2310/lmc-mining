@@ -17,7 +17,7 @@ async function snapshot() {
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
     supabase?.from('content_lessons').select('lesson').eq('active', true).limit(5) ?? null,
     supabase?.from('video_metrics').select('title, views, likes, captured_at').order('captured_at', { ascending: false }).limit(15) ?? null,
-    supabase?.from('job_finds').select('title, company, url, found_at').order('found_at', { ascending: false }).limit(10) ?? null,
+    supabase?.from('job_finds').select('title, company, url, salary, found_at').neq('status','applied').neq('status','hidden').order('fit_score', { ascending: false }).limit(10) ?? null,
     supabase?.from('leads').select('created_at') ?? null,
   ])
 
