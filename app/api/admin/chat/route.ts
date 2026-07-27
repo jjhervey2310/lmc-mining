@@ -87,6 +87,8 @@ const PA_TOOLS = [
   { type: 'function' as const, function: { name: 'check_balance', description: 'Get the current HeyGen render balance in units.', parameters: { type: 'object', properties: {} } } },
   { type: 'function' as const, function: { name: 'run_watchdog', description: 'Run the full watchdog sweep right now (health checks, auto-fixes, job sweep, sends Jacob the brief email).', parameters: { type: 'object', properties: {} } } },
   { type: 'function' as const, function: { name: 'recent_leads', description: 'List the most recent website leads (email, type, date).', parameters: { type: 'object', properties: { limit: { type: 'number', description: '1-25, default 10' } } } } },
+  { type: 'function' as const, function: { name: 'log_income', description: 'Log non-mining income Jacob received (audit sale, referral, affiliate, job/side income). Feeds the plan simulator.', parameters: { type: 'object', properties: { amount: { type: 'number' }, source: { type: 'string', description: 'audit | referral | affiliate | job | other' }, note: { type: 'string' } }, required: ['amount', 'source'] } } },
+  { type: 'function' as const, function: { name: 'recent_income', description: 'List recent non-mining income entries and the month-to-date total.', parameters: { type: 'object', properties: {} } } },
 ]
 
 async function runTool(name: string, args: Record<string, unknown>): Promise<string> {
@@ -140,6 +142,18 @@ async function runTool(name: string, args: Record<string, unknown>): Promise<str
       if (!supabase) return 'Supabase unavailable'
       const { data } = await supabase.from('leads').select('email, lead_type, created_at').order('created_at', { ascending: false }).limit(Math.min(25, Number(args.limit) || 10))
       return JSON.stringify(data || [])
+    }
+    if (name === 'log_income') {
+      if (!supabase) return 'Supabase unavailable'
+      const { error } = await supabase.from('income_log').insert({ amount: Number(args.amount), source: String(args.source), note: args.note ? String(args.note) : null })
+      return error ? `Log failed: ${error.message}` : `Logged $${args.amount} (${args.source}). It now feeds the plan simulator.`
+    }
+    if (name === 'recent_income') {
+      if (!supabase) return 'Supabase unavailable'
+      const { data } = await supabase.from('income_log').select('amount, source, note, received_at').order('received_at', { ascending: false }).limit(15)
+      const mtdStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()
+      const mtd = (data || []).filter((r) => new Date(r.received_at).getTime() >= mtdStart).reduce((a, r) => a + Number(r.amount), 0)
+      return JSON.stringify({ mtd_total: mtd, entries: data || [] })
     }
     return `Unknown tool ${name}`
   } catch (e) {

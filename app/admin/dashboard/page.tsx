@@ -23,11 +23,12 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const weekEnd = new Date(Date.now() + 8 * 864e5).toISOString()
   const dayStart = new Date(Date.now() - 864e5).toISOString()
 
-  const [snapshots, leads, cache, jobs, posts, quota] = await Promise.all([
+  const [snapshots, leads, cache, jobs, income, posts, quota] = await Promise.all([
     supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price').order('snapshot_date', { ascending: false }).limit(14) ?? null,
     supabase?.from('leads').select('lead_type, created_at') ?? null,
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
     supabase?.from('job_finds').select('title, company, url, source, found_at, salary').neq('status','applied').neq('status','hidden').order('fit_score', { ascending: false }).order('found_at', { ascending: false }).limit(25) ?? null,
+    supabase?.from('income_log').select('amount, source, received_at').gte('received_at', new Date(Date.now() - 60 * 864e5).toISOString()) ?? null,
     fetchPostiz(dayStart, weekEnd),
     fetchHeygenQuota(),
   ])
@@ -54,6 +55,10 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   }).length
   const btcSeries = (snapshots?.data ?? []).map((r) => Number(r.btc_price)).reverse()
   const cacheRows = (cache?.data ?? []) as { cache_date: string; source: string; payload: { theme?: string; hook?: string } }[]
+  const incomeRows = income?.data ?? []
+  const mtdStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()
+  const incomeMTD = incomeRows.filter((r) => new Date(r.received_at).getTime() >= mtdStart).reduce((a, r) => a + Number(r.amount), 0)
+  const income30d = incomeRows.filter((r) => Date.now() - new Date(r.received_at).getTime() < 30 * 864e5).reduce((a, r) => a + Number(r.amount), 0)
 
   const health: { label: string; ok: boolean }[] = [
     { label: 'DATA FEED', ok: !!n },
@@ -116,6 +121,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         <Tile label="Posts queued" value={String(queued)} tone={queued >= 4 ? 'amber' : 'neg'} sub="next 7 days" />
         <Tile label="HeyGen units" value={quota !== null ? String(quota) : '—'} tone={(quota ?? 0) >= 600 ? 'amber' : (quota ?? 0) >= 300 ? 'dim' : 'neg'} sub="week burns ~300–550" />
         <Tile label="Content banked" value={`${cacheRows.length}d`} tone={cacheRows.length ? 'amber' : 'neg'} sub="gate-passed days ahead" />
+        <Tile label="Non-mining income MTD" value={`$${usd(incomeMTD, 0)}`} tone={incomeMTD >= 2300 ? 'pos' : incomeMTD > 0 ? 'amber' : 'neg'} sub={`target $2,300/mo · tell the PA "log $97 audit"`} />
       </div>
 
       {/* Proportions */}
@@ -145,7 +151,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
             </div>
           ) : <span className="text-[13px] text-red-600">Live data unavailable</span>}
           {n && <FleetWhatIf spotHashprice={n.hashpricePerThDay} rigs={18} thPerRig={270} hostingDayFleet={18 * 7.5} />}
-          {n && <PlanCashflow spotHashprice={n.hashpricePerThDay} />}
+          {n && <PlanCashflow spotHashprice={n.hashpricePerThDay} liveSideIncome={income30d} />}
         </Panel>
       </div>
 

@@ -5,10 +5,10 @@ import { useState } from 'react'
 // The real LMC plan (June 4 revision) run against live hashprice: 48-month
 // cumulative cash curve with AM loan and Earl's two repayments. Answers
 // "how negative do we get, and when" at today's economics.
-export default function PlanCashflow({ spotHashprice }: { spotHashprice: number }) {
+export default function PlanCashflow({ spotHashprice, liveSideIncome = 0 }: { spotHashprice: number; liveSideIncome?: number }) {
   const [option, setOption] = useState<'A' | 'B'>('A')
   const [th, setTh] = useState('300')
-  const [side, setSide] = useState('0')
+  const [side, setSide] = useState(String(Math.round(liveSideIncome)))
   const [earl18, setEarl18] = useState('37500')
   const [earl36, setEarl36] = useState('37500')
   const [chest, setChest] = useState('50000')
@@ -65,7 +65,7 @@ export default function PlanCashflow({ spotHashprice }: { spotHashprice: number 
             className="w-16 border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
         </label>
         <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
-          side income/mo
+          side income/mo (last 30d: ${Math.round(liveSideIncome)})
           <input value={side} onChange={(e) => setSide(e.target.value)}
             className="w-20 border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
         </label>
