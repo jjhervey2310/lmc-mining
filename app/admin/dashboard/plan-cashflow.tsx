@@ -52,7 +52,9 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const [earl18, setEarl18] = useState('37500')
   const [earl36, setEarl36] = useState('37500')
   const [launch, setLaunch] = useState('2026-12')
-  const [sunrise, setSunrise] = useState(false)
+  // Sunrise ON by default (Jacob 2026-07-27): the plan runs with AM's $135 hydro
+  // rate from op-mo 7. Still AM's target, not a signed rate — toggle off to stress.
+  const [sunrise, setSunrise] = useState(true)
   const [scenario, setScenario] = useState('prediction')
   const [btcG, setBtcG] = useState('15')
   const [diffG, setDiffG] = useState('10')
