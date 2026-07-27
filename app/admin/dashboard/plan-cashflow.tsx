@@ -112,7 +112,11 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       : spotHashprice * halved(m) * Math.pow(1 + bg / 100, m / 12) / Math.pow(1 + dg / 100, m / 12)
 
   // 48-month engine: launch-aware, Luxor pool fee on revenue, Earl at op-months 18/36.
-  type Row = { live: boolean; revenue: number; hosting: number; loan: number; earl: number; net: number; cum: number }
+  // Add-in rule ("until Earl and the loan are easily paid" — Jacob 2026-07-27):
+  // contribute addMo pre-launch, whenever the mine can't cover its own costs, and
+  // until the war chest holds every remaining Earl repayment + a 3-month loan
+  // cushion. Once all three clear, the add-in stops automatically.
+  type Row = { live: boolean; revenue: number; hosting: number; loan: number; earl: number; mineNet: number; contrib: number; net: number; cum: number }
   const rows: Row[] = []
   let cum = parseFloat(chest) || 0
   for (let m = 0; m < 48; m++) {
@@ -122,9 +126,12 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
     const revenue = live ? hpAt(m) * thRig * u * 30.4 * (1 - POOL_FEE) : 0
     const loan = live ? loanMo : 0
     const earl = opMonth === 18 ? e18 : opMonth === 36 ? e36 : 0
-    const net = revenue - hosting - loan - earl + addMo + sideMo
+    const mineNet = live ? revenue - hosting - loan : 0
+    const remainingEarl = (opMonth <= 18 ? e18 : 0) + (opMonth <= 36 ? e36 : 0)
+    const contrib = !live || mineNet < 0 || cum < remainingEarl + 3 * loanMo ? addMo : 0
+    const net = mineNet + contrib + sideMo - earl
     cum += net
-    rows.push({ live, revenue, hosting, loan, earl, net, cum })
+    rows.push({ live, revenue, hosting, loan, earl, mineNet, contrib, net, cum })
   }
   const trough = Math.min(...rows.map((r) => r.cum))
   const troughMo = rows.findIndex((r) => r.cum === trough)
@@ -132,7 +139,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const fmt = (n: number) => `${n < 0 ? '-' : '+'}$${Math.abs(Math.round(n)).toLocaleString()}`
   const usd0 = (n: number) => `$${Math.round(n).toLocaleString()}`
 
-  // 24-month prediction rows per path (same engine, per-path prices + difficulty).
+  // 24-month prediction rows per path (same engine + add-in rule, per-path prices/difficulty).
   const predRows = (p: PathName) => {
     const prices = priceSeries(p, PRED_MONTHS)
     let c = parseFloat(chest) || 0
@@ -142,9 +149,13 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       const hpm = spotHashprice * halved(m) * (price / btcPrice) / Math.pow(1 + DIFF_BY_PATH[p] / 100, m / 12)
       const revenue = live ? hpm * thRig * u * 30.4 * (1 - POOL_FEE) : 0
       const hosting = live ? u * (sunrise && op >= 7 ? 135 : 225) : 0
-      const net = revenue - hosting - (live ? loanMo : 0) - (op === 18 ? e18 : op === 36 ? e36 : 0) + addMo + sideMo
+      const mineNet = live ? revenue - hosting - loanMo : 0
+      const remainingEarl = (op <= 18 ? e18 : 0) + (op <= 36 ? e36 : 0)
+      const contrib = !live || mineNet < 0 || c < remainingEarl + 3 * loanMo ? addMo : 0
+      const earl = op === 18 ? e18 : op === 36 ? e36 : 0
+      const net = mineNet + contrib + sideMo - earl
       c += net
-      return { price, live, revenue, net, cum: c }
+      return { price, live, revenue, mineNet, contrib, net, cum: c }
     })
   }
   const pred: Record<PathName, ReturnType<typeof predRows>> = { bear: predRows('bear'), base: predRows('base'), bull: predRows('bull') }
@@ -219,6 +230,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
         <span>deepest point <b className={trough < 0 ? 'text-red-600' : 'text-green-600'}>{fmt(trough)}</b> <span className="text-neutral-500">({labelAt(troughMo)})</span></span>
         <span>cash at month 48 <b className={end48 >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(end48)}</b></span>
         <span>hashprice mo 48 <b className="text-neutral-700">${hpAt(47).toFixed(4)}</b></span>
+        <span>add-in stops <b className="text-neutral-700">{(() => { const i = rows.findIndex((r) => r.live && r.contrib === 0); return i < 0 ? 'never (48mo)' : labelAt(i) })()}</b> <span className="text-neutral-500">(total in: {usd0(rows.reduce((s, r) => s + r.contrib, 0))})</span></span>
       </div>
 
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="max-w-full">
@@ -262,7 +274,8 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
             <th className="px-2 py-1">{labelAt(tab)}</th>
             <th className="px-2 py-1">BTC</th>
             <th className="px-2 py-1">revenue</th>
-            <th className="px-2 py-1">net month</th>
+            <th className="px-2 py-1">mine net</th>
+            <th className="px-2 py-1">my add-in</th>
             <th className="px-2 py-1">war chest</th>
           </tr>
         </thead>
@@ -274,7 +287,8 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
                 <td className={`px-2 py-1 font-semibold ${p === 'bear' ? 'text-red-700' : p === 'bull' ? 'text-green-700' : 'text-amber-700'}`}>{p}</td>
                 <td className="px-2 py-1">{usd0(r.price)}</td>
                 <td className="px-2 py-1">{r.live ? usd0(r.revenue) : 'pre-launch'}</td>
-                <td className={`px-2 py-1 ${r.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(r.net)}</td>
+                <td className={`px-2 py-1 ${!r.live ? 'text-neutral-400' : r.mineNet >= 0 ? 'text-green-600' : 'text-red-600'}`}>{r.live ? fmt(r.mineNet) : '—'}</td>
+                <td className={`px-2 py-1 ${r.contrib > 0 ? 'text-amber-700' : 'text-neutral-400'}`}>{r.contrib > 0 ? fmt(r.contrib) : 'stopped'}</td>
                 <td className={`px-2 py-1 font-semibold ${r.cum >= 0 ? 'text-green-700' : 'text-red-600'}`}>{usd0(r.cum)}</td>
               </tr>
             )
@@ -284,7 +298,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
 
       {/* full grid: every month × every path, at a glance */}
       <div className="mt-4 mb-1 text-[11px] uppercase tracking-widest text-neutral-500">
-        All 24 months at a glance — price / month net
+        All 24 months at a glance — price / MINE net (your add-in shown separately, — = pre-launch)
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border border-neutral-200 font-mono text-[11px]">
@@ -309,7 +323,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
                   return (
                     <Fragment key={p}>
                       <td className="px-2 py-0.5">{usd0(r.price)}</td>
-                      <td className={`px-2 py-0.5 ${r.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(r.net)}</td>
+                      <td className={`px-2 py-0.5 ${!r.live ? 'text-neutral-400' : r.mineNet >= 0 ? 'text-green-600' : 'text-red-600'}`}>{r.live ? fmt(r.mineNet) : '—'}</td>
                     </Fragment>
                   )
                 })}
@@ -320,7 +334,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       </div>
 
       <div className="mt-1 text-[11px] text-neutral-500">
-        Monthly predictions merged Claude + GPT-4o (2026-07-27) from live data (ATH $126k -48%, June low $58.6k, F&amp;G 30d avg 23, hashrate +7%/yr) and historical post-bottom speed (2019: +240% in 6mo; 2023: +160% in 13mo, ATH regained in 16). Base = Jacob&apos;s bottom-late-Sep/Oct thesis ($54.5k Oct) then a 2023-style recovery, prior ATH back ~Feb &apos;28; bear = $46.5k floor Nov; bull = June was the bottom. Difficulty +5/+10/+18%/yr per path; Luxor pool fee 1% and the Apr &apos;28 halving (⛏½) are in every number. All revenue at LuxOS OC 300TH (needs Abundant&apos;s wattage OK). Models, not promises — refresh monthly. The 48-month curve rides the base table then +{EXTRAP_BTC_YR}%/yr.
+        Add-in rule: your $3k/mo flows pre-launch, in any month the mine can&apos;t cover itself, and until the war chest holds all remaining Earl repayments + a 3-month loan cushion — then it stops automatically (&quot;until Earl and the loan are easily paid&quot;). &quot;Mine net&quot; = revenue − hosting − AM loan, your money excluded. Monthly predictions merged Claude + GPT-4o (2026-07-27) from live data (ATH $126k -48%, June low $58.6k, F&amp;G 30d avg 23, hashrate +7%/yr) and historical post-bottom speed (2019: +240% in 6mo; 2023: +160% in 13mo, ATH regained in 16). Base = Jacob&apos;s bottom-late-Sep/Oct thesis ($54.5k Oct) then a 2023-style recovery, prior ATH back ~Feb &apos;28; bear = $46.5k floor Nov; bull = June was the bottom. Difficulty +5/+10/+18%/yr per path; Luxor pool fee 1% and the Apr &apos;28 halving (⛏½) are in every number. All revenue at LuxOS OC 300TH (needs Abundant&apos;s wattage OK). Models, not promises — refresh monthly. The 48-month curve rides the base table then +{EXTRAP_BTC_YR}%/yr.
       </div>
     </div>
   )
