@@ -112,7 +112,7 @@ export default function PlanCashflow({ spotHashprice }: { spotHashprice: number 
       </svg>
       <div className="mt-1 text-[11px] text-neutral-500">
         Assumes today&apos;s hashprice (${spotHashprice.toFixed(4)}/TH/day) holds flat — no difficulty drift, no BTC move. AM loan $3,551/mo for all 48 months.
-        Current structure: Earl lends \$50k held as war chest (curve starts there), Jacob&apos;s \$20k is the machine deposit (sunk, not in the curve), AM loan \$3,551/mo. Earl repayment split is editable — set it to whatever you two agree. The plan&apos;s layers (job bridge, side income, referrals) go in &quot;side income&quot;. Sunrise is AM&apos;s hydro target, not a promise.
+        Current structure: Earl lends $50k held as war chest (curve starts there), Jacob&apos;s $20k is the machine deposit (sunk, not in the curve), AM loan $3,551/mo. Earl repayment split is editable — set it to whatever you two agree. The plan&apos;s layers (job bridge, side income, referrals) go in &quot;side income&quot;. Sunrise is AM&apos;s hydro target, not a promise.
       </div>
     </div>
   )
