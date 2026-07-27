@@ -17,6 +17,19 @@ const PRED_DIFF_YR = 20
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+// Month-by-month BTC predictions (monthly averages), merged Claude × GPT-4o cross-check
+// 2026-07-27 from live data: ATH $126k Oct-25 (-48%), June-26 low $58.6k, Fear&Greed
+// 30d avg 23, hashrate +7%/yr (stalled). Jacob's thesis (bottom late Sep/early Oct)
+// = the base path's shape; his $45k lower bound = the bear path. REFRESH MONTHLY.
+type PathName = 'bear' | 'base' | 'bull'
+const MONTHLY_BTC: Record<PathName, Record<string, number>> = {
+  bear: { '2026-07': 65000, '2026-08': 59000, '2026-09': 52500, '2026-10': 47500, '2026-11': 45000, '2026-12': 46500, '2027-01': 48000, '2027-02': 49500, '2027-03': 51500, '2027-04': 53000, '2027-05': 54500, '2027-06': 56500, '2027-07': 58500 },
+  base: { '2026-07': 65000, '2026-08': 63500, '2026-09': 57500, '2026-10': 54500, '2026-11': 56500, '2026-12': 60000, '2027-01': 63500, '2027-02': 67000, '2027-03': 70500, '2027-04': 73500, '2027-05': 76500, '2027-06': 80000, '2027-07': 83500 },
+  bull: { '2026-07': 65000, '2026-08': 69000, '2026-09': 73500, '2026-10': 78000, '2026-11': 83500, '2026-12': 89000, '2027-01': 93500, '2027-02': 98500, '2027-03': 103500, '2027-04': 108000, '2027-05': 112500, '2027-06': 117500, '2027-07': 122500 },
+}
+// Difficulty growth per path (%/yr) — hashrate follows price with a lag; observed +7%/yr.
+const DIFF_BY_PATH: Record<PathName, number> = { bear: 4, base: 8, bull: 15 }
+
 export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome = 0 }: { spotHashprice: number; btcPrice: number; liveSideIncome?: number }) {
   const [units, setUnits] = useState('18')
   const [th, setTh] = useState('270')
@@ -93,7 +106,28 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const pts = rows.map((r, i) => `${(i / 47) * w},${y(r.cum)}`).join(' ')
   const earlMarks = [launchIdx + 17, launchIdx + 35].filter((m) => m < 48)
 
-  const t = rows[tab]
+  // 12-month prediction rows per path, from the monthly price tables (not %/yr drift).
+  const keyAt = (m: number) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + m, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+  const predRows = (p: PathName) => {
+    let c = parseFloat(chest) || 0
+    let last = btcPrice
+    return Array.from({ length: 12 }, (_, m) => {
+      const price = MONTHLY_BTC[p][keyAt(m)] ?? last
+      last = price
+      const live = m >= launchIdx
+      const op = m - launchIdx + 1
+      const hpm = spotHashprice * (price / btcPrice) / Math.pow(1 + DIFF_BY_PATH[p] / 100, m / 12)
+      const revenue = live ? hpm * thRig * u * 30.4 : 0
+      const hosting = live ? u * (sunrise && op >= 7 ? 135 : 225) : 0
+      const net = revenue - hosting - (live ? loanMo : 0) - (op === 18 ? e18 : op === 36 ? e36 : 0) + addMo + sideMo
+      c += net
+      return { price, live, revenue, net, cum: c }
+    })
+  }
+  const pred: Record<PathName, ReturnType<typeof predRows>> = { bear: predRows('bear'), base: predRows('base'), bull: predRows('bull') }
 
   return (
     <div className="mt-3 border-t border-neutral-200 pt-3">
@@ -178,9 +212,9 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
         ) : null)}
       </svg>
 
-      {/* 12-month prediction, rolling from the current month, one tab per month */}
+      {/* 12-month prediction: monthly price tables (Claude × GPT merged), tab per month */}
       <div className="mt-4 mb-1 text-[11px] uppercase tracking-widest text-neutral-500">
-        Next 12 months — predicted, path: {scenario === 'prediction' ? `Claude base (BTC +${PRED_BTC_YR}%/yr, difficulty +${PRED_DIFF_YR}%/yr)` : scenario}
+        Next 12 months — monthly BTC predictions (Claude × GPT, merged 2026-07-27) — bear / base / bull
       </div>
       <div className="mb-2 flex flex-wrap gap-1">
         {Array.from({ length: 12 }, (_, m) => (
@@ -190,21 +224,34 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap gap-x-6 gap-y-1 border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-[12px] text-neutral-800">
-        <span>BTC <b>{usd0(btcAt(tab))}</b></span>
-        <span>hashprice <b>${hpAt(tab).toFixed(4)}</b>/TH/day</span>
-        <span>{t.live ? `revenue ${usd0(t.revenue)}` : 'pre-launch — no mining'}</span>
-        {t.live && <span>hosting -{usd0(t.hosting)}</span>}
-        {t.live && <span>AM loan -{usd0(t.loan)}</span>}
-        <span>add-in +{usd0(addMo)}</span>
-        <span>side +{usd0(sideMo)}</span>
-        {t.earl > 0 && <span className="text-amber-700">Earl -{usd0(t.earl)}</span>}
-        <span>net <b className={t.net >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(t.net)}</b></span>
-        <span>war chest end <b className={t.cum >= 0 ? 'text-green-700' : 'text-red-600'}>{usd0(t.cum)}</b></span>
-      </div>
+      <table className="w-full max-w-xl border border-neutral-200 font-mono text-[12px]">
+        <thead>
+          <tr className="bg-neutral-100 text-left text-[11px] uppercase tracking-wide text-neutral-500">
+            <th className="px-2 py-1">{labelAt(tab)}</th>
+            <th className="px-2 py-1">BTC</th>
+            <th className="px-2 py-1">revenue</th>
+            <th className="px-2 py-1">net month</th>
+            <th className="px-2 py-1">war chest</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(['bear', 'base', 'bull'] as PathName[]).map((p) => {
+            const r = pred[p][tab]
+            return (
+              <tr key={p} className={p === 'base' ? 'bg-amber-50/50' : ''}>
+                <td className={`px-2 py-1 font-semibold ${p === 'bear' ? 'text-red-700' : p === 'bull' ? 'text-green-700' : 'text-amber-700'}`}>{p}</td>
+                <td className="px-2 py-1">{usd0(r.price)}</td>
+                <td className="px-2 py-1">{r.live ? usd0(r.revenue) : 'pre-launch'}</td>
+                <td className={`px-2 py-1 ${r.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(r.net)}</td>
+                <td className={`px-2 py-1 font-semibold ${r.cum >= 0 ? 'text-green-700' : 'text-red-600'}`}>{usd0(r.cum)}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
 
       <div className="mt-1 text-[11px] text-neutral-500">
-        Prediction = Claude&apos;s base path from today&apos;s live numbers (BTC ${btcPrice.toLocaleString()}, hashprice ${spotHashprice.toFixed(4)}) — a model, not a promise; bear/bull to stress it. The April 2028 halving is modeled as a hard 50% hashprice cut, so BTC growth must outrun difficulty into month ~{halvingIdx} or the plan leans on its other levers (side income ≥$500/mo flips base positive; Sunrise adds ~$1,620/mo). Pre-launch months bank the add-in into the war chest; Earl repayments at operating months 18 and 36. Jacob&apos;s $20k deposit is sunk and not in the curve. Sunrise is AM&apos;s hydro target, not a promise.
+        Monthly predictions merged from Claude + GPT-4o (2026-07-27) against live data: ATH $126k (-48%), June low $58.6k, Fear&amp;Greed 30d avg 23, hashrate +7%/yr. Base = Jacob&apos;s bottom-late-Sep/Oct thesis (trough $54.5k Oct); bear = his $45k floor (Nov); bull = June was the bottom. Difficulty per path: bear +4%/yr, base +8%, bull +15%. Models, not promises — refresh monthly. The 48-month curve above uses %/yr drift (BTC ${btcPrice.toLocaleString()}, hashprice ${spotHashprice.toFixed(4)}). The April 2028 halving is modeled as a hard 50% hashprice cut, so BTC growth must outrun difficulty into month ~{halvingIdx} or the plan leans on its other levers (side income ≥$500/mo flips base positive; Sunrise adds ~$1,620/mo). Pre-launch months bank the add-in into the war chest; Earl repayments at operating months 18 and 36. Jacob&apos;s $20k deposit is sunk and not in the curve. Sunrise is AM&apos;s hydro target, not a promise.
       </div>
     </div>
   )
