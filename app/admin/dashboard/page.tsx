@@ -4,6 +4,7 @@ import { getLivePriceData } from '@/lib/btc-price'
 import { computeDailyNumbers } from '@/lib/daily-content'
 import { Shell, Panel, Tile, DonutChart, checkAdmin, fetchPostiz, fetchHeygenQuota, denverDate, denverTime, usd } from './ui'
 import FleetWhatIf from './fleet-whatif'
+import PlanCashflow from './plan-cashflow'
 
 export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
 export const dynamic = 'force-dynamic'
@@ -144,6 +145,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
             </div>
           ) : <span className="text-[13px] text-red-600">Live data unavailable</span>}
           {n && <FleetWhatIf spotHashprice={n.hashpricePerThDay} rigs={18} thPerRig={270} hostingDayFleet={18 * 7.5} />}
+          {n && <PlanCashflow spotHashprice={n.hashpricePerThDay} />}
         </Panel>
       </div>
 
