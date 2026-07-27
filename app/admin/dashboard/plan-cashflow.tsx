@@ -7,9 +7,12 @@ import { useState } from 'react'
 // (Claude base path, not just adjustable scenarios) with a tab per month.
 // Earl repayments hit at launch+18 and launch+36.
 
-// Claude's base prediction as of 2026-07-27: BTC and difficulty both ~+20%/yr —
-// the honest historical pattern (hashprice roughly flat, slight decay). Revisit monthly.
-const PRED_BTC_YR = 20
+// Claude's base prediction as of 2026-07-27: BTC +40%/yr (historical cycle pattern
+// into a halving), difficulty +20%/yr. The April 2028 halving (subsidy 3.125→1.5625)
+// is modeled as a hard 50% hashprice cut — the reason base is no longer 20/20:
+// price MUST outrun difficulty into month ~21 or the plan needs its other levers
+// (side income, Sunrise) to stay above water. Revisit monthly.
+const PRED_BTC_YR = 40
 const PRED_DIFF_YR = 20
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -31,7 +34,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
 
   const SCENARIOS: Record<string, [string, string]> = {
     prediction: [String(PRED_BTC_YR), String(PRED_DIFF_YR)],
-    flat: ['0', '0'], bear: ['-20', '15'], bull: ['60', '35'],
+    flat: ['0', '0'], bear: ['-20', '10'], bull: ['60', '35'],
   }
   const pickScenario = (k: string) => { setScenario(k); if (SCENARIOS[k]) { setBtcG(SCENARIOS[k][0]); setDiffG(SCENARIOS[k][1]) } }
 
@@ -54,7 +57,11 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
     return `${MONTH_NAMES[d.getMonth()]} ’${String(d.getFullYear()).slice(2)}`
   }
 
-  const hpAt = (m: number) => spotHashprice * Math.pow(1 + bg / 100, m / 12) / Math.pow(1 + dg / 100, m / 12)
+  // April 2028 halving: subsidy 3.125→1.5625 BTC = hashprice ×0.5 from that month
+  // (only if it's still ahead of us — past-halving spot already reflects it).
+  const halvingIdx = (2028 - now.getFullYear()) * 12 + 3 - now.getMonth()
+  const halved = (m: number) => (halvingIdx > 0 && m >= halvingIdx ? 0.5 : 1)
+  const hpAt = (m: number) => spotHashprice * halved(m) * Math.pow(1 + bg / 100, m / 12) / Math.pow(1 + dg / 100, m / 12)
   const btcAt = (m: number) => btcPrice * Math.pow(1 + bg / 100, m / 12)
 
   // One engine for both views: per-month rows, launch-aware, Earl at launch+18/+36.
@@ -156,6 +163,12 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
             <text x={(launchIdx / 47) * w + 3} y="12" fontSize="10" fill="#0e7490">launch</text>
           </g>
         )}
+        {halvingIdx > 0 && halvingIdx < 48 && (
+          <g>
+            <line x1={(halvingIdx / 47) * w} x2={(halvingIdx / 47) * w} y1="0" y2={h} stroke="#7c3aed" strokeDasharray="3 3" />
+            <text x={(halvingIdx / 47) * w + 3} y={h - 4} fontSize="10" fill="#6d28d9">halving ×0.5</text>
+          </g>
+        )}
         <polyline points={pts} fill="none" stroke={end48 >= 0 ? '#16a34a' : '#dc2626'} strokeWidth="2" />
         {earlMarks.map((m) => e18 + e36 > 0 ? (
           <g key={m}>
@@ -191,7 +204,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       </div>
 
       <div className="mt-1 text-[11px] text-neutral-500">
-        Prediction = Claude&apos;s base path from today&apos;s live numbers (BTC ${btcPrice.toLocaleString()}, hashprice ${spotHashprice.toFixed(4)}) — a model, not a promise; bear/bull to stress it. Pre-launch months bank the add-in into the war chest; from launch the fleet economics + AM loan kick in; Earl repayments at operating months 18 and 36. Jacob&apos;s $20k deposit is sunk and not in the curve. Sunrise is AM&apos;s hydro target, not a promise.
+        Prediction = Claude&apos;s base path from today&apos;s live numbers (BTC ${btcPrice.toLocaleString()}, hashprice ${spotHashprice.toFixed(4)}) — a model, not a promise; bear/bull to stress it. The April 2028 halving is modeled as a hard 50% hashprice cut, so BTC growth must outrun difficulty into month ~{halvingIdx} or the plan leans on its other levers (side income ≥$500/mo flips base positive; Sunrise adds ~$1,620/mo). Pre-launch months bank the add-in into the war chest; Earl repayments at operating months 18 and 36. Jacob&apos;s $20k deposit is sunk and not in the curve. Sunrise is AM&apos;s hydro target, not a promise.
       </div>
     </div>
   )
