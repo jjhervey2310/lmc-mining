@@ -18,15 +18,21 @@ function keywords(): string[] {
     .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
 }
 
-// Fit against Jacob's background: operator/founder/growth/BD first, industry second.
-const FIT_CORE = ['operations', 'operator', 'growth', 'founder', 'business development', 'account executive', 'sales', 'general manager', 'chief of staff']
+// Fit against Jacob's background: operator-leadership titles first, industry second.
+// Strong = the roles he'd actually take; core = general signal; BAD = whole fields
+// that keyword-match but are never a fit (healthcare ops, trucking "owner operators").
+const FIT_STRONG = ['general manager', 'executive director', 'director of operations', 'head of operations', 'operations manager', 'chief of staff', 'business operations', 'procurement']
+const FIT_CORE = ['operations', 'growth', 'founder', 'business development', 'account executive', 'sales']
 const FIT_INDUSTRY = ['bitcoin', 'crypto', 'mining', 'data center', 'datacenter', 'web3', 'energy']
+const FIT_BAD = ['nurse', 'nursing', 'clinical', 'cdl', 'driver', 'physician', 'dental', 'therap', 'medical', 'healthcare', 'patient', 'pharmac', 'surgical']
 
 function fitScore(title: string, company: string): number {
   const hay = `${title} ${company}`.toLowerCase()
   let score = 0
+  for (const t of FIT_STRONG) if (hay.includes(t)) score += 4
   for (const t of FIT_CORE) if (hay.includes(t)) score += 2
   for (const t of FIT_INDUSTRY) if (hay.includes(t)) score += 1
+  for (const t of FIT_BAD) if (hay.includes(t)) score -= 10
   return score
 }
 
@@ -144,8 +150,10 @@ async function handle(req: Request) {
     const { data: existing } = await supabase.from('job_finds').select('url').in('url', found.map((j) => j.url))
     const known = new Set((existing || []).map((r) => r.url))
     const seen = new Set<string>()
+    // Minimum fit bar: never put a job on the wire that scored below 2 — an empty
+    // wire beats a wire full of nurse/trucker keyword noise.
     newJobs = found
-      .filter((j) => !known.has(j.url) && !seen.has(j.url) && (seen.add(j.url), true))
+      .filter((j) => j.fit_score >= 2 && !known.has(j.url) && !seen.has(j.url) && (seen.add(j.url), true))
       .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
     if (newJobs.length) {
       // Cap the daily insert so one broad sweep can't flood the wire.
