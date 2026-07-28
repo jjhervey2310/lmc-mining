@@ -40,10 +40,10 @@ function salaryMax(s: string | null): number {
 // Adzuna aggregates Indeed and other major boards and exposes salary estimates —
 // the legitimate route to salary data (Indeed has no public API; LinkedIn blocks bots).
 // Free keys: developer.adzuna.com → ADZUNA_APP_ID + ADZUNA_APP_KEY in Vercel env.
-async function fetchAdzuna(kw: string[]): Promise<JobHit[]> {
+async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
   const id = process.env.ADZUNA_APP_ID
   const key = process.env.ADZUNA_APP_KEY
-  if (!id || !key) return []
+  if (!id || !key) { stats?.push('no adzuna keys'); return [] }
   const hits: JobHit[] = []
   // Fresh-daily contract (Jacob 2026-07-28): only postings from the last day, but cast
   // a wider net — industry keywords OR'd, plus operator-role title searches.
@@ -58,7 +58,7 @@ async function fetchAdzuna(kw: string[]): Promise<JobHit[]> {
         `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=50&${pass}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=1&sort_by=date`,
         { cache: 'no-store' }
       )
-      if (!res.ok) continue
+      if (!res.ok) { stats?.push(`${pass} ${where || 'US'}: HTTP ${res.status} ${(await res.text()).slice(0, 120)}`); continue }
       const rows = ((await res.json()).results || []) as {
         title?: string; company?: { display_name?: string }; redirect_url?: string
         location?: { display_name?: string }; salary_min?: number; salary_max?: number
@@ -74,7 +74,8 @@ async function fetchAdzuna(kw: string[]): Promise<JobHit[]> {
           salary, fit_score: fitScore(r.title, r.company?.display_name || ''),
         })
       }
-    } catch { /* one failed query never kills the sweep */ }
+      stats?.push(`${pass} ${where || 'US'}: ${rows.length} rows`)
+    } catch (e) { stats?.push(`${pass} ${where || 'US'}: ${e instanceof Error ? e.message.slice(0, 80) : 'error'}`) }
   }
   return hits
 }
@@ -136,7 +137,8 @@ async function handle(req: Request) {
   // 5. Jobs sweep → job_finds (dedup on url), ranked by fit then salary (nulls last)
   const kw = keywords()
   const adzunaConfigured = !!(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY)
-  const found = await fetchAdzuna(kw)
+  const sweepStats: string[] = []
+  const found = await fetchAdzuna(kw, sweepStats)
   let newJobs: JobHit[] = []
   if (supabase && found.length) {
     const { data: existing } = await supabase.from('job_finds').select('url').in('url', found.map((j) => j.url))
@@ -151,9 +153,10 @@ async function handle(req: Request) {
     }
   }
 
-  // 6. The brief
+  // 6. The brief (manual/debug runs pass ?nomail=1 to skip the duplicate email)
+  const nomail = new URL(req.url).searchParams.get('nomail') === '1'
   const apiKey = process.env.RESEND_API_KEY || process.env.resend_api_key
-  if (apiKey) {
+  if (apiKey && !nomail) {
     const li = (q: string) =>
       `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(q)}&location=Denver%2C%20Colorado`
     const html = `<div style="font-family:-apple-system,sans-serif;max-width:640px;margin:0 auto;padding:24px;">
@@ -177,7 +180,7 @@ ${newJobs.length ? `<h3 style="margin:16px 0 6px;">💼 Top ${Math.min(10, newJo
     })
   }
 
-  return NextResponse.json({ alerts, fixes, queueTotal, quota, newJobs: newJobs.length })
+  return NextResponse.json({ alerts, fixes, queueTotal, quota, newJobs: newJobs.length, foundTotal: found.length, sweepStats })
 }
 
 export const GET = handle
