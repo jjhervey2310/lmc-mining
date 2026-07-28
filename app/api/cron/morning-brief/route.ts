@@ -157,8 +157,13 @@ async function handle(req: Request) {
   const found = await fetchAdzuna(kw, sweepStats)
   let newJobs: JobHit[] = []
   if (supabase && found.length) {
-    const { data: existing } = await supabase.from('job_finds').select('url').in('url', found.map((j) => j.url))
-    const known = new Set((existing || []).map((r) => r.url))
+    // Chunked lookup: one .in() with 250 long URLs overflows the request line and
+    // fails silently, which made dedup a no-op and blew up the insert (2026-07-28).
+    const known = new Set<string>()
+    for (let i = 0; i < found.length; i += 50) {
+      const { data: existing } = await supabase.from('job_finds').select('url').in('url', found.slice(i, i + 50).map((j) => j.url))
+      for (const r of existing || []) known.add(r.url)
+    }
     const seen = new Set<string>()
     // Minimum fit bar (never below 2 — empty beats noise) + region rule: in-region
     // (Denver/CO/remote) gets a boost; out-of-region only rides on exceptional comp.
@@ -168,10 +173,12 @@ async function handle(req: Request) {
       .map((j) => ({ ...j, fit_score: j.fit_score + (inRegion(j.location, j.title) ? 3 : 0) }))
       .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
     if (newJobs.length) {
-      // Cap the daily insert so one broad sweep can't flood the wire.
-      const { error } = await supabase.from('job_finds').insert(newJobs.slice(0, 40).map((j) => ({ ...j, status: 'new' })))
+      // Cap the daily insert; upsert-ignore so a stray duplicate skips instead of
+      // killing the whole batch. A failed write must never report as success.
+      const { error } = await supabase
+        .from('job_finds')
+        .upsert(newJobs.slice(0, 40).map((j) => ({ ...j, status: 'new' })), { onConflict: 'url', ignoreDuplicates: true })
       if (error) {
-        // A failed insert must never be reported as success (bit us 2026-07-28).
         sweepStats.push(`INSERT FAILED: ${error.message}`)
         alerts.push(`Job sweep insert failed: ${error.message}`)
         newJobs = []
