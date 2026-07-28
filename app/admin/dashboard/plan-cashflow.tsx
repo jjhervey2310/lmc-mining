@@ -52,8 +52,9 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const [earl18, setEarl18] = useState('37500')
   const [earl36, setEarl36] = useState('37500')
   const [launch, setLaunch] = useState('2026-12')
-  // Sunrise ON by default (Jacob 2026-07-27): the plan runs with AM's $135 hydro
-  // rate from op-mo 7. Still AM's target, not a signed rate — toggle off to stress.
+  // Sunrise ON by default; HALVING-TRIGGERED (Jacob confirmed 2026-07-28): AM's
+  // $135 hydro rate is the ~40% discount they may offer when the halving starts,
+  // NOT from op-mo 7. Still AM's target, not a signed rate — toggle off to stress.
   const [sunrise, setSunrise] = useState(true)
   const [scenario, setScenario] = useState('prediction')
   const [btcG, setBtcG] = useState('15')
@@ -124,7 +125,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   for (let m = 0; m < 48; m++) {
     const live = m >= launchIdx
     const opMonth = m - launchIdx + 1
-    const hosting = live ? u * (sunrise && opMonth >= 7 ? 135 : 225) : 0
+    const hosting = live ? u * (sunrise && halvingIdx > 0 && m >= halvingIdx ? 135 : 225) : 0
     const revenue = live ? hpAt(m) * thRig * u * 30.4 * (1 - POOL_FEE) : 0
     const loan = live ? loanMo : 0
     const earl = opMonth === 18 ? e18 : opMonth === 36 ? e36 : 0
@@ -150,7 +151,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       const op = m - launchIdx + 1
       const hpm = spotHashprice * halved(m) * (price / btcPrice) / Math.pow(1 + DIFF_BY_PATH[p] / 100, m / 12)
       const revenue = live ? hpm * thRig * u * 30.4 * (1 - POOL_FEE) : 0
-      const hosting = live ? u * (sunrise && op >= 7 ? 135 : 225) : 0
+      const hosting = live ? u * (sunrise && halvingIdx > 0 && m >= halvingIdx ? 135 : 225) : 0
       const mineNet = live ? revenue - hosting - loanMo : 0
       const remainingEarl = (op <= 18 ? e18 : 0) + (op <= 36 ? e36 : 0)
       const contrib = !live || mineNet < 0 || c < remainingEarl + 3 * loanMo ? addMo : 0
@@ -198,7 +199,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
         </label>
         <label className="flex items-center gap-1 pb-1 text-[11px] text-neutral-600">
           <input type="checkbox" checked={sunrise} onChange={(e) => setSunrise(e.target.checked)} />
-          Sunrise $135 from op-mo 7
+          Sunrise $135 at halving
         </label>
         <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
           path
