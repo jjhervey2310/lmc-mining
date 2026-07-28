@@ -11,7 +11,7 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingDayFleet }: {
   thPerRig?: number
   hostingDayFleet: number
 }) {
-  const [fee, setFee] = useState('1')
+  const [fee, setFee] = useState('2.8') // pool + LuxOS OC dev fee, all-in
   const [th, setTh] = useState('300')
 
   const feePct = Math.min(100, Math.max(0, parseFloat(fee) || 0))
@@ -33,7 +33,7 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingDayFleet }: {
             className="w-20 border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
         </label>
         <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
-          pool fee %
+          Luxor fee % (pool + dev, all-in)
           <input value={fee} onChange={(e) => setFee(e.target.value)}
             className="w-16 border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
         </label>

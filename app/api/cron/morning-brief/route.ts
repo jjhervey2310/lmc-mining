@@ -49,7 +49,7 @@ async function fetchAdzuna(kw: string[]): Promise<JobHit[]> {
   for (const where of ['Denver, Colorado', '']) {
     try {
       const res = await fetch(
-        `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=25&what_or=${what}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=3&sort_by=date`,
+        `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=50&what_or=${what}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=3&sort_by=date`,
         { cache: 'no-store' }
       )
       if (!res.ok) continue

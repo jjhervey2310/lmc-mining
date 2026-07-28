@@ -40,7 +40,7 @@ const MONTHLY_BTC: Record<PathName, Record<string, number>> = {
 // Difficulty growth per path (%/yr): hashrate follows price with a lag (observed +7%/yr in the bear).
 const DIFF_BY_PATH: Record<PathName, number> = { bear: 5, base: 10, bull: 18 }
 const EXTRAP_BTC_YR = 15 // price growth applied beyond the 24-month table (months 25-48)
-const POOL_FEE = 0.01 // Luxor pool
+const POOL_FEE = 0.028 // Luxor all-in: pool fee + LuxOS OC dev fee (Jacob 2026-07-28)
 const PRED_MONTHS = 24
 
 export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome = 0 }: { spotHashprice: number; btcPrice: number; liveSideIncome?: number }) {
@@ -336,7 +336,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       </div>
 
       <div className="mt-1 text-[11px] text-neutral-500">
-        Add-in rule: your $3k/mo flows pre-launch, in any month the mine can&apos;t cover itself, and until the war chest holds all remaining Earl repayments + a 3-month loan cushion — then it stops automatically (&quot;until Earl and the loan are easily paid&quot;). &quot;Mine net&quot; = revenue − hosting − AM loan, your money excluded. Monthly predictions merged Claude + GPT-4o (2026-07-27) from live data (ATH $126k -48%, June low $58.6k, F&amp;G 30d avg 23, hashrate +7%/yr) and historical post-bottom speed (2019: +240% in 6mo; 2023: +160% in 13mo, ATH regained in 16). Base = Jacob&apos;s bottom-late-Sep/Oct thesis ($54.5k Oct) then a 2023-style recovery, prior ATH back ~Feb &apos;28; bear = $46.5k floor Nov; bull = June was the bottom. Difficulty +5/+10/+18%/yr per path; Luxor pool fee 1% and the Apr &apos;28 halving (⛏½) are in every number. All revenue at LuxOS OC 300TH (needs Abundant&apos;s wattage OK). Models, not promises — refresh monthly. The 48-month curve rides the base table then +{EXTRAP_BTC_YR}%/yr.
+        Add-in rule: your $3k/mo flows pre-launch, in any month the mine can&apos;t cover itself, and until the war chest holds all remaining Earl repayments + a 3-month loan cushion — then it stops automatically (&quot;until Earl and the loan are easily paid&quot;). &quot;Mine net&quot; = revenue − hosting − AM loan, your money excluded. Monthly predictions merged Claude + GPT-4o (2026-07-27) from live data (ATH $126k -48%, June low $58.6k, F&amp;G 30d avg 23, hashrate +7%/yr) and historical post-bottom speed (2019: +240% in 6mo; 2023: +160% in 13mo, ATH regained in 16). Base = Jacob&apos;s bottom-late-Sep/Oct thesis ($54.5k Oct) then a 2023-style recovery, prior ATH back ~Feb &apos;28; bear = $46.5k floor Nov; bull = June was the bottom. Difficulty +5/+10/+18%/yr per path; Luxor all-in fee 2.8% (pool + LuxOS OC dev fee) and the Apr &apos;28 halving (⛏½) are in every number. All revenue at LuxOS OC 300TH (needs Abundant&apos;s wattage OK). Models, not promises — refresh monthly. The 48-month curve rides the base table then +{EXTRAP_BTC_YR}%/yr.
       </div>
     </div>
   )
