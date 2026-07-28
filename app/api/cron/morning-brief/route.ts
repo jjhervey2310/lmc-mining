@@ -45,11 +45,17 @@ async function fetchAdzuna(kw: string[]): Promise<JobHit[]> {
   const key = process.env.ADZUNA_APP_KEY
   if (!id || !key) return []
   const hits: JobHit[] = []
-  const what = encodeURIComponent(kw.slice(0, 8).join(' '))
-  for (const where of ['Denver, Colorado', '']) {
+  // Fresh-daily contract (Jacob 2026-07-28): only postings from the last day, but cast
+  // a wider net — industry keywords OR'd, plus operator-role title searches.
+  const passes = [
+    `what_or=${encodeURIComponent(kw.slice(0, 8).join(' '))}`,
+    `title_only=${encodeURIComponent('operations')}`,
+    `title_only=${encodeURIComponent('general manager')}`,
+  ]
+  for (const pass of passes) for (const where of ['Denver, Colorado', '']) {
     try {
       const res = await fetch(
-        `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=50&what_or=${what}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=3&sort_by=date`,
+        `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=50&${pass}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=1&sort_by=date`,
         { cache: 'no-store' }
       )
       if (!res.ok) continue
@@ -140,7 +146,8 @@ async function handle(req: Request) {
       .filter((j) => !known.has(j.url) && !seen.has(j.url) && (seen.add(j.url), true))
       .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
     if (newJobs.length) {
-      await supabase.from('job_finds').insert(newJobs.map((j) => ({ ...j, status: 'new' })))
+      // Cap the daily insert so one broad sweep can't flood the wire.
+      await supabase.from('job_finds').insert(newJobs.slice(0, 40).map((j) => ({ ...j, status: 'new' })))
     }
   }
 

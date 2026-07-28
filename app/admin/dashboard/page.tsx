@@ -27,7 +27,8 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price').order('snapshot_date', { ascending: false }).limit(14) ?? null,
     supabase?.from('leads').select('lead_type, created_at') ?? null,
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
-    supabase?.from('job_finds').select('title, company, url, source, found_at, salary').neq('status','applied').neq('status','hidden').order('fit_score', { ascending: false }).order('found_at', { ascending: false }).limit(25) ?? null,
+    // Fresh-daily wire: only the last 24h — yesterday's finds clear automatically and never repeat.
+    supabase?.from('job_finds').select('title, company, url, source, found_at, salary').gte('found_at', dayStart).neq('status','applied').neq('status','hidden').order('fit_score', { ascending: false }).order('found_at', { ascending: false }).limit(25) ?? null,
     supabase?.from('income_log').select('amount, source, received_at').gte('received_at', new Date(Date.now() - 60 * 864e5).toISOString()) ?? null,
     fetchPostiz(dayStart, weekEnd),
     fetchHeygenQuota(),

@@ -245,7 +245,7 @@ export function Shell({
             <Panel title="🤖 PA — ask me anything">
               <ChatWindow secret={secret} />
             </Panel>
-            <Panel title="💼 Job wire" right={<span className="text-[11px] text-neutral-500">6am sweep</span>}>
+            <Panel title="💼 Job wire" right={<span className="text-[11px] text-neutral-500">today only · 6am sweep</span>}>
               {jobs.length ? (
                 <div className="space-y-2">
                   {jobs.slice(0, 12).map((j) => (
@@ -258,12 +258,16 @@ export function Shell({
                   ))}
                 </div>
               ) : (
-                <div className="text-[12px] text-neutral-600">No matches banked yet — first sweep runs 6am.</div>
+                <div className="text-[12px] text-neutral-600">No new postings yet today — the 6am sweep only shows jobs posted in the last day, and yesterday&apos;s list clears automatically.</div>
               )}
               <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px]">
                 <div className="mb-1 text-[11px] uppercase tracking-widest text-neutral-600">LinkedIn · last 24h · Denver</div>
-                {['bitcoin', 'crypto', 'data center operations'].map((q) => (
+                {['bitcoin', 'crypto', 'operations manager', 'data center operations'].map((q) => (
                   <a key={q} href={li(q)} target="_blank" rel="noreferrer" className="mr-3 text-amber-600 hover:underline">{q}</a>
+                ))}
+                <div className="mb-1 mt-2 text-[11px] uppercase tracking-widest text-neutral-600">Indeed · last 24h · Denver</div>
+                {['bitcoin', 'crypto', 'operations manager', 'general manager'].map((q) => (
+                  <a key={q} href={`https://www.indeed.com/jobs?q=${encodeURIComponent(q)}&l=Denver%2C+CO&fromage=1`} target="_blank" rel="noreferrer" className="mr-3 text-amber-600 hover:underline">{q}</a>
                 ))}
               </div>
             </Panel>
