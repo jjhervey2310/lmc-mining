@@ -36,6 +36,16 @@ function fitScore(title: string, company: string): number {
   return score
 }
 
+// Region rule (Jacob 2026-07-28): Denver metro or remote ONLY. Suburb names matter
+// because postings say "Englewood, CO" rather than "Denver". Exception: an
+// out-of-region role may ride on exceptional comp ("if I got offered $500k I would").
+const RELOCATE_WORTHY_SALARY = 250_000
+const DENVER_METRO = ['denver', 'aurora', 'lakewood', 'englewood', 'littleton', 'centennial', 'westminster', 'thornton', 'arvada', 'broomfield', 'boulder', 'golden', 'greenwood village', 'commerce city', 'wheat ridge']
+function inRegion(location: string, title: string): boolean {
+  const s = `${location} ${title}`.toLowerCase()
+  return s.includes('remote') || DENVER_METRO.some((c) => s.includes(c))
+}
+
 /** Highest number that appears in a salary string, for ranking. */
 function salaryMax(s: string | null): number {
   if (!s) return -1
@@ -150,10 +160,12 @@ async function handle(req: Request) {
     const { data: existing } = await supabase.from('job_finds').select('url').in('url', found.map((j) => j.url))
     const known = new Set((existing || []).map((r) => r.url))
     const seen = new Set<string>()
-    // Minimum fit bar: never put a job on the wire that scored below 2 — an empty
-    // wire beats a wire full of nurse/trucker keyword noise.
+    // Minimum fit bar (never below 2 — empty beats noise) + region rule: in-region
+    // (Denver/CO/remote) gets a boost; out-of-region only rides on exceptional comp.
     newJobs = found
       .filter((j) => j.fit_score >= 2 && !known.has(j.url) && !seen.has(j.url) && (seen.add(j.url), true))
+      .filter((j) => inRegion(j.location, j.title) || salaryMax(j.salary) >= RELOCATE_WORTHY_SALARY)
+      .map((j) => ({ ...j, fit_score: j.fit_score + (inRegion(j.location, j.title) ? 3 : 0) }))
       .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
     if (newJobs.length) {
       // Cap the daily insert so one broad sweep can't flood the wire.
