@@ -11,7 +11,7 @@ const RECIPIENT = 'jjhervey1@gmail.com'
 // (missing day's content → regenerate), pulls new job listings into job_finds, and
 // sends one short morning brief. Urgent problems it can't fix are flagged on top.
 
-interface JobHit { title: string; company: string; url: string; source: string; location: string; salary: string | null; fit_score: number }
+interface JobHit { title: string; company: string; url: string; source: string; location: string; salary: string | null; fit_score: number; posted_at: string | null }
 
 function keywords(): string[] {
   return (process.env.JOB_KEYWORDS || 'bitcoin,crypto,mining,web3')
@@ -71,13 +71,13 @@ async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
   for (const pass of passes) for (const where of ['Denver, Colorado', '']) {
     try {
       const res = await fetch(
-        `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=50&${pass}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=1&sort_by=date`,
+        `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=50&${pass}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=14&sort_by=date`,
         { cache: 'no-store' }
       )
       if (!res.ok) { stats?.push(`${pass} ${where || 'US'}: HTTP ${res.status} ${(await res.text()).slice(0, 120)}`); continue }
       const rows = ((await res.json()).results || []) as {
         title?: string; company?: { display_name?: string }; redirect_url?: string
-        location?: { display_name?: string }; salary_min?: number; salary_max?: number
+        location?: { display_name?: string }; salary_min?: number; salary_max?: number; created?: string
       }[]
       for (const r of rows) {
         if (!r.title || !r.redirect_url) continue
@@ -87,7 +87,7 @@ async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
         hits.push({
           title: r.title, company: r.company?.display_name || '', url: r.redirect_url,
           source: 'adzuna', location: r.location?.display_name || (where ? 'Denver' : 'US'),
-          salary, fit_score: fitScore(r.title, r.company?.display_name || ''),
+          salary, fit_score: fitScore(r.title, r.company?.display_name || ''), posted_at: r.created || null,
         })
       }
       stats?.push(`${pass} ${where || 'US'}: ${rows.length} rows`)

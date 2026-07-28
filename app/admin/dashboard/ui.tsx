@@ -187,7 +187,7 @@ export function Shell({
 }: {
   secret: string
   active: 'overview' | 'content' | 'mining' | 'website' | 'videos'
-  jobs: { title: string; company: string | null; url: string; source: string; found_at: string; salary?: string | null }[]
+  jobs: { title: string; company: string | null; url: string; source: string; found_at: string; salary?: string | null; posted_at?: string | null }[]
   children: React.ReactNode
 }) {
   const tabs = [
@@ -252,7 +252,7 @@ export function Shell({
                     <a key={j.url} href={j.url} target="_blank" rel="noreferrer" className="block border-l-2 border-amber-500/60 pl-2 hover:bg-amber-50">
                       <div className="text-[13px] leading-snug text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-800">{j.title} ↗</div>
                       <div className="text-[11px] text-neutral-600">
-                        {j.company || '—'}{j.salary ? ` · ${j.salary}` : ''} · {j.source} · {j.found_at.slice(5, 10)}
+                        {j.company || '—'}{j.salary ? ` · ${j.salary}` : ''} · posted {(j.posted_at || j.found_at).slice(5, 10)}
                       </div>
                     </a>
                   ))}
