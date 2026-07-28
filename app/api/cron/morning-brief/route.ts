@@ -169,7 +169,13 @@ async function handle(req: Request) {
       .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
     if (newJobs.length) {
       // Cap the daily insert so one broad sweep can't flood the wire.
-      await supabase.from('job_finds').insert(newJobs.slice(0, 40).map((j) => ({ ...j, status: 'new' })))
+      const { error } = await supabase.from('job_finds').insert(newJobs.slice(0, 40).map((j) => ({ ...j, status: 'new' })))
+      if (error) {
+        // A failed insert must never be reported as success (bit us 2026-07-28).
+        sweepStats.push(`INSERT FAILED: ${error.message}`)
+        alerts.push(`Job sweep insert failed: ${error.message}`)
+        newJobs = []
+      }
     }
   }
 
