@@ -24,7 +24,7 @@ function keywords(): string[] {
 const FIT_STRONG = ['general manager', 'executive director', 'director of operations', 'head of operations', 'operations manager', 'chief of staff', 'business operations', 'procurement']
 const FIT_CORE = ['operations', 'growth', 'founder', 'business development', 'account executive', 'sales']
 const FIT_INDUSTRY = ['bitcoin', 'crypto', 'mining', 'data center', 'datacenter', 'web3', 'energy']
-const FIT_BAD = ['nurse', 'nursing', 'clinical', 'cdl', 'driver', 'physician', 'dental', 'therap', 'medical', 'healthcare', 'patient', 'pharmac', 'surgical']
+const FIT_BAD = ['nurse', 'nursing', 'clinical', 'cdl', 'driver', 'physician', 'dental', 'therap', 'medical', 'healthcare', 'patient', 'pharmac', 'surgical', 'csr', 'customer service rep', 'temporary', 'intern', 'part-time', 'part time']
 
 function fitScore(title: string, company: string): number {
   const hay = `${title} ${company}`.toLowerCase()
