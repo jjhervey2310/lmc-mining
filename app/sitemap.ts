@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/university`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${BASE_URL}/review`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.85 },
     { url: `${BASE_URL}/audit`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.85 },
+    { url: `${BASE_URL}/setup`, lastModified: NOW, changeFrequency: 'weekly', priority: 0.85 },
     { url: `${BASE_URL}/tools`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${BASE_URL}/about`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE_URL}/how-we-verify`, lastModified: NOW, changeFrequency: 'monthly', priority: 0.6 },

@@ -200,6 +200,29 @@ export default function AuditPage() {
         </a>
       </div>
 
+      {/* Upsell: bigger deployments want someone in the room, not a document */}
+      <div
+        className="rounded-xl p-5 mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        style={{ background: '#0a0a0a', border: `1px solid rgba(247,147,26,0.3)` }}
+      >
+        <div>
+          <div className="text-sm font-semibold text-white">
+            Deploying $20k+ and want someone in the room for all of it?
+          </div>
+          <p className="text-xs text-gray-500 mt-1 max-w-md">
+            <span style={{ color: ORANGE }}>Done-With-You Mining Setup</span> is the four-week version:
+            hardware, hosting, contract review, deployment, and first-payout verification — on calls, together. $997.
+          </p>
+        </div>
+        <Link
+          href="/setup"
+          className="shrink-0 text-center text-sm font-semibold px-5 py-2.5 rounded-lg transition-all hover:opacity-90 whitespace-nowrap"
+          style={{ background: 'rgba(247,147,26,0.1)', color: ORANGE, border: '1px solid rgba(247,147,26,0.35)' }}
+        >
+          See Done-With-You →
+        </Link>
+      </div>
+
       {/* ---------- WHAT THE BUILD PLAN COVERS ---------- */}
       <div className="mb-12">
         <h2 className="text-xl md:text-2xl font-bold text-white mb-6">What we actually dig into</h2>
