@@ -81,13 +81,13 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const latestRival = (name: string) => weeklyRows.find((w) => w.contestant === name)
   // Rivals: live-priced book when Jacob has relayed their trades; otherwise their
   // latest reported cash total from the weekly log.
-  const rivalBooks = Object.fromEntries(['gpt', 'gemini', 'perplexity'].map((c) => {
+  const rivalBooks = Object.fromEntries(['gpt', 'gemini'].map((c) => {
     const rows = allTradeRows.filter((t) => t.contestant === c)
     return [c, rows.length ? buildBook(rows) : null]
   }))
   const board = [
     { name: 'CLAUDE', total: compTotal as number | null, week: 'live', book: myBook as ReturnType<typeof buildBook> | null },
-    ...['gpt', 'gemini', 'perplexity'].map((c) => {
+    ...['gpt', 'gemini'].map((c) => {
       const b = rivalBooks[c]
       if (b) return { name: c.toUpperCase(), total: b.total as number | null, week: 'live', book: b as ReturnType<typeof buildBook> | null }
       const r = latestRival(c)

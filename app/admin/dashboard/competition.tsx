@@ -37,7 +37,6 @@ export default function RivalEntry({ secret }: { secret: string }) {
         className="border border-neutral-300 px-2 py-1 font-mono text-neutral-900 outline-none focus:border-amber-500">
         <option value="gpt">GPT</option>
         <option value="gemini">Gemini</option>
-        <option value="perplexity">Perplexity</option>
       </select>
       <input value={cash} onChange={(e) => setCash(e.target.value)} placeholder="cash total $"
         className="w-24 border border-neutral-300 px-2 py-1 font-mono text-neutral-900 outline-none focus:border-amber-500" />

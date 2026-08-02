@@ -6,7 +6,7 @@ import { createServiceClient } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-const CONTESTANTS = ['gpt', 'gemini', 'perplexity'] as const
+const CONTESTANTS = ['gpt', 'gemini'] as const // Perplexity dropped out 2026-08-01
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const contestant = String(body?.contestant || '')
   const cashTotal = Number(body?.cashTotal)
   if (!CONTESTANTS.includes(contestant as (typeof CONTESTANTS)[number]) || !isFinite(cashTotal) || cashTotal < 0) {
-    return NextResponse.json({ error: 'need contestant (gpt|gemini|perplexity) and cashTotal >= 0' }, { status: 400 })
+    return NextResponse.json({ error: 'need contestant (gpt|gemini) and cashTotal >= 0' }, { status: 400 })
   }
 
   const supabase = createServiceClient()
