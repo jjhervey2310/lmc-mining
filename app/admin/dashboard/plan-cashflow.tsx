@@ -60,6 +60,12 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const [btcG, setBtcG] = useState('15')
   const [diffG, setDiffG] = useState('10')
   const [tab, setTab] = useState(0)
+  // Luxor fixed/upfront pool payout (forward): lock H% of production at a fixed
+  // $/TH/day for the first N operating months (tenors run 1-12mo). The locked
+  // share is immune to difficulty drift AND the halving during its tenor.
+  const [hedgePct, setHedgePct] = useState('0')
+  const [hedgeMo, setHedgeMo] = useState('12')
+  const [hedgePx, setHedgePx] = useState(spotHashprice.toFixed(4))
 
   const SCENARIOS: Record<string, [string, string]> = {
     prediction: ['15', '10'], flat: ['0', '0'], bear: ['-20', '5'], bull: ['60', '18'],
@@ -75,6 +81,12 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const e36 = parseFloat(earl36) || 0
   const bg = parseFloat(btcG) || 0
   const dg = parseFloat(diffG) || 0
+  const hPct = Math.min(100, Math.max(0, parseFloat(hedgePct) || 0))
+  const hMo = Math.min(12, Math.max(0, parseInt(hedgeMo) || 0))
+  const hPx = parseFloat(hedgePx) || 0
+  // Blend spot and locked hashprice while the forward tenor runs (op months 1..hMo).
+  const effHp = (spot: number, opMonth: number) =>
+    hPct > 0 && hPx > 0 && opMonth >= 1 && opMonth <= hMo ? spot * (1 - hPct / 100) + hPx * (hPct / 100) : spot
 
   // Calendar: month index 0 = the current month, always rolling.
   const now = new Date()
@@ -126,7 +138,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
     const live = m >= launchIdx
     const opMonth = m - launchIdx + 1
     const hosting = live ? u * (sunrise && halvingIdx > 0 && m >= halvingIdx ? 135 : 225) : 0
-    const revenue = live ? hpAt(m) * thRig * u * 30.4 * (1 - POOL_FEE) : 0
+    const revenue = live ? effHp(hpAt(m), opMonth) * thRig * u * 30.4 * (1 - POOL_FEE) : 0
     const loan = live ? loanMo : 0
     const earl = opMonth === 18 ? e18 : opMonth === 36 ? e36 : 0
     const mineNet = live ? revenue - hosting - loan : 0
@@ -150,7 +162,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       const live = m >= launchIdx
       const op = m - launchIdx + 1
       const hpm = spotHashprice * halved(m) * (price / btcPrice) / Math.pow(1 + DIFF_BY_PATH[p] / 100, m / 12)
-      const revenue = live ? hpm * thRig * u * 30.4 * (1 - POOL_FEE) : 0
+      const revenue = live ? effHp(hpm, op) * thRig * u * 30.4 * (1 - POOL_FEE) : 0
       const hosting = live ? u * (sunrise && halvingIdx > 0 && m >= halvingIdx ? 135 : 225) : 0
       const mineNet = live ? revenue - hosting - loanMo : 0
       const remainingEarl = (op <= 18 ? e18 : 0) + (op <= 36 ? e36 : 0)
@@ -201,6 +213,21 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
           <input type="checkbox" checked={sunrise} onChange={(e) => setSunrise(e.target.checked)} />
           Sunrise $135 at halving
         </label>
+        <label className="flex flex-col gap-1 text-[11px] text-cyan-700">
+          hedged % (Luxor fixed)
+          <input value={hedgePct} onChange={(e) => setHedgePct(e.target.value)}
+            className="w-16 border border-cyan-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-cyan-500" />
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] text-cyan-700">
+          tenor (mo, ≤12)
+          <input value={hedgeMo} onChange={(e) => setHedgeMo(e.target.value)}
+            className="w-14 border border-cyan-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-cyan-500" />
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] text-cyan-700">
+          locked $/TH/day
+          <input value={hedgePx} onChange={(e) => setHedgePx(e.target.value)}
+            className="w-20 border border-cyan-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-cyan-500" />
+        </label>
         <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
           path
           <select value={scenario} onChange={(e) => pickScenario(e.target.value)}
@@ -234,6 +261,9 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
         <span>cash at month 48 <b className={end48 >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(end48)}</b></span>
         <span>hashprice mo 48 <b className="text-neutral-700">${hpAt(47).toFixed(4)}</b></span>
         <span>add-in stops <b className="text-neutral-700">{(() => { const i = rows.findIndex((r) => r.live && r.contrib === 0); return i < 0 ? 'never (48mo)' : labelAt(i) })()}</b> <span className="text-neutral-500">(total in: {usd0(rows.reduce((s, r) => s + r.contrib, 0))})</span></span>
+        {hPct > 0 && hMo > 0 && (
+          <span className="text-cyan-700">hedged <b>{hPct}%</b> @ ${hPx.toFixed(4)} for op-mo 1–{hMo} <span className="text-neutral-500">(locked share ignores difficulty + halving; real forwards price below spot — ask Luxor for a quote)</span></span>
+        )}
       </div>
 
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="max-w-full">
