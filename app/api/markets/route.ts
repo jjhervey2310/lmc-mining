@@ -33,8 +33,12 @@ const EQUITIES: [string, string, Quote['kind']][] = [
   ['TSLA', 'TSLA', 'equity'],
 ]
 
-const TTL_MS = 60_000
-let cache: { at: number; quotes: Quote[] } | null = null
+// Split caches: crypto moves fast and CoinGecko tolerates ~10s polling for one
+// viewer; Yahoo throttles harder and equities move slower, so 60s is plenty.
+const CRYPTO_TTL_MS = 10_000
+const EQUITY_TTL_MS = 60_000
+let cryptoCache: { at: number; quotes: Quote[] } | null = null
+let equityCache: { at: number; quotes: Quote[] } | null = null
 
 async function fetchCrypto(): Promise<Quote[]> {
   const ids = CRYPTO.map(([id]) => id).join(',')
@@ -69,25 +73,27 @@ async function fetchEquity(yahoo: string, symbol: string, kind: Quote['kind']): 
 
 export async function GET() {
   const now = Date.now()
-  if (cache && now - cache.at < TTL_MS) {
-    return NextResponse.json({ quotes: cache.quotes, at: cache.at, cached: true })
-  }
 
-  const settled = await Promise.allSettled([
-    fetchCrypto(),
-    ...EQUITIES.map(([y, s, k]) => fetchEquity(y, s, k)),
+  const wantCrypto = !cryptoCache || now - cryptoCache.at >= CRYPTO_TTL_MS
+  const wantEquity = !equityCache || now - equityCache.at >= EQUITY_TTL_MS
+
+  const [cryptoRes, ...equityRes] = await Promise.allSettled([
+    wantCrypto ? fetchCrypto() : Promise.resolve<Quote[]>([]),
+    ...(wantEquity ? EQUITIES.map(([y, s, k]) => fetchEquity(y, s, k)) : []),
   ])
 
-  const quotes: Quote[] = settled.flatMap((r) => {
-    if (r.status !== 'fulfilled') return []
-    return Array.isArray(r.value) ? r.value : [r.value]
-  })
-
-  if (!quotes.length) {
-    if (cache) return NextResponse.json({ quotes: cache.quotes, at: cache.at, cached: true, stale: true })
-    return NextResponse.json({ quotes: [], at: now, error: 'market data unavailable' }, { status: 503 })
+  // Refresh each cache only on success — a failed poll serves the last snapshot.
+  if (wantCrypto && cryptoRes.status === 'fulfilled' && cryptoRes.value.length) {
+    cryptoCache = { at: now, quotes: cryptoRes.value }
+  }
+  if (wantEquity) {
+    const eq = equityRes.flatMap((r) => (r.status === 'fulfilled' ? [r.value as Quote] : []))
+    if (eq.length) equityCache = { at: now, quotes: eq }
   }
 
-  cache = { at: now, quotes }
-  return NextResponse.json({ quotes, at: now, cached: false })
+  const quotes = [...(cryptoCache?.quotes ?? []), ...(equityCache?.quotes ?? [])]
+  if (!quotes.length) {
+    return NextResponse.json({ quotes: [], at: now, error: 'market data unavailable' }, { status: 503 })
+  }
+  return NextResponse.json({ quotes, at: now })
 }

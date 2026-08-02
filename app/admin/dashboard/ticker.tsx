@@ -24,6 +24,7 @@ export default function MarketTicker() {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      if (document.hidden) return // don't burn API quota while the window is hidden
       try {
         const res = await fetch('/api/markets')
         if (!res.ok) return
@@ -34,8 +35,9 @@ export default function MarketTicker() {
       }
     }
     load()
-    const iv = setInterval(load, 60_000)
-    return () => { cancelled = true; clearInterval(iv) }
+    const iv = setInterval(load, 10_000)
+    document.addEventListener('visibilitychange', load) // instant catch-up when the app comes back
+    return () => { cancelled = true; clearInterval(iv); document.removeEventListener('visibilitychange', load) }
   }, [])
 
   // Reserve the bar height pre-data so the header below never jumps.
