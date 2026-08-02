@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 
 // THE FINAL PLAN (locked 2026-07-27): 18 units, LuxOS overclock 300 TH/rig on Luxor
 // pool (1% fee), Earl's $50k war chest, Jacob's monthly add-in. Launch-aware 48-month
@@ -263,13 +263,21 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       <div className="mt-4 mb-1 text-[11px] uppercase tracking-widest text-neutral-500">
         Next 24 months — monthly BTC predictions (Claude × GPT, merged 2026-07-27) — bear / base / bull
       </div>
-      <div className="mb-2 flex flex-wrap gap-1">
-        {Array.from({ length: PRED_MONTHS }, (_, m) => (
-          <button key={m} onClick={() => setTab(m)}
-            className={`border px-2 py-1 font-mono text-[11px] ${tab === m ? 'border-amber-500 bg-amber-50 text-amber-800' : 'border-neutral-300 text-neutral-600 hover:border-neutral-400'}`}>
-            {labelAt(m)}
-          </button>
-        ))}
+      <div className="mb-2 flex items-center gap-1">
+        <button onClick={() => setTab(Math.max(0, tab - 1))} disabled={tab === 0}
+          className="border border-neutral-300 px-2 py-1 font-mono text-[12px] text-neutral-600 hover:border-amber-500 hover:text-amber-700 disabled:opacity-30">
+          ◀
+        </button>
+        <select value={tab} onChange={(e) => setTab(Number(e.target.value))}
+          className="border border-amber-500 bg-amber-50 px-2 py-1 font-mono text-[12px] text-amber-800 outline-none">
+          {Array.from({ length: PRED_MONTHS }, (_, m) => (
+            <option key={m} value={m}>{labelAt(m)}{m === halvingIdx ? ' ⛏½' : ''}</option>
+          ))}
+        </select>
+        <button onClick={() => setTab(Math.min(PRED_MONTHS - 1, tab + 1))} disabled={tab === PRED_MONTHS - 1}
+          className="border border-neutral-300 px-2 py-1 font-mono text-[12px] text-neutral-600 hover:border-amber-500 hover:text-amber-700 disabled:opacity-30">
+          ▶
+        </button>
       </div>
       <table className="w-full max-w-xl border border-neutral-200 font-mono text-[12px]">
         <thead>
@@ -298,43 +306,6 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
           })}
         </tbody>
       </table>
-
-      {/* full grid: every month × every path, at a glance */}
-      <div className="mt-4 mb-1 text-[11px] uppercase tracking-widest text-neutral-500">
-        All 24 months at a glance — price / MINE net (your add-in shown separately, — = pre-launch)
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full border border-neutral-200 font-mono text-[11px]">
-          <thead>
-            <tr className="bg-neutral-100 text-left uppercase tracking-wide text-neutral-500">
-              <th className="px-2 py-1">month</th>
-              <th className="px-2 py-1 text-red-700">bear</th>
-              <th className="px-2 py-1">net</th>
-              <th className="px-2 py-1 text-amber-700">base</th>
-              <th className="px-2 py-1">net</th>
-              <th className="px-2 py-1 text-green-700">bull</th>
-              <th className="px-2 py-1">net</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: PRED_MONTHS }, (_, m) => (
-              <tr key={m} onClick={() => setTab(m)}
-                className={`cursor-pointer border-t border-neutral-100 ${tab === m ? 'bg-amber-50' : 'hover:bg-neutral-50'}`}>
-                <td className="px-2 py-0.5">{labelAt(m)}{m === halvingIdx ? ' ⛏½' : ''}</td>
-                {(['bear', 'base', 'bull'] as PathName[]).map((p) => {
-                  const r = pred[p][m]
-                  return (
-                    <Fragment key={p}>
-                      <td className="px-2 py-0.5">{usd0(r.price)}</td>
-                      <td className={`px-2 py-0.5 ${!r.live ? 'text-neutral-400' : r.mineNet >= 0 ? 'text-green-600' : 'text-red-600'}`}>{r.live ? fmt(r.mineNet) : '—'}</td>
-                    </Fragment>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
 
       <div className="mt-1 text-[11px] text-neutral-500">
         Add-in rule: your $3k/mo flows pre-launch, in any month the mine can&apos;t cover itself, and until the war chest holds all remaining Earl repayments + a 3-month loan cushion — then it stops automatically (&quot;until Earl and the loan are easily paid&quot;). &quot;Mine net&quot; = revenue − hosting − AM loan, your money excluded. Monthly predictions merged Claude + GPT-4o (2026-07-27) from live data (ATH $126k -48%, June low $58.6k, F&amp;G 30d avg 23, hashrate +7%/yr) and historical post-bottom speed (2019: +240% in 6mo; 2023: +160% in 13mo, ATH regained in 16). Base = Jacob&apos;s bottom-late-Sep/Oct thesis ($54.5k Oct) then a 2023-style recovery, prior ATH back ~Feb &apos;28; bear = $46.5k floor Nov; bull = June was the bottom. Difficulty +5/+10/+18%/yr per path; Luxor all-in fee 2.8% (pool + LuxOS OC dev fee) and the Apr &apos;28 halving (⛏½) are in every number. All revenue at LuxOS OC 300TH (needs Abundant&apos;s wattage OK). Models, not promises — refresh monthly. The 48-month curve rides the base table then +{EXTRAP_BTC_YR}%/yr.
