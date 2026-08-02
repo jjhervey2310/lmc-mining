@@ -38,7 +38,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     supabase?.from('income_log').select('amount, source, received_at').gte('received_at', new Date(Date.now() - 60 * 864e5).toISOString()) ?? null,
     fetchPostiz(dayStart, weekEnd),
     fetchHeygenQuota(),
-    supabase?.from('comp_trades').select('traded_at, action, symbol, qty, price, note').order('traded_at') ?? null,
+    supabase?.from('comp_trades').select('traded_at, action, symbol, qty, price, note, contestant').order('traded_at') ?? null,
     supabase?.from('comp_weekly').select('week_of, contestant, cash_total').order('week_of', { ascending: false }).limit(30) ?? null,
     getMarketQuotes().catch(() => [] as Awaited<ReturnType<typeof getMarketQuotes>>),
     // Next difficulty retarget (every 2,016 blocks): countdown + estimated % change.
@@ -47,35 +47,51 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       .catch(() => null),
   ])
 
-  // ── trading competition: positions from the trade ledger (average cost) ──
-  const tradeRows = trades?.data ?? []
-  const book: Record<string, { qty: number; cost: number }> = {}
-  let compCash = COMP_START_CASH
-  for (const t of tradeRows) {
-    const qty = Number(t.qty), price = Number(t.price)
-    const p = (book[t.symbol] ??= { qty: 0, cost: 0 })
-    if (t.action === 'buy') {
-      p.qty += qty; p.cost += qty * price; compCash -= qty * price
-    } else {
-      const avg = p.qty ? p.cost / p.qty : 0
-      p.qty -= qty; p.cost -= qty * avg; compCash += qty * price
-    }
-  }
+  // ── trading competition: every contestant's book from the same ledger, all
+  // priced by the same live feed (no contestant gets a different tape) ──
+  const allTradeRows = (trades?.data ?? []) as { traded_at: string; action: string; symbol: string; qty: number; price: number; note: string | null; contestant?: string }[]
   const priceOf = (sym: string) => quotes?.find((q) => q.symbol === sym)?.price
-  const positions = Object.entries(book).filter(([, p]) => p.qty > 1e-12).map(([symbol, p]) => {
-    const live = priceOf(symbol)
-    const value = live != null ? p.qty * live : null
-    return { symbol, qty: p.qty, avg: p.cost / p.qty, spent: p.cost, live, value, pnl: value != null ? value - p.cost : null }
-  })
-  const holdingsValue = positions.reduce((s, p) => s + (p.value ?? p.spent), 0)
-  const compTotal = compCash + holdingsValue
+  const buildBook = (rows: typeof allTradeRows) => {
+    const book: Record<string, { qty: number; cost: number }> = {}
+    let cash = COMP_START_CASH
+    for (const t of rows) {
+      const qty = Number(t.qty), price = Number(t.price)
+      const p = (book[t.symbol] ??= { qty: 0, cost: 0 })
+      if (t.action === 'buy') {
+        p.qty += qty; p.cost += qty * price; cash -= qty * price
+      } else {
+        const avg = p.qty ? p.cost / p.qty : 0
+        p.qty -= qty; p.cost -= qty * avg; cash += qty * price
+      }
+    }
+    const positions = Object.entries(book).filter(([, p]) => p.qty > 1e-12).map(([symbol, p]) => {
+      const live = priceOf(symbol)
+      const value = live != null ? p.qty * live : null
+      return { symbol, qty: p.qty, avg: p.cost / p.qty, spent: p.cost, live, value, pnl: value != null ? value - p.cost : null }
+    })
+    const holdings = positions.reduce((s, p) => s + (p.value ?? p.spent), 0)
+    return { positions, cash, holdings, total: cash + holdings }
+  }
+
+  const tradeRows = allTradeRows.filter((t) => (t.contestant || 'claude') === 'claude')
+  const myBook = buildBook(tradeRows)
+  const { positions, cash: compCash, holdings: holdingsValue, total: compTotal } = myBook
+
   const weeklyRows = weekly?.data ?? []
   const latestRival = (name: string) => weeklyRows.find((w) => w.contestant === name)
+  // Rivals: live-priced book when Jacob has relayed their trades; otherwise their
+  // latest reported cash total from the weekly log.
+  const rivalBooks = Object.fromEntries(['gpt', 'gemini', 'perplexity'].map((c) => {
+    const rows = allTradeRows.filter((t) => t.contestant === c)
+    return [c, rows.length ? buildBook(rows) : null]
+  }))
   const board = [
-    { name: 'CLAUDE', total: compTotal, week: 'live' },
+    { name: 'CLAUDE', total: compTotal as number | null, week: 'live', book: myBook as ReturnType<typeof buildBook> | null },
     ...['gpt', 'gemini', 'perplexity'].map((c) => {
+      const b = rivalBooks[c]
+      if (b) return { name: c.toUpperCase(), total: b.total as number | null, week: 'live', book: b as ReturnType<typeof buildBook> | null }
       const r = latestRival(c)
-      return { name: c.toUpperCase(), total: r ? Number(r.cash_total) : null, week: r ? String(r.week_of) : '—' }
+      return { name: c.toUpperCase(), total: r ? Number(r.cash_total) : null, week: r ? String(r.week_of) : '—', book: null }
     }),
   ].sort((a, b) => (b.total ?? -1) - (a.total ?? -1))
 
@@ -261,6 +277,12 @@ export default async function Overview({ searchParams }: { searchParams: Promise
                     {b.total != null ? `$${usd(b.total)}` : 'no report'}
                   </span>{' '}
                   <span className="text-[10px] text-neutral-400">{b.week}</span>
+                  {b.book && (
+                    <div className="mt-0.5 text-[11px] text-neutral-500">
+                      {b.book.positions.map((p) => `${p.symbol} ${p.qty.toLocaleString('en-US', { maximumFractionDigits: 4 })}${p.value != null ? ` ($${usd(p.value, 0)})` : ''}`).join(' · ')}
+                      {b.book.positions.length ? ' · ' : ''}cash ${usd(b.book.cash, 0)}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
