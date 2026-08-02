@@ -28,7 +28,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const dayStart = new Date(Date.now() - 864e5).toISOString()
 
   const [snapshots, leads, cache, jobs, income, posts, quota, trades, weekly, quotes] = await Promise.all([
-    supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price').order('snapshot_date', { ascending: false }).limit(14) ?? null,
+    supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price, difficulty, hashprice_usd').order('snapshot_date', { ascending: false }).limit(14) ?? null,
     supabase?.from('leads').select('lead_type, created_at') ?? null,
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
     // Fresh-daily wire: today's discoveries only (never repeated), NEWEST-POSTED first —
@@ -95,6 +95,13 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     return age >= 7 * 864e5 && age < 14 * 864e5
   }).length
   const btcSeries = (snapshots?.data ?? []).map((r) => Number(r.btc_price)).reverse()
+  // Yesterday's snapshot → live vs prev % for hashprice / S21 net / difficulty.
+  // (Index 1: index 0 is today's midnight snapshot, same convention as the BTC tile.)
+  const prevSnap = (snapshots?.data ?? [])[1]
+  const prevN = prevSnap && Number(prevSnap.difficulty) > 0 ? computeDailyNumbers(Number(prevSnap.btc_price), Number(prevSnap.difficulty)) : null
+  // Signed by |prev| so improving from a negative net still reads as "up".
+  const pctVs = (cur: number, prev: number | undefined | null) =>
+    prev != null && Math.abs(prev) > 1e-9 ? ((cur - prev) / Math.abs(prev)) * 100 : undefined
   const cacheRows = (cache?.data ?? []) as { cache_date: string; source: string; payload: { theme?: string; hook?: string } }[]
   const incomeRows = income?.data ?? []
   const mtdStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()
@@ -155,9 +162,16 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         <Tile label="BTC" value={n ? `$${usd(n.btcPrice, 0)}` : '—'} spark={btcSeries}
           prev={btcSeries.length > 1 ? `$${usd(btcSeries[btcSeries.length - 2], 0)}` : undefined}
           changePct={n && btcSeries.length > 1 ? ((n.btcPrice - btcSeries[btcSeries.length - 2]) / btcSeries[btcSeries.length - 2]) * 100 : undefined} />
-        <Tile accent="cyan" label="Hashprice $/TH/d" value={n ? `$${usd(n.hashpricePerThDay, 4)}` : '—'} />
-        <Tile accent="green" label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'} sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)} · Abundant Mines $225/mo flat` : undefined} />
-        <Tile accent="purple" label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'} />
+        <Tile accent="cyan" label="Hashprice $/TH/d" value={n ? `$${usd(n.hashpricePerThDay, 4)}` : '—'}
+          prev={prevN ? `$${usd(prevN.hashpricePerThDay, 4)}` : undefined}
+          changePct={n && prevN ? pctVs(n.hashpricePerThDay, prevN.hashpricePerThDay) : undefined} />
+        <Tile accent="green" label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'}
+          prev={prevN ? `${prevN.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(prevN.s21NetDay))}` : undefined}
+          changePct={n && prevN ? pctVs(n.s21NetDay, prevN.s21NetDay) : undefined}
+          sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)} · Abundant Mines $225/mo flat` : undefined} />
+        <Tile accent="purple" label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'}
+          prev={prevSnap ? `${(Number(prevSnap.difficulty) / 1e12).toFixed(1)}T` : undefined}
+          changePct={n && prevSnap ? pctVs(n.difficulty, Number(prevSnap.difficulty)) : undefined} />
         <Tile accent="blue" label="Leads 7d" value={String(leads7d)} tone={leads7d >= leadsPrev7d ? 'pos' : 'neg'} prev={String(leadsPrev7d)}
           changePct={leadsPrev7d ? ((leads7d - leadsPrev7d) / leadsPrev7d) * 100 : undefined} sub={`total ${leadRows.length}`} />
         <Tile accent="pink" label="Posts queued" value={String(queued)} tone={queued >= 4 ? 'amber' : 'neg'} sub="next 7 days" />
