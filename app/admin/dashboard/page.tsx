@@ -10,7 +10,17 @@ import CompPanel from './comp-panel'
 
 const COMP_START_CASH = 1000
 
-export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
+// Installable phone app: standalone display, home-screen icon, and a manifest
+// whose start_url carries the secret so the app opens straight into the terminal.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ secret?: string }> }): Promise<Metadata> {
+  const { secret = '' } = await searchParams
+  return {
+    robots: { index: false, follow: false, nocache: true },
+    title: 'LMC Terminal',
+    manifest: secret ? `/api/admin/manifest?secret=${encodeURIComponent(secret)}` : undefined,
+    appleWebApp: { capable: true, title: 'LMC Terminal', statusBarStyle: 'black-translucent' },
+  }
+}
 export const dynamic = 'force-dynamic'
 
 const PLATFORM_ICON: Record<string, string> = { x: '𝕏', youtube: '▶', instagram: '📷', tiktok: '♪' }
