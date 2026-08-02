@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 
 // THE FINAL PLAN (locked 2026-07-27): 18 units, LuxOS overclock 300 TH/rig on Luxor
 // pool (1% fee), Earl's $50k war chest, Jacob's monthly add-in. Launch-aware 48-month
@@ -183,10 +183,75 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const pts = rows.map((r, i) => `${(i / 47) * w},${y(r.cum)}`).join(' ')
   const earlMarks = [launchIdx + 17, launchIdx + 35].filter((m) => m < 48)
 
+  // ── Obligations & runway (Jacob 2026-08-02): monthly gap vs loan+hosting and
+  // how long the war chest lasts with the $3k add-in and Earl repayments,
+  // bear/base/bull side by side over the next 12 months. ──
+  const obligationsMo = u * 225 + loanMo
+  const runway = (p: PathName) => {
+    const i = pred[p].findIndex((r) => r.cum < 0)
+    return i < 0 ? '24mo+' : labelAt(i)
+  }
+  const launchRow = pred.base[Math.min(Math.max(launchIdx, 0), PRED_MONTHS - 1)]
+
   return (
     <div className="mt-3 border-t border-neutral-200 pt-3">
       <div className="mb-2 text-[11px] uppercase tracking-widest text-neutral-500">
         The final plan — 18 units · LuxOS OC 300TH · Luxor pool · Earl war chest · monthly add-in
+      </div>
+
+      {/* Obligations & war-chest runway */}
+      <div className="mb-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+        {[
+          { label: 'Obligations/mo (live)', value: usd0(obligationsMo), sub: `hosting ${usd0(u * 225)} + loan ${usd0(loanMo)}`, tone: 'text-neutral-800' },
+          { label: 'First live month gap (base)', value: launchRow?.live ? fmt(launchRow.mineNet) : fmt(pred.base.find((r) => r.live)?.mineNet ?? 0), sub: 'mine revenue − obligations', tone: (launchRow?.live ? launchRow.mineNet : pred.base.find((r) => r.live)?.mineNet ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' },
+          { label: 'War chest at launch', value: usd0(launchIdx > 0 ? rows[launchIdx - 1].cum : parseFloat(chest) || 0), sub: `Earl $${Math.round((parseFloat(chest) || 0) / 1000)}k + your $${Math.round(addMo / 1000)}k/mo until launch`, tone: 'text-neutral-800' },
+          { label: 'War chest runway', value: runway('base'), sub: `bear ${runway('bear')} · bull ${runway('bull')} — with add-in + Earl paybacks`, tone: 'text-amber-600' },
+        ].map((t) => (
+          <div key={t.label} className="rounded border border-neutral-200 bg-white px-3 py-2">
+            <div className="text-[10px] uppercase tracking-widest text-neutral-500">{t.label}</div>
+            <div className={`font-mono text-xl font-bold ${t.tone}`}>{t.value}</div>
+            <div className="text-[11px] text-neutral-500">{t.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* next 12 months: shortfall vs obligations + war chest, per path */}
+      <div className="mb-3 overflow-x-auto">
+        <table className="w-full border border-neutral-200 font-mono text-[11px]">
+          <thead>
+            <tr className="bg-neutral-100 text-left uppercase tracking-wide text-neutral-500">
+              <th className="px-2 py-1">next 12 mo</th>
+              <th className="px-2 py-1 text-red-700">bear gap</th>
+              <th className="px-2 py-1">chest</th>
+              <th className="px-2 py-1 text-amber-700">base gap</th>
+              <th className="px-2 py-1">chest</th>
+              <th className="px-2 py-1 text-green-700">bull gap</th>
+              <th className="px-2 py-1">chest</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 12 }, (_, m) => {
+              const op = m - launchIdx + 1
+              return (
+                <tr key={m} className="border-t border-neutral-100">
+                  <td className="px-2 py-0.5">{labelAt(m)}{m === launchIdx ? ' 🚀' : ''}{op === 18 ? ' 💰Earl' : ''}</td>
+                  {(['bear', 'base', 'bull'] as PathName[]).map((p) => {
+                    const r = pred[p][m]
+                    return (
+                      <Fragment key={p}>
+                        <td className={`px-2 py-0.5 ${!r.live ? 'text-neutral-400' : r.mineNet >= 0 ? 'text-green-600' : 'text-red-600'}`}>{r.live ? fmt(r.mineNet) : 'pre-launch'}</td>
+                        <td className={`px-2 py-0.5 ${r.cum >= 0 ? 'text-neutral-700' : 'font-bold text-red-600'}`}>{usd0(r.cum)}</td>
+                      </Fragment>
+                    )
+                  })}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        <div className="mt-1 text-[10px] text-neutral-500">
+          gap = mine revenue − hosting − loan (your money excluded) · chest = war chest after your ${Math.round(addMo / 1000)}k add-in, side income, and Earl repayments land · red chest = broke
+        </div>
       </div>
       <div className="mb-3 flex flex-wrap items-end gap-3 text-[13px]">
         {([
