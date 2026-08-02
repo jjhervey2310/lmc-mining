@@ -13,7 +13,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
   const [metrics, lessons, jobs] = await Promise.all([
     supabase?.from('video_metrics').select('platform, video_ref, title, published_at, views, likes, comments, captured_at').order('captured_at', { ascending: false }).limit(60) ?? null,
     supabase?.from('content_lessons').select('lesson, rationale, created_at').eq('active', true).order('created_at', { ascending: false }) ?? null,
-    supabase?.from('job_finds').select('title, company, url, source, found_at, salary').neq('status','applied').neq('status','hidden').order('fit_score', { ascending: false }).order('found_at', { ascending: false }).limit(25) ?? null,
+    supabase?.from('job_finds').select('title, company, url, source, found_at, salary, posted_at').gte('found_at', new Date(Date.now() - 7 * 864e5).toISOString()).neq('status','applied').neq('status','hidden').neq('status','done').order('posted_at', { ascending: false, nullsFirst: false }).order('fit_score', { ascending: false }).limit(100) ?? null,
   ])
 
   // newest snapshot per video

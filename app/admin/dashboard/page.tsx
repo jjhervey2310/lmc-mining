@@ -26,14 +26,15 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const today = denverDate()
   const weekEnd = new Date(Date.now() + 8 * 864e5).toISOString()
   const dayStart = new Date(Date.now() - 864e5).toISOString()
+  const weekStart = new Date(Date.now() - 7 * 864e5).toISOString()
 
   const [snapshots, leads, cache, jobs, income, posts, quota, trades, weekly, quotes, retarget] = await Promise.all([
     supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price, difficulty, hashprice_usd').order('snapshot_date', { ascending: false }).limit(14) ?? null,
     supabase?.from('leads').select('lead_type, created_at') ?? null,
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
-    // Fresh-daily wire: today's discoveries only (never repeated), NEWEST-POSTED first —
-    // postings may be up to 14 days old when needed to fill the wire (Jacob 2026-07-28).
-    supabase?.from('job_finds').select('title, company, url, source, found_at, salary, posted_at').gte('found_at', dayStart).neq('status','applied').neq('status','hidden').order('posted_at', { ascending: false, nullsFirst: false }).order('fit_score', { ascending: false }).limit(25) ?? null,
+    // Task-style wire (Jacob 2026-08-01): jobs persist up to 7 days or until ticked
+    // done — never repeated after that (dedup on url). Newest-posted first.
+    supabase?.from('job_finds').select('title, company, url, source, found_at, salary, posted_at').gte('found_at', weekStart).neq('status','applied').neq('status','hidden').neq('status','done').order('posted_at', { ascending: false, nullsFirst: false }).order('fit_score', { ascending: false }).limit(100) ?? null,
     supabase?.from('income_log').select('amount, source, received_at').gte('received_at', new Date(Date.now() - 60 * 864e5).toISOString()) ?? null,
     fetchPostiz(dayStart, weekEnd),
     fetchHeygenQuota(),

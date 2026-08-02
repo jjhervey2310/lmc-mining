@@ -13,7 +13,7 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
 
   const [leads, jobs] = await Promise.all([
     supabase?.from('leads').select('lead_type, source, created_at').order('created_at', { ascending: false }) ?? null,
-    supabase?.from('job_finds').select('title, company, url, source, found_at, salary').neq('status','applied').neq('status','hidden').order('fit_score', { ascending: false }).order('found_at', { ascending: false }).limit(25) ?? null,
+    supabase?.from('job_finds').select('title, company, url, source, found_at, salary, posted_at').gte('found_at', new Date(Date.now() - 7 * 864e5).toISOString()).neq('status','applied').neq('status','hidden').neq('status','done').order('posted_at', { ascending: false, nullsFirst: false }).order('fit_score', { ascending: false }).limit(100) ?? null,
   ])
   const rows = leads?.data ?? []
   const last7 = rows.filter((l) => Date.now() - new Date(l.created_at).getTime() < 7 * 864e5).length

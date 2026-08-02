@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ChatWindow from './chat'
 import MarketTicker from './ticker'
+import JobWire, { type WireJob } from './job-wire'
 
 export const AMBER = '#f59e0b'
 
@@ -203,7 +204,7 @@ export function Shell({
 }: {
   secret: string
   active: 'overview' | 'content' | 'mining' | 'website' | 'videos'
-  jobs: { title: string; company: string | null; url: string; source: string; found_at: string; salary?: string | null; posted_at?: string | null }[]
+  jobs: WireJob[]
   children: React.ReactNode
 }) {
   const tabs = [
@@ -262,21 +263,8 @@ export function Shell({
             <Panel title="🤖 PA — ask me anything" accent="cyan">
               <ChatWindow secret={secret} />
             </Panel>
-            <Panel title="💼 Job wire" accent="blue" right={<span className="text-[11px] text-neutral-500">today only · 6am sweep</span>}>
-              {jobs.length ? (
-                <div className="space-y-2">
-                  {jobs.slice(0, 12).map((j) => (
-                    <a key={j.url} href={j.url} target="_blank" rel="noreferrer" className="block border-l-2 border-amber-500/60 pl-2 hover:bg-amber-50">
-                      <div className="text-[13px] leading-snug text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-800">{j.title} ↗</div>
-                      <div className="text-[11px] text-neutral-600">
-                        {j.company || '—'}{j.salary ? ` · ${j.salary}` : ''} · posted {(j.posted_at || j.found_at).slice(5, 10)}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-[12px] text-neutral-600">No new postings yet today — the 6am sweep only shows jobs posted in the last day, and yesterday&apos;s list clears automatically.</div>
-              )}
+            <Panel title="💼 Job wire" accent="blue" right={<span className="text-[11px] text-neutral-500">tick = done · 6am sweep</span>}>
+              <JobWire jobs={jobs} secret={secret} />
               <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px]">
                 <div className="mb-1 text-[11px] uppercase tracking-widest text-neutral-600">LinkedIn · last 24h · Denver</div>
                 {['bitcoin', 'crypto', 'operations manager', 'data center operations'].map((q) => (
@@ -285,6 +273,10 @@ export function Shell({
                 <div className="mb-1 mt-2 text-[11px] uppercase tracking-widest text-neutral-600">Indeed · last 24h · Denver</div>
                 {['bitcoin', 'crypto', 'operations manager', 'general manager'].map((q) => (
                   <a key={q} href={`https://www.indeed.com/jobs?q=${encodeURIComponent(q)}&l=Denver%2C+CO&fromage=1`} target="_blank" rel="noreferrer" className="mr-3 text-amber-600 hover:underline">{q}</a>
+                ))}
+                <div className="mb-1 mt-2 text-[11px] uppercase tracking-widest text-neutral-600">Built In Colorado</div>
+                {[['operations', 'https://www.builtincolorado.com/jobs/operations'], ['sales', 'https://www.builtincolorado.com/jobs/sales'], ['all Denver', 'https://www.builtincolorado.com/jobs']].map(([label, href]) => (
+                  <a key={label} href={href} target="_blank" rel="noreferrer" className="mr-3 text-amber-600 hover:underline">{label}</a>
                 ))}
               </div>
             </Panel>

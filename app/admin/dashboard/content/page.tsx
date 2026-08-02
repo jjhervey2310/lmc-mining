@@ -13,7 +13,7 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
 
   const [cache, jobs, posts] = await Promise.all([
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
-    supabase?.from('job_finds').select('title, company, url, source, found_at, salary').neq('status','applied').neq('status','hidden').order('fit_score', { ascending: false }).order('found_at', { ascending: false }).limit(25) ?? null,
+    supabase?.from('job_finds').select('title, company, url, source, found_at, salary, posted_at').gte('found_at', new Date(Date.now() - 7 * 864e5).toISOString()).neq('status','applied').neq('status','hidden').neq('status','done').order('posted_at', { ascending: false, nullsFirst: false }).order('fit_score', { ascending: false }).limit(100) ?? null,
     fetchPostiz(new Date(Date.now() - 864e5).toISOString(), new Date(Date.now() + 8 * 864e5).toISOString()),
   ])
 

@@ -36,14 +36,23 @@ function fitScore(title: string, company: string): number {
   return score
 }
 
-// Region rule (Jacob 2026-07-28): Denver metro or remote ONLY. Suburb names matter
-// because postings say "Englewood, CO" rather than "Denver". Exception: an
-// out-of-region role may ride on exceptional comp ("if I got offered $500k I would").
+// Region rule (Jacob 2026-08-01): hybrid/on-site must be Denver metro; remote counts
+// ONLY when Colorado-eligible — a "remote" role anchored to another specific city or
+// state (e.g. "Remote — New York, NY") is out, since he can't be outside Colorado.
+// Suburb names matter because postings say "Englewood, CO" rather than "Denver".
+// Exception: an out-of-region role may ride on exceptional comp ("$500k I would").
 const RELOCATE_WORTHY_SALARY = 250_000
+// Cash-flow floor (Jacob 2026-08-01): posted salaries under $75k are cut; unlisted
+// salaries stay in (most leadership posts don't list). Target roles still rank first.
+const MIN_SALARY = 75_000
 const DENVER_METRO = ['denver', 'aurora', 'lakewood', 'englewood', 'littleton', 'centennial', 'westminster', 'thornton', 'arvada', 'broomfield', 'boulder', 'golden', 'greenwood village', 'commerce city', 'wheat ridge']
 function inRegion(location: string, title: string): boolean {
-  const s = `${location} ${title}`.toLowerCase()
-  return s.includes('remote') || DENVER_METRO.some((c) => s.includes(c))
+  const loc = location.toLowerCase()
+  if (DENVER_METRO.some((c) => loc.includes(c)) || loc.includes('colorado') || /,\s*co\b/.test(loc)) return true
+  if (!`${location} ${title}`.toLowerCase().includes('remote')) return false
+  // Remote with a generic location (US-wide/anywhere) is Colorado-eligible; remote
+  // pinned to some other specific place is not.
+  return !loc.trim() || loc === 'us' || loc.includes('united states') || loc.includes('remote') || loc.includes('anywhere')
 }
 
 /** Highest number that appears in a salary string, for ranking. */
@@ -63,10 +72,16 @@ async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
   const hits: JobHit[] = []
   // Fresh-daily contract (Jacob 2026-07-28): only postings from the last day, but cast
   // a wider net — industry keywords OR'd, plus operator-role title searches.
+  // Broadened 2026-08-01: more operator-title passes so the wire fills with a week's
+  // worth of real options, not just the first 25 keyword hits.
   const passes = [
     `what_or=${encodeURIComponent(kw.slice(0, 8).join(' '))}`,
     `title_only=${encodeURIComponent('operations')}`,
     `title_only=${encodeURIComponent('general manager')}`,
+    `title_only=${encodeURIComponent('director')}`,
+    `title_only=${encodeURIComponent('chief of staff')}`,
+    `title_only=${encodeURIComponent('account executive')}`,
+    `title_only=${encodeURIComponent('business development')}`,
   ]
   for (const pass of passes) for (const where of ['Denver, Colorado', '']) {
     try {
@@ -170,6 +185,7 @@ async function handle(req: Request) {
     newJobs = found
       .filter((j) => j.fit_score >= 2 && !known.has(j.url) && !seen.has(j.url) && (seen.add(j.url), true))
       .filter((j) => inRegion(j.location, j.title) || salaryMax(j.salary) >= RELOCATE_WORTHY_SALARY)
+      .filter((j) => { const s = salaryMax(j.salary); return s < 0 || s >= MIN_SALARY }) // $75k floor; unlisted stays
       .map((j) => ({ ...j, fit_score: j.fit_score + (inRegion(j.location, j.title) ? 3 : 0) }))
       .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
     if (newJobs.length) {
@@ -177,7 +193,7 @@ async function handle(req: Request) {
       // killing the whole batch. A failed write must never report as success.
       const { error } = await supabase
         .from('job_finds')
-        .upsert(newJobs.slice(0, 40).map((j) => ({ ...j, status: 'new' })), { onConflict: 'url', ignoreDuplicates: true })
+        .upsert(newJobs.slice(0, 80).map((j) => ({ ...j, status: 'new' })), { onConflict: 'url', ignoreDuplicates: true })
       if (error) {
         sweepStats.push(`INSERT FAILED: ${error.message}`)
         alerts.push(`Job sweep insert failed: ${error.message}`)
