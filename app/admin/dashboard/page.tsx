@@ -27,7 +27,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const weekEnd = new Date(Date.now() + 8 * 864e5).toISOString()
   const dayStart = new Date(Date.now() - 864e5).toISOString()
 
-  const [snapshots, leads, cache, jobs, income, posts, quota, trades, weekly, quotes] = await Promise.all([
+  const [snapshots, leads, cache, jobs, income, posts, quota, trades, weekly, quotes, retarget] = await Promise.all([
     supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price, difficulty, hashprice_usd').order('snapshot_date', { ascending: false }).limit(14) ?? null,
     supabase?.from('leads').select('lead_type, created_at') ?? null,
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
@@ -40,6 +40,10 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     supabase?.from('comp_trades').select('traded_at, action, symbol, qty, price, note').order('traded_at') ?? null,
     supabase?.from('comp_weekly').select('week_of, contestant, cash_total').order('week_of', { ascending: false }).limit(30) ?? null,
     getMarketQuotes().catch(() => [] as Awaited<ReturnType<typeof getMarketQuotes>>),
+    // Next difficulty retarget (every 2,016 blocks): countdown + estimated % change.
+    fetch('https://mempool.space/api/v1/difficulty-adjustment', { next: { revalidate: 300 } })
+      .then((r) => (r.ok ? (r.json() as Promise<{ remainingTime: number; difficultyChange: number; remainingBlocks: number }>) : null))
+      .catch(() => null),
   ])
 
   // ── trading competition: positions from the trade ledger (average cost) ──
@@ -171,7 +175,13 @@ export default async function Overview({ searchParams }: { searchParams: Promise
           sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)} · Abundant Mines $225/mo flat` : undefined} />
         <Tile accent="purple" label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'}
           prev={prevSnap ? `${(Number(prevSnap.difficulty) / 1e12).toFixed(1)}T` : undefined}
-          changePct={n && prevSnap ? pctVs(n.difficulty, Number(prevSnap.difficulty)) : undefined} />
+          changePct={n && prevSnap ? pctVs(n.difficulty, Number(prevSnap.difficulty)) : undefined}
+          sub={retarget ? (() => {
+            const totalMin = Math.max(0, Math.floor(retarget.remainingTime / 60000))
+            const d = Math.floor(totalMin / 1440), h = Math.floor((totalMin % 1440) / 60)
+            const est = retarget.difficultyChange
+            return `retarget in ${d}d ${h}h · est ${est >= 0 ? '+' : ''}${est.toFixed(1)}%`
+          })() : undefined} />
         <Tile accent="blue" label="Leads 7d" value={String(leads7d)} tone={leads7d >= leadsPrev7d ? 'pos' : 'neg'} prev={String(leadsPrev7d)}
           changePct={leadsPrev7d ? ((leads7d - leadsPrev7d) / leadsPrev7d) * 100 : undefined} sub={`total ${leadRows.length}`} />
         <Tile accent="pink" label="Posts queued" value={String(queued)} tone={queued >= 4 ? 'amber' : 'neg'} sub="next 7 days" />
