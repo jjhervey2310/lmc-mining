@@ -19,11 +19,11 @@ const CRYPTO: [string, string][] = [
   ['ethereum', 'ETH'],
   ['solana', 'SOL'],
   ['sui', 'SUI'],
+  ['spx6900', 'SPX'], // SPX6900 (ETH memecoin) — Jacob's SPX, not the S&P 500
 ]
 
-// SPX first, then the Magnificent 7.
+// The Magnificent 7.
 const EQUITIES: [string, string, Quote['kind']][] = [
-  ['^GSPC', 'SPX', 'index'],
   ['NVDA', 'NVDA', 'equity'],
   ['AAPL', 'AAPL', 'equity'],
   ['MSFT', 'MSFT', 'equity'],
