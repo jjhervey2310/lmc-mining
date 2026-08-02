@@ -22,7 +22,7 @@ export async function GET(req: Request) {
       orientation: 'portrait',
       background_color: '#f1f5f9',
       theme_color: '#0a0a0a',
-      icons: [{ src: '/apple-icon', sizes: '180x180', type: 'image/png' }],
+      icons: [{ src: '/admin/dashboard/apple-icon', sizes: '180x180', type: 'image/png' }],
     },
     { headers: { 'Content-Type': 'application/manifest+json' } },
   )
