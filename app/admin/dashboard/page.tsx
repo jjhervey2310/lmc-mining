@@ -2,9 +2,13 @@ import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
 import { getLivePriceData } from '@/lib/btc-price'
 import { computeDailyNumbers } from '@/lib/daily-content'
+import { getMarketQuotes } from '@/lib/markets'
 import { Shell, Panel, Tile, DonutChart, checkAdmin, fetchPostiz, fetchHeygenQuota, denverDate, denverTime, usd } from './ui'
 import FleetWhatIf from './fleet-whatif'
 import PlanCashflow from './plan-cashflow'
+import RivalEntry from './competition'
+
+const COMP_START_CASH = 1000
 
 export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
 export const dynamic = 'force-dynamic'
@@ -23,7 +27,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const weekEnd = new Date(Date.now() + 8 * 864e5).toISOString()
   const dayStart = new Date(Date.now() - 864e5).toISOString()
 
-  const [snapshots, leads, cache, jobs, income, posts, quota] = await Promise.all([
+  const [snapshots, leads, cache, jobs, income, posts, quota, trades, weekly, quotes] = await Promise.all([
     supabase?.from('hashprice_snapshots').select('snapshot_date, btc_price').order('snapshot_date', { ascending: false }).limit(14) ?? null,
     supabase?.from('leads').select('lead_type, created_at') ?? null,
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
@@ -33,7 +37,42 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     supabase?.from('income_log').select('amount, source, received_at').gte('received_at', new Date(Date.now() - 60 * 864e5).toISOString()) ?? null,
     fetchPostiz(dayStart, weekEnd),
     fetchHeygenQuota(),
+    supabase?.from('comp_trades').select('traded_at, action, symbol, qty, price, note').order('traded_at') ?? null,
+    supabase?.from('comp_weekly').select('week_of, contestant, cash_total').order('week_of', { ascending: false }).limit(30) ?? null,
+    getMarketQuotes().catch(() => [] as Awaited<ReturnType<typeof getMarketQuotes>>),
   ])
+
+  // ── trading competition: positions from the trade ledger (average cost) ──
+  const tradeRows = trades?.data ?? []
+  const book: Record<string, { qty: number; cost: number }> = {}
+  let compCash = COMP_START_CASH
+  for (const t of tradeRows) {
+    const qty = Number(t.qty), price = Number(t.price)
+    const p = (book[t.symbol] ??= { qty: 0, cost: 0 })
+    if (t.action === 'buy') {
+      p.qty += qty; p.cost += qty * price; compCash -= qty * price
+    } else {
+      const avg = p.qty ? p.cost / p.qty : 0
+      p.qty -= qty; p.cost -= qty * avg; compCash += qty * price
+    }
+  }
+  const priceOf = (sym: string) => quotes?.find((q) => q.symbol === sym)?.price
+  const positions = Object.entries(book).filter(([, p]) => p.qty > 1e-12).map(([symbol, p]) => {
+    const live = priceOf(symbol)
+    const value = live != null ? p.qty * live : null
+    return { symbol, qty: p.qty, avg: p.cost / p.qty, spent: p.cost, live, value, pnl: value != null ? value - p.cost : null }
+  })
+  const holdingsValue = positions.reduce((s, p) => s + (p.value ?? p.spent), 0)
+  const compTotal = compCash + holdingsValue
+  const weeklyRows = weekly?.data ?? []
+  const latestRival = (name: string) => weeklyRows.find((w) => w.contestant === name)
+  const board = [
+    { name: 'CLAUDE', total: compTotal, week: 'live' },
+    ...['gpt', 'gemini', 'perplexity'].map((c) => {
+      const r = latestRival(c)
+      return { name: c.toUpperCase(), total: r ? Number(r.cash_total) : null, week: r ? String(r.week_of) : '—' }
+    }),
+  ].sort((a, b) => (b.total ?? -1) - (a.total ?? -1))
 
   const allPosts = posts ?? []
   const todayPosts = allPosts
@@ -124,6 +163,84 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         <Tile label="HeyGen units" value={quota !== null ? String(quota) : '—'} tone={(quota ?? 0) >= 600 ? 'amber' : (quota ?? 0) >= 300 ? 'dim' : 'neg'} sub="week burns ~300–550" />
         <Tile label="Content banked" value={`${cacheRows.length}d`} tone={cacheRows.length ? 'amber' : 'neg'} sub="gate-passed days ahead" />
         <Tile label="Non-mining income MTD" value={`$${usd(incomeMTD, 0)}`} tone={incomeMTD >= 2300 ? 'pos' : incomeMTD > 0 ? 'amber' : 'neg'} sub={`target $2,300/mo · tell the PA "log $97 audit"`} />
+      </div>
+
+      {/* Trading competition: Claude vs GPT vs Gemini vs Perplexity, $1,000 each */}
+      <div className="mt-3">
+        <Panel title="🏆 Trading competition — my $1,000" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
+          <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+            <Tile label="Total (cash + holdings)" value={`$${usd(compTotal)}`} tone={compTotal >= COMP_START_CASH ? 'pos' : 'neg'}
+              changePct={((compTotal - COMP_START_CASH) / COMP_START_CASH) * 100} prev={`$${usd(COMP_START_CASH, 0)} start`} />
+            <Tile label="Cash in bank" value={`$${usd(compCash)}`} sub={`${((compCash / compTotal) * 100).toFixed(0)}% dry powder`} />
+            <Tile label="Holdings value" value={`$${usd(holdingsValue)}`} sub={`${positions.length} position${positions.length === 1 ? '' : 's'}`} />
+            <Tile label="Unrealized P&L" value={(() => { const t = positions.reduce((s, p) => s + (p.pnl ?? 0), 0); return `${t >= 0 ? '+' : '-'}$${usd(Math.abs(t))}` })()}
+              tone={positions.reduce((s, p) => s + (p.pnl ?? 0), 0) >= 0 ? 'pos' : 'neg'} />
+          </div>
+
+          <table className="w-full max-w-2xl border border-neutral-200 font-mono text-[12px]">
+            <thead>
+              <tr className="bg-neutral-100 text-left text-[11px] uppercase tracking-wide text-neutral-500">
+                <th className="px-2 py-1">held</th>
+                <th className="px-2 py-1">qty</th>
+                <th className="px-2 py-1">paid avg</th>
+                <th className="px-2 py-1">spent</th>
+                <th className="px-2 py-1">now</th>
+                <th className="px-2 py-1">value</th>
+                <th className="px-2 py-1">p&l</th>
+              </tr>
+            </thead>
+            <tbody>
+              {positions.map((p) => (
+                <tr key={p.symbol} className="border-t border-neutral-100">
+                  <td className="px-2 py-1 font-semibold text-amber-700">{p.symbol}</td>
+                  <td className="px-2 py-1">{p.qty.toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
+                  <td className="px-2 py-1">${usd(p.avg, p.avg < 10 ? 4 : 2)}</td>
+                  <td className="px-2 py-1">${usd(p.spent)}</td>
+                  <td className="px-2 py-1">{p.live != null ? `$${usd(p.live, p.live < 10 ? 4 : 2)}` : '—'}</td>
+                  <td className="px-2 py-1">{p.value != null ? `$${usd(p.value)}` : '—'}</td>
+                  <td className={`px-2 py-1 ${(p.pnl ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {p.pnl != null ? `${p.pnl >= 0 ? '+' : '-'}$${usd(Math.abs(p.pnl))} (${((p.pnl / p.spent) * 100).toFixed(1)}%)` : '—'}
+                  </td>
+                </tr>
+              ))}
+              <tr className="border-t border-neutral-200 bg-neutral-50">
+                <td className="px-2 py-1 font-semibold text-neutral-700">CASH</td>
+                <td className="px-2 py-1" colSpan={4}></td>
+                <td className="px-2 py-1">${usd(compCash)}</td>
+                <td className="px-2 py-1"></td>
+              </tr>
+            </tbody>
+          </table>
+
+          {tradeRows.length > 0 && (
+            <div className="mt-2 space-y-0.5 text-[11px] text-neutral-500">
+              {tradeRows.slice(-4).reverse().map((t, i) => (
+                <div key={i}>
+                  <span className={t.action === 'buy' ? 'text-green-700' : 'text-red-700'}>{t.action.toUpperCase()}</span>
+                  {' '}{Number(t.qty).toLocaleString('en-US', { maximumFractionDigits: 8 })} {t.symbol} @ ${usd(Number(t.price), Number(t.price) < 10 ? 4 : 2)}
+                  {' · '}{String(t.traded_at).slice(0, 10)}{t.note ? ` — ${t.note}` : ''}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 border-t border-neutral-200 pt-2">
+            <div className="mb-1 text-[11px] uppercase tracking-widest text-neutral-600">Leaderboard — latest reported</div>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {board.map((b, i) => (
+                <div key={b.name} className={`border px-3 py-1.5 font-mono text-[13px] ${i === 0 && b.total != null ? 'border-amber-500 bg-amber-50' : 'border-neutral-200'}`}>
+                  <span className="text-neutral-500">#{i + 1}</span>{' '}
+                  <span className={b.name === 'CLAUDE' ? 'font-bold text-amber-700' : 'text-neutral-700'}>{b.name}</span>{' '}
+                  <span className={b.total == null ? 'text-neutral-400' : b.total >= COMP_START_CASH ? 'text-green-600' : 'text-red-600'}>
+                    {b.total != null ? `$${usd(b.total)}` : 'no report'}
+                  </span>{' '}
+                  <span className="text-[10px] text-neutral-400">{b.week}</span>
+                </div>
+              ))}
+            </div>
+            <RivalEntry secret={secret} />
+          </div>
+        </Panel>
       </div>
 
       {/* Proportions */}
