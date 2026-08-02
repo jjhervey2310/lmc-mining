@@ -112,6 +112,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     <Shell secret={secret} active="overview" jobs={jobs?.data ?? []}>
       {/* Today's schedule: next-up focus + timeline strip */}
       <Panel
+        accent="blue"
         title="Today's posts"
         right={<span className="text-[11px] text-neutral-500">{today} DEN</span>}
       >
@@ -154,26 +155,26 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         <Tile label="BTC" value={n ? `$${usd(n.btcPrice, 0)}` : '—'} spark={btcSeries}
           prev={btcSeries.length > 1 ? `$${usd(btcSeries[btcSeries.length - 2], 0)}` : undefined}
           changePct={n && btcSeries.length > 1 ? ((n.btcPrice - btcSeries[btcSeries.length - 2]) / btcSeries[btcSeries.length - 2]) * 100 : undefined} />
-        <Tile label="Hashprice $/TH/d" value={n ? `$${usd(n.hashpricePerThDay, 4)}` : '—'} />
-        <Tile label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'} sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)} · Abundant Mines $225/mo flat` : undefined} />
-        <Tile label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'} />
-        <Tile label="Leads 7d" value={String(leads7d)} tone={leads7d >= leadsPrev7d ? 'pos' : 'neg'} prev={String(leadsPrev7d)}
+        <Tile accent="cyan" label="Hashprice $/TH/d" value={n ? `$${usd(n.hashpricePerThDay, 4)}` : '—'} />
+        <Tile accent="green" label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'} sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)} · Abundant Mines $225/mo flat` : undefined} />
+        <Tile accent="purple" label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'} />
+        <Tile accent="blue" label="Leads 7d" value={String(leads7d)} tone={leads7d >= leadsPrev7d ? 'pos' : 'neg'} prev={String(leadsPrev7d)}
           changePct={leadsPrev7d ? ((leads7d - leadsPrev7d) / leadsPrev7d) * 100 : undefined} sub={`total ${leadRows.length}`} />
-        <Tile label="Posts queued" value={String(queued)} tone={queued >= 4 ? 'amber' : 'neg'} sub="next 7 days" />
-        <Tile label="HeyGen units" value={quota !== null ? String(quota) : '—'} tone={(quota ?? 0) >= 600 ? 'amber' : (quota ?? 0) >= 300 ? 'dim' : 'neg'} sub="week burns ~300–550" />
-        <Tile label="Content banked" value={`${cacheRows.length}d`} tone={cacheRows.length ? 'amber' : 'neg'} sub="gate-passed days ahead" />
-        <Tile label="Non-mining income MTD" value={`$${usd(incomeMTD, 0)}`} tone={incomeMTD >= 2300 ? 'pos' : incomeMTD > 0 ? 'amber' : 'neg'} sub={`target $2,300/mo · tell the PA "log $97 audit"`} />
+        <Tile accent="pink" label="Posts queued" value={String(queued)} tone={queued >= 4 ? 'amber' : 'neg'} sub="next 7 days" />
+        <Tile accent="rose" label="HeyGen units" value={quota !== null ? String(quota) : '—'} tone={(quota ?? 0) >= 600 ? 'amber' : (quota ?? 0) >= 300 ? 'dim' : 'neg'} sub="week burns ~300–550" />
+        <Tile accent="teal" label="Content banked" value={`${cacheRows.length}d`} tone={cacheRows.length ? 'amber' : 'neg'} sub="gate-passed days ahead" />
+        <Tile accent="green" label="Non-mining income MTD" value={`$${usd(incomeMTD, 0)}`} tone={incomeMTD >= 2300 ? 'pos' : incomeMTD > 0 ? 'amber' : 'neg'} sub={`target $2,300/mo · tell the PA "log $97 audit"`} />
       </div>
 
       {/* Trading competition: Claude vs GPT vs Gemini vs Perplexity, $1,000 each */}
       <div className="mt-3">
-        <Panel title="🏆 Trading competition — my $1,000" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
+        <Panel accent="purple" title="🏆 Trading competition — my $1,000" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
           <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <Tile label="Total (cash + holdings)" value={`$${usd(compTotal)}`} tone={compTotal >= COMP_START_CASH ? 'pos' : 'neg'}
+            <Tile accent="purple" label="Total (cash + holdings)" value={`$${usd(compTotal)}`} tone={compTotal >= COMP_START_CASH ? 'pos' : 'neg'}
               changePct={((compTotal - COMP_START_CASH) / COMP_START_CASH) * 100} prev={`$${usd(COMP_START_CASH, 0)} start`} />
-            <Tile label="Cash in bank" value={`$${usd(compCash)}`} sub={`${((compCash / compTotal) * 100).toFixed(0)}% dry powder`} />
-            <Tile label="Holdings value" value={`$${usd(holdingsValue)}`} sub={`${positions.length} position${positions.length === 1 ? '' : 's'}`} />
-            <Tile label="Unrealized P&L" value={(() => { const t = positions.reduce((s, p) => s + (p.pnl ?? 0), 0); return `${t >= 0 ? '+' : '-'}$${usd(Math.abs(t))}` })()}
+            <Tile accent="purple" label="Cash in bank" value={`$${usd(compCash)}`} sub={`${((compCash / compTotal) * 100).toFixed(0)}% dry powder`} />
+            <Tile accent="purple" label="Holdings value" value={`$${usd(holdingsValue)}`} sub={`${positions.length} position${positions.length === 1 ? '' : 's'}`} />
+            <Tile accent="purple" label="Unrealized P&L" value={(() => { const t = positions.reduce((s, p) => s + (p.pnl ?? 0), 0); return `${t >= 0 ? '+' : '-'}$${usd(Math.abs(t))}` })()}
               tone={positions.reduce((s, p) => s + (p.pnl ?? 0), 0) >= 0 ? 'pos' : 'neg'} />
           </div>
 
@@ -245,12 +246,12 @@ export default async function Overview({ searchParams }: { searchParams: Promise
 
       {/* Proportions */}
       <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <Panel title="Queue mix — by platform">
+        <Panel accent="pink" title="Queue mix — by platform">
           <DonutChart center={String(queued)} data={Object.entries(
             allPosts.filter((p) => p.state === 'QUEUE').reduce<Record<string, number>>((a, p) => { a[p.platform] = (a[p.platform] || 0) + 1; return a }, {})
           ).map(([label, value]) => ({ label, value }))} />
         </Panel>
-        <Panel title="Leads — by type">
+        <Panel accent="teal" title="Leads — by type">
           <DonutChart center={String(leadRows.length)} data={Object.entries(
             leadRows.reduce<Record<string, number>>((a, l) => { const t = (l as { lead_type?: string }).lead_type || '?'; a[t] = (a[t] || 0) + 1; return a }, {})
           ).map(([label, value]) => ({ label: label.replace('_', ' '), value }))} />
@@ -259,7 +260,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
 
       {/* 18-rig fleet simulation (Jacob's fleet plan) */}
       <div className="mt-3">
-        <Panel title="⛏ 18-rig fleet P&L — simulated" right={<span className="text-[11px] text-neutral-500">live price+difficulty · Abundant Mines $225/mo per rig</span>}>
+        <Panel accent="green" title="⛏ 18-rig fleet P&L — simulated" right={<span className="text-[11px] text-neutral-500">live price+difficulty · Abundant Mines $225/mo per rig</span>}>
           {n ? (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
               <Tile label="Gross/day" value={`$${usd(18 * n.s21GrossDay)}`} />
@@ -276,7 +277,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
 
       {/* Week strip */}
       <div className="mt-3">
-        <Panel title="Week ahead — banked content">
+        <Panel accent="rose" title="Week ahead — banked content">
           {cacheRows.length ? (
             <div className="space-y-1">
               {cacheRows.map((c) => (

@@ -97,8 +97,22 @@ export function Spark({ points, w = 120, h = 34 }: { points: number[]; w?: numbe
   )
 }
 
+// Section accents — full literal class strings (Tailwind can't see computed names).
+// Each section owns a color: tinted header, gradient tile body, colored border.
+export type Accent = 'amber' | 'blue' | 'green' | 'purple' | 'pink' | 'teal' | 'cyan' | 'rose'
+const ACCENT: Record<Accent, { border: string; text: string; head: string; tile: string }> = {
+  amber: { border: 'border-t-amber-500', text: 'text-amber-600', head: 'bg-amber-100', tile: 'from-amber-50' },
+  blue: { border: 'border-t-blue-500', text: 'text-blue-700', head: 'bg-blue-100', tile: 'from-blue-50' },
+  green: { border: 'border-t-green-500', text: 'text-green-700', head: 'bg-green-100', tile: 'from-green-50' },
+  purple: { border: 'border-t-purple-500', text: 'text-purple-700', head: 'bg-purple-100', tile: 'from-purple-50' },
+  pink: { border: 'border-t-pink-500', text: 'text-pink-700', head: 'bg-pink-100', tile: 'from-pink-50' },
+  teal: { border: 'border-t-teal-500', text: 'text-teal-700', head: 'bg-teal-100', tile: 'from-teal-50' },
+  cyan: { border: 'border-t-cyan-500', text: 'text-cyan-700', head: 'bg-cyan-100', tile: 'from-cyan-50' },
+  rose: { border: 'border-t-rose-500', text: 'text-rose-700', head: 'bg-rose-100', tile: 'from-rose-50' },
+}
+
 export function Tile({
-  label, value, tone = 'amber', sub, spark, prev, changePct,
+  label, value, tone = 'amber', sub, spark, prev, changePct, accent = 'amber',
 }: {
   label: string
   value: string
@@ -107,13 +121,14 @@ export function Tile({
   spark?: number[]
   prev?: string
   changePct?: number
+  accent?: Accent
 }) {
-  const color = tone === 'pos' ? 'text-green-600' : tone === 'neg' ? 'text-red-600' : tone === 'dim' ? 'text-neutral-700' : 'text-amber-500'
+  const color = tone === 'pos' ? 'text-green-600' : tone === 'neg' ? 'text-red-600' : tone === 'dim' ? 'text-neutral-700' : ACCENT[accent].text
   const up = (changePct ?? 0) >= 0
   return (
-    <div className="rounded-lg border border-neutral-200 border-t-4 border-t-amber-500 bg-white px-3 py-2 shadow-sm">
+    <div className={`rounded-lg border border-neutral-200 border-t-4 ${ACCENT[accent].border} bg-gradient-to-b ${ACCENT[accent].tile} to-white px-3 py-2 shadow-md`}>
       <div className="text-[11px] uppercase tracking-widest text-neutral-600">{label}</div>
-      <div className={`font-mono text-2xl leading-tight ${color}`}>{value}</div>
+      <div className={`font-mono text-2xl font-bold leading-tight ${color}`}>{value}</div>
       {(prev !== undefined || changePct !== undefined) && (
         <div className="mt-0.5 flex gap-3 text-[11px] text-neutral-600">
           {prev !== undefined && <span>prev {prev}</span>}
@@ -171,11 +186,11 @@ export function DonutChart({ data, size = 110, center }: { data: { label: string
   )
 }
 
-export function Panel({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
+export function Panel({ title, children, right, accent = 'amber' }: { title: string; children: React.ReactNode; right?: React.ReactNode; accent?: Accent }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white shadow-sm">
-      <div className="flex items-baseline justify-between border-b border-neutral-200 px-3 py-1.5">
-        <span className="text-[12px] font-bold uppercase tracking-widest text-amber-500">{title}</span>
+    <div className={`rounded-lg border border-neutral-200 border-t-4 ${ACCENT[accent].border} bg-white shadow-md`}>
+      <div className={`flex items-baseline justify-between border-b border-neutral-200 ${ACCENT[accent].head} px-3 py-1.5 rounded-t-[4px]`}>
+        <span className={`text-[12px] font-bold uppercase tracking-widest ${ACCENT[accent].text}`}>{title}</span>
         {right}
       </div>
       <div className="p-3">{children}</div>
@@ -244,10 +259,10 @@ export function Shell({
           <div className="min-w-0">{children}</div>
 
           <aside className="space-y-3 lg:sticky lg:top-2 lg:self-start">
-            <Panel title="🤖 PA — ask me anything">
+            <Panel title="🤖 PA — ask me anything" accent="cyan">
               <ChatWindow secret={secret} />
             </Panel>
-            <Panel title="💼 Job wire" right={<span className="text-[11px] text-neutral-500">today only · 6am sweep</span>}>
+            <Panel title="💼 Job wire" accent="blue" right={<span className="text-[11px] text-neutral-500">today only · 6am sweep</span>}>
               {jobs.length ? (
                 <div className="space-y-2">
                   {jobs.slice(0, 12).map((j) => (
