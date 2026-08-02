@@ -6,7 +6,7 @@ import { getMarketQuotes } from '@/lib/markets'
 import { Shell, Panel, Tile, DonutChart, checkAdmin, fetchPostiz, fetchHeygenQuota, denverDate, denverTime, usd } from './ui'
 import FleetWhatIf from './fleet-whatif'
 import PlanCashflow from './plan-cashflow'
-import RivalEntry from './competition'
+import CompPanel from './comp-panel'
 
 const COMP_START_CASH = 1000
 
@@ -65,7 +65,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       }
     }
     const positions = Object.entries(book).filter(([, p]) => p.qty > 1e-12).map(([symbol, p]) => {
-      const live = priceOf(symbol)
+      const live = priceOf(symbol) ?? null
       const value = live != null ? p.qty * live : null
       return { symbol, qty: p.qty, avg: p.cost / p.qty, spent: p.cost, live, value, pnl: value != null ? value - p.cost : null }
     })
@@ -73,27 +73,23 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     return { positions, cash, holdings, total: cash + holdings }
   }
 
-  const tradeRows = allTradeRows.filter((t) => (t.contestant || 'claude') === 'claude')
-  const myBook = buildBook(tradeRows)
-  const { positions, cash: compCash, holdings: holdingsValue, total: compTotal } = myBook
-
   const weeklyRows = weekly?.data ?? []
   const latestRival = (name: string) => weeklyRows.find((w) => w.contestant === name)
-  // Rivals: live-priced book when Jacob has relayed their trades; otherwise their
-  // latest reported cash total from the weekly log.
-  const rivalBooks = Object.fromEntries(['gpt', 'gemini'].map((c) => {
-    const rows = allTradeRows.filter((t) => t.contestant === c)
-    return [c, rows.length ? buildBook(rows) : null]
-  }))
-  const board = [
-    { name: 'CLAUDE', total: compTotal as number | null, week: 'live', book: myBook as ReturnType<typeof buildBook> | null },
-    ...['gpt', 'gemini'].map((c) => {
-      const b = rivalBooks[c]
-      if (b) return { name: c.toUpperCase(), total: b.total as number | null, week: 'live', book: b as ReturnType<typeof buildBook> | null }
-      const r = latestRival(c)
-      return { name: c.toUpperCase(), total: r ? Number(r.cash_total) : null, week: r ? String(r.week_of) : '—', book: null }
-    }),
-  ].sort((a, b) => (b.total ?? -1) - (a.total ?? -1))
+  // One book per contestant: live-priced from relayed trades when we have them,
+  // else the latest reported weekly cash total. Ranked for the clickable board.
+  const panelBooks = [
+    { key: 'claude', name: 'CLAUDE' },
+    { key: 'gpt', name: 'GPT' },
+    { key: 'gemini', name: 'GEMINI' },
+  ].map(({ key, name }) => {
+    const rows = allTradeRows.filter((t) => (t.contestant || 'claude') === key)
+    if (rows.length) {
+      const b = buildBook(rows)
+      return { key, name, week: 'live', total: b.total, cash: b.cash, holdings: b.holdings, positions: b.positions, trades: rows.map((t) => ({ traded_at: t.traded_at, action: t.action, symbol: t.symbol, qty: Number(t.qty), price: Number(t.price), note: t.note })) }
+    }
+    const r = latestRival(key)
+    return { key, name, week: r ? String(r.week_of) : '—', total: r ? Number(r.cash_total) : null, cash: null, holdings: null, positions: [], trades: [] }
+  }).sort((a, b) => (b.total ?? -1) - (a.total ?? -1))
 
   const allPosts = posts ?? []
   const todayPosts = allPosts
@@ -207,87 +203,10 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         <Tile accent="green" label="Non-mining income MTD" value={`$${usd(incomeMTD, 0)}`} tone={incomeMTD >= 2300 ? 'pos' : incomeMTD > 0 ? 'amber' : 'neg'} sub={`target $2,300/mo · tell the PA "log $97 audit"`} />
       </div>
 
-      {/* Trading competition: Claude vs GPT vs Gemini vs Perplexity, $1,000 each */}
+      {/* Trading competition: Claude vs GPT vs Gemini — click a name, see that book */}
       <div className="mt-3">
-        <Panel accent="purple" title="🏆 Trading competition — my $1,000" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
-          <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <Tile accent="purple" label="Total (cash + holdings)" value={`$${usd(compTotal)}`} tone={compTotal >= COMP_START_CASH ? 'pos' : 'neg'}
-              changePct={((compTotal - COMP_START_CASH) / COMP_START_CASH) * 100} prev={`$${usd(COMP_START_CASH, 0)} start`} />
-            <Tile accent="purple" label="Cash in bank" value={`$${usd(compCash)}`} sub={`${((compCash / compTotal) * 100).toFixed(0)}% dry powder`} />
-            <Tile accent="purple" label="Holdings value" value={`$${usd(holdingsValue)}`} sub={`${positions.length} position${positions.length === 1 ? '' : 's'}`} />
-            <Tile accent="purple" label="Unrealized P&L" value={(() => { const t = positions.reduce((s, p) => s + (p.pnl ?? 0), 0); return `${t >= 0 ? '+' : '-'}$${usd(Math.abs(t))}` })()}
-              tone={positions.reduce((s, p) => s + (p.pnl ?? 0), 0) >= 0 ? 'pos' : 'neg'} />
-          </div>
-
-          <table className="w-full max-w-2xl border border-neutral-200 font-mono text-[12px]">
-            <thead>
-              <tr className="bg-neutral-100 text-left text-[11px] uppercase tracking-wide text-neutral-500">
-                <th className="px-2 py-1">held</th>
-                <th className="px-2 py-1">qty</th>
-                <th className="px-2 py-1">paid avg</th>
-                <th className="px-2 py-1">spent</th>
-                <th className="px-2 py-1">now</th>
-                <th className="px-2 py-1">value</th>
-                <th className="px-2 py-1">p&l</th>
-              </tr>
-            </thead>
-            <tbody>
-              {positions.map((p) => (
-                <tr key={p.symbol} className="border-t border-neutral-100">
-                  <td className="px-2 py-1 font-semibold text-amber-700">{p.symbol}</td>
-                  <td className="px-2 py-1">{p.qty.toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
-                  <td className="px-2 py-1">${usd(p.avg, p.avg < 10 ? 4 : 2)}</td>
-                  <td className="px-2 py-1">${usd(p.spent)}</td>
-                  <td className="px-2 py-1">{p.live != null ? `$${usd(p.live, p.live < 10 ? 4 : 2)}` : '—'}</td>
-                  <td className="px-2 py-1">{p.value != null ? `$${usd(p.value)}` : '—'}</td>
-                  <td className={`px-2 py-1 ${(p.pnl ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {p.pnl != null ? `${p.pnl >= 0 ? '+' : '-'}$${usd(Math.abs(p.pnl))} (${((p.pnl / p.spent) * 100).toFixed(1)}%)` : '—'}
-                  </td>
-                </tr>
-              ))}
-              <tr className="border-t border-neutral-200 bg-neutral-50">
-                <td className="px-2 py-1 font-semibold text-neutral-700">CASH</td>
-                <td className="px-2 py-1" colSpan={4}></td>
-                <td className="px-2 py-1">${usd(compCash)}</td>
-                <td className="px-2 py-1"></td>
-              </tr>
-            </tbody>
-          </table>
-
-          {tradeRows.length > 0 && (
-            <div className="mt-2 space-y-0.5 text-[11px] text-neutral-500">
-              {tradeRows.slice(-4).reverse().map((t, i) => (
-                <div key={i}>
-                  <span className={t.action === 'buy' ? 'text-green-700' : 'text-red-700'}>{t.action.toUpperCase()}</span>
-                  {' '}{Number(t.qty).toLocaleString('en-US', { maximumFractionDigits: 8 })} {t.symbol} @ ${usd(Number(t.price), Number(t.price) < 10 ? 4 : 2)}
-                  {' · '}{String(t.traded_at).slice(0, 10)}{t.note ? ` — ${t.note}` : ''}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-3 border-t border-neutral-200 pt-2">
-            <div className="mb-1 text-[11px] uppercase tracking-widest text-neutral-600">Leaderboard — latest reported</div>
-            <div className="mb-2 flex flex-wrap gap-2">
-              {board.map((b, i) => (
-                <div key={b.name} className={`border px-3 py-1.5 font-mono text-[13px] ${i === 0 && b.total != null ? 'border-amber-500 bg-amber-50' : 'border-neutral-200'}`}>
-                  <span className="text-neutral-500">#{i + 1}</span>{' '}
-                  <span className={b.name === 'CLAUDE' ? 'font-bold text-amber-700' : 'text-neutral-700'}>{b.name}</span>{' '}
-                  <span className={b.total == null ? 'text-neutral-400' : b.total >= COMP_START_CASH ? 'text-green-600' : 'text-red-600'}>
-                    {b.total != null ? `$${usd(b.total)}` : 'no report'}
-                  </span>{' '}
-                  <span className="text-[10px] text-neutral-400">{b.week}</span>
-                  {b.book && (
-                    <div className="mt-0.5 text-[11px] text-neutral-500">
-                      {b.book.positions.map((p) => `${p.symbol} ${p.qty.toLocaleString('en-US', { maximumFractionDigits: 4 })}${p.value != null ? ` ($${usd(p.value, 0)})` : ''}`).join(' · ')}
-                      {b.book.positions.length ? ' · ' : ''}cash ${usd(b.book.cash, 0)}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <RivalEntry secret={secret} />
-          </div>
+        <Panel accent="purple" title="🏆 Trading competition — $1,000 each" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
+          <CompPanel books={panelBooks} start={COMP_START_CASH} secret={secret} />
         </Panel>
       </div>
 
