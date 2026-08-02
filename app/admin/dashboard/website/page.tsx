@@ -11,9 +11,8 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
   checkAdmin(secret)
   const supabase = createServiceClient()
 
-  const [leads, jobs] = await Promise.all([
+  const [leads] = await Promise.all([
     supabase?.from('leads').select('lead_type, source, created_at').order('created_at', { ascending: false }) ?? null,
-    supabase?.from('job_finds').select('title, company, url, source, found_at, salary, posted_at').gte('found_at', new Date(Date.now() - 7 * 864e5).toISOString()).neq('status','applied').neq('status','hidden').neq('status','done').order('posted_at', { ascending: false, nullsFirst: false }).order('fit_score', { ascending: false }).limit(100) ?? null,
   ])
   const rows = leads?.data ?? []
   const last7 = rows.filter((l) => Date.now() - new Date(l.created_at).getTime() < 7 * 864e5).length
@@ -28,7 +27,7 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <Shell secret={secret} active="website" jobs={jobs?.data ?? []}>
+    <Shell secret={secret} active="website">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Tile label="Leads total" value={String(rows.length)} />
         <Tile label="Last 7 days" value={String(last7)} tone={last7 > 0 ? 'pos' : 'dim'} />

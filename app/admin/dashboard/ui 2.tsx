@@ -3,8 +3,9 @@
 
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import ChatWindow from './chat'
 import MarketTicker from './ticker'
-import ChatFab from './chat-fab'
+import JobWire, { type WireJob } from './job-wire'
 
 export const AMBER = '#f59e0b'
 
@@ -199,20 +200,22 @@ export function Panel({ title, children, right, accent = 'amber' }: { title: str
 }
 
 export function Shell({
-  secret, active, children,
+  secret, active, jobs, children,
 }: {
   secret: string
-  active: 'posts' | 'mining' | 'trading' | 'jobs' | 'website' | 'videos'
+  active: 'overview' | 'content' | 'mining' | 'website' | 'videos'
+  jobs: WireJob[]
   children: React.ReactNode
 }) {
   const tabs = [
-    { id: 'posts', label: 'POSTS', href: `/admin/dashboard?secret=${secret}` },
-    { id: 'mining', label: 'MINE SIM', href: `/admin/dashboard/mining?secret=${secret}` },
-    { id: 'trading', label: 'TRADING', href: `/admin/dashboard/trading?secret=${secret}` },
-    { id: 'jobs', label: 'JOBS', href: `/admin/dashboard/jobs?secret=${secret}` },
+    { id: 'overview', label: 'OVERVIEW', href: `/admin/dashboard?secret=${secret}` },
+    { id: 'content', label: 'CONTENT', href: `/admin/dashboard/content?secret=${secret}` },
+    { id: 'mining', label: 'MINING', href: `/admin/dashboard/mining?secret=${secret}` },
     { id: 'website', label: 'WEBSITE', href: `/admin/dashboard/website?secret=${secret}` },
     { id: 'videos', label: 'VIDEOS', href: `/admin/dashboard/videos?secret=${secret}` },
   ]
+  const li = (q: string) =>
+    `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(q)}&location=Denver%2C%20Colorado&f_TPR=r86400`
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-neutral-800">
       {/* The terminal is full-screen: hide the public site chrome (ticker, navbar, footer, banners). */}
@@ -253,10 +256,29 @@ export function Shell({
           ))}
         </div>
 
-        <div className="mt-3">{children}</div>
+        <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_290px]">
+          <div className="min-w-0">{children}</div>
+
+          <aside className="space-y-3 lg:sticky lg:top-2 lg:self-start">
+            <Panel title="🤖 PA — ask me anything" accent="cyan">
+              <ChatWindow secret={secret} />
+            </Panel>
+            <Panel title="💼 Job wire" accent="blue" right={<span className="text-[11px] text-neutral-500">tick = done · 6am sweep</span>}>
+              <JobWire jobs={jobs} secret={secret} />
+              <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px]">
+                <div className="mb-1 text-[11px] uppercase tracking-widest text-neutral-600">LinkedIn · last 24h · Denver</div>
+                {['bitcoin', 'crypto', 'operations manager', 'data center operations'].map((q) => (
+                  <a key={q} href={li(q)} target="_blank" rel="noreferrer" className="mr-3 text-amber-600 hover:underline">{q}</a>
+                ))}
+                <div className="mb-1 mt-2 text-[11px] uppercase tracking-widest text-neutral-600">Indeed · last 24h · Denver</div>
+                {['bitcoin', 'crypto', 'operations manager', 'general manager'].map((q) => (
+                  <a key={q} href={`https://www.indeed.com/jobs?q=${encodeURIComponent(q)}&l=Denver%2C+CO&fromage=1`} target="_blank" rel="noreferrer" className="mr-3 text-amber-600 hover:underline">{q}</a>
+                ))}
+              </div>
+            </Panel>
+          </aside>
+        </div>
       </div>
-      {/* PA lives in the corner of every page — click the bubble to pop it open */}
-      <ChatFab secret={secret} />
       <meta httpEquiv="refresh" content="300" />
     </div>
   )
