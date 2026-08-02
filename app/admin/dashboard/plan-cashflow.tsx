@@ -52,6 +52,9 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const [earl18, setEarl18] = useState('37500')
   const [earl36, setEarl36] = useState('37500')
   const [launch, setLaunch] = useState('2026-12')
+  // No add-in until the job lands (Jacob 2026-08-02): contributions start at this
+  // month, not today. Default = launch month; set it earlier once hired.
+  const [addStart, setAddStart] = useState('2026-12')
   // Sunrise ON by default; HALVING-TRIGGERED (Jacob confirmed 2026-07-28): AM's
   // $135 hydro rate is the ~40% discount they may offer when the halving starts,
   // NOT from op-mo 7. Still AM's target, not a signed rate — toggle off to stress.
@@ -92,6 +95,8 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const now = new Date()
   const [ly, lm] = launch.split('-').map(Number)
   const launchIdx = Math.max(0, (ly - now.getFullYear()) * 12 + (lm - 1) - now.getMonth())
+  const [ay, am] = (addStart || launch).split('-').map(Number)
+  const addStartIdx = Math.max(0, (ay - now.getFullYear()) * 12 + (am - 1) - now.getMonth())
   const labelAt = (m: number) => {
     const d = new Date(now.getFullYear(), now.getMonth() + m, 1)
     return `${MONTH_NAMES[d.getMonth()]} ’${String(d.getFullYear()).slice(2)}`
@@ -143,7 +148,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
     const earl = opMonth === 18 ? e18 : opMonth === 36 ? e36 : 0
     const mineNet = live ? revenue - hosting - loan : 0
     const remainingEarl = (opMonth <= 18 ? e18 : 0) + (opMonth <= 36 ? e36 : 0)
-    const contrib = !live || mineNet < 0 || cum < remainingEarl + 3 * loanMo ? addMo : 0
+    const contrib = m >= addStartIdx && (!live || mineNet < 0 || cum < remainingEarl + 3 * loanMo) ? addMo : 0
     const net = mineNet + contrib + sideMo - earl
     cum += net
     rows.push({ live, revenue, hosting, loan, earl, mineNet, contrib, net, cum })
@@ -166,7 +171,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       const hosting = live ? u * (sunrise && halvingIdx > 0 && m >= halvingIdx ? 135 : 225) : 0
       const mineNet = live ? revenue - hosting - loanMo : 0
       const remainingEarl = (op <= 18 ? e18 : 0) + (op <= 36 ? e36 : 0)
-      const contrib = !live || mineNet < 0 || c < remainingEarl + 3 * loanMo ? addMo : 0
+      const contrib = m >= addStartIdx && (!live || mineNet < 0 || c < remainingEarl + 3 * loanMo) ? addMo : 0
       const earl = op === 18 ? e18 : op === 36 ? e36 : 0
       const net = mineNet + contrib + sideMo - earl
       c += net
@@ -204,7 +209,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
         {[
           { label: 'Obligations/mo (live)', value: usd0(obligationsMo), sub: `hosting ${usd0(u * 225)} + loan ${usd0(loanMo)}`, tone: 'text-neutral-800' },
           { label: 'First live month gap (base)', value: launchRow?.live ? fmt(launchRow.mineNet) : fmt(pred.base.find((r) => r.live)?.mineNet ?? 0), sub: 'mine revenue − obligations', tone: (launchRow?.live ? launchRow.mineNet : pred.base.find((r) => r.live)?.mineNet ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' },
-          { label: 'War chest at launch', value: usd0(launchIdx > 0 ? rows[launchIdx - 1].cum : parseFloat(chest) || 0), sub: `Earl $${Math.round((parseFloat(chest) || 0) / 1000)}k + your $${Math.round(addMo / 1000)}k/mo until launch`, tone: 'text-neutral-800' },
+          { label: 'War chest at launch', value: usd0(launchIdx > 0 ? rows[launchIdx - 1].cum : parseFloat(chest) || 0), sub: `Earl $${Math.round((parseFloat(chest) || 0) / 1000)}k · your add-in from ${addStart}`, tone: 'text-neutral-800' },
           { label: 'War chest runway', value: runway('base'), sub: `bear ${runway('bear')} · bull ${runway('bull')} — with add-in + Earl paybacks`, tone: 'text-amber-600' },
         ].map((t) => (
           <div key={t.label} className="rounded border border-neutral-200 bg-white px-3 py-2">
@@ -272,6 +277,11 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
         <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
           launch
           <input type="month" value={launch} onChange={(e) => setLaunch(e.target.value)}
+            className="border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
+          add-in starts (job lands)
+          <input type="month" value={addStart} onChange={(e) => setAddStart(e.target.value)}
             className="border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
         </label>
         <label className="flex items-center gap-1 pb-1 text-[11px] text-neutral-600">
