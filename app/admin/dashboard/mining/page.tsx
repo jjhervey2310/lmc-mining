@@ -51,7 +51,7 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
         <Tile accent="green" label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'}
           prev={prevN ? `${prevN.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(prevN.s21NetDay))}` : undefined}
           changePct={n && prevN ? pctVs(n.s21NetDay, prevN.s21NetDay) : undefined}
-          sub={n ? `breakeven $${usd(n.breakevenBtcPrice, 0)} · Abundant Mines $225/mo flat` : undefined} />
+          sub={n ? `stock 270TH · no pool fee · breakeven $${usd(n.breakevenBtcPrice, 0)}` : undefined} />
         <Tile accent="purple" label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'}
           prev={prevSnap?.difficulty ? `${(Number(prevSnap.difficulty) / 1e12).toFixed(1)}T` : undefined}
           changePct={n && prevSnap?.difficulty ? pctVs(n.difficulty, Number(prevSnap.difficulty)) : undefined}
@@ -60,25 +60,36 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
             const d = Math.floor(totalMin / 1440), h = Math.floor((totalMin % 1440) / 60)
             return `retarget in ${d}d ${h}h · est ${retarget.difficultyChange >= 0 ? '+' : ''}${retarget.difficultyChange.toFixed(1)}%`
           })() : undefined} />
-        <Tile accent="cyan" label="S21 XP gross/day" value={n ? `$${usd(n.s21GrossDay)}` : '—'} />
+        <Tile accent="cyan" label="S21 XP gross/day" value={n ? `$${usd(n.s21GrossDay)}` : '—'} sub="stock 270TH · no pool fee" />
         <Tile accent="green" label="Margin above breakeven" value={n ? `${(((n.btcPrice - n.breakevenBtcPrice) / n.breakevenBtcPrice) * 100).toFixed(1)}%` : '—'} tone={n && n.btcPrice > n.breakevenBtcPrice ? 'pos' : 'neg'} />
         <Tile accent="teal" label="Non-mining income 30d" value={`$${usd(income30d, 0)}`} tone={income30d >= 2300 ? 'pos' : income30d > 0 ? 'amber' : 'neg'} sub={`target $2,300/mo · tell the PA "log $97 audit"`} />
         <Tile accent="purple" label="Snapshots" value={String(rows.length)} sub="daily 00:00 UTC" />
       </div>
 
-      {/* 18-rig fleet simulation (Jacob's fleet plan) */}
+      {/* 18-rig fleet simulation (Jacob's fleet plan). ONE config drives every
+          number in this panel: LuxOS OC 300TH, Luxor 2.8% all-in fee, hosting
+          billed monthly at 18×$225. Month = day×30.42, year = month×12 — the
+          conventions reconcile exactly (audit fix 2026-08-05). */}
       <div className="mt-3">
-        <Panel accent="green" title="⛏ 18-rig fleet P&L — simulated" right={<span className="text-[11px] text-neutral-500">live price+difficulty · Abundant Mines $225/mo per rig</span>}>
-          {n ? (
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-              <Tile accent="green" label="Gross/day" value={`$${usd(18 * n.s21GrossDay)}`} />
-              <Tile accent="green" label="Hosting/day" value={`$${usd(18 * 7.5)}`} sub="$4,050/mo" />
-              <Tile accent="green" label="Net/day" value={`${18 * n.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(18 * n.s21NetDay))}`} tone={18 * n.s21NetDay >= 0 ? 'pos' : 'neg'} />
-              <Tile accent="green" label="Net/month" value={`${18 * n.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(18 * n.s21NetDay * 30), 0)}`} tone={18 * n.s21NetDay >= 0 ? 'pos' : 'neg'} />
-              <Tile accent="green" label="Net/year" value={`${18 * n.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(18 * n.s21NetDay * 365), 0)}`} tone={18 * n.s21NetDay >= 0 ? 'pos' : 'neg'} sub="difficulty drift not modeled" />
-            </div>
-          ) : <span className="text-[13px] text-red-600">Live data unavailable</span>}
-          {n && <FleetWhatIf spotHashprice={n.hashpricePerThDay} rigs={18} thPerRig={270} hostingDayFleet={18 * 7.5} />}
+        <Panel accent="green" title="⛏ 18-rig fleet P&L — OC 300TH · Luxor 2.8%" right={<span className="text-[11px] text-neutral-500">live price+difficulty · Abundant Mines $225/mo per rig</span>}>
+          {n ? (() => {
+            const grossDay = n.hashpricePerThDay * 300 * 18 * (1 - 0.028)
+            const hostMo = 18 * 225
+            const hostDay = hostMo / 30.42
+            const netDay = grossDay - hostDay
+            const netMo = netDay * 30.42
+            const sign = (v: number) => (v >= 0 ? '+' : '-')
+            return (
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+                <Tile accent="green" label="Revenue/day" value={`$${usd(grossDay)}`} sub="300TH × 18 · after 2.8% fee" />
+                <Tile accent="green" label="Hosting" value={`$${usd(hostMo, 0)}/mo`} sub={`$${usd(hostDay)}/day`} />
+                <Tile accent="green" label="Net/day" value={`${sign(netDay)}$${usd(Math.abs(netDay))}`} tone={netDay >= 0 ? 'pos' : 'neg'} />
+                <Tile accent="green" label="Net/month" value={`${sign(netMo)}$${usd(Math.abs(netMo), 0)}`} tone={netMo >= 0 ? 'pos' : 'neg'} sub="30.42 days" />
+                <Tile accent="green" label="Net/year" value={`${sign(netMo)}$${usd(Math.abs(netMo * 12), 0)}`} tone={netMo >= 0 ? 'pos' : 'neg'} sub="month × 12 · difficulty drift not modeled" />
+              </div>
+            )
+          })() : <span className="text-[13px] text-red-600">Live data unavailable</span>}
+          {n && <FleetWhatIf spotHashprice={n.hashpricePerThDay} rigs={18} hostingMoFleet={18 * 225} />}
           {n && <PlanCashflow spotHashprice={n.hashpricePerThDay} btcPrice={n.btcPrice} liveSideIncome={income30d} />}
         </Panel>
       </div>

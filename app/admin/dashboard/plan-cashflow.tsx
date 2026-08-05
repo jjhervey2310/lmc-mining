@@ -143,7 +143,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
     const live = m >= launchIdx
     const opMonth = m - launchIdx + 1
     const hosting = live ? u * (sunrise && halvingIdx > 0 && m >= halvingIdx ? 135 : 225) : 0
-    const revenue = live ? effHp(hpAt(m), opMonth) * thRig * u * 30.4 * (1 - POOL_FEE) : 0
+    const revenue = live ? effHp(hpAt(m), opMonth) * thRig * u * 30.42 * (1 - POOL_FEE) : 0
     const loan = live ? loanMo : 0
     const earl = opMonth === 18 ? e18 : opMonth === 36 ? e36 : 0
     const mineNet = live ? revenue - hosting - loan : 0
@@ -167,7 +167,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       const live = m >= launchIdx
       const op = m - launchIdx + 1
       const hpm = spotHashprice * halved(m) * (price / btcPrice) / Math.pow(1 + DIFF_BY_PATH[p] / 100, m / 12)
-      const revenue = live ? effHp(hpm, op) * thRig * u * 30.4 * (1 - POOL_FEE) : 0
+      const revenue = live ? effHp(hpm, op) * thRig * u * 30.42 * (1 - POOL_FEE) : 0
       const hosting = live ? u * (sunrise && halvingIdx > 0 && m >= halvingIdx ? 135 : 225) : 0
       const mineNet = live ? revenue - hosting - loanMo : 0
       const remainingEarl = (op <= 18 ? e18 : 0) + (op <= 36 ? e36 : 0)

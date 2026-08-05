@@ -5,11 +5,10 @@ import { useState } from 'react'
 // THE fleet config (Jacob, 2026-07-27): LuxOS overclock on Luxor pool — the only
 // setup we run. Stock/fixed-payout comparisons removed; this box just answers
 // "what does our fleet net at today's hashprice."
-export default function FleetWhatIf({ spotHashprice, rigs, hostingDayFleet }: {
+export default function FleetWhatIf({ spotHashprice, rigs, hostingMoFleet }: {
   spotHashprice: number
   rigs: number
-  thPerRig?: number
-  hostingDayFleet: number
+  hostingMoFleet: number
 }) {
   const [fee, setFee] = useState('2.8') // pool + LuxOS OC dev fee, all-in
   const [th, setTh] = useState('300')
@@ -17,8 +16,11 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingDayFleet }: {
   const feePct = Math.min(100, Math.max(0, parseFloat(fee) || 0))
   const ocTh = parseFloat(th) || 300
 
+  // Hosting bills monthly; month = day × 30.42, year = month × 12 — same
+  // conventions as the P&L tiles above so the two always reconcile.
   const revenueDay = spotHashprice * ocTh * rigs * (1 - feePct / 100)
-  const netDay = revenueDay - hostingDayFleet
+  const netDay = revenueDay - hostingMoFleet / 30.42
+  const netMo = netDay * 30.42
   const fmt = (n: number, d = 0) => `${n < 0 ? '-' : '+'}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`
 
   return (
@@ -41,12 +43,12 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingDayFleet }: {
       <div className="flex flex-wrap gap-6 font-mono text-[13px]">
         <span>revenue/day <b className="text-neutral-800">{fmt(revenueDay, 2)}</b></span>
         <span>net/day <b className={netDay >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netDay, 2)}</b></span>
-        <span>net/mo <b className={netDay >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netDay * 30.4)}</b></span>
-        <span>net/yr <b className={netDay >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netDay * 365)}</b></span>
+        <span>net/mo <b className={netMo >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netMo)}</b></span>
+        <span>net/yr <b className={netMo >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netMo * 12)}</b></span>
       </div>
       <div className="mt-2 text-[11px] text-neutral-500">
-        Spot: ${spotHashprice.toFixed(4)}/TH/day · hosting ${hostingDayFleet.toFixed(0)}/day. OC +2 = 3,850W/rig vs 3,645
-        stock — needs Abundant&apos;s wattage OK. Same config drives the plan predictor below.
+        Spot: ${spotHashprice.toFixed(4)}/TH/day · hosting ${hostingMoFleet.toLocaleString()}/mo billed monthly. OC +2 = 3,850W/rig vs 3,645
+        stock — needs Abundant&apos;s wattage OK in writing; if they charge the extra ~205W, stress it here by raising the fee %. Same config drives the plan predictor below.
       </div>
     </div>
   )
