@@ -27,8 +27,12 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
       </div>
       <div className="mt-1 text-[12px] text-neutral-500">
         Mandate: aggressive but safe — target as close to 3x in one year as the market allows · full research expected before every call
-        (news, catalysts, on-chain whale-wallet flows) · guardrail: a 20% drawdown on any position forces a cut-or-justify review at the
-        next check-in — no silent bag-holding.
+        (news, X/social sentiment, economics &amp; macro, technical analysis, on-chain whale-wallet flows) · guardrail: a 20% drawdown on
+        any position forces a cut-or-justify review at the next check-in — no silent bag-holding.
+      </div>
+      <div className="mt-1 text-[12px] text-neutral-500">
+        Stakes: graded on final total at the 1-year mark · elimination — the last-place platform is dropped at month 6 and its
+        subscription is gone forever.
       </div>
     </Shell>
   )
