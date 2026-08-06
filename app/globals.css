@@ -1,5 +1,69 @@
 @import "tailwindcss";
 
+/* Terminal dark mode: `dark:` utilities activate inside .lmc-dark (the admin
+   terminal's theme toggle sets this class — the public site never uses it). */
+@custom-variant dark (&:where(.lmc-dark, .lmc-dark *));
+
+/* Terminal card entrance + chart draw-in (subtle & smooth, Jacob 2026-08-05) */
+@keyframes lmc-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.lmc-rise { animation: lmc-rise 0.45s ease-out both; }
+@keyframes lmc-draw {
+  from { stroke-dashoffset: var(--lmc-dash, 600); }
+  to { stroke-dashoffset: 0; }
+}
+.lmc-draw { stroke-dasharray: var(--lmc-dash, 600); animation: lmc-draw 1.1s ease-out both; }
+
+/* ── Terminal 3D: cards sit in a perspective scene, lift and tilt toward the
+   cursor, and carry a coloured under-glow so they read as physical objects. ── */
+.lmc-scene { perspective: 1200px; }
+.lmc-card {
+  transform-style: preserve-3d;
+  transition: transform .35s cubic-bezier(.2,.7,.3,1), box-shadow .35s ease, border-color .35s ease;
+  will-change: transform;
+}
+.lmc-card:hover {
+  transform: translateY(-4px) rotateX(4deg) rotateY(-4deg) scale(1.015);
+}
+/* Depth stack: tight contact shadow + wide ambient + accent glow (accent set per card). */
+.lmc-lift {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / .18),
+    0 10px 24px -8px rgb(0 0 0 / .28),
+    0 0 0 1px rgb(255 255 255 / .04) inset,
+    0 12px 32px -14px var(--lmc-glow, transparent);
+}
+.lmc-card:hover.lmc-lift {
+  box-shadow:
+    0 2px 4px rgb(0 0 0 / .22),
+    0 22px 48px -12px rgb(0 0 0 / .42),
+    0 0 0 1px rgb(255 255 255 / .07) inset,
+    0 22px 60px -18px var(--lmc-glow, transparent);
+}
+/* Numbers sit slightly forward of their card face. */
+.lmc-pop { transform: translateZ(24px); }
+
+/* Count-up / fade-in for figures, staggered by index via --lmc-i */
+@keyframes lmc-figure {
+  from { opacity: 0; transform: translateZ(24px) translateY(6px); }
+  to { opacity: 1; transform: translateZ(24px) translateY(0); }
+}
+.lmc-figure { animation: lmc-figure .5s ease-out both; animation-delay: calc(var(--lmc-i, 0) * 45ms); }
+
+/* Live pulse for the "data is flowing" dot */
+@keyframes lmc-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .45; transform: scale(.82); }
+}
+.lmc-pulse { animation: lmc-pulse 2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lmc-rise, .lmc-draw, .lmc-figure, .lmc-pulse { animation: none; }
+  .lmc-card, .lmc-card:hover { transform: none; transition: none; }
+}
+
 :root {
   --background: #0a0a0a;
   --foreground: #e2e8f0;

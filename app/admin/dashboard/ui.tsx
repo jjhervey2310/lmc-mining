@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import MarketTicker from './ticker'
 import ChatFab from './chat-fab'
+import ThemeToggle from './theme-toggle'
 
 export const AMBER = '#f59e0b'
 
@@ -98,21 +99,22 @@ export function Spark({ points, w = 120, h = 34 }: { points: number[]; w?: numbe
 }
 
 // Section accents — full literal class strings (Tailwind can't see computed names).
-// Each section owns a color: tinted header, gradient tile body, colored border.
+// Each section owns a colour: tinted header, gradient tile body, coloured border,
+// and in dark mode a soft pastel-on-black treatment with a matching under-glow.
 export type Accent = 'amber' | 'blue' | 'green' | 'purple' | 'pink' | 'teal' | 'cyan' | 'rose'
-const ACCENT: Record<Accent, { border: string; text: string; head: string; tile: string }> = {
-  amber: { border: 'border-t-amber-500', text: 'text-amber-600', head: 'bg-amber-100', tile: 'from-amber-50' },
-  blue: { border: 'border-t-blue-500', text: 'text-blue-700', head: 'bg-blue-100', tile: 'from-blue-50' },
-  green: { border: 'border-t-green-500', text: 'text-green-700', head: 'bg-green-100', tile: 'from-green-50' },
-  purple: { border: 'border-t-purple-500', text: 'text-purple-700', head: 'bg-purple-100', tile: 'from-purple-50' },
-  pink: { border: 'border-t-pink-500', text: 'text-pink-700', head: 'bg-pink-100', tile: 'from-pink-50' },
-  teal: { border: 'border-t-teal-500', text: 'text-teal-700', head: 'bg-teal-100', tile: 'from-teal-50' },
-  cyan: { border: 'border-t-cyan-500', text: 'text-cyan-700', head: 'bg-cyan-100', tile: 'from-cyan-50' },
-  rose: { border: 'border-t-rose-500', text: 'text-rose-700', head: 'bg-rose-100', tile: 'from-rose-50' },
+const ACCENT: Record<Accent, { border: string; text: string; head: string; tile: string; glow: string }> = {
+  amber: { border: 'border-t-amber-500 dark:border-t-amber-400', text: 'text-amber-600 dark:text-amber-300', head: 'bg-amber-100 dark:bg-amber-400/10', tile: 'from-amber-50 dark:from-amber-400/10', glow: 'rgb(251 191 36 / .45)' },
+  blue: { border: 'border-t-blue-500 dark:border-t-sky-400', text: 'text-blue-700 dark:text-sky-300', head: 'bg-blue-100 dark:bg-sky-400/10', tile: 'from-blue-50 dark:from-sky-400/10', glow: 'rgb(56 189 248 / .45)' },
+  green: { border: 'border-t-green-500 dark:border-t-emerald-400', text: 'text-green-700 dark:text-emerald-300', head: 'bg-green-100 dark:bg-emerald-400/10', tile: 'from-green-50 dark:from-emerald-400/10', glow: 'rgb(52 211 153 / .45)' },
+  purple: { border: 'border-t-purple-500 dark:border-t-violet-400', text: 'text-purple-700 dark:text-violet-300', head: 'bg-purple-100 dark:bg-violet-400/10', tile: 'from-purple-50 dark:from-violet-400/10', glow: 'rgb(167 139 250 / .5)' },
+  pink: { border: 'border-t-pink-500 dark:border-t-pink-400', text: 'text-pink-700 dark:text-pink-300', head: 'bg-pink-100 dark:bg-pink-400/10', tile: 'from-pink-50 dark:from-pink-400/10', glow: 'rgb(244 114 182 / .45)' },
+  teal: { border: 'border-t-teal-500 dark:border-t-teal-300', text: 'text-teal-700 dark:text-teal-200', head: 'bg-teal-100 dark:bg-teal-300/10', tile: 'from-teal-50 dark:from-teal-300/10', glow: 'rgb(94 234 212 / .45)' },
+  cyan: { border: 'border-t-cyan-500 dark:border-t-cyan-300', text: 'text-cyan-700 dark:text-cyan-200', head: 'bg-cyan-100 dark:bg-cyan-300/10', tile: 'from-cyan-50 dark:from-cyan-300/10', glow: 'rgb(103 232 249 / .45)' },
+  rose: { border: 'border-t-rose-500 dark:border-t-rose-300', text: 'text-rose-700 dark:text-rose-200', head: 'bg-rose-100 dark:bg-rose-300/10', tile: 'from-rose-50 dark:from-rose-300/10', glow: 'rgb(253 164 175 / .45)' },
 }
 
 export function Tile({
-  label, value, tone = 'amber', sub, spark, prev, changePct, accent = 'amber',
+  label, value, tone = 'amber', sub, spark, prev, changePct, accent = 'amber', i = 0,
 }: {
   label: string
   value: string
@@ -122,22 +124,30 @@ export function Tile({
   prev?: string
   changePct?: number
   accent?: Accent
+  /** stagger index — tiles fade in one after another */
+  i?: number
 }) {
-  const color = tone === 'pos' ? 'text-green-600' : tone === 'neg' ? 'text-red-600' : tone === 'dim' ? 'text-neutral-700' : ACCENT[accent].text
+  const color = tone === 'pos' ? 'text-green-600 dark:text-emerald-300'
+    : tone === 'neg' ? 'text-red-600 dark:text-rose-300'
+    : tone === 'dim' ? 'text-neutral-700 dark:text-neutral-300'
+    : ACCENT[accent].text
   const up = (changePct ?? 0) >= 0
   return (
-    <div className={`rounded-lg border border-neutral-200 border-t-4 ${ACCENT[accent].border} bg-gradient-to-b ${ACCENT[accent].tile} to-white px-3 py-2 shadow-md`}>
-      <div className="text-[11px] uppercase tracking-widest text-neutral-600">{label}</div>
-      <div className={`font-mono text-2xl font-bold leading-tight ${color}`}>{value}</div>
+    <div
+      style={{ ['--lmc-glow' as string]: ACCENT[accent].glow, ['--lmc-i' as string]: i }}
+      className={`lmc-card lmc-lift lmc-rise rounded-xl border border-neutral-200 border-t-4 ${ACCENT[accent].border} bg-gradient-to-b ${ACCENT[accent].tile} to-white px-3 py-2 dark:border-white/10 dark:to-neutral-900/60`}
+    >
+      <div className="text-[11px] uppercase tracking-widest text-neutral-600 dark:text-neutral-400">{label}</div>
+      <div className={`lmc-figure font-mono text-2xl font-bold leading-tight ${color}`}>{value}</div>
       {(prev !== undefined || changePct !== undefined) && (
-        <div className="mt-0.5 flex gap-3 text-[11px] text-neutral-600">
+        <div className="mt-0.5 flex gap-3 text-[11px] text-neutral-600 dark:text-neutral-400">
           {prev !== undefined && <span>prev {prev}</span>}
           {changePct !== undefined && (
-            <span className={up ? 'text-green-600' : 'text-red-600'}>{up ? '▲' : '▼'} {Math.abs(changePct).toFixed(1)}%</span>
+            <span className={up ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}>{up ? '▲' : '▼'} {Math.abs(changePct).toFixed(1)}%</span>
           )}
         </div>
       )}
-      {sub && <div className="text-[12px] text-neutral-600">{sub}</div>}
+      {sub && <div className="text-[12px] text-neutral-600 dark:text-neutral-400">{sub}</div>}
       {spark && spark.length > 1 && <div className="mt-1"><Spark points={spark} /></div>}
     </div>
   )
@@ -188,8 +198,11 @@ export function DonutChart({ data, size = 110, center }: { data: { label: string
 
 export function Panel({ title, children, right, accent = 'amber' }: { title: string; children: React.ReactNode; right?: React.ReactNode; accent?: Accent }) {
   return (
-    <div className={`rounded-lg border border-neutral-200 border-t-4 ${ACCENT[accent].border} bg-white shadow-md`}>
-      <div className={`flex items-baseline justify-between border-b border-neutral-200 ${ACCENT[accent].head} px-3 py-1.5 rounded-t-[4px]`}>
+    <div
+      style={{ ['--lmc-glow' as string]: ACCENT[accent].glow }}
+      className={`lmc-lift lmc-rise rounded-xl border border-neutral-200 border-t-4 ${ACCENT[accent].border} bg-white dark:border-white/10 dark:bg-neutral-900/70`}
+    >
+      <div className={`flex items-baseline justify-between rounded-t-[8px] border-b border-neutral-200 ${ACCENT[accent].head} px-3 py-1.5 dark:border-white/10`}>
         <span className={`text-[12px] font-bold uppercase tracking-widest ${ACCENT[accent].text}`}>{title}</span>
         {right}
       </div>
@@ -214,29 +227,38 @@ export function Shell({
     { id: 'videos', label: 'VIDEOS', href: `/admin/dashboard/videos?secret=${secret}` },
   ]
   return (
-    <div className="min-h-screen bg-slate-100 font-sans text-neutral-800">
+    <div className="lmc-scene min-h-screen bg-slate-100 font-sans text-neutral-800 transition-colors duration-500 dark:bg-[#07070b] dark:text-neutral-200">
       {/* The terminal is full-screen: hide the public site chrome (ticker, navbar, footer, banners). */}
       <style>{`body > :not(#main) { display: none !important; } #main { padding-bottom: 0 !important; }`}</style>
+      {/* Ambient depth: two soft colour pools behind the cards (dark mode only). */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 hidden dark:block">
+        <div className="absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-violet-600/10 blur-3xl" />
+        <div className="absolute -bottom-52 -right-40 h-[34rem] w-[34rem] rounded-full bg-sky-500/10 blur-3xl" />
+      </div>
       <MarketTicker />
-      <div className="mx-auto max-w-[1400px] px-3 py-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-amber-500/40 pb-2">
+      <div className="relative mx-auto max-w-[1400px] px-3 py-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-amber-500/40 pb-2 dark:border-amber-400/25">
           <div className="flex items-baseline gap-4">
-            <span className="text-sm font-bold text-amber-500">⚡ LMC TERMINAL</span>
+            <span className="text-sm font-bold text-amber-500 dark:text-amber-300">⚡ LMC TERMINAL</span>
             <nav className="flex gap-3 text-[12px]">
               {tabs.map((t) => (
                 <Link key={t.id} href={t.href}
-                  className={t.id === active ? 'text-amber-600 underline underline-offset-4' : 'text-neutral-600 hover:text-amber-700'}>
+                  className={t.id === active
+                    ? 'text-amber-600 underline underline-offset-4 dark:text-amber-300'
+                    : 'text-neutral-600 transition-colors hover:text-amber-700 dark:text-neutral-400 dark:hover:text-amber-300'}>
                   {t.label}
                 </Link>
               ))}
             </nav>
           </div>
-          <span className="text-[11px] text-neutral-500">
+          <span className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
+            <span className="lmc-pulse inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
             {new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })} DEN · refresh 5m
+            <ThemeToggle />
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-neutral-100 py-1.5 text-[11px] uppercase tracking-wider">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-neutral-100 py-1.5 text-[11px] uppercase tracking-wider dark:border-white/5">
           {[
             ['Gmail', 'https://mail.google.com'],
             ['Calendar', 'https://calendar.google.com'],
@@ -249,7 +271,7 @@ export function Shell({
             ['Supabase', 'https://supabase.com/dashboard'],
             ['Stripe', 'https://dashboard.stripe.com'],
           ].map(([label, href]) => (
-            <a key={label} href={href} target="_blank" rel="noreferrer" className="text-neutral-600 hover:text-amber-700">↗ {label}</a>
+            <a key={label} href={href} target="_blank" rel="noreferrer" className="text-neutral-600 transition-colors hover:text-amber-700 dark:text-neutral-500 dark:hover:text-amber-300">↗ {label}</a>
           ))}
         </div>
 
