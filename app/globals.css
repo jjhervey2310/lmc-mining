@@ -59,6 +59,48 @@
 }
 .lmc-pulse { animation: lmc-pulse 2s ease-in-out infinite; }
 
+/* Form controls inside the terminal: without this, values typed into the plan
+   simulator are dark-on-dark and the boxes read as empty (Jacob 2026-08-06). */
+.lmc-dark .lmc-scene input,
+.lmc-dark .lmc-scene select,
+.lmc-dark .lmc-scene textarea {
+  background-color: rgb(255 255 255 / .06);
+  border-color: rgb(255 255 255 / .18);
+  color: #f5f5f5;
+}
+.lmc-dark .lmc-scene input::placeholder,
+.lmc-dark .lmc-scene textarea::placeholder { color: rgb(255 255 255 / .38); }
+.lmc-dark .lmc-scene input:focus,
+.lmc-dark .lmc-scene select:focus,
+.lmc-dark .lmc-scene textarea:focus { border-color: rgb(251 191 36 / .8); outline: none; }
+/* Native dropdown lists render in the OS palette — keep their text legible. */
+.lmc-dark .lmc-scene select option { background-color: #14141a; color: #f5f5f5; }
+.lmc-dark .lmc-scene input[type="checkbox"] { accent-color: #fbbf24; }
+/* Tables and rules that were tuned for a white page */
+.lmc-dark .lmc-scene table { color: #e5e5e5; }
+.lmc-dark .lmc-scene thead tr { background-color: rgb(255 255 255 / .05); color: rgb(255 255 255 / .55); }
+.lmc-dark .lmc-scene tbody tr { border-color: rgb(255 255 255 / .07); }
+.lmc-dark .lmc-scene .border-neutral-200 { border-color: rgb(255 255 255 / .1); }
+.lmc-dark .lmc-scene .border-neutral-100 { border-color: rgb(255 255 255 / .06); }
+.lmc-dark .lmc-scene .bg-neutral-100 { background-color: rgb(255 255 255 / .05); }
+.lmc-dark .lmc-scene .bg-neutral-50 { background-color: rgb(255 255 255 / .03); }
+.lmc-dark .lmc-scene .bg-white { background-color: rgb(255 255 255 / .04); }
+/* Greys chosen for white backgrounds go invisible on black — lift them. */
+.lmc-dark .lmc-scene .text-neutral-500 { color: rgb(255 255 255 / .5); }
+.lmc-dark .lmc-scene .text-neutral-600 { color: rgb(255 255 255 / .62); }
+.lmc-dark .lmc-scene .text-neutral-700 { color: rgb(255 255 255 / .78); }
+.lmc-dark .lmc-scene .text-neutral-800 { color: rgb(255 255 255 / .88); }
+.lmc-dark .lmc-scene .text-neutral-900 { color: #f5f5f5; }
+.lmc-dark .lmc-scene .text-amber-800,
+.lmc-dark .lmc-scene .text-amber-700 { color: #fcd34d; }
+.lmc-dark .lmc-scene .text-green-700, .lmc-dark .lmc-scene .text-green-600 { color: #6ee7b7; }
+.lmc-dark .lmc-scene .text-red-700, .lmc-dark .lmc-scene .text-red-600 { color: #fda4af; }
+.lmc-dark .lmc-scene .text-blue-700 { color: #7dd3fc; }
+.lmc-dark .lmc-scene .text-purple-700 { color: #c4b5fd; }
+.lmc-dark .lmc-scene .bg-amber-50 { background-color: rgb(251 191 36 / .1); }
+.lmc-dark .lmc-scene .bg-green-50 { background-color: rgb(52 211 153 / .12); }
+.lmc-dark .lmc-scene .bg-amber-50\/50 { background-color: rgb(251 191 36 / .07); }
+
 @media (prefers-reduced-motion: reduce) {
   .lmc-rise, .lmc-draw, .lmc-figure, .lmc-pulse { animation: none; }
   .lmc-card, .lmc-card:hover { transform: none; transition: none; }

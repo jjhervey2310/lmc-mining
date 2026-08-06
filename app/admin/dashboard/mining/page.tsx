@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
 import { getLivePriceData } from '@/lib/btc-price'
 import { computeDailyNumbers } from '@/lib/daily-content'
-import { Shell, Panel, Tile, Spark, checkAdmin, usd } from '../ui'
+import { Shell, Panel, Tile, checkAdmin, usd } from '../ui'
+import TrendChart from '../trend-chart'
 import FleetWhatIf from '../fleet-whatif'
 import PlanCashflow from '../plan-cashflow'
 
@@ -95,8 +96,15 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
       </div>
 
       <div className="mt-3">
-        <Panel accent="cyan" title={`BTC — last ${series.length} snapshots`}>
-          <Spark points={series} w={640} h={120} />
+        <Panel accent="cyan" title={`Snapshots — last ${series.length} days`} right={<span className="text-[11px] text-neutral-500">BTC · hashprice · difficulty · each scaled to its own range</span>}>
+          <TrendChart
+            labels={rows.map((r) => r.snapshot_date).reverse()}
+            series={[
+              { key: 'btc', label: 'BTC', color: '#fbbf24', points: series, format: (v: number) => `$${usd(v, 0)}` },
+              { key: 'hp', label: 'Hashprice', color: '#67e8f9', points: rows.map((r) => Number(r.hashprice_usd)).reverse().filter((v: number) => isFinite(v) && v > 0), format: (v: number) => `$${usd(v, 4)}` },
+              { key: 'diff', label: 'Difficulty', color: '#c4b5fd', points: rows.map((r) => Number(r.difficulty)).reverse().filter((v: number) => isFinite(v) && v > 0), format: (v: number) => `${(v / 1e12).toFixed(1)}T` },
+            ].filter((s) => s.points.length > 1)}
+          />
           <table className="mt-3 w-full text-[13px]">
             <thead><tr className="text-left text-[11px] uppercase tracking-widest text-neutral-500"><th>date</th><th>BTC</th><th>difficulty</th><th>hashprice</th></tr></thead>
             <tbody>
