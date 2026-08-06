@@ -13,12 +13,14 @@ async function snapshot() {
   const n = live && !('error' in live) ? computeDailyNumbers(live.price, live.difficulty) : null
   const today = new Date().toISOString().slice(0, 10)
 
-  const [cache, lessons, metrics, jobs, leads] = await Promise.all([
+  const [cache, lessons, metrics, jobs, leads, memory] = await Promise.all([
     supabase?.from('make_content_cache').select('cache_date, source, payload').gte('cache_date', today).order('cache_date').limit(8) ?? null,
     supabase?.from('content_lessons').select('lesson').eq('active', true).limit(5) ?? null,
     supabase?.from('video_metrics').select('title, views, likes, captured_at').order('captured_at', { ascending: false }).limit(15) ?? null,
     supabase?.from('job_finds').select('title, company, url, salary, found_at').neq('status','applied').neq('status','hidden').order('fit_score', { ascending: false }).limit(10) ?? null,
     supabase?.from('leads').select('created_at') ?? null,
+    // Long-term memory: settled facts, written by Claude Code and by the PA itself.
+    supabase?.from('pa_memory').select('topic, fact, source, updated_at').eq('active', true).order('updated_at', { ascending: false }).limit(60) ?? null,
   ])
 
   let queue: { total: number; byDay: Record<string, number> } | null = null
@@ -48,6 +50,7 @@ async function snapshot() {
   const leadRows = leads?.data ?? []
   return {
     now_denver: new Date().toLocaleString('en-US', { timeZone: 'America/Denver' }),
+    memory: (memory?.data ?? []).map((m) => ({ topic: m.topic, fact: m.fact, source: m.source })),
     mining: n,
     contentBanked: (cache?.data ?? []).map((c) => ({ date: c.cache_date, source: c.source, theme: (c.payload as { theme?: string })?.theme, hook: (c.payload as { hook?: string })?.hook })),
     postizQueue: queue,
@@ -70,6 +73,8 @@ How his machine works (all automatic, no laptop involved):
 - Money: revenue = Abundant Mines hosting affiliate + $97/$297 audits; a $997 Done-With-You Setup tier is in progress. Jacob's first income goal is $3,000 and he is also job hunting (the job wire helps).
 - Known quirk: Postiz's calendar shows queued videos with no preview thumbnail — cosmetic; the video files are attached and publish fine.
 
+MEMORY: snapshot.memory holds long-term facts about Jacob's business — hosting terms, the fleet plan, Earl's war chest, the trading competition, job-wire rules. Treat them as established truth (they were settled with Jacob or written by Claude Code) and use them without re-asking. When Jacob says "remember X", or a decision gets settled that future-you would need, call remember(topic, fact). If a stored fact turns out wrong, call forget(topic) and save the corrected one. Your memory and this conversation are shared across his Mac and phone.
+
 Use the live SNAPSHOT JSON in each request to answer questions about current state. If something looks broken, say what, why it matters, and the exact next step. If data is missing from the snapshot, say so rather than guessing.
 
 Adopt the expert lens each question calls for — data analyst for numbers, marketing strategist for content/growth, ops engineer for pipeline issues, recruiter for the job hunt — and answer as that expert would, still short and plain.
@@ -89,6 +94,8 @@ const PA_TOOLS = [
   { type: 'function' as const, function: { name: 'recent_leads', description: 'List the most recent website leads (email, type, date).', parameters: { type: 'object', properties: { limit: { type: 'number', description: '1-25, default 10' } } } } },
   { type: 'function' as const, function: { name: 'log_income', description: 'Log non-mining income Jacob received (audit sale, referral, affiliate, job/side income). Feeds the plan simulator.', parameters: { type: 'object', properties: { amount: { type: 'number' }, source: { type: 'string', description: 'audit | referral | affiliate | job | other' }, note: { type: 'string' } }, required: ['amount', 'source'] } } },
   { type: 'function' as const, function: { name: 'recent_income', description: 'List recent non-mining income entries and the month-to-date total.', parameters: { type: 'object', properties: {} } } },
+  { type: 'function' as const, function: { name: 'remember', description: 'Save a long-term fact so you never forget it, on every device. Use when Jacob says "remember X", or when a decision is settled that future-you would need (rates, terms, plan changes, people). One topic per fact; re-using a topic overwrites it.', parameters: { type: 'object', properties: { topic: { type: 'string', description: 'short kebab-case slug, e.g. hosting-rate' }, fact: { type: 'string', description: 'the fact in plain language, with dates and numbers' } }, required: ['topic', 'fact'] } } },
+  { type: 'function' as const, function: { name: 'forget', description: 'Deactivate a stored memory by topic when it turns out to be wrong or outdated.', parameters: { type: 'object', properties: { topic: { type: 'string' } }, required: ['topic'] } } },
 ]
 
 async function runTool(name: string, args: Record<string, unknown>): Promise<string> {
@@ -154,6 +161,19 @@ async function runTool(name: string, args: Record<string, unknown>): Promise<str
       const mtdStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()
       const mtd = (data || []).filter((r) => new Date(r.received_at).getTime() >= mtdStart).reduce((a, r) => a + Number(r.amount), 0)
       return JSON.stringify({ mtd_total: mtd, entries: data || [] })
+    }
+    if (name === 'remember') {
+      if (!supabase) return 'Supabase unavailable'
+      const { error } = await supabase.from('pa_memory').upsert(
+        { topic: String(args.topic), fact: String(args.fact), source: 'pa', active: true, updated_at: new Date().toISOString() },
+        { onConflict: 'topic' },
+      )
+      return error ? `Save failed: ${error.message}` : `Remembered "${args.topic}". I'll know this on every device from now on.`
+    }
+    if (name === 'forget') {
+      if (!supabase) return 'Supabase unavailable'
+      const { error } = await supabase.from('pa_memory').update({ active: false }).eq('topic', String(args.topic))
+      return error ? `Forget failed: ${error.message}` : `Dropped "${args.topic}" from memory.`
     }
     return `Unknown tool ${name}`
   } catch (e) {
@@ -227,14 +247,27 @@ export async function POST(req: Request) {
   if (!key) return NextResponse.json({ error: 'OPENAI_API_KEY not set' }, { status: 503 })
 
   const snap = await snapshot()
-  const history = (body.messages || []).slice(-12)
-  if (!history.length || history[history.length - 1].role !== 'user') {
+  const supabase = createServiceClient()
+
+  // Conversation lives server-side so the Mac and the phone app share one thread.
+  // The client still sends its local view; we merge stored history underneath it.
+  const clientHistory = (body.messages || []).slice(-12)
+  if (!clientHistory.length || clientHistory[clientHistory.length - 1].role !== 'user') {
     return NextResponse.json({ error: 'No user message' }, { status: 400 })
+  }
+  const question = clientHistory[clientHistory.length - 1].content
+
+  let history = clientHistory
+  if (supabase) {
+    const { data: stored } = await supabase.from('pa_chat').select('role, content').order('created_at', { ascending: false }).limit(12)
+    const priorTurns = (stored ?? []).reverse() as { role: 'user' | 'assistant'; content: string }[]
+    // Stored history wins when the client is a fresh device with nothing local.
+    if (priorTurns.length && clientHistory.length === 1) history = [...priorTurns, ...clientHistory]
+    await supabase.from('pa_chat').insert({ role: 'user', content: question })
   }
 
   const snapJson = JSON.stringify(snap)
   const system = `${SYSTEM}\n\nSNAPSHOT (live, just fetched):\n${snapJson}`
-  const question = history[history.length - 1].content
 
   try {
     // Dual-brain, Jacob's arrangement: ChatGPT is the voice AND the hands (tools),
@@ -250,6 +283,7 @@ export async function POST(req: Request) {
         key
       )
     }
+    if (supabase) await supabase.from('pa_chat').insert({ role: 'assistant', content: reply })
     return NextResponse.json({ reply, checked: rounds === 0 ? 'agreed first pass' : `agreed after ${rounds} revision(s)` })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'model error' }, { status: 502 })

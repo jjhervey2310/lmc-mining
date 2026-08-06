@@ -10,12 +10,18 @@ export default function ChatWindow({ secret }: { secret: string }) {
   const [busy, setBusy] = useState(false)
   const scroller = useRef<HTMLDivElement>(null)
 
+  // Local cache paints instantly; the server thread is the source of truth so a
+  // conversation started on the Mac continues on the phone.
   useEffect(() => {
     try {
       const saved = localStorage.getItem('lmc-pa-chat')
       if (saved) setMessages(JSON.parse(saved))
     } catch { /* fresh start */ }
-  }, [])
+    fetch(`/api/admin/chat/history?secret=${encodeURIComponent(secret)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.messages?.length) setMessages(d.messages) })
+      .catch(() => { /* keep whatever localStorage had */ })
+  }, [secret])
 
   useEffect(() => {
     try { localStorage.setItem('lmc-pa-chat', JSON.stringify(messages.slice(-30))) } catch { /* ignore */ }
