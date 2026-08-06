@@ -11,7 +11,12 @@ const RECIPIENT = 'jjhervey1@gmail.com'
 // (missing day's content → regenerate), pulls new job listings into job_finds, and
 // sends one short morning brief. Urgent problems it can't fix are flagged on top.
 
-interface JobHit { title: string; company: string; url: string; source: string; location: string; salary: string | null; fit_score: number; posted_at: string | null }
+interface JobHit { title: string; company: string; url: string; source: string; location: string; salary: string | null; fit_score: number; posted_at: string | null; fingerprint: string; description?: string }
+
+/** Same role re-posted (or listed on a second board) gets a new URL — match on the role itself. */
+function fingerprintOf(title: string, company: string): string {
+  return `${title}|${company}`.toLowerCase().replace(/[^a-z0-9|]/g, '')
+}
 
 function keywords(): string[] {
   return (process.env.JOB_KEYWORDS || 'bitcoin,crypto,mining,web3')
@@ -46,8 +51,32 @@ const RELOCATE_WORTHY_SALARY = 250_000
 // salaries stay in (most leadership posts don't list). Target roles still rank first.
 const MIN_SALARY = 75_000
 const DENVER_METRO = ['denver', 'aurora', 'lakewood', 'englewood', 'littleton', 'centennial', 'westminster', 'thornton', 'arvada', 'broomfield', 'boulder', 'golden', 'greenwood village', 'commerce city', 'wheat ridge']
-function inRegion(location: string, title: string): boolean {
+// Other states/metros that disqualify a "remote" posting when the listing says you
+// must live there (Jacob 2026-08-05: "some have said remote but I had to live in Sonoma").
+const OTHER_PLACES = ['sonoma', 'california', 'new york', 'texas', 'florida', 'washington', 'oregon', 'arizona', 'utah', 'nevada', 'illinois', 'georgia', 'massachusetts', 'virginia', 'carolina', 'ohio', 'michigan', 'minnesota', 'wisconsin', 'tennessee', 'missouri', 'indiana', 'maryland', 'new jersey', 'pennsylvania', 'connecticut', 'oklahoma', 'kansas', 'iowa', 'nebraska', 'arkansas', 'alabama', 'kentucky', 'louisiana', 'mississippi', 'idaho', 'montana', 'wyoming', 'new mexico', 'maine', 'vermont', 'delaware', 'rhode island', 'hawaii', 'alaska', 'bay area', 'nyc', 'chicago', 'atlanta', 'seattle', 'austin', 'dallas', 'houston', 'phoenix', 'miami', 'boston', 'portland', 'san francisco', 'los angeles', 'san diego']
+
+/** Residency phrasing: "must reside in X", "based in X", "located in X", "candidates in X". */
+const RESIDENCY_RE = /(must (?:reside|live|be located|be based)|reside[sd]? in|residency|be based in|located in|candidates? (?:must )?(?:be )?(?:in|located)|local to|onsite in|on-site in|hybrid in)([^.;)]{0,80})/gi
+
+/** True when a "remote" listing actually pins you to somewhere that is not Colorado. */
+function remoteElsewhere(text: string): boolean {
+  const t = text.toLowerCase()
+  if (!t) return false
+  const coMentioned = t.includes('colorado') || /\bco\b/.test(t) || DENVER_METRO.some((c) => t.includes(c))
+  for (const m of t.matchAll(RESIDENCY_RE)) {
+    const clause = m[2] || ''
+    // A residency clause naming another place, with Colorado absent from it, is out.
+    if (OTHER_PLACES.some((p) => clause.includes(p)) && !(clause.includes('colorado') || /\bco\b/.test(clause))) return true
+  }
+  // "Remote (California only)" / "Remote - New York" with no Colorado anywhere.
+  if (/remote[^.]{0,40}\bonly\b/.test(t) && !coMentioned && OTHER_PLACES.some((p) => t.includes(p))) return true
+  return false
+}
+
+function inRegion(location: string, title: string, description = ''): boolean {
   const loc = location.toLowerCase()
+  // A listing that pins residency elsewhere is out no matter how it's labelled.
+  if (remoteElsewhere(`${location} ${title} ${description}`)) return false
   if (DENVER_METRO.some((c) => loc.includes(c)) || loc.includes('colorado') || /,\s*co\b/.test(loc)) return true
   if (!`${location} ${title}`.toLowerCase().includes('remote')) return false
   // Remote with a generic location (US-wide/anywhere) is Colorado-eligible; remote
@@ -91,7 +120,7 @@ async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
       )
       if (!res.ok) { stats?.push(`${pass} ${where || 'US'}: HTTP ${res.status} ${(await res.text()).slice(0, 120)}`); continue }
       const rows = ((await res.json()).results || []) as {
-        title?: string; company?: { display_name?: string }; redirect_url?: string
+        title?: string; company?: { display_name?: string }; redirect_url?: string; description?: string
         location?: { display_name?: string }; salary_min?: number; salary_max?: number; created?: string
       }[]
       for (const r of rows) {
@@ -99,10 +128,13 @@ async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
         const salary = r.salary_min || r.salary_max
           ? `$${Math.round(r.salary_min || r.salary_max || 0).toLocaleString()}${r.salary_max && r.salary_min && r.salary_max !== r.salary_min ? `–$${Math.round(r.salary_max).toLocaleString()}` : ''}`
           : null
+        const company = r.company?.display_name || ''
         hits.push({
-          title: r.title, company: r.company?.display_name || '', url: r.redirect_url,
+          title: r.title, company, url: r.redirect_url,
           source: 'adzuna', location: r.location?.display_name || (where ? 'Denver' : 'US'),
-          salary, fit_score: fitScore(r.title, r.company?.display_name || ''), posted_at: r.created || null,
+          salary, fit_score: fitScore(r.title, company), posted_at: r.created || null,
+          fingerprint: fingerprintOf(r.title, company),
+          description: r.description || '',
         })
       }
       stats?.push(`${pass} ${where || 'US'}: ${rows.length} rows`)
@@ -174,26 +206,51 @@ async function handle(req: Request) {
   if (supabase && found.length) {
     // Chunked lookup: one .in() with 250 long URLs overflows the request line and
     // fails silently, which made dedup a no-op and blew up the insert (2026-07-28).
-    const known = new Set<string>()
+    // Two dedup axes vs ALL history: exact url AND role fingerprint (title+company),
+    // so a repost or a second-board listing can't sneak the same job back on the wire.
+    const knownUrls = new Set<string>()
+    const knownPrints = new Set<string>()
     for (let i = 0; i < found.length; i += 50) {
-      const { data: existing } = await supabase.from('job_finds').select('url').in('url', found.slice(i, i + 50).map((j) => j.url))
-      for (const r of existing || []) known.add(r.url)
+      const batch = found.slice(i, i + 50)
+      const [{ data: byUrl }, { data: byPrint }] = await Promise.all([
+        supabase.from('job_finds').select('url').in('url', batch.map((j) => j.url)),
+        supabase.from('job_finds').select('fingerprint').in('fingerprint', batch.map((j) => j.fingerprint)),
+      ])
+      for (const r of byUrl || []) knownUrls.add(r.url)
+      for (const r of byPrint || []) if (r.fingerprint) knownPrints.add(r.fingerprint)
     }
-    const seen = new Set<string>()
+    const seenUrls = new Set<string>()
+    const seenPrints = new Set<string>()
     // Minimum fit bar (never below 2 — empty beats noise) + region rule: in-region
-    // (Denver/CO/remote) gets a boost; out-of-region only rides on exceptional comp.
+    // (Denver/CO/genuinely-open remote) gets a boost; out-of-region only rides on
+    // exceptional comp. The description is read, not just the location field —
+    // "remote" that requires living in Sonoma is not remote for Jacob.
+    const regionOk = (j: JobHit) => inRegion(j.location, j.title, j.description)
+    let droppedFakeRemote = 0
+    let droppedDupes = 0
     newJobs = found
-      .filter((j) => j.fit_score >= 2 && !known.has(j.url) && !seen.has(j.url) && (seen.add(j.url), true))
-      .filter((j) => inRegion(j.location, j.title) || salaryMax(j.salary) >= RELOCATE_WORTHY_SALARY)
+      .filter((j) => j.fit_score >= 2)
+      .filter((j) => {
+        if (knownUrls.has(j.url) || knownPrints.has(j.fingerprint) || seenUrls.has(j.url) || seenPrints.has(j.fingerprint)) { droppedDupes++; return false }
+        seenUrls.add(j.url); seenPrints.add(j.fingerprint)
+        return true
+      })
+      .filter((j) => {
+        if (regionOk(j) || salaryMax(j.salary) >= RELOCATE_WORTHY_SALARY) return true
+        if (remoteElsewhere(`${j.location} ${j.title} ${j.description || ''}`)) droppedFakeRemote++
+        return false
+      })
       .filter((j) => { const s = salaryMax(j.salary); return s < 0 || s >= MIN_SALARY }) // $75k floor; unlisted stays
-      .map((j) => ({ ...j, fit_score: j.fit_score + (inRegion(j.location, j.title) ? 3 : 0) }))
+      .map((j) => ({ ...j, fit_score: j.fit_score + (regionOk(j) ? 3 : 0) }))
       .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
+    sweepStats.push(`dropped ${droppedDupes} duplicate(s), ${droppedFakeRemote} fake-remote (residency elsewhere)`)
     if (newJobs.length) {
       // Cap the daily insert; upsert-ignore so a stray duplicate skips instead of
       // killing the whole batch. A failed write must never report as success.
       const { error } = await supabase
         .from('job_finds')
-        .upsert(newJobs.slice(0, 80).map((j) => ({ ...j, status: 'new' })), { onConflict: 'url', ignoreDuplicates: true })
+        // description is read for filtering only — it is not a job_finds column.
+        .upsert(newJobs.slice(0, 80).map(({ description: _d, ...j }) => ({ ...j, status: 'new' })), { onConflict: 'url', ignoreDuplicates: true })
       if (error) {
         sweepStats.push(`INSERT FAILED: ${error.message}`)
         alerts.push(`Job sweep insert failed: ${error.message}`)
