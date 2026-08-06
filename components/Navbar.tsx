@@ -5,18 +5,22 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 const NAV_LINKS = [
-  { href: '/', label: 'Home' },
   { href: '/calculator', label: 'Calculator' },
   { href: '/hosting', label: 'Hosting' },
   { href: '/miners', label: 'Miners' },
   { href: '/university', label: 'University' },
-  { href: '/deal-analyzer', label: 'Deal Analyzer' },
-  { href: '/audit', label: 'Audit' },
   { href: '/tools', label: 'Tools' },
-  { href: '/financing', label: 'Financing' },
-  { href: '/glossary', label: 'Glossary' },
+  { href: '/audit', label: 'Audit' },
+]
+
+// Kept off the desktop bar to hold it to seven targets, but still reachable
+// on mobile and in the footer so every page keeps an internal link.
+const SECONDARY_LINKS = [
+  { href: '/deal-analyzer', label: 'Deal Analyzer' },
   { href: '/profitable', label: 'Profitability' },
+  { href: '/financing', label: 'Financing' },
   { href: '/scam-alerts', label: 'Scam Alerts' },
+  { href: '/glossary', label: 'Glossary' },
 ]
 
 export default function Navbar() {
@@ -95,6 +99,18 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
+            <div className="pt-2 mt-1 border-t" style={{ borderColor: '#222222' }}>
+              {SECONDARY_LINKS.map(l => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="block text-sm text-gray-500 hover:text-white py-2 px-2 rounded"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </div>
             <Link
               href="/review"
               className="block text-sm font-semibold px-4 py-2 rounded-lg text-center mt-2"

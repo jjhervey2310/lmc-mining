@@ -59,10 +59,19 @@ export function initConsentedScripts() {
   }
 }
 
+/** The admin terminal must never be measured: its URL carries ADMIN_SECRET and
+ *  its pages render lead emails and the PA transcript. GA4 would ship the full
+ *  URL to Google and Clarity would session-replay the DOM to Microsoft.
+ *  (Security audit 2026-08-06 — this was live.) */
+function isAdminRoute() {
+  return typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
+}
+
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    if (isAdminRoute()) return // no banner, no analytics, no session replay
     const consent = getCookie(COOKIE_KEY)
     if (!consent) {
       setVisible(true)
@@ -74,8 +83,10 @@ export default function CookieConsent() {
 
   function acceptAll() {
     setConsentCookie('all')
-    loadGA4()
-    loadClarity()
+    if (!isAdminRoute()) {
+      loadGA4()
+      loadClarity()
+    }
     setVisible(false)
   }
 

@@ -76,17 +76,22 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
           {n ? (() => {
             const grossDay = n.hashpricePerThDay * 300 * 18 * (1 - 0.028)
             const hostMo = 18 * 225
-            const hostDay = hostMo / 30.42
-            const netDay = grossDay - hostDay
-            const netMo = netDay * 30.42
+            const LOAN_MO = 3551 // AM $140k @10% 48mo — a real monthly obligation
+            const grossMo = grossDay * 30.42
+            const afterHostMo = grossMo - hostMo
+            // The bottom line Jacob actually banks: revenue − hosting − loan.
+            // Showing "net" without debt service overstated the fleet by $42,612/yr
+            // and contradicted the simulator below (audit 2026-08-06).
+            const trueNetMo = afterHostMo - LOAN_MO
             const sign = (v: number) => (v >= 0 ? '+' : '-')
             return (
               <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-                <Tile accent="green" label="Revenue/day" value={`$${usd(grossDay)}`} sub="300TH × 18 · after 2.8% fee" />
-                <Tile accent="green" label="Hosting" value={`$${usd(hostMo, 0)}/mo`} sub={`$${usd(hostDay)}/day`} />
-                <Tile accent="green" label="Net/day" value={`${sign(netDay)}$${usd(Math.abs(netDay))}`} tone={netDay >= 0 ? 'pos' : 'neg'} />
-                <Tile accent="green" label="Net/month" value={`${sign(netMo)}$${usd(Math.abs(netMo), 0)}`} tone={netMo >= 0 ? 'pos' : 'neg'} sub="30.42 days" />
-                <Tile accent="green" label="Net/year" value={`${sign(netMo)}$${usd(Math.abs(netMo * 12), 0)}`} tone={netMo >= 0 ? 'pos' : 'neg'} sub="month × 12 · difficulty drift not modeled" />
+                <Tile accent="green" label="Revenue/mo" value={`$${usd(grossMo, 0)}`} sub={`$${usd(grossDay)}/day · 300TH × 18 after 2.8% fee`} />
+                <Tile accent="green" label="Hosting" value={`$${usd(hostMo, 0)}/mo`} sub={`$${usd(hostMo / 30.42)}/day`} />
+                <Tile accent="green" label="AM loan" value={`$${usd(LOAN_MO, 0)}/mo`} sub="$140k @10% · 48mo" />
+                <Tile accent="cyan" label="After hosting" value={`${sign(afterHostMo)}$${usd(Math.abs(afterHostMo), 0)}/mo`} tone={afterHostMo >= 0 ? 'pos' : 'neg'} sub="before debt service" />
+                <Tile accent={trueNetMo >= 0 ? 'green' : 'rose'} label="Net after loan" value={`${sign(trueNetMo)}$${usd(Math.abs(trueNetMo), 0)}/mo`} tone={trueNetMo >= 0 ? 'pos' : 'neg'}
+                  sub={`${sign(trueNetMo)}$${usd(Math.abs(trueNetMo * 12), 0)}/yr · the real bottom line`} />
               </div>
             )
           })() : <span className="text-[13px] text-red-600">Live data unavailable</span>}

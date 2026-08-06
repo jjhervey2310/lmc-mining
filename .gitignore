@@ -59,3 +59,10 @@ Vercel/
 next-env.d.ts
 content-engine/out/
 .ce-out/
+
+# Credential files — never commit (security audit 2026-08-06)
+.env.keys
+.env.*.local
+Keys/
+Website key/
+_to_delete/

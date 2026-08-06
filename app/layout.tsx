@@ -50,6 +50,14 @@ export const metadata: Metadata = {
   alternates: {
     canonical: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lightningmines.com',
   },
+  // Set these in Vercel prod env once the Search Console / Bing properties are
+  // claimed; each renders its verification meta tag only when present.
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION
+      ? { 'msvalidate.01': process.env.BING_SITE_VERIFICATION }
+      : {},
+  },
 }
 
 const FOOTER_NAV = [
@@ -61,6 +69,11 @@ const FOOTER_NAV = [
   { href: '/review', label: 'Free Review' },
   { href: '/audit', label: 'Audit' },
   { href: '/tools', label: 'Tools' },
+  { href: '/deal-analyzer', label: 'Deal Analyzer' },
+  { href: '/profitable', label: 'Profitability' },
+  { href: '/financing', label: 'Financing' },
+  { href: '/scam-alerts', label: 'Scam Alerts' },
+  { href: '/glossary', label: 'Glossary' },
   { href: '/about', label: 'About' },
   { href: '/how-we-verify', label: 'How We Verify' },
 ]

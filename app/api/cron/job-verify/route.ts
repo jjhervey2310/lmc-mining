@@ -16,6 +16,52 @@ export const maxDuration = 300
 const MAX_AGE_DAYS = 14
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
 
+// SSRF guard (security audit 2026-08-06): job_finds.url is written by an external
+// automation and by an aggregator that returns redirect URLs, so it is untrusted
+// input. Only these hosts are ever fetched, https only, and every redirect hop is
+// re-checked — otherwise a poisoned row could point the server at loopback (the
+// Lambda runtime API) and the response body would be stored back in the row.
+const ALLOWED_HOSTS = ['linkedin.com', 'adzuna.com', 'weworkremotely.com', 'remoteok.com', 'indeed.com', 'builtincolorado.com', 'builtin.com', 'greenhouse.io', 'lever.co', 'ashbyhq.com', 'workday.com', 'myworkdayjobs.com']
+const FETCH_TIMEOUT_MS = 10_000
+const MAX_BYTES = 2_000_000
+const MAX_HOPS = 5
+
+function hostAllowed(raw: string): boolean {
+  try {
+    const u = new URL(raw)
+    if (u.protocol !== 'https:') return false
+    const h = u.hostname.toLowerCase()
+    return ALLOWED_HOSTS.some((d) => h === d || h.endsWith(`.${d}`))
+  } catch {
+    return false
+  }
+}
+
+/** Follow redirects by hand so every hop is validated, with a timeout and size cap. */
+async function safeFetch(startUrl: string): Promise<{ ok: boolean; status: number; html: string }> {
+  let url = startUrl
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
+    if (!hostAllowed(url)) return { ok: false, status: 0, html: '' }
+    const res = await fetch(url, {
+      headers: { 'User-Agent': UA },
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    })
+    if (res.status >= 300 && res.status < 400) {
+      const next = res.headers.get('location')
+      if (!next) return { ok: false, status: res.status, html: '' }
+      url = new URL(next, url).toString()
+      continue
+    }
+    if (!res.ok) return { ok: false, status: res.status, html: '' }
+    // Cap the body: an unbounded read can stall or OOM the function.
+    const buf = await res.arrayBuffer()
+    return { ok: true, status: res.status, html: new TextDecoder().decode(buf.slice(0, MAX_BYTES)) }
+  }
+  return { ok: false, status: 0, html: '' }
+}
+
 /** LinkedIn's top card carries the true age: <span class="posted-time-ago__text"> 4 months ago </span> */
 function ageDaysFrom(html: string): number | null {
   const el = html.match(/posted-time-ago__text[^>]*>\s*([^<]+?)\s*</i)
@@ -84,15 +130,23 @@ async function handle(req: Request) {
     .order('verified_at', { ascending: true, nullsFirst: true })
     .limit(limit)
 
-  const results = { checked: 0, kept: 0, closed: 0, tooOld: 0, badRegion: 0, badFit: 0, lowPay: 0, unreachable: 0 }
+  const results = { checked: 0, kept: 0, closed: 0, tooOld: 0, badRegion: 0, badFit: 0, lowPay: 0, unreachable: 0, blocked: 0 }
   const dropped: string[] = []
 
   for (const j of jobs ?? []) {
     results.checked++
+    // Never fetch a URL we don't recognise — quarantine the row instead.
+    if (!hostAllowed(j.url)) {
+      await retire(j.id, 'untrusted listing URL — not on the allowed job-board list')
+      results.blocked++
+      dropped.push(`${j.title} — untrusted URL`)
+      continue
+    }
+
     let html = ''
     try {
-      const res = await fetch(j.url, { headers: { 'User-Agent': UA }, redirect: 'follow', cache: 'no-store' })
-      if (res.ok) html = await res.text()
+      const res = await safeFetch(j.url)
+      if (res.ok) html = res.html
       else if (res.status === 404 || res.status === 410) {
         await retire(j.id, `listing gone (HTTP ${res.status})`)
         results.closed++

@@ -201,9 +201,13 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   // how long the war chest lasts with the $3k add-in and Earl repayments,
   // bear/base/bull side by side over the next 12 months. ──
   const obligationsMo = u * 225 + loanMo
-  const runway = (p: PathName) => {
-    const i = pred[p].findIndex((r) => r.cum < 0)
-    return i < 0 ? '24mo+' : labelAt(i)
+  // Scan the FULL 48-month engine, not the 24-month prediction table — Earl's
+  // op-month-36 repayment lands outside that window and is the biggest single
+  // outflow in the plan, so a 24-month scan always reported a false "24mo+"
+  // even when the curve below showed the chest going negative (audit 2026-08-06).
+  const runwayFull = () => {
+    const i = rows.findIndex((r) => r.cum < 0)
+    return i < 0 ? 'clears 48mo' : labelAt(i)
   }
   const launchRow = pred.base[Math.min(Math.max(launchIdx, 0), PRED_MONTHS - 1)]
 
@@ -219,7 +223,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
           { label: 'Obligations/mo (live)', value: usd0(obligationsMo), sub: `hosting ${usd0(u * 225)} + loan ${usd0(loanMo)}`, tone: 'text-neutral-800' },
           { label: 'First live month gap (base)', value: launchRow?.live ? fmt(launchRow.mineNet) : fmt(pred.base.find((r) => r.live)?.mineNet ?? 0), sub: 'mine revenue − obligations', tone: (launchRow?.live ? launchRow.mineNet : pred.base.find((r) => r.live)?.mineNet ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' },
           { label: 'War chest at launch', value: usd0(launchIdx > 0 ? rows[launchIdx - 1].cum : parseFloat(chest) || 0), sub: `Earl $${Math.round((parseFloat(chest) || 0) / 1000)}k · your add-in from ${addStart}`, tone: 'text-neutral-800' },
-          { label: 'War chest runway', value: runway('base'), sub: `bear ${runway('bear')} · bull ${runway('bull')} — with add-in + Earl paybacks`, tone: 'text-amber-600' },
+          { label: 'War chest runway', value: runwayFull(), sub: `48-month engine · deepest ${fmt(trough)} in ${labelAt(troughMo)}`, tone: trough < 0 ? 'text-red-600' : 'text-amber-600' },
         ].map((t) => (
           <div key={t.label} className="rounded border border-neutral-200 bg-white px-3 py-2">
             <div className="text-[10px] uppercase tracking-widest text-neutral-500">{t.label}</div>
@@ -352,7 +356,12 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
         <span>deepest point <b className={trough < 0 ? 'text-red-600' : 'text-green-600'}>{fmt(trough)}</b> <span className="text-neutral-500">({labelAt(troughMo)})</span></span>
         <span>cash at month 48 <b className={end48 >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(end48)}</b></span>
         <span>hashprice mo 48 <b className="text-neutral-700">${hpAt(47).toFixed(4)}</b></span>
-        <span>add-in stops <b className="text-neutral-700">{(() => { const i = rows.findIndex((r) => r.live && r.contrib === 0); return i < 0 ? 'never (48mo)' : labelAt(i) })()}</b> <span className="text-neutral-500">(total in: {usd0(rows.reduce((s, r) => s + r.contrib, 0))})</span></span>
+        <span>add-in stops <b className="text-neutral-700">{(() => {
+          // The LAST month money goes in, +1 — not the first month it pauses.
+          // Contributions can resume after a good month (audit 2026-08-06).
+          const last = rows.reduce((acc, r, i) => (r.contrib > 0 ? i : acc), -1)
+          return last < 0 ? 'never starts' : last >= 47 ? 'never (runs all 48mo)' : labelAt(last + 1)
+        })()}</b> <span className="text-neutral-500">(total in: {usd0(rows.reduce((s, r) => s + r.contrib, 0))})</span></span>
         {hPct > 0 && hMo > 0 && (
           <span className="text-cyan-700">hedged <b>{hPct}%</b> @ ${hPx.toFixed(4)} for op-mo 1–{hMo} <span className="text-neutral-500">(locked share ignores difficulty + halving; real forwards price below spot — ask Luxor for a quote)</span></span>
         )}

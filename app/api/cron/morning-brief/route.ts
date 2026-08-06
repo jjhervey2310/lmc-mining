@@ -143,6 +143,14 @@ async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
   return hits
 }
 
+
+/** Job titles and company names come from a public feed — escape before they
+ *  reach the brief's HTML, or a crafted title can inject a phishing link into
+ *  an email Jacob trusts (security audit 2026-08-06). */
+function esc(v: unknown): string {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
+}
+
 async function handle(req: Request) {
   const secret = req.headers.get('x-content-secret')
   if (!process.env.DAILY_CONTENT_SECRET || secret !== process.env.DAILY_CONTENT_SECRET) {
@@ -268,13 +276,13 @@ async function handle(req: Request) {
     const html = `<div style="font-family:-apple-system,sans-serif;max-width:640px;margin:0 auto;padding:24px;">
 <h2 style="margin:0 0 4px;">${alerts.length ? '⚠ Needs you' : '✅ All running'} — morning brief</h2>
 <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Denver' })}</p>
-${alerts.length ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:14px;"><b>Needs your attention:</b><ul style="margin:6px 0 0 18px;">${alerts.map((a) => `<li>${a}</li>`).join('')}</ul></div>` : ''}
-${fixes.length ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-bottom:14px;"><b>Fixed for you overnight:</b><ul style="margin:6px 0 0 18px;">${fixes.map((f) => `<li>${f}</li>`).join('')}</ul></div>` : ''}
+${alerts.length ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:14px;"><b>Needs your attention:</b><ul style="margin:6px 0 0 18px;">${alerts.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div>` : ''}
+${fixes.length ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-bottom:14px;"><b>Fixed for you overnight:</b><ul style="margin:6px 0 0 18px;">${fixes.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}
 <p style="font-size:14px;margin:0 0 14px;">
 ${numbers ? `⛏ BTC $${Math.round(numbers.btcPrice).toLocaleString()} · S21 XP ${numbers.profitable ? '+' : '-'}$${Math.abs(numbers.s21NetDay).toFixed(2)}/day · ` : ''}
 📬 ${queueTotal >= 0 ? `${queueTotal} posts queued` : 'queue unknown'} · 🎬 ${quota ?? '?'} HeyGen units
 </p>
-${newJobs.length ? `<h3 style="margin:16px 0 6px;">💼 Top ${Math.min(10, newJobs.length)} job matches (ranked by fit, then salary)</h3><table style="border-collapse:collapse;font-size:13px;"><tr><th style="padding:3px 8px;text-align:left;">Role</th><th style="padding:3px 8px;text-align:left;">Salary</th><th style="padding:3px 8px;text-align:left;">Fit</th></tr>${newJobs.slice(0, 10).map((j) => `<tr><td style="padding:3px 8px;"><a href="${j.url}">${j.title}</a> — ${j.company}</td><td style="padding:3px 8px;">${j.salary || '—'}</td><td style="padding:3px 8px;">${j.fit_score}</td></tr>`).join('')}</table>` : adzunaConfigured ? '<p style="color:#6b7280;font-size:13px;">💼 No new job matches today.</p>' : '<p style="color:#b45309;font-size:13px;">💼 Job sweep needs keys: grab free ADZUNA_APP_ID + ADZUNA_APP_KEY at developer.adzuna.com (2 min) — Adzuna aggregates Indeed and majors WITH salary data. Paste both to Claude to wire in.</p>'}
+${newJobs.length ? `<h3 style="margin:16px 0 6px;">💼 Top ${Math.min(10, newJobs.length)} job matches (ranked by fit, then salary)</h3><table style="border-collapse:collapse;font-size:13px;"><tr><th style="padding:3px 8px;text-align:left;">Role</th><th style="padding:3px 8px;text-align:left;">Salary</th><th style="padding:3px 8px;text-align:left;">Fit</th></tr>${newJobs.slice(0, 10).map((j) => `<tr><td style="padding:3px 8px;"><a href="${esc(j.url)}">${esc(j.title)}</a> — ${esc(j.company)}</td><td style="padding:3px 8px;">${esc(j.salary || '—')}</td><td style="padding:3px 8px;">${j.fit_score}</td></tr>`).join('')}</table>` : adzunaConfigured ? '<p style="color:#6b7280;font-size:13px;">💼 No new job matches today.</p>' : '<p style="color:#b45309;font-size:13px;">💼 Job sweep needs keys: grab free ADZUNA_APP_ID + ADZUNA_APP_KEY at developer.adzuna.com (2 min) — Adzuna aggregates Indeed and majors WITH salary data. Paste both to Claude to wire in.</p>'}
 <p style="font-size:13px;">Quick searches — LinkedIn: ${kw.slice(0, 3).map((k) => `<a href="${li(k)}">${k}</a>`).join(' · ')} · Indeed: ${kw.slice(0, 3).map((k) => `<a href="https://www.indeed.com/jobs?q=${encodeURIComponent(k)}&l=Denver%2C+CO&fromage=1">${k}</a>`).join(' · ')}</p>
 <p style="color:#6b7280;font-size:12px;margin-top:16px;">Full picture: lightningmines.com/admin/dashboard (your secret link). Reply-worthy issues only — everything else was handled.</p>
 </div>`

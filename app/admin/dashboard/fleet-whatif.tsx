@@ -18,9 +18,12 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingMoFleet }: {
 
   // Hosting bills monthly; month = day × 30.42, year = month × 12 — same
   // conventions as the P&L tiles above so the two always reconcile.
+  const LOAN_MO = 3551 // AM $140k @10% 48mo — the fleet owes this every month
   const revenueDay = spotHashprice * ocTh * rigs * (1 - feePct / 100)
-  const netDay = revenueDay - hostingMoFleet / 30.42
-  const netMo = netDay * 30.42
+  const revenueMo = revenueDay * 30.42
+  const afterHostMo = revenueMo - hostingMoFleet
+  const netMo = afterHostMo - LOAN_MO   // the real bottom line (audit 2026-08-06)
+  const netDay = netMo / 30.42
   const fmt = (n: number, d = 0) => `${n < 0 ? '-' : '+'}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`
 
   return (
@@ -41,13 +44,14 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingMoFleet }: {
         </label>
       </div>
       <div className="flex flex-wrap gap-6 font-mono text-[13px]">
-        <span>revenue/day <b className="text-neutral-800">{fmt(revenueDay, 2)}</b></span>
-        <span>net/day <b className={netDay >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netDay, 2)}</b></span>
+        <span>revenue/mo <b className="text-neutral-800">{fmt(revenueMo)}</b></span>
+        <span>after hosting <b className={afterHostMo >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(afterHostMo)}</b></span>
+        <span>− loan {fmt(-LOAN_MO)}</span>
         <span>net/mo <b className={netMo >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netMo)}</b></span>
         <span>net/yr <b className={netMo >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netMo * 12)}</b></span>
       </div>
       <div className="mt-2 text-[11px] text-neutral-500">
-        Spot: ${spotHashprice.toFixed(4)}/TH/day · hosting ${hostingMoFleet.toLocaleString()}/mo billed monthly. OC +2 = 3,850W/rig vs 3,645
+        Spot: ${spotHashprice.toFixed(4)}/TH/day · hosting ${hostingMoFleet.toLocaleString()}/mo + AM loan $3,551/mo — net is after BOTH. OC +2 = 3,850W/rig vs 3,645
         stock — Abundant confirmed $225 stays flat even overclocked (Jacob 2026-08-05). Same config drives the plan predictor below.
       </div>
     </div>

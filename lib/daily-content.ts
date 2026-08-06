@@ -15,7 +15,7 @@ export interface DailyNumbers {
 
 const S21_HASHRATE_TH = 270
 const S21_LABEL = 'Antminer S21 XP (270 TH/s)'
-const HOSTING_DAY = 7.5 // $225/month flat
+const HOSTING_DAY = 225 / 30.42 // $225/month flat, on the same 30.42-day month as the rest of the dashboard
 const BLOCK_REWARD = 3.125
 
 export function computeDailyNumbers(btcPrice: number, difficulty: number): DailyNumbers {
