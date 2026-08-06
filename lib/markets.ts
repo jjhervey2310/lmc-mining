@@ -20,7 +20,7 @@ const CRYPTO: [string, string][] = [
   ['spx6900', 'SPX'], // SPX6900 (ETH memecoin) — Jacob's SPX, not the S&P 500
 ]
 
-// The Magnificent 7.
+// The Magnificent 7, plus tickers held in the trading competition.
 const EQUITIES: [string, string][] = [
   ['NVDA', 'NVDA'],
   ['AAPL', 'AAPL'],
@@ -29,6 +29,7 @@ const EQUITIES: [string, string][] = [
   ['AMZN', 'AMZN'],
   ['META', 'META'],
   ['TSLA', 'TSLA'],
+  ['TQQQ', 'TQQQ'],
 ]
 
 const CRYPTO_TTL_MS = 10_000
