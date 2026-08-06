@@ -56,8 +56,14 @@ export default function JobWire({ jobs, secret }: { jobs: WireJob[]; secret: str
           />
           <a href={j.url} target="_blank" rel="noreferrer" className="block min-w-0 flex-1 hover:bg-amber-50">
             <div className="text-[13px] leading-snug text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-800">{j.title} ↗</div>
+            {/* Only say "posted" when we actually know the post date. Sources that
+                don't supply one get an honest "found" — a job discovered today can
+                be months old on the board it came from (Jacob 2026-08-06). */}
             <div className="text-[11px] text-neutral-600">
-              {j.company || '—'}{j.salary ? ` · ${j.salary}` : ''} · posted {(j.posted_at || j.found_at).slice(5, 10)}
+              {j.company || '—'}{j.salary ? ` · ${j.salary}` : ''}
+              {j.posted_at
+                ? ` · posted ${j.posted_at.slice(5, 10)}`
+                : ` · found ${j.found_at.slice(5, 10)} · post date unknown`}
             </div>
           </a>
         </div>
