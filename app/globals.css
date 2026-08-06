@@ -58,6 +58,9 @@
   50% { opacity: .45; transform: scale(.82); }
 }
 .lmc-pulse { animation: lmc-pulse 2s ease-in-out infinite; }
+/* Inside SVG, scale must be about the shape's own centre — otherwise the dot
+   travels across the canvas as it pulses (Jacob spotted this 2026-08-06). */
+svg .lmc-pulse { transform-box: fill-box; transform-origin: center; }
 
 /* Form controls inside the terminal: without this, values typed into the plan
    simulator are dark-on-dark and the boxes read as empty (Jacob 2026-08-06). */

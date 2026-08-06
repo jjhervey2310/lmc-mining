@@ -131,6 +131,32 @@ export default function TrendChart({ series, labels, w = 900, h = 220 }: {
           )
         })()}
 
+        {/* Tooltip at the cursor: date + every visible series on that day. */}
+        {cursor !== null && (() => {
+          const cx = pad.l + (cursor / (n - 1)) * iw
+          const rows = shown.map((s) => ({ s, v: s.points[Math.min(cursor, s.points.length - 1)] })).filter((r) => r.v != null)
+          if (!rows.length) return null
+          const bw = 168, bh = 20 + rows.length * 16
+          // Flip to the left near the right edge so it never clips off-canvas.
+          const bx = cx + bw + 12 > w ? cx - bw - 10 : cx + 10
+          return (
+            <g pointerEvents="none">
+              <rect x={bx} y={pad.t} width={bw} height={bh} rx="8"
+                className="fill-white stroke-neutral-300 dark:fill-[#12121a] dark:stroke-white/20" strokeWidth="1" opacity="0.98" />
+              <text x={bx + 10} y={pad.t + 15} fontSize="11" fontFamily="monospace"
+                className="fill-neutral-700 dark:fill-neutral-200">{labels[cursor] ?? ''}</text>
+              {rows.map((r, ri) => (
+                <g key={r.s.key}>
+                  <circle cx={bx + 15} cy={pad.t + 29 + ri * 16} r="3.5" fill={r.s.color} />
+                  <text x={bx + 25} y={pad.t + 33 + ri * 16} fontSize="11" fontFamily="monospace" fill={r.s.color}>
+                    {r.s.label} {fmtWith(r.s.format, r.v as number)}
+                  </text>
+                </g>
+              ))}
+            </g>
+          )
+        })()}
+
         {/* date ticks: first, middle, last */}
         {[0, Math.floor((n - 1) / 2), n - 1].map((i) => labels[i] ? (
           <text key={i} x={pad.l + (i / (n - 1)) * iw} y={h - 4}

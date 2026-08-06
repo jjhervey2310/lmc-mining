@@ -65,7 +65,9 @@ async function safeFetch(startUrl: string): Promise<{ ok: boolean; status: numbe
 /** LinkedIn's top card carries the true age: <span class="posted-time-ago__text"> 4 months ago </span> */
 function ageDaysFrom(html: string): number | null {
   const el = html.match(/posted-time-ago__text[^>]*>\s*([^<]+?)\s*</i)
-  const text = el?.[1] || html.match(/([0-9]+\s+(?:minute|hour|day|week|month|year)s?\s+ago)/i)?.[1]
+  // Fallback must be an explicitly POSTED age — a bare "N ago" can belong to a
+  // sidebar listing or "founded 6 years ago" (audit 2026-08-06).
+  const text = el?.[1] || html.match(/(?:posted|reposted)[^0-9]{0,20}([0-9]+\s+(?:minute|hour|day|week|month)s?\s+ago)/i)?.[1]
   if (!text) return null
   const m = text.match(/([0-9]+)\s+(minute|hour|day|week|month|year)s?\s+ago/i)
   if (!m) return null
@@ -89,16 +91,20 @@ function textOf(html: string): string {
 
 const DENVER_METRO = ['denver', 'aurora', 'lakewood', 'englewood', 'littleton', 'centennial', 'westminster', 'thornton', 'arvada', 'broomfield', 'boulder', 'golden', 'greenwood village', 'commerce city', 'wheat ridge']
 const OTHER_PLACES = ['sonoma', 'california', 'new york', 'texas', 'florida', 'washington', 'oregon', 'arizona', 'utah', 'nevada', 'illinois', 'georgia', 'massachusetts', 'virginia', 'carolina', 'ohio', 'michigan', 'minnesota', 'wisconsin', 'tennessee', 'missouri', 'indiana', 'maryland', 'new jersey', 'pennsylvania', 'connecticut', 'bay area', 'nyc', 'chicago', 'atlanta', 'seattle', 'austin', 'dallas', 'houston', 'phoenix', 'miami', 'boston', 'portland', 'san francisco', 'los angeles', 'san diego']
-const RESIDENCY_RE = /(must (?:reside|live|be located|be based)|reside[sd]? in|residency|be based in|located in|candidates? (?:must )?(?:be )?(?:in|located)|local to|onsite in|on-site in|hybrid in)([^.;)]{0,80})/gi
-const FIT_BAD = ['nurse', 'nursing', 'clinical', 'cdl', 'driver', 'physician', 'dental', 'therap', 'patient', 'pharmac', 'surgical', 'customer service rep', 'part-time', 'part time', 'internship', 'unpaid']
+const RESIDENCY_RE = /(must (?:reside|live|be located|be based)|reside[sd]? in|residency|be based in|located in|candidates? (?:must )?(?:be )?(?:in|located)|local to|onsite in|on-site in|hybrid in|residents? of|authorized to work in)([^.;)]{0,80})/gi
+// Whole-word, TITLE-ONLY. Matching these against body text retired good jobs:
+// every benefits section says "medical, dental and vision", and ops copy is full
+// of "driver of growth" (audit 2026-08-06).
+const FIT_BAD_TITLE = /\b(nurse|nursing|clinical|physician|dentist|dental hygienist|therapist|pharmacist|surgical tech|cdl|truck driver|delivery driver|caregiver|phlebotom|radiolog)\b|\bintern(ship)?\b|\bpart[- ]time\b/i
 
 function remoteElsewhere(text: string): boolean {
   const t = text.toLowerCase()
   if (!t) return false
-  const co = t.includes('colorado') || /\bco\b/.test(t) || DENVER_METRO.some((c) => t.includes(c))
+  const co = t.includes('colorado') || /,\s*co\b/.test(t) || DENVER_METRO.some((c) => t.includes(c))
   for (const m of t.matchAll(RESIDENCY_RE)) {
     const clause = m[2] || ''
-    if (OTHER_PLACES.some((p) => clause.includes(p)) && !(clause.includes('colorado') || /\bco\b/.test(clause))) return true
+    const clauseIsColorado = clause.includes('colorado') || /,\s*co\b/.test(clause) || DENVER_METRO.some((c) => clause.includes(c))
+    if (OTHER_PLACES.some((p) => clause.includes(p)) && !clauseIsColorado) return true
   }
   if (/remote[^.]{0,40}\bonly\b/.test(t) && !co && OTHER_PLACES.some((p) => t.includes(p))) return true
   return false
@@ -106,12 +112,21 @@ function remoteElsewhere(text: string): boolean {
 
 /** Salary written in the listing body, e.g. "$95,000 - $120,000". Feeds the $75k floor. */
 function salaryFromText(text: string): { label: string; max: number } | null {
-  const m = text.match(/\$\s?([0-9]{2,3}),?([0-9]{3})(?:\s*(?:-|–|to)\s*\$\s?([0-9]{2,3}),?([0-9]{3}))?/)
-  if (!m) return null
-  const lo = Number(`${m[1]}${m[2]}`)
-  const hi = m[3] ? Number(`${m[3]}${m[4]}`) : lo
-  if (lo < 20_000 || hi > 1_000_000) return null
-  return { label: hi !== lo ? `$${lo.toLocaleString()}–$${hi.toLocaleString()}` : `$${lo.toLocaleString()}`, max: hi }
+  // Only trust a figure that sits near a pay cue, and take the BEST such match —
+  // "$50,000 life insurance" and "manage a $500,000 budget" are not salaries.
+  const CUE = /(salary|base pay|base salary|compensation|pay range|annual(?:ized)? pay|per year|\/\s?yr|annually|range of)/i
+  let best: { label: string; max: number } | null = null
+  const re = /\$\s?([0-9]{2,3}),?([0-9]{3})(?:\s*(?:-|–|to)\s*\$\s?([0-9]{2,3}),?([0-9]{3}))?/g
+  for (const m of text.matchAll(re)) {
+    const at = m.index ?? 0
+    const around = text.slice(Math.max(0, at - 90), at + 90)
+    if (!CUE.test(around)) continue
+    const lo = Number(`${m[1]}${m[2]}`)
+    const hi = m[3] ? Number(`${m[3]}${m[4]}`) : lo
+    if (lo < 20_000 || hi > 1_000_000) continue
+    if (!best || hi > best.max) best = { label: hi !== lo ? `$${lo.toLocaleString()}–$${hi.toLocaleString()}` : `$${lo.toLocaleString()}`, max: hi }
+  }
+  return best
 }
 
 async function handle(req: Request) {
@@ -137,9 +152,10 @@ async function handle(req: Request) {
     results.checked++
     // Never fetch a URL we don't recognise — quarantine the row instead.
     if (!hostAllowed(j.url)) {
-      await retire(j.id, 'untrusted listing URL — not on the allowed job-board list')
+      // Not on the fetch allowlist: don't read it, but don't delete it either —
+      // an unverifiable job is still a job (audit 2026-08-06).
+      await supabase.from('job_finds').update({ verified_at: new Date().toISOString(), verify_note: 'not fetched — host outside the allowlist; shown unverified' }).eq('id', j.id)
       results.blocked++
-      dropped.push(`${j.title} — untrusted URL`)
       continue
     }
 
@@ -177,8 +193,7 @@ async function handle(req: Request) {
       await retire(j.id, 'remote but requires residency outside Colorado')
       results.badRegion++; dropped.push(`${j.title} — residency elsewhere`); continue
     }
-    const hay = `${j.title} ${text.slice(0, 3000)}`.toLowerCase()
-    if (FIT_BAD.some((b) => hay.includes(b))) {
+    if (FIT_BAD_TITLE.test(j.title || '')) {
       await retire(j.id, 'listing content is outside Jacob\'s field')
       results.badFit++; dropped.push(`${j.title} — wrong field`); continue
     }

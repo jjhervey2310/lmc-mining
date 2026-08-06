@@ -15,6 +15,9 @@ interface JobHit { title: string; company: string; url: string; source: string; 
 
 /** Same role re-posted (or listed on a second board) gets a new URL — match on the role itself. */
 function fingerprintOf(title: string, company: string): string {
+  // No company name means no reliable identity — fall back to url-only dedup,
+  // or every blank-company "Operations Manager" collapses into one forever.
+  if (!company.trim()) return ''
   return `${title}|${company}`.toLowerCase().replace(/[^a-z0-9|]/g, '')
 }
 
@@ -29,11 +32,13 @@ function keywords(): string[] {
 const FIT_STRONG = ['general manager', 'executive director', 'director of operations', 'head of operations', 'operations manager', 'chief of staff', 'business operations', 'procurement']
 const FIT_CORE = ['operations', 'growth', 'founder', 'business development', 'account executive', 'sales']
 const FIT_INDUSTRY = ['bitcoin', 'crypto', 'mining', 'data center', 'datacenter', 'web3', 'energy']
-const FIT_BAD = ['nurse', 'nursing', 'clinical', 'cdl', 'driver', 'physician', 'dental', 'therap', 'medical', 'healthcare', 'patient', 'pharmac', 'surgical', 'csr', 'customer service rep', 'temporary', 'intern', 'part-time', 'part time']
+const FIT_BAD = ['nurse', 'nursing', 'clinical', 'physician', 'dental', 'therap', 'medical', 'healthcare', 'patient', 'pharmac', 'surgical', 'csr', 'customer service rep', 'temporary', 'part-time', 'part time']
 
+const FIT_BAD_WORDS = /\bintern(ship)?\b|\bcdl\b|\b(truck|delivery) driver\b/i
 function fitScore(title: string, company: string): number {
   const hay = `${title} ${company}`.toLowerCase()
   let score = 0
+  if (FIT_BAD_WORDS.test(hay)) score -= 10
   for (const t of FIT_STRONG) if (hay.includes(t)) score += 4
   for (const t of FIT_CORE) if (hay.includes(t)) score += 2
   for (const t of FIT_INDUSTRY) if (hay.includes(t)) score += 1
@@ -56,17 +61,18 @@ const DENVER_METRO = ['denver', 'aurora', 'lakewood', 'englewood', 'littleton', 
 const OTHER_PLACES = ['sonoma', 'california', 'new york', 'texas', 'florida', 'washington', 'oregon', 'arizona', 'utah', 'nevada', 'illinois', 'georgia', 'massachusetts', 'virginia', 'carolina', 'ohio', 'michigan', 'minnesota', 'wisconsin', 'tennessee', 'missouri', 'indiana', 'maryland', 'new jersey', 'pennsylvania', 'connecticut', 'oklahoma', 'kansas', 'iowa', 'nebraska', 'arkansas', 'alabama', 'kentucky', 'louisiana', 'mississippi', 'idaho', 'montana', 'wyoming', 'new mexico', 'maine', 'vermont', 'delaware', 'rhode island', 'hawaii', 'alaska', 'bay area', 'nyc', 'chicago', 'atlanta', 'seattle', 'austin', 'dallas', 'houston', 'phoenix', 'miami', 'boston', 'portland', 'san francisco', 'los angeles', 'san diego']
 
 /** Residency phrasing: "must reside in X", "based in X", "located in X", "candidates in X". */
-const RESIDENCY_RE = /(must (?:reside|live|be located|be based)|reside[sd]? in|residency|be based in|located in|candidates? (?:must )?(?:be )?(?:in|located)|local to|onsite in|on-site in|hybrid in)([^.;)]{0,80})/gi
+const RESIDENCY_RE = /(must (?:reside|live|be located|be based)|reside[sd]? in|residency|be based in|located in|candidates? (?:must )?(?:be )?(?:in|located)|local to|onsite in|on-site in|hybrid in|residents? of|authorized to work in)([^.;)]{0,80})/gi
 
 /** True when a "remote" listing actually pins you to somewhere that is not Colorado. */
 function remoteElsewhere(text: string): boolean {
   const t = text.toLowerCase()
   if (!t) return false
-  const coMentioned = t.includes('colorado') || /\bco\b/.test(t) || DENVER_METRO.some((c) => t.includes(c))
+  const coMentioned = t.includes('colorado') || /,\s*co\b/.test(t) || DENVER_METRO.some((c) => t.includes(c))
   for (const m of t.matchAll(RESIDENCY_RE)) {
     const clause = m[2] || ''
     // A residency clause naming another place, with Colorado absent from it, is out.
-    if (OTHER_PLACES.some((p) => clause.includes(p)) && !(clause.includes('colorado') || /\bco\b/.test(clause))) return true
+    const clauseIsColorado = clause.includes('colorado') || /,\s*co\b/.test(clause) || DENVER_METRO.some((c) => clause.includes(c))
+    if (OTHER_PLACES.some((p) => clause.includes(p)) && !clauseIsColorado) return true
   }
   // "Remote (California only)" / "Remote - New York" with no Colorado anywhere.
   if (/remote[^.]{0,40}\bonly\b/.test(t) && !coMentioned && OTHER_PLACES.some((p) => t.includes(p))) return true
@@ -81,7 +87,9 @@ function inRegion(location: string, title: string, description = ''): boolean {
   if (!`${location} ${title}`.toLowerCase().includes('remote')) return false
   // Remote with a generic location (US-wide/anywhere) is Colorado-eligible; remote
   // pinned to some other specific place is not.
-  return !loc.trim() || loc === 'us' || loc.includes('united states') || loc.includes('remote') || loc.includes('anywhere')
+  if (!loc.trim() || loc === 'us' || loc.includes('united states') || loc.includes('remote') || loc.includes('anywhere')) return true
+  // Genuinely US-wide remote roles often carry the employer's HQ as the location.
+  return /remote[^.]{0,40}(us|u\.s\.|nationwide|any state|anywhere|united states)/i.test(description)
 }
 
 /** Highest number that appears in a salary string, for ranking. */
@@ -239,8 +247,8 @@ async function handle(req: Request) {
     newJobs = found
       .filter((j) => j.fit_score >= 2)
       .filter((j) => {
-        if (knownUrls.has(j.url) || knownPrints.has(j.fingerprint) || seenUrls.has(j.url) || seenPrints.has(j.fingerprint)) { droppedDupes++; return false }
-        seenUrls.add(j.url); seenPrints.add(j.fingerprint)
+        if (knownUrls.has(j.url) || seenUrls.has(j.url) || (j.fingerprint && (knownPrints.has(j.fingerprint) || seenPrints.has(j.fingerprint)))) { droppedDupes++; return false }
+        seenUrls.add(j.url); if (j.fingerprint) seenPrints.add(j.fingerprint)
         return true
       })
       .filter((j) => {
