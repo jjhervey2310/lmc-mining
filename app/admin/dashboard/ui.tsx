@@ -238,9 +238,9 @@ export function Shell({
       <MarketTicker />
       <div className="relative mx-auto max-w-[1400px] px-3 py-2">
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-amber-500/40 pb-2 dark:border-amber-400/25">
-          <div className="flex items-baseline gap-4">
+          <div className="flex min-w-0 flex-1 items-baseline gap-4">
             <span className="text-sm font-bold text-amber-500 dark:text-amber-300">⚡ LMC TERMINAL</span>
-            <nav className="flex gap-3 text-[12px]">
+            <nav className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 overflow-x-auto text-[12px]">
               {tabs.map((t) => (
                 <Link key={t.id} href={t.href}
                   className={t.id === active

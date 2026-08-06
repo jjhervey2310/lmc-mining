@@ -506,3 +506,11 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* A floating overlay needs a real surface — the blanket .bg-white override above
+   is meant for full-bleed strips and made the PA chat see-through (audit 2026-08-06). */
+.lmc-dark .lmc-scene .lmc-solid,
+.lmc-dark .lmc-scene .lmc-solid.bg-white { background-color: #12121a; }
+.lmc-dark .lmc-scene .lmc-solid input { background-color: rgb(255 255 255 / .08); }
+/* -300 borders were left out of the earlier pass and render harsh-white on black. */
+.lmc-dark .lmc-scene .border-neutral-300 { border-color: rgb(255 255 255 / .16); }

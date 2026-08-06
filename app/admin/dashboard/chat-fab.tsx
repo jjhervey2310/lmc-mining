@@ -12,10 +12,10 @@ export default function ChatFab({ secret }: { secret: string }) {
   return (
     <>
       {open && (
-        <div className="fixed bottom-20 right-4 z-50 w-[min(92vw,390px)] rounded-lg border border-neutral-200 bg-white shadow-2xl">
-          <div className="flex items-center justify-between rounded-t-lg border-b border-neutral-200 bg-cyan-100 px-3 py-1.5">
+        <div className="lmc-solid fixed bottom-20 right-4 z-50 w-[min(92vw,390px)] rounded-lg border border-neutral-200 bg-white shadow-2xl dark:border-white/15">
+          <div className="flex items-center justify-between rounded-t-lg border-b border-neutral-200 bg-cyan-100 px-3 py-1.5 dark:border-white/10 dark:bg-cyan-400/15">
             <span className="text-[12px] font-bold uppercase tracking-widest text-cyan-700">🤖 PA — ask me anything</span>
-            <button onClick={() => setOpen(false)} className="px-1 text-neutral-500 hover:text-neutral-900">✕</button>
+            <button onClick={() => setOpen(false)} className="px-1 text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white">✕</button>
           </div>
           <div className="p-3">
             <ChatWindow secret={secret} />

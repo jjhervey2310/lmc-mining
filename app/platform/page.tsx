@@ -94,10 +94,13 @@ function ROIPreview({ btcPrice, difficulty: difficultyProp }: { btcPrice: number
 
   const dailyBtc = (hashrate * 1e12 * 86400 * blockReward * (1 - poolFee)) / (difficulty * Math.pow(2, 32))
   const dailyGross = dailyBtc * price
-  const dailyHosting = hostingMonthly / 30
+  // Period costs match lib/calculator.ts: a flat fee is 12 payments a year, not
+  // 365/30. Scaling a daily figure would bill a phantom 0.17 month annually and
+  // disagree with the number /calculator shows for the same rig.
+  const dailyHosting = (hostingMonthly * 12) / 365
   const dailyNet = dailyGross - dailyHosting
-  const monthlyNet = dailyNet * 30
-  const annualNet = dailyNet * 365
+  const monthlyNet = dailyGross * 30 - hostingMonthly
+  const annualNet = dailyGross * 365 - hostingMonthly * 12
 
   return (
     <div className="rounded-2xl p-6 md:p-8" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>

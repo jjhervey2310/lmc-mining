@@ -28,22 +28,22 @@ const px = (n: number) => `$${usd(n, n < 10 ? 4 : 2)}`
 const GOOGLE_RAINBOW = 'linear-gradient(90deg,#4285F4,#EA4335,#FBBC05,#34A853)'
 const BRAND: Record<string, { chip: string; chipSel: string; name: string; nameStyle?: React.CSSProperties; tile: string; value: string }> = {
   claude: {
-    chip: 'border-amber-400 bg-amber-50 hover:bg-amber-100',
-    chipSel: 'border-amber-500 bg-amber-100 ring-2 ring-amber-400',
+    chip: 'border-amber-400 bg-amber-50 hover:bg-amber-100 dark:bg-amber-400/10 dark:hover:bg-amber-400/20',
+    chipSel: 'border-amber-500 bg-amber-100 ring-2 ring-amber-400 dark:bg-amber-400/20',
     name: 'font-bold text-amber-700',
     tile: 'border-t-amber-500 from-amber-50',
     value: 'text-amber-700',
   },
   gpt: {
-    chip: 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100',
-    chipSel: 'border-emerald-500 bg-emerald-100 ring-2 ring-emerald-400',
+    chip: 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/20',
+    chipSel: 'border-emerald-500 bg-emerald-100 ring-2 ring-emerald-400 dark:bg-emerald-400/20',
     name: 'font-bold text-emerald-700',
     tile: 'border-t-emerald-500 from-emerald-50',
     value: 'text-emerald-700',
   },
   gemini: {
-    chip: 'border-blue-400 bg-gradient-to-r from-blue-50 via-yellow-50 to-green-50 hover:brightness-95',
-    chipSel: 'border-blue-500 bg-gradient-to-r from-blue-100 via-yellow-100 to-green-100 ring-2 ring-blue-400',
+    chip: 'border-blue-400 bg-gradient-to-r from-blue-50 via-yellow-50 to-green-50 hover:brightness-95 dark:from-blue-400/15 dark:via-yellow-400/15 dark:to-green-400/15',
+    chipSel: 'border-blue-500 bg-gradient-to-r from-blue-100 via-yellow-100 to-green-100 ring-2 ring-blue-400 dark:from-blue-400/25 dark:via-yellow-400/25 dark:to-green-400/25',
     name: 'font-bold bg-clip-text text-transparent',
     nameStyle: { backgroundImage: GOOGLE_RAINBOW },
     tile: 'border-t-blue-500 from-blue-50 via-yellow-50',
@@ -63,7 +63,7 @@ export default function CompPanel({ books, start, secret }: { books: CompBook[];
         {books.map((x, i) => {
           const br = BRAND[x.key] ?? BRAND.claude
           return (
-            <button key={x.key} onClick={() => setSel(x.key)}
+            <button key={x.key} onClick={() => setSel(x.key)} aria-label={`${x.name} — show book`}
               className={`border px-3 py-1.5 text-left font-mono text-[13px] transition-all ${x.key === sel ? br.chipSel : br.chip}`}>
               <span className="text-neutral-500">#{i + 1}{i === 0 && x.total != null ? ' 🏆' : ''}</span>{' '}
               <span className={br.name} style={br.nameStyle}>{x.name}</span>{' '}
@@ -87,8 +87,8 @@ export default function CompPanel({ books, start, secret }: { books: CompBook[];
         ].map((t) => {
           const br = BRAND[b.key] ?? BRAND.claude
           return (
-            <div key={t.label} className={`rounded-lg border border-neutral-200 border-t-4 bg-gradient-to-b to-white px-3 py-2 shadow-md ${br.tile}`}>
-              <div className="text-[11px] uppercase tracking-widest text-neutral-600">{t.label}</div>
+            <div key={t.label} className={`lmc-card lmc-lift rounded-xl border border-neutral-200 border-t-4 bg-gradient-to-b to-white px-3 py-2 shadow-md dark:border-white/10 dark:to-neutral-900/60 ${br.tile}`}>
+              <div className="text-[11px] uppercase tracking-widest text-neutral-600 dark:text-neutral-400">{t.label}</div>
               <div className={`font-mono text-2xl font-bold leading-tight ${t.tone || br.value}`}>{t.value}</div>
             </div>
           )
@@ -96,7 +96,7 @@ export default function CompPanel({ books, start, secret }: { books: CompBook[];
       </div>
 
       {b.positions.length ? (
-        <table className="w-full max-w-2xl border border-neutral-200 font-mono text-[12px]">
+        <div className="overflow-x-auto"><table className="w-full min-w-[560px] max-w-2xl border border-neutral-200 font-mono text-[12px]">
           <thead>
             <tr className="bg-neutral-100 text-left text-[11px] uppercase tracking-wide text-neutral-500">
               <th className="px-2 py-1">held</th>
@@ -131,7 +131,7 @@ export default function CompPanel({ books, start, secret }: { books: CompBook[];
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       ) : (
         <div className="text-[12px] text-neutral-500">
           No holdings relayed for {b.name} yet — only weekly cash reports. Paste their trades to Claude and they show up here priced live.

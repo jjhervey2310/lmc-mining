@@ -7,7 +7,17 @@ import { useState } from 'react'
 // so three very different units share one plot — the shape is what matters, and
 // each legend chip carries the real current value. Click a chip to isolate.
 
-export interface Series { key: string; label: string; color: string; points: number[]; format: (n: number) => string }
+export type FormatKey = 'usd0' | 'usd4' | 'terra'
+export interface Series { key: string; label: string; color: string; points: number[]; format: FormatKey }
+
+/** Formatting lives here, not in the server component — closures cannot be
+ *  serialized across the RSC boundary (that 500'd the whole page, 2026-08-06). */
+const FORMATTERS: Record<FormatKey, (n: number) => string> = {
+  usd0: (n) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+  usd4: (n) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`,
+  terra: (n) => `${(n / 1e12).toFixed(1)}T`,
+}
+const fmtWith = (k: FormatKey, n: number) => (FORMATTERS[k] ?? FORMATTERS.usd0)(n)
 
 export default function TrendChart({ series, labels, w = 900, h = 220 }: {
   series: Series[]
@@ -49,7 +59,7 @@ export default function TrendChart({ series, labels, w = 900, h = 220 }: {
               className={`flex items-center gap-2 rounded-lg border px-2.5 py-1 text-[12px] transition-all ${off ? 'opacity-40' : ''} border-neutral-200 bg-white hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10`}>
               <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: s.color, boxShadow: `0 0 10px ${s.color}` }} />
               <span className="text-neutral-600 dark:text-neutral-400">{s.label}</span>
-              <span className="font-mono font-bold" style={{ color: s.color }}>{s.format(last)}</span>
+              <span className="font-mono font-bold" style={{ color: s.color }}>{fmtWith(s.format, last)}</span>
               <span className={`font-mono text-[11px] ${pct >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>
                 {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(1)}%
               </span>
@@ -139,7 +149,7 @@ export default function TrendChart({ series, labels, w = 900, h = 220 }: {
             {shown.map((s) => {
               const v = s.points[Math.min(cursor, s.points.length - 1)]
               return v == null ? null : (
-                <span key={s.key} style={{ color: s.color }}>{s.label} {s.format(v)}</span>
+                <span key={s.key} style={{ color: s.color }}>{s.label} {fmtWith(s.format, v)}</span>
               )
             })}
           </>

@@ -105,9 +105,9 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
           <TrendChart
             labels={rows.map((r) => r.snapshot_date).reverse()}
             series={[
-              { key: 'btc', label: 'BTC', color: '#fbbf24', points: series, format: (v: number) => `$${usd(v, 0)}` },
-              { key: 'hp', label: 'Hashprice', color: '#67e8f9', points: rows.map((r) => Number(r.hashprice_usd)).reverse().filter((v: number) => isFinite(v) && v > 0), format: (v: number) => `$${usd(v, 4)}` },
-              { key: 'diff', label: 'Difficulty', color: '#c4b5fd', points: rows.map((r) => Number(r.difficulty)).reverse().filter((v: number) => isFinite(v) && v > 0), format: (v: number) => `${(v / 1e12).toFixed(1)}T` },
+              { key: 'btc', label: 'BTC', color: '#fbbf24', points: series, format: 'usd0' as const },
+              { key: 'hp', label: 'Hashprice', color: '#67e8f9', points: rows.map((r) => Number(r.hashprice_usd)).reverse().filter((v: number) => isFinite(v) && v > 0), format: 'usd4' as const },
+              { key: 'diff', label: 'Difficulty', color: '#c4b5fd', points: rows.map((r) => Number(r.difficulty)).reverse().filter((v: number) => isFinite(v) && v > 0), format: 'terra' as const },
             ].filter((s) => s.points.length > 1)}
           />
           <table className="mt-3 w-full text-[13px]">
