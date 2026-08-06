@@ -48,7 +48,7 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingMoFleet }: {
       </div>
       <div className="mt-2 text-[11px] text-neutral-500">
         Spot: ${spotHashprice.toFixed(4)}/TH/day · hosting ${hostingMoFleet.toLocaleString()}/mo billed monthly. OC +2 = 3,850W/rig vs 3,645
-        stock — needs Abundant&apos;s wattage OK in writing; if they charge the extra ~205W, stress it here by raising the fee %. Same config drives the plan predictor below.
+        stock — Abundant confirmed $225 stays flat even overclocked (Jacob 2026-08-05). Same config drives the plan predictor below.
       </div>
     </div>
   )

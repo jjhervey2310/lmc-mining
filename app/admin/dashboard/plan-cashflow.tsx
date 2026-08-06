@@ -55,6 +55,11 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   // No add-in until the job lands (Jacob 2026-08-02): contributions start at this
   // month, not today. Default = launch month; set it earlier once hired.
   const [addStart, setAddStart] = useState('2026-12')
+  // Add-in mode (Jacob 2026-08-05): 'flat' = full amount any month the plan wants
+  // help, stops for good once Earl + a 3-month loan cushion are secured (bigger
+  // checks, fewer of them). 'topup' = only the mine's actual shortfall that month,
+  // capped at the add-in amount (smaller checks, they run longer).
+  const [addMode, setAddMode] = useState<'flat' | 'topup'>('flat')
   // Sunrise ON by default; HALVING-TRIGGERED (Jacob confirmed 2026-07-28): AM's
   // $135 hydro rate is the ~40% discount they may offer when the halving starts,
   // NOT from op-mo 7. Still AM's target, not a signed rate — toggle off to stress.
@@ -148,7 +153,9 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
     const earl = opMonth === 18 ? e18 : opMonth === 36 ? e36 : 0
     const mineNet = live ? revenue - hosting - loan : 0
     const remainingEarl = (opMonth <= 18 ? e18 : 0) + (opMonth <= 36 ? e36 : 0)
-    const contrib = m >= addStartIdx && (!live || mineNet < 0 || cum < remainingEarl + 3 * loanMo) ? addMo : 0
+    const contrib = m < addStartIdx ? 0
+      : addMode === 'topup' ? (live ? Math.min(addMo, Math.max(0, -mineNet)) : 0)
+      : (!live || mineNet < 0 || cum < remainingEarl + 3 * loanMo ? addMo : 0)
     const net = mineNet + contrib + sideMo - earl
     cum += net
     rows.push({ live, revenue, hosting, loan, earl, mineNet, contrib, net, cum })
@@ -171,7 +178,9 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
       const hosting = live ? u * (sunrise && halvingIdx > 0 && m >= halvingIdx ? 135 : 225) : 0
       const mineNet = live ? revenue - hosting - loanMo : 0
       const remainingEarl = (op <= 18 ? e18 : 0) + (op <= 36 ? e36 : 0)
-      const contrib = m >= addStartIdx && (!live || mineNet < 0 || c < remainingEarl + 3 * loanMo) ? addMo : 0
+      const contrib = m < addStartIdx ? 0
+        : addMode === 'topup' ? (live ? Math.min(addMo, Math.max(0, -mineNet)) : 0)
+        : (!live || mineNet < 0 || c < remainingEarl + 3 * loanMo ? addMo : 0)
       const earl = op === 18 ? e18 : op === 36 ? e36 : 0
       const net = mineNet + contrib + sideMo - earl
       c += net
@@ -283,6 +292,14 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
           add-in starts (job lands)
           <input type="month" value={addStart} onChange={(e) => setAddStart(e.target.value)}
             className="border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500" />
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] text-neutral-600">
+          add-in mode
+          <select value={addMode} onChange={(e) => setAddMode(e.target.value as 'flat' | 'topup')}
+            className="border border-neutral-300 px-2 py-1 font-mono text-[13px] text-neutral-900 outline-none focus:border-amber-500">
+            <option value="flat">flat — full $ when needed, stops early</option>
+            <option value="topup">top-up — only the month&apos;s shortfall</option>
+          </select>
         </label>
         <label className="flex items-center gap-1 pb-1 text-[11px] text-neutral-600">
           <input type="checkbox" checked={sunrise} onChange={(e) => setSunrise(e.target.checked)} />
