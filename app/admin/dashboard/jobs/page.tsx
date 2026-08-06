@@ -36,7 +36,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
       </div>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_320px]">
-        <Panel accent="blue" title="💼 Job wire" right={<span className="text-[11px] text-neutral-500">tick = done · gone forever</span>}>
+        <Panel accent="blue" title="💼 Job wire" right={<span className="text-[11px] text-neutral-500">Apply = opens + logs it · tick = not for me</span>}>
           <JobWire jobs={rows} secret={secret} />
         </Panel>
 
@@ -56,7 +56,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             ))}
             <div className="mt-3 border-t border-neutral-200 pt-2 text-[11px] text-neutral-500">
               Wire rules: Denver metro or Colorado-eligible remote · $75k posted-salary floor (unlisted kept) ·
-              jobs persist 7 days or until ticked · a ticked job never returns.
+              jobs persist 7 days or until you act on them · applied and dismissed jobs never return · every listing is re-read twice daily and dropped if it closes, ages past 14 days, or stops fitting.
             </div>
           </div>
         </Panel>
