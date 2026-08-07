@@ -146,10 +146,14 @@ async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
       const rows = ((await res.json()).results || []) as {
         title?: string; company?: { display_name?: string }; redirect_url?: string; description?: string
         location?: { display_name?: string }; salary_min?: number; salary_max?: number; created?: string
+        salary_is_predicted?: string
       }[]
       for (const r of rows) {
         if (!r.title || !r.redirect_url) continue
-        const salary = r.salary_min || r.salary_max
+        // Adzuna guesses a salary when the ad has none; those guesses are wild
+        // (a $478k plumbing GM). Treat predicted pay as "unlisted".
+        const predicted = String(r.salary_is_predicted ?? '0') === '1'
+        const salary = !predicted && (r.salary_min || r.salary_max)
           ? `$${Math.round(r.salary_min || r.salary_max || 0).toLocaleString()}${r.salary_max && r.salary_min && r.salary_max !== r.salary_min ? `–$${Math.round(r.salary_max).toLocaleString()}` : ''}`
           : null
         const company = r.company?.display_name || ''

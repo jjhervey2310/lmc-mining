@@ -26,6 +26,22 @@ const FETCH_TIMEOUT_MS = 10_000
 const MAX_BYTES = 2_000_000
 const MAX_HOPS = 5
 
+/** A redirect may leave the allowlist (job boards bounce to employer sites), but
+ *  never to an IP literal, localhost, or a .internal name — those are the SSRF
+ *  targets. Public hostnames only. */
+function publicHopAllowed(raw: string): boolean {
+  try {
+    const u = new URL(raw)
+    if (u.protocol !== 'https:') return false
+    const h = u.hostname.toLowerCase()
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.includes(':')) return false   // IPv4/IPv6 literal
+    if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.internal') || h.endsWith('.local')) return false
+    return h.includes('.')
+  } catch {
+    return false
+  }
+}
+
 function hostAllowed(raw: string): boolean {
   try {
     const u = new URL(raw)
@@ -41,7 +57,8 @@ function hostAllowed(raw: string): boolean {
 async function safeFetch(startUrl: string): Promise<{ ok: boolean; status: number; html: string }> {
   let url = startUrl
   for (let hop = 0; hop < MAX_HOPS; hop++) {
-    if (!hostAllowed(url)) return { ok: false, status: 0, html: '' }
+    const ok = hop === 0 ? hostAllowed(url) : publicHopAllowed(url)
+    if (!ok) return { ok: false, status: 0, html: '' }
     const res = await fetch(url, {
       headers: { 'User-Agent': UA },
       redirect: 'manual',
