@@ -237,25 +237,29 @@ export function Shell({
       </div>
       <MarketTicker />
       <div className="relative mx-auto max-w-[1400px] px-3 py-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-amber-500/40 pb-2 dark:border-amber-400/25">
-          <div className="flex min-w-0 flex-1 items-baseline gap-4">
-            <span className="text-sm font-bold text-amber-500 dark:text-amber-300">⚡ LMC TERMINAL</span>
-            <nav className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 overflow-x-auto text-[12px]">
-              {tabs.map((t) => (
-                <Link key={t.id} href={t.href}
-                  className={t.id === active
-                    ? 'text-amber-600 underline underline-offset-4 dark:text-amber-300'
-                    : 'text-neutral-600 transition-colors hover:text-amber-700 dark:text-neutral-400 dark:hover:text-amber-300'}>
-                  {t.label}
-                </Link>
-              ))}
-            </nav>
+        {/* Header: on a phone the wordmark/clock sit on one line and the tabs get
+            their own full-width row that scrolls sideways — squeezing them beside
+            the wordmark clipped VIDEOS off the screen entirely (Jacob 2026-08-06). */}
+        <div className="border-b border-amber-500/40 pb-2 dark:border-amber-400/25">
+          <div className="flex items-center justify-between gap-2">
+            <span className="whitespace-nowrap text-sm font-bold text-amber-500 dark:text-amber-300">⚡ LMC TERMINAL</span>
+            <span className="flex shrink-0 items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
+              <span className="lmc-pulse inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+              <span className="hidden sm:inline">{new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })} DEN · refresh 5m</span>
+              <span className="sm:hidden">{denverTime(new Date().toISOString())}</span>
+              <ThemeToggle />
+            </span>
           </div>
-          <span className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
-            <span className="lmc-pulse inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-            {new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })} DEN · refresh 5m
-            <ThemeToggle />
-          </span>
+          <nav className="-mx-3 mt-1.5 flex gap-4 overflow-x-auto px-3 pb-0.5 text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {tabs.map((t) => (
+              <Link key={t.id} href={t.href}
+                className={`whitespace-nowrap ${t.id === active
+                  ? 'font-bold text-amber-600 underline underline-offset-4 dark:text-amber-300'
+                  : 'text-neutral-600 transition-colors hover:text-amber-700 dark:text-neutral-400 dark:hover:text-amber-300'}`}>
+                {t.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
         <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-neutral-100 py-1.5 text-[11px] uppercase tracking-wider dark:border-white/5">
