@@ -102,6 +102,20 @@ function salaryMax(s: string | null): number {
 // Adzuna aggregates Indeed and other major boards and exposes salary estimates —
 // the legitimate route to salary data (Indeed has no public API; LinkedIn blocks bots).
 // Free keys: developer.adzuna.com → ADZUNA_APP_ID + ADZUNA_APP_KEY in Vercel env.
+
+/** Adzuna returns 5xx/429 under load. One lost fetch = a hole in the day's wire,
+ *  so retry with backoff before accepting failure (Jacob 2026-08-07). */
+async function fetchWithRetry(url: string, init: RequestInit = {}, tries = 3): Promise<Response> {
+  let last: Response | null = null
+  for (let i = 0; i < tries; i++) {
+    const res = await fetch(url, init)
+    if (res.ok || (res.status < 500 && res.status !== 429)) return res
+    last = res
+    if (i < tries - 1) await new Promise((r) => setTimeout(r, 1200 * (i + 1)))
+  }
+  return last as Response
+}
+
 async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
   const id = process.env.ADZUNA_APP_ID
   const key = process.env.ADZUNA_APP_KEY
@@ -122,7 +136,9 @@ async function fetchAdzuna(kw: string[], stats?: string[]): Promise<JobHit[]> {
   ]
   for (const pass of passes) for (const where of ['Denver, Colorado', '']) {
     try {
-      const res = await fetch(
+      // Adzuna 503'd every query on 2026-08-07 and the day's wire came up empty.
+      // Retry transient upstream failures before giving the slot up.
+      const res = await fetchWithRetry(
         `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${id}&app_key=${key}&results_per_page=50&${pass}${where ? `&where=${encodeURIComponent(where)}` : ''}&max_days_old=14&sort_by=date`,
         { cache: 'no-store' }
       )
@@ -218,6 +234,10 @@ async function handle(req: Request) {
   const adzunaConfigured = !!(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY)
   const sweepStats: string[] = []
   const found = await fetchAdzuna(kw, sweepStats)
+  // A sweep that returned nothing because the source was down is NOT a quiet day.
+  if (adzunaConfigured && found.length === 0 && sweepStats.some((l) => /HTTP 5\d\d|HTTP 429/.test(l))) {
+    alerts.push('Job sweep found nothing — Adzuna returned errors for every query. Their API was down, not your filters. The wire will refill on the next run.')
+  }
   let newJobs: JobHit[] = []
   if (supabase && found.length) {
     // Chunked lookup: one .in() with 250 long URLs overflows the request line and
