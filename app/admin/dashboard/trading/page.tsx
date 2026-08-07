@@ -1,7 +1,13 @@
 import type { Metadata } from 'next'
+import { createServiceClient } from '@/lib/supabase'
 import { Shell, Panel, checkAdmin } from '../ui'
 import CompPanel from '../comp-panel'
+import TrendChart from '../trend-chart'
 import { getCompBooks, COMP_START_CASH } from '../comp-data'
+
+// Brand colours match the leaderboard chips: Claude amber, ChatGPT emerald,
+// Gemini Google-blue.
+const LINE: Record<string, string> = { claude: '#fbbf24', gpt: '#34d399', gemini: '#60a5fa' }
 
 // TRADING — the competition page: Claude vs GPT vs Gemini, $1,000 each,
 // every book priced live. Winner keeps the membership.
@@ -14,11 +20,43 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
   checkAdmin(secret)
   const books = await getCompBooks()
 
+  // Equity curve: one point per contestant per day from comp_snapshots.
+  const supabase = createServiceClient()
+  const { data: snaps } = (await supabase?.from('comp_snapshots')
+    .select('snapshot_date, contestant, total')
+    .order('snapshot_date')) ?? { data: null }
+  const days = [...new Set((snaps ?? []).map((r) => r.snapshot_date as string))]
+  const curve = ['claude', 'gpt', 'gemini'].map((k) => ({
+    key: k,
+    label: k.toUpperCase(),
+    color: LINE[k],
+    format: 'usd2' as const,
+    // Carry the last known value forward so a missed day doesn't break the line.
+    points: days.reduce<number[]>((acc, d) => {
+      const hit = (snaps ?? []).find((r) => r.snapshot_date === d && r.contestant === k)
+      acc.push(hit ? Number(hit.total) : acc[acc.length - 1] ?? COMP_START_CASH)
+      return acc
+    }, []),
+  })).filter((s) => s.points.length > 1)
+
   return (
     <Shell secret={secret} active="trading">
       <Panel accent="purple" title="🏆 Trading competition — $1,000 each" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
         <CompPanel books={books} start={COMP_START_CASH} secret={secret} />
       </Panel>
+      {curve.length > 0 && (
+        <div className="mt-3">
+          <Panel accent="purple" title="Equity curves — every book, one axis"
+            right={<span className="text-[11px] text-neutral-500">daily close · slide to compare any day</span>}>
+            <TrendChart series={curve} labels={days} sharedScale h={240} />
+          </Panel>
+        </div>
+      )}
+      {curve.length === 0 && (
+        <div className="mt-3 rounded-lg border border-dashed border-neutral-300 p-3 text-[12px] text-neutral-500 dark:border-white/15">
+          Equity curves start once there are two daily snapshots — the first is banked tonight, so the chart appears tomorrow.
+        </div>
+      )}
       <div className="mt-3 text-[12px] text-neutral-500">
         Rules: #1 — independence: no contestant sees or reacts to another&apos;s picks; every call is made as if rival books don&apos;t exist ·
         every trade priced at the real market at call time · full universe — any stock or any crypto · ledgers reconcile weekly ·
