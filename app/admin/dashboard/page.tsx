@@ -39,6 +39,9 @@ export default async function Posts({ searchParams }: { searchParams: Promise<{ 
     fetchHeygenQuota(),
   ])
 
+  // posts === null means the Postiz fetch itself failed (bad key, API down) — that is
+  // NOT an empty queue, and the dashboard must never dress one up as the other.
+  const pzDown = posts === null
   const allPosts = posts ?? []
   const todayPosts = allPosts
     .filter((p) => denverDate(new Date(p.publishDate)) === today)
@@ -68,7 +71,7 @@ export default async function Posts({ searchParams }: { searchParams: Promise<{ 
   const health: { label: string; ok: boolean }[] = [
     { label: 'DATA FEED', ok: feedOk },
     { label: 'CONTENT BANKED', ok: cacheRows.length > 0 },
-    { label: 'QUEUE', ok: queued >= 4 },
+    pzDown ? { label: 'POSTIZ UNREACHABLE', ok: false } : { label: 'QUEUE', ok: queued >= 4 },
     { label: 'RENDER BUDGET', ok: (quota ?? 0) >= 600 },
   ]
 
@@ -88,8 +91,8 @@ export default async function Posts({ searchParams }: { searchParams: Promise<{ 
             <span className="w-full truncate text-[12px] text-neutral-600 sm:w-auto sm:flex-1">{nextPost.content.split('\n')[0].slice(0, 80)}</span>
           </div>
         ) : (
-          <div className="mb-3 text-[13px] text-neutral-600">
-            {todayPosts.length ? 'All of today’s posts are out.' : 'Nothing scheduled today.'}
+          <div className={`mb-3 text-[13px] ${pzDown ? 'text-red-600' : 'text-neutral-600'}`}>
+            {pzDown ? 'Postiz unreachable — today’s schedule unknown (posts may still fire; Make posts with its own key).' : todayPosts.length ? 'All of today’s posts are out.' : 'Nothing scheduled today.'}
           </div>
         )}
         <div className="flex flex-wrap gap-2">
@@ -117,7 +120,7 @@ export default async function Posts({ searchParams }: { searchParams: Promise<{ 
       {/* Pipeline numbers */}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Tile accent="blue" label="Next post" value={nextPost ? `T-${countdown}` : todayPosts.length ? 'done ✓' : '—'} sub={nextPost ? `${denverTime(nextPost.publishDate)} ${nextPost.platform}` : undefined} />
-        <Tile accent="pink" label="Posts queued" value={String(queued)} tone={queued >= 4 ? 'amber' : 'neg'} sub="next 7 days" />
+        <Tile accent="pink" label="Posts queued" value={pzDown ? '?' : String(queued)} tone={!pzDown && queued >= 4 ? 'amber' : 'neg'} sub={pzDown ? 'Postiz unreachable — check key' : 'next 7 days'} />
         <Tile accent="rose" label="HeyGen units" value={quota !== null ? String(quota) : '—'} tone={(quota ?? 0) >= 600 ? 'amber' : (quota ?? 0) >= 300 ? 'dim' : 'neg'} sub="week burns ~300–550" />
         <Tile accent="teal" label="Content banked" value={`${cacheRows.length}d`} tone={cacheRows.length ? 'amber' : 'neg'} sub="gate-passed days ahead" />
       </div>
@@ -125,7 +128,7 @@ export default async function Posts({ searchParams }: { searchParams: Promise<{ 
       {/* Queue mix + week ahead */}
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <Panel accent="pink" title="Queue mix — by platform">
-          <DonutChart center={String(queued)} data={Object.entries(
+          <DonutChart center={pzDown ? '?' : String(queued)} data={Object.entries(
             allPosts.filter((p) => p.state === 'QUEUE').reduce<Record<string, number>>((a, p) => { a[p.platform] = (a[p.platform] || 0) + 1; return a }, {})
           ).map(([label, value]) => ({ label, value }))} />
         </Panel>
@@ -166,7 +169,7 @@ export default async function Posts({ searchParams }: { searchParams: Promise<{ 
               ))}
             </div>
           ) : (
-            <span className="text-[13px] text-red-600">Postiz unreachable or queue empty.</span>
+            <span className="text-[13px] text-red-600">{pzDown ? 'Postiz unreachable (dead POSTIZ_API_KEY or API outage) — queue unknown, not empty.' : 'Queue is empty — check Make → LMC Weekly Batch.'}</span>
           )}
         </Panel>
       </div>
