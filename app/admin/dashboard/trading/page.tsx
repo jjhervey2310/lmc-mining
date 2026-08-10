@@ -32,36 +32,40 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     ? new Date(newest).toLocaleTimeString('en-US', { timeZone: 'America/Denver', hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : null
 
-  // Equity curve: one point per contestant per day from comp_snapshots.
+  // Equity curve: one point per contestant per day from comp_snapshots, plus a
+  // live "now" endpoint from the same books that price the tiles — so the line
+  // always ends where the boxes are (Jacob, 2026-08-10).
   const supabase = createServiceClient()
   const { data: snaps } = (await supabase?.from('comp_snapshots')
     .select('snapshot_date, contestant, total')
     .order('snapshot_date')) ?? { data: null }
   const days = [...new Set((snaps ?? []).map((r) => r.snapshot_date as string))]
+  const liveTotal = Object.fromEntries(books.map((b) => [b.key, b.total]))
+  const bankedPoints = (k: string) =>
+    days.reduce<number[]>((acc, d) => {
+      const hit = (snaps ?? []).find((r) => r.snapshot_date === d && r.contestant === k)
+      acc.push(hit ? Number(hit.total) : acc[acc.length - 1] ?? COMP_START_CASH)
+      return acc
+    }, [])
+  // Live endpoint; a book with no report carries its last banked value forward.
+  const withNow = (k: string) => {
+    const pts = bankedPoints(k)
+    pts.push(liveTotal[k] ?? pts[pts.length - 1] ?? COMP_START_CASH)
+    return pts
+  }
+  const chartDays = [...days, 'now']
   const curve = ['claude', 'gpt', 'gemini'].map((k) => ({
     key: k,
     label: k.toUpperCase(),
     color: LINE[k],
     format: 'usd2' as const,
-    // Carry the last known value forward so a missed day doesn't break the line.
-    points: days.reduce<number[]>((acc, d) => {
-      const hit = (snaps ?? []).find((r) => r.snapshot_date === d && r.contestant === k)
-      acc.push(hit ? Number(hit.total) : acc[acc.length - 1] ?? COMP_START_CASH)
-      return acc
-    }, []),
+    points: withNow(k),
   })).filter((s) => s.points.length > 1)
 
   // Same data keyed for the per-contestant chart inside the panel.
   const daily = {
-    days,
-    totals: Object.fromEntries(['claude', 'gpt', 'gemini'].map((k) => [
-      k,
-      days.reduce<number[]>((acc, d) => {
-        const hit = (snaps ?? []).find((r) => r.snapshot_date === d && r.contestant === k)
-        acc.push(hit ? Number(hit.total) : acc[acc.length - 1] ?? COMP_START_CASH)
-        return acc
-      }, []),
-    ])),
+    days: chartDays,
+    totals: Object.fromEntries(['claude', 'gpt', 'gemini'].map((k) => [k, withNow(k)])),
   }
 
   return (
@@ -81,8 +85,8 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
       {curve.length > 0 && (
         <div className="mt-3">
           <Panel accent="purple" title="Equity curves — every book, one axis"
-            right={<span className="text-[11px] text-neutral-500">daily close · slide to compare any day</span>}>
-            <TrendChart series={curve} labels={days} sharedScale h={240} />
+            right={<span className="text-[11px] text-neutral-500">daily close, ending at live now · slide to compare any day</span>}>
+            <TrendChart series={curve} labels={chartDays} sharedScale h={240} />
           </Panel>
         </div>
       )}
