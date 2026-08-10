@@ -18,7 +18,7 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingMoFleet }: {
 
   // Hosting bills monthly; month = day × 30.42, year = month × 12 — same
   // conventions as the P&L tiles above so the two always reconcile.
-  const LOAN_MO = 3551 // AM $140k @10% 48mo — the fleet owes this every month
+  const LOAN_MO = 2485 // 18 × $6,900 − 5% = $117,990, minus Jacob's $20k deposit → $97,990 financed @10%/48mo (corrected 2026-08-10; was $140k/$3,551 sized for the old 25-unit plan)
   const revenueDay = spotHashprice * ocTh * rigs * (1 - feePct / 100)
   const revenueMo = revenueDay * 30.42
   const afterHostMo = revenueMo - hostingMoFleet
@@ -51,7 +51,7 @@ export default function FleetWhatIf({ spotHashprice, rigs, hostingMoFleet }: {
         <span>net/yr <b className={netMo >= 0 ? 'text-green-600' : 'text-red-600'}>{fmt(netMo * 12)}</b></span>
       </div>
       <div className="mt-2 text-[11px] text-neutral-500">
-        Spot: ${spotHashprice.toFixed(4)}/TH/day · hosting ${hostingMoFleet.toLocaleString()}/mo + AM loan $3,551/mo — net is after BOTH. OC +2 = 3,850W/rig vs 3,645
+        Spot: ${spotHashprice.toFixed(4)}/TH/day · hosting ${hostingMoFleet.toLocaleString()}/mo + AM loan $2,485/mo — net is after BOTH. OC +2 = 3,850W/rig vs 3,645
         stock — Abundant confirmed $225 stays flat even overclocked (Jacob 2026-08-05). Same config drives the plan predictor below.
       </div>
     </div>

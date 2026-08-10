@@ -81,7 +81,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const pickScenario = (k: string) => { setScenario(k); if (SCENARIOS[k]) { setBtcG(SCENARIOS[k][0]); setDiffG(SCENARIOS[k][1]) } }
 
   const u = parseInt(units) || 18
-  const loanMo = 3551 // AM $140k @10% 48mo, per plan
+  const loanMo = 2485 // AM loan: 18 × $6,900 − 5% = $117,990, minus Jacob's $20k deposit → $97,990 financed @10%/48mo (corrected 2026-08-10; was $140k/$3,551 sized for the old 25-unit plan)
   const thRig = parseFloat(th) || 300
   const addMo = parseFloat(addIn) || 0
   const sideMo = parseFloat(side) || 0

@@ -76,7 +76,7 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
           {n ? (() => {
             const grossDay = n.hashpricePerThDay * 300 * 18 * (1 - 0.028)
             const hostMo = 18 * 225
-            const LOAN_MO = 3551 // AM $140k @10% 48mo — a real monthly obligation
+            const LOAN_MO = 2485 // 18 × $6,900 − 5% = $117,990, minus Jacob's $20k deposit → $97,990 financed @10%/48mo (corrected 2026-08-10; was $140k/$3,551 sized for the old 25-unit plan)
             const grossMo = grossDay * 30.42
             const afterHostMo = grossMo - hostMo
             // The bottom line Jacob actually banks: revenue − hosting − loan.
@@ -88,7 +88,7 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
               <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
                 <Tile accent="green" label="Revenue/mo" value={`$${usd(grossMo, 0)}`} sub={`$${usd(grossDay)}/day · 300TH × 18 after 2.8% fee`} />
                 <Tile accent="green" label="Hosting" value={`$${usd(hostMo, 0)}/mo`} sub={`$${usd(hostMo / 30.42)}/day`} />
-                <Tile accent="green" label="AM loan" value={`$${usd(LOAN_MO, 0)}/mo`} sub="$140k @10% · 48mo" />
+                <Tile accent="green" label="AM loan" value={`$${usd(LOAN_MO, 0)}/mo`} sub="$97,990 @10% · 48mo (after $20k deposit)" />
                 <Tile accent="cyan" label="After hosting" value={`${sign(afterHostMo)}$${usd(Math.abs(afterHostMo), 0)}/mo`} tone={afterHostMo >= 0 ? 'pos' : 'neg'} sub="before debt service" />
                 <Tile accent={trueNetMo >= 0 ? 'green' : 'rose'} label="Net after loan" value={`${sign(trueNetMo)}$${usd(Math.abs(trueNetMo), 0)}/mo`} tone={trueNetMo >= 0 ? 'pos' : 'neg'}
                   sub={`${sign(trueNetMo)}$${usd(Math.abs(trueNetMo * 12), 0)}/yr · the real bottom line`} />
