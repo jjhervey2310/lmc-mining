@@ -2,11 +2,12 @@
 
 import { Fragment, useState } from 'react'
 
-// THE FINAL PLAN (locked 2026-07-27): 18 units, LuxOS overclock 300 TH/rig on Luxor
-// pool (1% fee), Earl's $50k war chest, Jacob's monthly add-in. Launch-aware 48-month
-// curve driven by the 24-month monthly BTC prediction table (base path) then
-// extrapolation; April 2028 halving = hard ×0.5 hashprice cut. Earl repaid at
-// operating months 18/36.
+// THE FINAL PLAN (Earl terms restructured 2026-08-10): 18 units, LuxOS OC 300 TH/rig
+// on Luxor pool (2.8% all-in). Earl lends $70k TOTAL — $20k pays the machine deposit,
+// $50k sits as war chest — repaid $105k (loan + 50%) as $52,500 at operating months
+// 18 and 36. Jacob's only cash in is the monthly add-in once the job lands.
+// Launch-aware 48-month curve rides the 24-month BTC prediction table (base path)
+// then extrapolation; April 2028 halving = hard ×0.5 hashprice cut.
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -49,8 +50,8 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   const [addIn, setAddIn] = useState('3000')
   const [side, setSide] = useState(String(Math.round(liveSideIncome)))
   const [chest, setChest] = useState('50000')
-  const [earl18, setEarl18] = useState('37500')
-  const [earl36, setEarl36] = useState('37500')
+  const [earl18, setEarl18] = useState('52500') // half of $105k (Earl's $70k + 50%)
+  const [earl36, setEarl36] = useState('52500')
   const [launch, setLaunch] = useState('2026-12')
   // No add-in until the job lands (Jacob 2026-08-02): contributions start at this
   // month, not today. Default = launch month; set it earlier once hired.
@@ -214,7 +215,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
   return (
     <div className="mt-3 border-t border-neutral-200 pt-3">
       <div className="mb-2 text-[11px] uppercase tracking-widest text-neutral-500">
-        The final plan — 18 units · LuxOS OC 300TH · Luxor pool · Earl war chest · monthly add-in
+        The final plan — 18 units · LuxOS OC 300TH · Earl $70k ($20k deposit + $50k chest, repay $52.5k @ op-mo 18 & 36) · monthly add-in
       </div>
 
       {/* Obligations & war-chest runway */}
@@ -222,7 +223,7 @@ export default function PlanCashflow({ spotHashprice, btcPrice, liveSideIncome =
         {[
           { label: 'Obligations/mo (live)', value: usd0(obligationsMo), sub: `hosting ${usd0(u * 225)} + loan ${usd0(loanMo)}`, tone: 'text-neutral-800' },
           { label: 'First live month gap (base)', value: launchRow?.live ? fmt(launchRow.mineNet) : fmt(pred.base.find((r) => r.live)?.mineNet ?? 0), sub: 'mine revenue − obligations', tone: (launchRow?.live ? launchRow.mineNet : pred.base.find((r) => r.live)?.mineNet ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' },
-          { label: 'War chest at launch', value: usd0(launchIdx > 0 ? rows[launchIdx - 1].cum : parseFloat(chest) || 0), sub: `Earl $${Math.round((parseFloat(chest) || 0) / 1000)}k · your add-in from ${addStart}`, tone: 'text-neutral-800' },
+          { label: 'War chest at launch', value: usd0(launchIdx > 0 ? rows[launchIdx - 1].cum : parseFloat(chest) || 0), sub: `Earl's $50k chest ($70k lent, $20k took the deposit) · add-in from ${addStart}`, tone: 'text-neutral-800' },
           { label: 'War chest runway', value: runwayFull(), sub: `48-month engine · deepest ${fmt(trough)} in ${labelAt(troughMo)}`, tone: trough < 0 ? 'text-red-600' : 'text-amber-600' },
         ].map((t) => (
           <div key={t.label} className="rounded border border-neutral-200 bg-white px-3 py-2">
