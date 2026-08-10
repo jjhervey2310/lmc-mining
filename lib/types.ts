@@ -109,6 +109,13 @@ export interface CalculatorInputs {
   hardware_cost: number | null
   btc_price: number
   network_difficulty: number
+  /**
+   * Flat hosting fee in USD per machine per month, for providers that bill a
+   * fixed rate instead of per-kWh (e.g. Abundant Mines at $225/mo). When set,
+   * this replaces the per-kWh power cost — the two are never charged together.
+   * Omit or leave null to bill on electricity_rate_kwh.
+   */
+  flat_monthly_fee?: number | null
 }
 
 export interface CalculatorResults {
@@ -117,8 +124,10 @@ export interface CalculatorResults {
   daily_power_cost_usd: number
   daily_profit_usd: number
   monthly_revenue_usd: number
+  monthly_cost_usd: number
   monthly_profit_usd: number
   annual_revenue_usd: number
+  annual_cost_usd: number
   annual_profit_usd: number
   breakeven_btc_price: number
   profit_margin_percent: number

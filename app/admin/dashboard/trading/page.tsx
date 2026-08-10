@@ -4,6 +4,7 @@ import { Shell, Panel, checkAdmin } from '../ui'
 import CompPanel from '../comp-panel'
 import TrendChart from '../trend-chart'
 import { getCompBooks, COMP_START_CASH } from '../comp-data'
+import { getMarketQuotes, isStale, marketClosed } from '@/lib/markets'
 
 // Brand colours match the leaderboard chips: Claude amber, ChatGPT emerald,
 // Gemini Google-blue.
@@ -19,6 +20,17 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
   const { secret = '' } = await searchParams
   checkAdmin(secret)
   const books = await getCompBooks()
+
+  // Price provenance: when the feed was actually read, and whether anything is
+  // being served from a stale cache. Presenting old ticks as live is how MSFT
+  // showed $487.46 against a $499.99 close (2026-08-08).
+  const quotes = await getMarketQuotes().catch(() => [])
+  const newest = quotes.length ? Math.max(...quotes.map((q) => q.fetchedAt)) : null
+  const staleCount = quotes.filter((q) => isStale(q)).length
+  const closed = marketClosed()
+  const asOf = newest
+    ? new Date(newest).toLocaleTimeString('en-US', { timeZone: 'America/Denver', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : null
 
   // Equity curve: one point per contestant per day from comp_snapshots.
   const supabase = createServiceClient()
@@ -41,6 +53,15 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
 
   return (
     <Shell secret={secret} active="trading">
+      <div className="mb-2 flex flex-wrap items-center gap-3 text-[11px] text-neutral-500 dark:text-neutral-400">
+        <span>prices as of <b className="font-mono">{asOf ?? 'unavailable'}</b> DEN</span>
+        {closed && <span className="rounded bg-neutral-200 px-1.5 py-0.5 uppercase tracking-wide dark:bg-white/10">equities: last session close</span>}
+        {staleCount > 0 && (
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">
+            {staleCount} quote{staleCount === 1 ? '' : 's'} older than 10 min — marked stale, not live
+          </span>
+        )}
+      </div>
       <Panel accent="purple" title="🏆 Trading competition — $1,000 each" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
         <CompPanel books={books} start={COMP_START_CASH} secret={secret} />
       </Panel>

@@ -10,6 +10,28 @@ export interface Quote {
   price: number
   changePct: number
   kind: 'crypto' | 'equity'
+  /** When this price was actually fetched — NOT when it was read. A failed
+   *  refresh serves the last good snapshot, and without this the dashboard
+   *  presented a stale tick as live (MSFT showed $487.46 against a $499.99
+   *  Friday close, 2026-08-08). */
+  fetchedAt: number
+  /** Equity quote carried over from the last session (weekend/after-hours). */
+  sessionClose?: boolean
+}
+
+/** A quote older than this is no longer presentable as "live". */
+export const STALE_AFTER_MS = 10 * 60_000
+
+export function isStale(q: Quote, now = Date.now()): boolean {
+  return now - q.fetchedAt > STALE_AFTER_MS
+}
+
+/** US equities don't tick outside ~13:30–20:00 UTC on weekdays. */
+export function marketClosed(d = new Date()): boolean {
+  const day = d.getUTCDay()
+  if (day === 0 || day === 6) return true
+  const mins = d.getUTCHours() * 60 + d.getUTCMinutes()
+  return mins < 13 * 60 + 30 || mins >= 20 * 60
 }
 
 const CRYPTO: [string, string][] = [
@@ -51,7 +73,7 @@ async function fetchCrypto(): Promise<Quote[]> {
   return CRYPTO.flatMap(([id, symbol]) => {
     const row = data?.[id]
     if (!row || typeof row.usd !== 'number') return []
-    return [{ symbol, price: row.usd, changePct: Number(row.usd_24h_change) || 0, kind: 'crypto' as const }]
+    return [{ symbol, price: row.usd, changePct: Number(row.usd_24h_change) || 0, kind: 'crypto' as const, fetchedAt: Date.now() }]
   })
 }
 
@@ -65,7 +87,7 @@ async function fetchEquity(yahoo: string, symbol: string): Promise<Quote> {
   const price = meta?.regularMarketPrice
   const prev = meta?.chartPreviousClose ?? meta?.previousClose
   if (typeof price !== 'number') throw new Error(`yahoo ${symbol} no price`)
-  return { symbol, price, changePct: prev ? ((price - prev) / prev) * 100 : 0, kind: 'equity' }
+  return { symbol, price, changePct: prev ? ((price - prev) / prev) * 100 : 0, kind: 'equity', fetchedAt: Date.now(), sessionClose: marketClosed() }
 }
 
 export async function getMarketQuotes(): Promise<Quote[]> {

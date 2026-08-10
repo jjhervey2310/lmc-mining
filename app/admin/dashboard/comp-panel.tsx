@@ -7,7 +7,15 @@ import RivalEntry from './competition'
 // whole panel switches to their book — positions, spend, live value, P&L, and
 // their full trade history. Every book is priced by the same feed server-side.
 
-interface Pos { symbol: string; qty: number; avg: number; spent: number; live: number | null; value: number | null; pnl: number | null }
+interface Pos {
+  symbol: string; qty: number; avg: number; spent: number
+  live: number | null; value: number | null; pnl: number | null
+  /** quote older than 10 min — must not be shown as a live tick */
+  stale?: boolean
+  /** equity quote carried from the last session (weekend/after-hours) */
+  sessionClose?: boolean
+  quotedAt?: number | null
+}
 interface Trade { traded_at: string; action: string; symbol: string; qty: number; price: number; note: string | null }
 export interface CompBook {
   key: string
@@ -16,6 +24,8 @@ export interface CompBook {
   total: number | null
   cash: number | null
   holdings: number | null
+  /** profit banked on closed size — survives after a position is sold */
+  realized?: number | null
   positions: Pos[]
   trades: Trade[]
 }
@@ -78,12 +88,13 @@ export default function CompPanel({ books, start, secret }: { books: CompBook[];
       </div>
 
       {/* Selected contestant's book */}
-      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
         {[
           { label: `${b.name} total`, value: b.total != null ? `$${usd(b.total)}` : '—', tone: b.total == null ? '' : b.total >= start ? 'text-green-600' : 'text-red-600' },
           { label: 'Cash in bank', value: b.cash != null ? `$${usd(b.cash)}` : '—', tone: '' },
           { label: 'Holdings value', value: b.holdings != null ? `$${usd(b.holdings)}` : '—', tone: '' },
           { label: 'Unrealized P&L', value: b.positions.length ? `${totalPnl >= 0 ? '+' : '-'}$${usd(Math.abs(totalPnl))}` : '—', tone: totalPnl >= 0 ? 'text-green-600' : 'text-red-600' },
+          { label: 'Realized P&L', value: b.realized == null ? '—' : `${b.realized >= 0 ? '+' : '-'}$${usd(Math.abs(b.realized))}`, tone: (b.realized ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' },
         ].map((t) => {
           const br = BRAND[b.key] ?? BRAND.claude
           return (
@@ -115,7 +126,15 @@ export default function CompPanel({ books, start, secret }: { books: CompBook[];
                 <td className="px-2 py-1">{p.qty.toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
                 <td className="px-2 py-1">{px(p.avg)}</td>
                 <td className="px-2 py-1">${usd(p.spent)}</td>
-                <td className="px-2 py-1">{p.live != null ? px(p.live) : '—'}</td>
+                <td className="px-2 py-1">
+                  {p.live == null ? '—' : (
+                    <span className={p.stale ? 'text-neutral-500 dark:text-neutral-400' : ''}>
+                      {px(p.live)}
+                      {p.stale && <span className="ml-1 rounded bg-neutral-200 px-1 text-[9px] uppercase text-neutral-600 dark:bg-white/10 dark:text-neutral-300">stale</span>}
+                      {!p.stale && p.sessionClose && <span className="ml-1 text-[9px] uppercase text-neutral-500">close</span>}
+                    </span>
+                  )}
+                </td>
                 <td className="px-2 py-1">{p.value != null ? `$${usd(p.value)}` : '—'}</td>
                 <td className={`px-2 py-1 ${(p.pnl ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {p.pnl != null ? `${p.pnl >= 0 ? '+' : '-'}$${usd(Math.abs(p.pnl))} (${((p.pnl / p.spent) * 100).toFixed(1)}%)` : '—'}
