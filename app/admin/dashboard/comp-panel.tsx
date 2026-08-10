@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import RivalEntry from './competition'
+import TrendChart from './trend-chart'
 
 // Interactive competition panel: click a contestant on the leaderboard and the
 // whole panel switches to their book — positions, spend, live value, P&L, and
@@ -61,7 +62,11 @@ const BRAND: Record<string, { chip: string; chipSel: string; name: string; nameS
   },
 }
 
-export default function CompPanel({ books, start, secret }: { books: CompBook[]; start: number; secret: string }) {
+export interface DailyCurve { days: string[]; totals: Record<string, number[]> }
+
+const CURVE_COLOR: Record<string, string> = { claude: '#fbbf24', gpt: '#34d399', gemini: '#60a5fa' }
+
+export default function CompPanel({ books, start, secret, daily }: { books: CompBook[]; start: number; secret: string; daily?: DailyCurve }) {
   const [sel, setSel] = useState('claude')
   const b = books.find((x) => x.key === sel) ?? books[0]
   const totalPnl = b.positions.reduce((s, p) => s + (p.pnl ?? 0), 0)
@@ -154,6 +159,20 @@ export default function CompPanel({ books, start, secret }: { books: CompBook[];
       ) : (
         <div className="text-[12px] text-neutral-500">
           No holdings relayed for {b.name} yet — only weekly cash reports. Paste their trades to Claude and they show up here priced live.
+        </div>
+      )}
+
+      {/* This contestant's book, day by day since the competition opened */}
+      {daily && (daily.totals[b.key]?.length ?? 0) > 1 && (
+        <div className="mt-3">
+          <div className="mb-1 text-[11px] uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
+            {b.name} — daily total since day one
+          </div>
+          <TrendChart
+            h={150}
+            labels={daily.days}
+            series={[{ key: b.key, label: b.name, color: CURVE_COLOR[b.key] ?? '#fbbf24', points: daily.totals[b.key], format: 'usd2' }]}
+          />
         </div>
       )}
 

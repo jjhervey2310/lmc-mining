@@ -51,6 +51,19 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     }, []),
   })).filter((s) => s.points.length > 1)
 
+  // Same data keyed for the per-contestant chart inside the panel.
+  const daily = {
+    days,
+    totals: Object.fromEntries(['claude', 'gpt', 'gemini'].map((k) => [
+      k,
+      days.reduce<number[]>((acc, d) => {
+        const hit = (snaps ?? []).find((r) => r.snapshot_date === d && r.contestant === k)
+        acc.push(hit ? Number(hit.total) : acc[acc.length - 1] ?? COMP_START_CASH)
+        return acc
+      }, []),
+    ])),
+  }
+
   return (
     <Shell secret={secret} active="trading">
       <div className="mb-2 flex flex-wrap items-center gap-3 text-[11px] text-neutral-500 dark:text-neutral-400">
@@ -63,7 +76,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
         )}
       </div>
       <Panel accent="purple" title="🏆 Trading competition — $1,000 each" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
-        <CompPanel books={books} start={COMP_START_CASH} secret={secret} />
+        <CompPanel books={books} start={COMP_START_CASH} secret={secret} daily={daily} />
       </Panel>
       {curve.length > 0 && (
         <div className="mt-3">
