@@ -70,8 +70,8 @@ func renderSlide(_ i: Int, _ s: Slide) {
     BG.setFill(); NSRect(x: 0, y: 0, width: W, height: Hs).fill()
     let glow = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
         colors: [AMBER.withAlphaComponent(0.18).cgColor, AMBER.withAlphaComponent(0).cgColor] as CFArray, locations: [0,1])!
-    ctx.drawRadialGradient(glow, startCenter: CGPoint(x: CGFloat(W)/2, y: 260), startRadius: 0,
-        endCenter: CGPoint(x: CGFloat(W)/2, y: 260), endRadius: 760, options: [])
+    ctx.drawRadialGradient(glow, startCenter: CGPoint(x: CGFloat(W)/2, y: 620), startRadius: 0,
+        endCenter: CGPoint(x: CGFloat(W)/2, y: 620), endRadius: 820, options: [])
     AMBER.setFill(); NSRect(x: 0, y: 0, width: W, height: 7).fill()
 
     // wordmark
@@ -83,13 +83,23 @@ func renderSlide(_ i: Int, _ s: Slide) {
     AMBER.setFill(); bolt.fill()
     draw("LIGHTNING MINES", font: med(26), color: GRAY, x: bx+44, y: by+7, maxW: 400)
 
-    var y: CGFloat = 240
+    // Measure the content block first so short slides sit centred instead of
+    // stranding half the frame as empty black.
+    let hFont = heavy(s.headline.count > 42 ? 62 : 74)
+    var blockH: CGFloat = 0
+    if !s.tag.isEmpty { blockH += 58 }
+    blockH += measureH(s.headline, font: hFont, maxW: contentW) + 40
+    if !s.value.isEmpty { blockH += 150 }
+    if s.chart && chartPts.count >= 2 { blockH += 500 }
+    if !s.sub.isEmpty { blockH += measureH(s.sub, font: med(38), maxW: contentW) }
+
+    let topBound: CGFloat = 230, bottomBound = CGFloat(Hs) - 300
+    var y = topBound + max(0, (bottomBound - topBound - blockH) / 2)
     if !s.tag.isEmpty {
         draw(s.tag.uppercased(), font: heavy(30), color: AMBER, x: margin, y: y, maxW: contentW)
         y += 58
     }
     // headline
-    let hFont = heavy(s.headline.count > 42 ? 62 : 74)
     draw(s.headline, font: hFont, color: WHITE, x: margin, y: y, maxW: contentW)
     y += measureH(s.headline, font: hFont, maxW: contentW) + 40
 
