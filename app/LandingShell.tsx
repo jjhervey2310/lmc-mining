@@ -12,8 +12,26 @@ const NAV_LINKS = [
   { href: '/audit', label: 'Audit' },
 ]
 
-export default function LandingShell() {
+export interface HomeStats {
+  btcPrice: string | null
+  hashprice: string | null
+  liveAsOf: string | null
+  providerCount: number
+  rateRange: string | null
+  providersAsOf: string | null
+}
+
+export default function LandingShell({ stats }: { stats?: HomeStats }) {
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const statTiles = stats
+    ? [
+        stats.btcPrice && { label: 'BTC Price', value: stats.btcPrice, asOf: stats.liveAsOf },
+        stats.hashprice && { label: 'Hashprice', value: stats.hashprice, asOf: stats.liveAsOf },
+        { label: 'Providers Tracked', value: String(stats.providerCount), asOf: stats.providersAsOf },
+        stats.rateRange && { label: 'Typical US Hosting', value: stats.rateRange, asOf: stats.providersAsOf },
+      ].filter((t): t is { label: string; value: string; asOf: string | null } => Boolean(t))
+    : []
   return (
     <MiningBackground
       overlay={0.74}
@@ -133,6 +151,23 @@ export default function LandingShell() {
             No sponsored content
           </div>
         </div>
+
+        {/* Live stat strip — server-rendered real numbers, each dated */}
+        {statTiles.length > 0 && (
+          <div className="landing-cta mt-8 w-full max-w-3xl grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {statTiles.map(t => (
+              <div
+                key={t.label}
+                className="rounded-xl px-4 py-3 text-left"
+                style={{ background: 'rgba(17,24,39,0.72)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(4px)' }}
+              >
+                <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">{t.label}</div>
+                <div className="text-sm md:text-base font-bold font-mono text-white">{t.value}</div>
+                {t.asOf && <div className="text-[10px] text-gray-500 mt-1">as of {t.asOf}</div>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Bottom scroll hint */}

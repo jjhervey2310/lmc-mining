@@ -71,6 +71,59 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
   const isAbundant = p.id === 'abundant-miners'
 
+  // Product + Review schema. lightningScore is our real editorial rating (shown
+  // on-page as X/100). No user reviews exist, so AggregateRating is deliberately
+  // omitted — inventing review counts would be fake markup.
+  const offer = p.flatMonthly
+    ? {
+        '@type': 'Offer',
+        price: p.flatMonthly,
+        priceCurrency: 'USD',
+        description: `$${p.flatMonthly}/month flat all-in hosting per miner`,
+        availability: 'https://schema.org/InStock',
+        url: `https://lightningmines.com/hosts/${p.id}`,
+      }
+    : p.rateMin
+    ? {
+        '@type': 'Offer',
+        priceCurrency: 'USD',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: p.rateMin,
+          priceCurrency: 'USD',
+          unitText: 'kWh',
+        },
+        description: `Hosting billed at ~$${p.rateMin}${p.rateMax && p.rateMax !== p.rateMin ? `–$${p.rateMax}` : ''}/kWh`,
+        availability: 'https://schema.org/InStock',
+        url: `https://lightningmines.com/hosts/${p.id}`,
+      }
+    : null
+
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `${p.name} Bitcoin Mining Hosting`,
+    description: p.description,
+    brand: { '@type': 'Brand', name: p.name },
+    url: `https://lightningmines.com/hosts/${p.id}`,
+    ...(offer ? { offers: offer } : {}),
+    review: {
+      '@type': 'Review',
+      name: `${p.name} Review 2026`,
+      reviewRating: {
+        '@type': 'Rating',
+        ratingValue: p.lightningScore,
+        bestRating: 100,
+        worstRating: 0,
+      },
+      author: { '@type': 'Organization', name: 'Lightning Mines', url: 'https://lightningmines.com' },
+      datePublished: p.lastVerified,
+      reviewBody: p.description,
+      ...(p.pros.length > 0 ? { positiveNotes: { '@type': 'ItemList', itemListElement: p.pros.map((pro, i) => ({ '@type': 'ListItem', position: i + 1, name: pro })) } } : {}),
+      ...(p.cons.length > 0 ? { negativeNotes: { '@type': 'ItemList', itemListElement: p.cons.map((con, i) => ({ '@type': 'ListItem', position: i + 1, name: con })) } } : {}),
+    },
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([
@@ -80,6 +133,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
           url: p.website,
           description: p.description,
         },
+        productSchema,
         {
           '@context': 'https://schema.org', '@type': 'FAQPage',
           mainEntity: faqs.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),

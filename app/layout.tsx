@@ -64,6 +64,7 @@ const FOOTER_NAV = [
   { href: '/', label: 'Home' },
   { href: '/calculator', label: 'Calculator' },
   { href: '/hosting', label: 'Hosting' },
+  { href: '/hosting-costs', label: 'Hosting Cost Index' },
   { href: '/miners', label: 'Miners' },
   { href: '/university', label: 'University' },
   { href: '/review', label: 'Free Review' },

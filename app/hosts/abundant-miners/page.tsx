@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import AffiliateDisclosure from '@/components/AffiliateDisclosure'
+import { getProviderBySlug } from '@/lib/data'
 
 export const metadata: Metadata = {
   title: 'Abundant Mines Review 2026 — $225/Month Flat Fee Hosting',
@@ -39,10 +40,49 @@ const FAQ_SCHEMA = {
 
 const AFFILIATE_URL = 'https://abundantmines.com/ref/72/'
 
+// Product + Review schema from the real provider record (lightningScore is our
+// on-page editorial rating). No user reviews exist, so no AggregateRating.
+const am = getProviderBySlug('abundant-miners')
+const PRODUCT_SCHEMA = am
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: `${am.name} Bitcoin Mining Hosting`,
+      description: am.description,
+      brand: { '@type': 'Brand', name: am.name },
+      url: 'https://lightningmines.com/hosts/abundant-miners',
+      ...(am.flatMonthly
+        ? {
+            offers: {
+              '@type': 'Offer',
+              price: am.flatMonthly,
+              priceCurrency: 'USD',
+              description: `$${am.flatMonthly}/month flat all-in hosting per miner`,
+              availability: 'https://schema.org/InStock',
+              url: 'https://lightningmines.com/hosts/abundant-miners',
+            },
+          }
+        : {}),
+      review: {
+        '@type': 'Review',
+        name: `${am.name} Review 2026`,
+        reviewRating: { '@type': 'Rating', ratingValue: am.lightningScore, bestRating: 100, worstRating: 0 },
+        author: { '@type': 'Organization', name: 'Lightning Mines', url: 'https://lightningmines.com' },
+        datePublished: am.lastVerified,
+        reviewBody: am.description,
+        ...(am.pros.length > 0 ? { positiveNotes: { '@type': 'ItemList', itemListElement: am.pros.map((pro, i) => ({ '@type': 'ListItem', position: i + 1, name: pro })) } } : {}),
+        ...(am.cons.length > 0 ? { negativeNotes: { '@type': 'ItemList', itemListElement: am.cons.map((con, i) => ({ '@type': 'ListItem', position: i + 1, name: con })) } } : {}),
+      },
+    }
+  : null
+
 export default function AbundantMinersPage() {
   return (
     <div style={{ background: '#0a0e17' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }} />
+      {PRODUCT_SCHEMA && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(PRODUCT_SCHEMA) }} />
+      )}
 
       {/* ═══ SECTION 1: HERO ═══ */}
       <section className="text-center py-20 px-4 border-b" style={{ borderColor: '#1a2332', background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,158,11,0.07) 0%, transparent 70%)' }}>
