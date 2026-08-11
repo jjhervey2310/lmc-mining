@@ -26,6 +26,9 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
   const [hashrate, setHashrate] = useState('')
   const [power, setPower] = useState('')
   const [electricityRate, setElectricityRate] = useState('')
+  // Providers bill either per-kWh or a flat monthly fee per machine — never both.
+  const [billingMode, setBillingMode] = useState<'kwh' | 'flat'>('kwh')
+  const [flatFee, setFlatFee] = useState('')
   const [hardwareCost, setHardwareCost] = useState('')
 
   useEffect(() => {
@@ -73,20 +76,24 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
   const electricityRateNum = parseFloat(electricityRate)
   const hardwareCostNum = parseFloat(hardwareCost) || null
 
+  const flatFeeNum = parseFloat(flatFee)
+  const isFlat = billingMode === 'flat'
+
+  const costInputComplete = isFlat
+    ? flatFee !== '' && flatFeeNum >= 0
+    : electricityRate !== '' && electricityRateNum >= 0
+
   const inputsComplete =
-    hashrate !== '' &&
-    power !== '' &&
-    electricityRate !== '' &&
-    hashrateNum > 0 &&
-    powerNum > 0 &&
-    electricityRateNum >= 0
+    hashrate !== '' && power !== '' && hashrateNum > 0 && powerNum > 0 && costInputComplete
 
   const results =
     inputsComplete && liveData
       ? calculateMiningProfitability({
           hashrate_th: hashrateNum,
           power_watts: powerNum,
-          electricity_rate_kwh: electricityRateNum,
+          // In flat mode the fee covers power, so the per-kWh rate is zeroed out.
+          electricity_rate_kwh: isFlat ? 0 : electricityRateNum,
+          flat_monthly_fee: isFlat ? flatFeeNum : null,
           hardware_cost: hardwareCostNum,
           btc_price: liveData.price,
           network_difficulty: liveData.difficulty,
@@ -199,21 +206,71 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
           <p className="text-xs mt-1.5 text-gray-500">Watts drawn at wall</p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Electricity Rate ($/kWh)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.001"
-            className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
-            style={{ background: '#1f2937', color: '#e2e8f0', border: '1px solid #374151' }}
-            placeholder="e.g. 0.077"
-            aria-label="Electricity rate in dollars per kWh"
-            value={electricityRate}
-            onChange={(e) => setElectricityRate(e.target.value)}
-          />
-          <p className="text-xs mt-1.5 text-gray-500">
-            Your all-in hosting rate. US facilities typically $0.055–$0.095/kWh
+        <div className="space-y-3">
+          <div>
+            <label className="flex items-center gap-2 mb-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={billingMode === 'kwh'}
+                onChange={() => setBillingMode('kwh')}
+                className="h-4 w-4 rounded cursor-pointer"
+                style={{ accentColor: '#00d4aa' }}
+                aria-label="Bill by electricity rate per kWh"
+              />
+              <span className="text-sm font-medium text-gray-300">Electricity Rate ($/kWh)</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.001"
+              disabled={isFlat}
+              className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
+              style={{
+                background: '#1f2937',
+                color: '#e2e8f0',
+                border: `1px solid ${!isFlat ? '#00d4aa' : '#374151'}`,
+                opacity: isFlat ? 0.45 : 1,
+              }}
+              placeholder="e.g. 0.077"
+              aria-label="Electricity rate in dollars per kWh"
+              value={electricityRate}
+              onChange={(e) => setElectricityRate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="flex items-center gap-2 mb-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isFlat}
+                onChange={() => setBillingMode('flat')}
+                className="h-4 w-4 rounded cursor-pointer"
+                style={{ accentColor: '#00d4aa' }}
+                aria-label="Bill by fixed monthly fee"
+              />
+              <span className="text-sm font-medium text-gray-300">Fixed Rate ($/month)</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              disabled={!isFlat}
+              className="w-full rounded-lg px-3 py-2.5 text-sm font-mono"
+              style={{
+                background: '#1f2937',
+                color: '#e2e8f0',
+                border: `1px solid ${isFlat ? '#00d4aa' : '#374151'}`,
+                opacity: !isFlat ? 0.45 : 1,
+              }}
+              placeholder="e.g. 225"
+              aria-label="Fixed hosting fee in dollars per month"
+              value={flatFee}
+              onChange={(e) => setFlatFee(e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-gray-500">
+            {billingMode === 'kwh'
+              ? 'Your all-in hosting rate. US facilities typically $0.055–$0.095/kWh'
+              : 'All-in fee per machine per month. Power draw is already covered by the fee.'}
           </p>
         </div>
       </div>
@@ -247,7 +304,9 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
       )}
 
       {/* Results */}
-      {results && <ResultsGrid results={results} />}
+      {results && (
+        <ResultsGrid results={results} costLabel={isFlat ? 'Hosting Fee' : 'Power Cost'} />
+      )}
 
       {/* Disclaimer */}
       {results && (
@@ -276,7 +335,7 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
   )
 }
 
-function ResultsGrid({ results }: { results: CalculatorResults }) {
+function ResultsGrid({ results, costLabel }: { results: CalculatorResults; costLabel: string }) {
   const profitable = results.daily_profit_usd > 0
   const profitColor = profitable ? '#00d4aa' : '#ff4757'
 
@@ -293,6 +352,16 @@ function ResultsGrid({ results }: { results: CalculatorResults }) {
             <div className="border-t pt-3" style={{ borderColor: '#1f2937' }}>
               <Row label="Daily BTC Mined" value={`${formatBTC(results.daily_btc_mined)} BTC`} color="#9ca3af" mono />
             </div>
+          </div>
+        </div>
+
+        {/* Cost */}
+        <div className="rounded-xl p-6" style={{ background: '#111827', border: '1px solid #1f2937' }}>
+          <h3 className="font-semibold text-white text-lg mb-4">{costLabel}</h3>
+          <div className="space-y-3">
+            <Row label="Daily" value={`−${formatUSD(results.daily_power_cost_usd)}`} color="#ff8f6b" />
+            <Row label="Monthly" value={`−${formatUSD(results.monthly_cost_usd)}`} color="#ff8f6b" />
+            <Row label="Annual" value={`−${formatUSD(results.annual_cost_usd)}`} color="#ff8f6b" />
           </div>
         </div>
 
