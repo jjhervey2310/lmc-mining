@@ -106,12 +106,12 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
             labels={rows.map((r) => r.snapshot_date).reverse()}
             series={[
               { key: 'btc', label: 'BTC', color: '#fbbf24', points: series, format: 'usd0' as const },
-              { key: 'hp', label: 'Hashprice', color: '#67e8f9', points: rows.map((r) => Number(r.hashprice_usd)).reverse().filter((v: number) => isFinite(v) && v > 0), format: 'usd4' as const },
+              { key: 'hp', label: 'Hashprice $/PH/d', color: '#67e8f9', points: rows.map((r) => Number(r.hashprice_usd)).reverse().filter((v: number) => isFinite(v) && v > 0), format: 'usd2' as const },
               { key: 'diff', label: 'Difficulty', color: '#c4b5fd', points: rows.map((r) => Number(r.difficulty)).reverse().filter((v: number) => isFinite(v) && v > 0), format: 'terra' as const },
             ].filter((s) => s.points.length > 1)}
           />
           <table className="mt-3 w-full text-[13px]">
-            <thead><tr className="text-left text-[11px] uppercase tracking-widest text-neutral-500"><th>date</th><th>BTC</th><th>difficulty</th><th>hashprice</th></tr></thead>
+            <thead><tr className="text-left text-[11px] uppercase tracking-widest text-neutral-500"><th>date</th><th>BTC</th><th>difficulty</th><th>hashprice $/PH/d</th></tr></thead>
             <tbody>
               {rows.slice(0, 14).map((r) => (
                 <tr key={r.snapshot_date} className="border-t border-neutral-100">

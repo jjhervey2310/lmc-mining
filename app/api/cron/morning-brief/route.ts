@@ -289,8 +289,18 @@ async function handle(req: Request) {
       // killing the whole batch. A failed write must never report as success.
       const { error } = await supabase
         .from('job_finds')
-        // description is read for filtering only — it is not a job_finds column.
-        .upsert(newJobs.slice(0, 80).map(({ description: _d, ...j }) => ({ ...j, status: 'new' })), { onConflict: 'url', ignoreDuplicates: true })
+        // The description is stored now, not just read for filtering: the tailored-CV
+        // builder (/api/admin/resume) needs the posting body to aim the résumé at the
+        // stated requirements, and re-fetching at click time is slow and often blocked.
+        // 4000 chars matches what the verifier stores and is plenty for tailoring.
+        .upsert(
+          newJobs.slice(0, 80).map(({ description, ...j }) => ({
+            ...j,
+            status: 'new',
+            description: description ? description.slice(0, 4000) : null,
+          })),
+          { onConflict: 'url', ignoreDuplicates: true },
+        )
       if (error) {
         sweepStats.push(`INSERT FAILED: ${error.message}`)
         alerts.push(`Job sweep insert failed: ${error.message}`)

@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(npm run build)",
+      "Bash(npm run build *)",
       "Bash(npm run dev)",
       "Bash(npm run lint)",
       "Bash(git status)",
@@ -13,7 +14,27 @@
       "Bash(cat *)",
       "Bash(ls *)",
       "Bash(find *)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsc --noEmit *)",
+      "Bash(npx vercel ls *)",
+      "Bash(npx vercel inspect *)",
+      "Bash(npx vercel logs *)",
+      "mcp__Claude_Browser__navigate",
+      "mcp__Claude_Browser__read_page",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__read_network_requests",
+      "mcp__Claude_Browser__find",
+      "mcp__Claude_Browser__resize_window",
+      "mcp__Claude_Browser__preview_start",
+      "mcp__Claude_Browser__preview_stop",
+      "mcp__Claude_Browser__preview_logs",
+      "mcp__Claude_Browser__preview_list",
+      "mcp__ec358206-1992-4af3-a8b6-60c4682ea7a1__search_threads",
+      "mcp__ec358206-1992-4af3-a8b6-60c4682ea7a1__get_message",
+      "mcp__ec358206-1992-4af3-a8b6-60c4682ea7a1__get_thread",
+      "mcp__5f5aa45f-4824-4c46-9a9e-166091f18998__data-store-records_list"
     ],
     "deny": []
   }
