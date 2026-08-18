@@ -38,12 +38,20 @@ export default function JobWire({ jobs, secret }: { jobs: WireJob[]; secret: str
       const name = decodeURIComponent(
         res.headers.get('Content-Disposition')?.match(/filename="(.+?)"/)?.[1] || 'resume.docx',
       )
+      // The anchor must be in the document and the blob URL must outlive the
+      // click — revoking immediately cancels the download in Safari and some
+      // Chrome versions, which looked like "nothing happened" (Jacob 2026-08-18).
       const href = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = href
       a.download = name
+      a.rel = 'noopener'
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(href)
+      setTimeout(() => {
+        document.body.removeChild(a)
+        URL.revokeObjectURL(href)
+      }, 30_000)
       const note = decodeURIComponent(res.headers.get('X-Resume-Angle') || '')
       const body = res.headers.get('X-Resume-Body') === 'full' ? '' : ' (title only — no posting text stored)'
       setAngle((a2) => ({ ...a2, [j.url]: note + body }))
