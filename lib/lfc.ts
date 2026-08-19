@@ -113,13 +113,25 @@ export async function getTable(season = '2026-2027'): Promise<TableRow[]> {
 
 // `club: false` feeds cover every club, so they are filtered to Liverpool below.
 const FEEDS: { url: string; source: string; tier: 1 | 2 | 3; club: boolean }[] = [
+  // tier 1 — national desks
   { url: 'https://www.theguardian.com/football/liverpool/rss', source: 'The Guardian', tier: 1, club: true },
   { url: 'https://www.skysports.com/rss/11669', source: 'Sky Sports', tier: 1, club: true },
   { url: 'https://www.bbc.co.uk/sport/football/gossip/rss.xml', source: 'BBC Gossip', tier: 1, club: false },
+  // tier 2 — dedicated LFC desks
+  { url: 'https://www.liverpool.com/all-about/liverpool-fc/?service=rss', source: 'Liverpool.com', tier: 2, club: true },
   { url: 'https://www.liverpoolecho.co.uk/all-about/liverpool-fc/?service=rss', source: 'Liverpool Echo', tier: 2, club: true },
   { url: 'https://www.thisisanfield.com/feed/', source: 'This Is Anfield', tier: 2, club: true },
+  { url: 'https://www.mirror.co.uk/all-about/liverpool-fc/?service=rss', source: 'The Mirror', tier: 2, club: true },
+  // tier 3 — fan desks and the rumour mill
+  { url: 'https://www.empireofthekop.com/feed/', source: 'Empire of the Kop', tier: 3, club: true },
+  { url: 'https://www.anfieldwatch.co.uk/feed/', source: 'Anfield Watch', tier: 3, club: true },
+  { url: 'https://rousingthekop.com/feed/', source: 'Rousing The Kop', tier: 3, club: true },
+  { url: 'https://metro.co.uk/tag/liverpool-fc/feed/', source: 'Metro', tier: 3, club: true },
   { url: 'https://www.caughtoffside.com/feed/', source: 'CaughtOffside', tier: 3, club: false },
 ]
+
+/** Jacob's rule (2026-08-19): "nothing posted over 2 days old". */
+const MAX_AGE_HOURS = 48
 
 /** Fabrizio Romano is the market's de-facto confirmation — badge any story citing him. */
 const ROMANO_RE = /fabrizio romano|romano|here we go/i
@@ -152,7 +164,7 @@ async function readFeed(url: string, source: string, tier: 1 | 2 | 3, clubOnly: 
     if (!res.ok) return []
     const xml = await res.text()
     const items = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? []
-    return items.slice(0, 15).map((block, i) => {
+    return items.slice(0, 30).map((block, i) => {
       const title = pick(block, 'title')
       const summary = pick(block, 'description').slice(0, 400)
       const hay = `${title} ${summary}`
@@ -185,13 +197,21 @@ export async function getNews(): Promise<NewsItem[]> {
     seen.add(k)
     return true
   })
+  // Hard freshness cut: a two-day-old rumour is not news. An item with no date
+  // at all is kept — better an undated story than silently dropping a real one.
+  const cutoff = Date.now() - MAX_AGE_HOURS * 3600_000
+  const fresh = unique.filter((n) => {
+    if (!n.published) return true
+    const t = new Date(n.published).getTime()
+    return !isFinite(t) || t >= cutoff
+  })
   // Newest first, then Romano-cited above the rest, then transfers above general news.
   const ts = (n: NewsItem) => (n.published ? new Date(n.published).getTime() : 0)
-  return unique
+  return fresh
     .sort((a, b) => ts(b) - ts(a))
     .sort((a, b) => Number(b.romano) - Number(a.romano))
     .sort((a, b) => Number(b.transfer) - Number(a.transfer))
-    .slice(0, 40)
+    .slice(0, 120)
 }
 
 // ── Fabrizio Romano's X feed ──

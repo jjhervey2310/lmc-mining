@@ -56,7 +56,7 @@ export default function NewsColumn({ items, secret }: { items: NewsItem[]; secre
 
   return (
     <div>
-      <div className="mb-2 flex gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         {(['all', 'transfer', 'romano'] as const).map((f) => (
           <button key={f} onClick={() => setFilter(f)}
             className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-colors ${
@@ -67,6 +67,7 @@ export default function NewsColumn({ items, secret }: { items: NewsItem[]; secre
               : `Romano (${items.filter((n) => n.romano).length})`}
           </button>
         ))}
+        <span className="text-[10px] uppercase tracking-wide text-neutral-500">last 48h only</span>
       </div>
 
       <div className="max-h-[560px] space-y-1.5 overflow-y-auto pr-1">
