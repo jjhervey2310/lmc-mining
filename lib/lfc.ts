@@ -193,3 +193,51 @@ export async function getNews(): Promise<NewsItem[]> {
     .sort((a, b) => Number(b.transfer) - Number(a.transfer))
     .slice(0, 40)
 }
+
+// ── Fabrizio Romano's X feed ──
+//
+// Romano is the market's confirmation and Jacob asked for him specifically. X
+// has no free API, so this reads his public posts through a Nitter mirror. That
+// is best-effort by nature: mirrors get blocked, so every failure returns an
+// empty list and the page simply carries on without him.
+
+const NITTER_MIRRORS = [
+  'https://nitter.net/FabrizioRomano/rss',
+  'https://nitter.poast.org/FabrizioRomano/rss',
+  'https://nitter.privacydev.net/FabrizioRomano/rss',
+]
+
+export interface RomanoPost {
+  id: string
+  text: string
+  link: string
+  published: string | null
+  /** mentions Liverpool or one of ours */
+  lfc: boolean
+}
+
+export async function getRomano(): Promise<RomanoPost[]> {
+  for (const url of NITTER_MIRRORS) {
+    try {
+      const res = await fetch(url, { next: { revalidate: 600 }, headers: { 'User-Agent': 'Mozilla/5.0' } })
+      if (!res.ok) continue
+      const xml = await res.text()
+      const items = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? []
+      const posts = items.slice(0, 30).map((block, i) => {
+        const text = pick(block, 'title')
+        return {
+          id: `romano-${i}-${text.slice(0, 30)}`,
+          text,
+          // Point at X itself, not the mirror — mirrors die, x.com does not.
+          link: (pick(block, 'link') || '').replace(/https?:\/\/[^/]+/, 'https://x.com'),
+          published: pick(block, 'pubDate') || null,
+          lfc: LFC_RE.test(text),
+        }
+      }).filter((p) => p.text)
+      if (posts.length) return posts
+    } catch {
+      // try the next mirror
+    }
+  }
+  return []
+}

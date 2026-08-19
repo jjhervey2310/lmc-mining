@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { Shell, checkAdmin } from '../ui'
 import NewsColumn from './news-column'
-import { getFixtures, getTable, getNews } from '@/lib/lfc'
+import AnfieldBackdrop from './anfield'
+import { getFixtures, getTable, getNews, getRomano } from '@/lib/lfc'
 
 // LFC — the one page on the terminal that ignores the house palette entirely.
 // Liverpool red (#C8102E) and Anfield gold (#F6EB61) throughout, per Jacob:
@@ -29,11 +30,13 @@ export default async function LfcPage({ searchParams }: { searchParams: Promise<
   const { secret = '' } = await searchParams
   checkAdmin(secret)
 
-  const [fixtures, table, news] = await Promise.all([
+  const [fixtures, table, news, romano] = await Promise.all([
     getFixtures().catch(() => ({ next: [], last: [] })),
     getTable().catch(() => []),
     getNews().catch(() => []),
+    getRomano().catch(() => []),
   ])
+  const romanoLfc = romano.filter((p) => p.lfc).slice(0, 6)
 
   const lfc = table.find((r) => r.isLiverpool)
   const nextUp = fixtures.next[0]
@@ -53,8 +56,9 @@ export default async function LfcPage({ searchParams }: { searchParams: Promise<
   return (
     <Shell secret={secret} active="lfc">
       {/* Anfield header */}
-      <div className="mb-3 overflow-hidden rounded-xl border border-white/10" style={{ background: `linear-gradient(135deg, ${RED} 0%, #7a0a1c 100%)` }}>
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+      <div className="relative mb-3 min-h-[220px] overflow-hidden rounded-xl border border-white/10">
+        <AnfieldBackdrop />
+        <div className="relative flex flex-wrap items-center justify-between gap-3 px-4 pb-4 pt-5">
           <div>
             <div className="text-2xl font-black uppercase tracking-tight text-white">Liverpool FC</div>
             <div className="text-[12px] font-semibold italic" style={{ color: GOLD }}>You&apos;ll Never Walk Alone</div>
@@ -87,7 +91,7 @@ export default async function LfcPage({ searchParams }: { searchParams: Promise<
           </div>
         </div>
         {nextUp && (
-          <div className="border-t border-white/20 bg-black/25 px-4 py-2 text-[13px] text-white">
+          <div className="relative border-t border-white/20 bg-black/40 px-4 py-2 text-[13px] text-white">
             <span className="font-bold uppercase tracking-wide" style={{ color: GOLD }}>Next up</span>
             {' · '}{nextUp.home ? 'vs' : 'away to'} <b>{nextUp.opponent}</b>
             {' · '}{kickoff(nextUp.timestamp, nextUp.date)} DEN
@@ -107,6 +111,26 @@ export default async function LfcPage({ searchParams }: { searchParams: Promise<
         </LfcPanel>
 
         <div className="space-y-3">
+          <LfcPanel title="🚨 Fabrizio Romano — live"
+            right={<span className="text-[10px] text-white/70">{romano.length ? `${romanoLfc.length} LFC of ${romano.length}` : 'feed unavailable'}</span>}>
+            {romanoLfc.length ? (
+              <div className="space-y-2">
+                {romanoLfc.map((p) => (
+                  <a key={p.id} href={p.link} target="_blank" rel="noreferrer"
+                    className="block border-l-2 pl-2 text-[12px] leading-snug text-neutral-200 hover:text-white" style={{ borderColor: GOLD }}>
+                    {p.text.slice(0, 220)}{p.text.length > 220 ? '…' : ''}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[12px] text-neutral-400">
+                {romano.length
+                  ? 'Romano is posting, but nothing about Liverpool right now.'
+                  : 'His X feed is unreachable at the moment — the news column still badges any story that cites him.'}
+              </div>
+            )}
+          </LfcPanel>
+
           <LfcPanel title="⚽ Fixtures">
             <div className="space-y-2">
               {fixtures.next.slice(0, 5).map((f) => (
