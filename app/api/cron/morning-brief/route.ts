@@ -55,10 +55,11 @@ const RELOCATE_WORTHY_SALARY = 250_000
 // Cash-flow floor (Jacob 2026-08-01): posted salaries under $75k are cut; unlisted
 // salaries stay in (most leadership posts don't list). Target roles still rank first.
 const MIN_SALARY = 75_000
-// Ceiling added 2026-08-19: director-level postings above this were absorbing the
-// wire and not converting. Unlisted salaries still pass — most leadership ads
-// carry no number and excluding them would empty the board.
-const MAX_SALARY = 130_000
+// Ceiling added 2026-08-19 at $130k, raised to $140k the same day: director-level
+// postings above this were absorbing the wire and not converting. Unlisted
+// salaries still pass — most leadership ads carry no number and excluding them
+// would empty the board.
+const MAX_SALARY = 140_000
 const DENVER_METRO = ['denver', 'aurora', 'lakewood', 'englewood', 'littleton', 'centennial', 'westminster', 'thornton', 'arvada', 'broomfield', 'boulder', 'golden', 'greenwood village', 'commerce city', 'wheat ridge']
 // Other states/metros that disqualify a "remote" posting when the listing says you
 // must live there (Jacob 2026-08-05: "some have said remote but I had to live in Sonoma").
