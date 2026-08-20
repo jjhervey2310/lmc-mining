@@ -43,7 +43,7 @@ export const CONTACT = {
 
 /** Never contradicted, whatever the posting. */
 export const BASE_TRUTHS = [
-  '13 years running businesses end to end as an owner, GM, Head of Operations and COO',
+  '13 years running businesses end to end as a CEO, COO, GM and Head of Operations',
   'Led teams of up to 50',
   'Owned full P&Ls',
   'Built a business from zero to $2M+ revenue',
@@ -78,7 +78,7 @@ export const ROLES: Role[] = [
     context: 'Family-owned tile, bathroom and flooring retailer trading over 40 years. Reported to the CEO.',
     facts: [
       { id: 'ts-spend', text: 'Ran approximately €5M of annual procurement spend across 50 to 100 suppliers, most of it inbound from Italy, Germany and Spain.', tags: ['procurement', 'sourcing', 'supplier', 'spend', 'budget', 'international', 'category'] },
-      { id: 'ts-team', text: 'Led a 25+ person operations and logistics function, reporting directly to the CEO.', tags: ['leadership', 'operations', 'logistics', 'team', 'management', 'field'] },
+      { id: 'ts-team', text: 'Led a 50 person operations and logistics function, reporting directly to the CEO.', tags: ['leadership', 'operations', 'logistics', 'team', 'management', 'field'] },
       { id: 'ts-deadstock', text: 'Recovered tens of thousands of euro of dead stock that had sat unsold in the warehouse without being flagged, cleared it and turned it back into cash.', tags: ['inventory', 'cost', 'cash', 'working capital', 'analysis', 'warehouse', 'turnaround'] },
       { id: 'ts-leadtime', text: 'Ran the logistics operation and team, holding inbound lead times down across three countries of European supply.', tags: ['logistics', 'lead time', 'supply chain', 'freight', 'international', 'delivery'] },
       { id: 'ts-process', text: 'Replaced informal handoffs in ordering and fulfilment with documented processes the team could run without me.', tags: ['process', 'sop', 'documentation', 'operations', 'fulfilment', 'scale', 'systems'] },
@@ -88,10 +88,10 @@ export const ROLES: Role[] = [
   },
   {
     id: 'emerald',
-    title: 'Founder & COO',
+    title: 'CEO & COO',
     employer: 'Emerald Farm',
     location: '',
-    dates: '2020 – 2026',
+    dates: 'Nov 2020 – Aug 2026',
     facts: [
       { id: 'em-build', text: 'Built the business from nothing with no outside funding: supply chain, procurement, staffing and production planning.', tags: ['founder', 'startup', 'build', 'operations', 'staffing', 'production', 'scale'] },
       { id: 'em-growth', text: 'Grew revenue from zero to over $2M in six years while holding gross margins between 40% and 60%.', tags: ['growth', 'revenue', 'margin', 'pnl', 'finance', 'scale'] },
@@ -106,9 +106,9 @@ export const ROLES: Role[] = [
     title: 'General Manager',
     employer: 'Fontana',
     location: 'Holywood, Co. Down, Northern Ireland',
-    dates: '2017 – 2020',
+    dates: 'Sep 2016 – Jun 2020',
     facts: [
-      { id: 'fo-scale', text: 'Ran the full operation of a Michelin Guide listed restaurant with a team of around 30 across multiple departments.', tags: ['leadership', 'team', 'operations', 'service', 'quality', 'multi-department', 'hospitality'] },
+      { id: 'fo-scale', text: 'Ran the full operation of a Michelin Guide listed restaurant with a team of 50 across multiple departments.', tags: ['leadership', 'team', 'operations', 'service', 'quality', 'multi-department', 'hospitality'] },
       { id: 'fo-growth', text: 'Increased revenue 20–30% and improved margins 5–10%.', tags: ['growth', 'revenue', 'margin', 'turnaround', 'pnl'] },
       { id: 'fo-own', text: 'Owned procurement, supplier negotiation, staffing and daily service standards.', tags: ['procurement', 'negotiation', 'staffing', 'standards', 'customer', 'operations'] },
       { id: 'fo-training', text: 'Built training and operating routines that kept high-volume service consistent through a growth phase.', tags: ['training', 'process', 'consistency', 'scale', 'hiring', 'quality', 'sop'] },
@@ -120,7 +120,7 @@ export const ROLES: Role[] = [
     title: 'Chief Operating Officer',
     employer: 'Sonoma Hills Farm',
     location: 'California',
-    dates: '2013 – 2016',
+    dates: 'Jan 2013 – Aug 2016',
     facts: [
       { id: 'so-build', text: 'Joined an early-stage agricultural start-up and built its operations function from the ground up.', tags: ['startup', 'build', 'operations', 'systems', 'scale', 'greenfield'] },
       { id: 'so-growth', text: 'Helped more than double revenue by increasing capacity and building the operating systems required to scale.', tags: ['growth', 'revenue', 'capacity', 'scale', 'systems'] },
