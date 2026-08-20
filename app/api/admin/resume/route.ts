@@ -18,6 +18,26 @@ export const maxDuration = 60
 
 interface Ask { secret?: string; url?: string; title?: string; company?: string | null; description?: string | null; location?: string | null }
 
+/** Job boards store internal codes — "Supv-Operations", "Sr Mgr, Ops". Written out
+ *  before tailoring, or the profile reads "I am a Supv-Operations" (Jacob 2026-08-20). */
+function tidyTitle(raw: string): string {
+  let t = raw.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const swaps: [RegExp, string][] = [
+    [/\bsupv\b/gi, 'Supervisor'], [/\bsuprv\b/gi, 'Supervisor'],
+    [/\bmgr\b/gi, 'Manager'], [/\bmgmt\b/gi, 'Management'],
+    [/\bsr\b/gi, 'Senior'], [/\bjr\b/gi, 'Junior'],
+    [/\bdir\b/gi, 'Director'], [/\bassoc\b/gi, 'Associate'],
+    [/\basst\b/gi, 'Assistant'], [/\bcoord\b/gi, 'Coordinator'],
+    [/\bops\b/gi, 'Operations'], [/\bexec\b/gi, 'Executive'],
+    [/\bspec\b/gi, 'Specialist'], [/\badmin\b/gi, 'Administration'],
+  ]
+  for (const [re, to] of swaps) t = t.replace(re, to)
+  // Drop trailing requisition noise: "Operations Manager - HRA - 128"
+  t = t.replace(/\s*[-–]\s*\d{2,}\s*$/, '').replace(/\s*\(\s*\d+\s*\)\s*$/, '')
+  // Reorder "Operations, Supervisor" -> "Supervisor Operations" reads worse; leave commas.
+  return t.trim()
+}
+
 async function build(ask: Ask) {
   if (!process.env.ADMIN_SECRET || ask.secret !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
@@ -40,11 +60,18 @@ async function build(ask: Ask) {
         .select('title, company, description, location')
         .eq('url', url)
         .maybeSingle()
-      if (data) job = { title: data.title || job.title, company: data.company, description: data.description, location: data.location }
+      if (data) job = {
+        // An explicitly passed title/company wins — the caller may have cleaned it.
+        title: ask.title || data.title || job.title,
+        company: ask.company ?? data.company,
+        description: data.description,
+        location: data.location,
+      }
     }
   }
 
   if (!job.title) return NextResponse.json({ error: 'need a job title' }, { status: 400 })
+  job.title = tidyTitle(job.title)
 
   const { result, fallback } = await tailor(job)
   const { fitted, dropped } = fitOnePage(result)
