@@ -55,6 +55,10 @@ const RELOCATE_WORTHY_SALARY = 250_000
 // Cash-flow floor (Jacob 2026-08-01): posted salaries under $75k are cut; unlisted
 // salaries stay in (most leadership posts don't list). Target roles still rank first.
 const MIN_SALARY = 75_000
+// Ceiling added 2026-08-19: director-level postings above this were absorbing the
+// wire and not converting. Unlisted salaries still pass — most leadership ads
+// carry no number and excluding them would empty the board.
+const MAX_SALARY = 130_000
 const DENVER_METRO = ['denver', 'aurora', 'lakewood', 'englewood', 'littleton', 'centennial', 'westminster', 'thornton', 'arvada', 'broomfield', 'boulder', 'golden', 'greenwood village', 'commerce city', 'wheat ridge']
 // Other states/metros that disqualify a "remote" posting when the listing says you
 // must live there (Jacob 2026-08-05: "some have said remote but I had to live in Sonoma").
@@ -280,7 +284,8 @@ async function handle(req: Request) {
         if (remoteElsewhere(`${j.location} ${j.title} ${j.description || ''}`)) droppedFakeRemote++
         return false
       })
-      .filter((j) => { const s = salaryMax(j.salary); return s < 0 || s >= MIN_SALARY }) // $75k floor; unlisted stays
+      // $75k floor and $130k ceiling; unlisted salaries stay in.
+      .filter((j) => { const s = salaryMax(j.salary); return s < 0 || (s >= MIN_SALARY && s <= MAX_SALARY) })
       .map((j) => ({ ...j, fit_score: j.fit_score + (regionOk(j) ? 3 : 0) }))
       .sort((a, b) => b.fit_score - a.fit_score || salaryMax(b.salary) - salaryMax(a.salary))
     sweepStats.push(`dropped ${droppedDupes} duplicate(s), ${droppedFakeRemote} fake-remote (residency elsewhere)`)

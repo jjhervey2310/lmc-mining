@@ -22,7 +22,14 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     .order('fit_score', { ascending: false })
     .limit(100) ?? null)
 
-  const rows = jobs?.data ?? []
+  // Salary band (Jacob 2026-08-19): $75k floor, $130k ceiling, unlisted kept.
+  // Applied here as well as in the sweep so rows stored before the rule vanish too.
+  const topOf = (sal?: string | null) => {
+    if (!sal) return -1
+    const nums = [...sal.matchAll(/\d[\d,]*/g)].map((m) => Number(m[0].replace(/,/g, '')))
+    return nums.length ? Math.max(...nums) : -1
+  }
+  const rows = (jobs?.data ?? []).filter((j) => { const t = topOf(j.salary); return t < 0 || t <= 130_000 })
   const withSalary = rows.filter((j) => j.salary).length
   const li = (q: string) =>
     `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(q)}&location=Denver%2C%20Colorado&f_TPR=r86400`

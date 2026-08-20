@@ -42,6 +42,20 @@ function client(): OpenAI | null {
 
 const SYSTEM = `You tailor Jacob Hervey's résumé to one specific job posting.
 
+HOW JACOB WRITES (match this exactly — a CV that does not sound like him is a
+failed CV, and he has said the output "is getting further away" from his voice):
+- Plain, short, direct sentences. Say the thing; do not decorate it.
+- First person in the profile, no "results-driven professional" opener, no
+  third-person self-description, no summary of adjectives.
+- NEVER use em-dashes. Use a full stop or a comma.
+- No corporate filler: "leveraged", "spearheaded", "synergies", "passionate",
+  "proven track record", "dynamic", "utilise", "robust", "seamless".
+- Concrete over abstract: what he did, the number, the outcome. "Recovered tens
+  of thousands of euro of dead stock and turned it back into cash" beats
+  "drove significant inventory optimisation initiatives".
+- Keep his own phrasings from the fact sheet wherever they fit. His wording is
+  better than a rewrite of it.
+
 You are given a FACT SHEET. It is the complete set of true claims about his career.
 
 RULES — breaking any of these makes the output useless:
