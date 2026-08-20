@@ -18,46 +18,14 @@ export interface WireJob {
 export default function JobWire({ jobs, secret }: { jobs: WireJob[]; secret: string }) {
   const [items, setItems] = useState(jobs)
   const [ticking, setTicking] = useState<string | null>(null)
-  const [cving, setCving] = useState<string | null>(null)
-  const [angle, setAngle] = useState<Record<string, string>>({})
 
-  /** Build a CV tailored to this posting and download it. ~4s, one click.
-   *  Jacob's recruiter (2026-08-12) wants a tailored CV on every application, so
-   *  this has to cost no more time than not doing it. */
-  async function makeCv(j: WireJob) {
-    if (cving) return
-    setCving(j.url)
-    try {
-      const res = await fetch('/api/admin/resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret, url: j.url, title: j.title, company: j.company }),
-      })
-      if (!res.ok) { setAngle((a) => ({ ...a, [j.url]: 'CV failed — try again' })); return }
-      const blob = await res.blob()
-      const name = decodeURIComponent(
-        res.headers.get('Content-Disposition')?.match(/filename="(.+?)"/)?.[1] || 'resume.docx',
-      )
-      // The anchor must be in the document and the blob URL must outlive the
-      // click — revoking immediately cancels the download in Safari and some
-      // Chrome versions, which looked like "nothing happened" (Jacob 2026-08-18).
-      const href = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = href
-      a.download = name
-      a.rel = 'noopener'
-      document.body.appendChild(a)
-      a.click()
-      setTimeout(() => {
-        document.body.removeChild(a)
-        URL.revokeObjectURL(href)
-      }, 30_000)
-      const note = decodeURIComponent(res.headers.get('X-Resume-Angle') || '')
-      const body = res.headers.get('X-Resume-Body') === 'full' ? '' : ' (title only — no posting text stored)'
-      setAngle((a2) => ({ ...a2, [j.url]: note + body }))
-    } finally {
-      setCving(null)
-    }
+  /** The CV is a normal link, not a scripted blob download: an installed PWA
+   *  silently drops blob saves, which is why the files were going nowhere
+   *  (Jacob 2026-08-18). The browser handles a real download navigation. */
+  function cvHref(j: WireJob) {
+    const q = new URLSearchParams({ secret, url: j.url, title: j.title })
+    if (j.company) q.set('company', j.company)
+    return `/api/admin/resume?${q.toString()}`
   }
 
   /** status: 'done' = not for me · 'applied' = I applied. Either way it leaves for good. */
@@ -113,18 +81,15 @@ export default function JobWire({ jobs, secret }: { jobs: WireJob[]; secret: str
                 ? ` · posted ${j.posted_at.slice(5, 10)}`
                 : ` · found ${j.found_at.slice(5, 10)} · post date unknown`}
             </div>
-            {angle[j.url] && (
-              <div className="mt-0.5 text-[10px] italic leading-snug text-sky-700">CV: {angle[j.url]}</div>
-            )}
           </a>
-          <button
-            onClick={() => makeCv(j)}
-            disabled={cving === j.url || ticking === j.url}
+          <a
+            href={cvHref(j)}
+            download
             title="build a CV tailored to this posting and download it"
-            className="mt-0.5 shrink-0 rounded border border-sky-600 bg-sky-50 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-sky-700 hover:bg-sky-600 hover:text-white disabled:opacity-40"
+            className="mt-0.5 shrink-0 rounded border border-sky-600 bg-sky-50 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-sky-700 hover:bg-sky-600 hover:text-white"
           >
-            {cving === j.url ? '…' : 'CV ↓'}
-          </button>
+            CV ↓
+          </a>
           <button
             onClick={() => apply(j.url)}
             disabled={ticking === j.url}

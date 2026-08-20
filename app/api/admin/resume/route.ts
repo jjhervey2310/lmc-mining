@@ -16,21 +16,22 @@ import { tailor, render, filename, fitOnePage, pageCount } from '@/lib/resume/ta
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => null)
-  if (!process.env.ADMIN_SECRET || body?.secret !== process.env.ADMIN_SECRET) {
+interface Ask { secret?: string; url?: string; title?: string; company?: string | null; description?: string | null; location?: string | null }
+
+async function build(ask: Ask) {
+  if (!process.env.ADMIN_SECRET || ask.secret !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   let job = {
-    title: String(body?.title || ''),
-    company: (body?.company as string | null) ?? null,
-    description: (body?.description as string | null) ?? null,
-    location: (body?.location as string | null) ?? null,
+    title: String(ask.title || ''),
+    company: ask.company ?? null,
+    description: ask.description ?? null,
+    location: ask.location ?? null,
   }
 
   // Prefer the stored row — it carries the description the wire's UI doesn't hold.
-  const url = String(body?.url || '')
+  const url = String(ask.url || '')
   if (url) {
     const supabase = createServiceClient()
     if (supabase) {
@@ -64,5 +65,30 @@ export async function POST(req: Request) {
       'X-Resume-Tailored': fallback ? 'no' : 'yes',
       'X-Resume-Body': job.description ? 'full' : 'title-only',
     },
+  })
+}
+
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => null)
+  return build({
+    secret: body?.secret,
+    url: body?.url,
+    title: body?.title,
+    company: body?.company,
+    description: body?.description,
+    location: body?.location,
+  })
+}
+
+/** GET so the button can be a plain link. An installed PWA will not save a
+ *  blob created by script, but it always handles a normal download navigation
+ *  (Jacob: "the cvs seem to be going nowhere", 2026-08-18). */
+export async function GET(req: Request) {
+  const q = new URL(req.url).searchParams
+  return build({
+    secret: q.get('secret') ?? undefined,
+    url: q.get('url') ?? undefined,
+    title: q.get('title') ?? undefined,
+    company: q.get('company'),
   })
 }
