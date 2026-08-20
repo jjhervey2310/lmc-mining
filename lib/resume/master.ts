@@ -44,7 +44,7 @@ export const CONTACT = {
 /** Never contradicted, whatever the posting. */
 export const BASE_TRUTHS = [
   '13 years running businesses end to end as a CEO, COO, GM and Head of Operations',
-  'Led teams of up to 75+',
+  'Led a 75 person function with about 50 direct reports',
   'Owned full P&Ls',
   'Built a business from zero to $2M+ revenue',
   'Worked across US, Northern Irish and Irish business environments with a European supplier base',
@@ -78,7 +78,7 @@ export const ROLES: Role[] = [
     context: 'Family-owned tile, bathroom and flooring retailer trading over 40 years. Reported to the CEO.',
     facts: [
       { id: 'ts-spend', text: 'Ran approximately €5M of annual procurement spend across 50 to 100 suppliers, most of it inbound from Italy, Germany and Spain.', tags: ['procurement', 'sourcing', 'supplier', 'spend', 'budget', 'international', 'category'] },
-      { id: 'ts-team', text: 'Led a 75+ person operations and logistics function, reporting directly to the CEO.', tags: ['leadership', 'operations', 'logistics', 'team', 'management', 'field'] },
+      { id: 'ts-team', text: 'Led a 75 person operations and logistics function, about 50 of them reporting to me, working directly to the CEO.', tags: ['leadership', 'operations', 'logistics', 'team', 'management', 'field'] },
       { id: 'ts-deadstock', text: 'Recovered tens of thousands of euro of dead stock that had sat unsold in the warehouse without being flagged, cleared it and turned it back into cash.', tags: ['inventory', 'cost', 'cash', 'working capital', 'analysis', 'warehouse', 'turnaround'] },
       { id: 'ts-leadtime', text: 'Ran the logistics operation and team, holding inbound lead times down across three countries of European supply.', tags: ['logistics', 'lead time', 'supply chain', 'freight', 'international', 'delivery'] },
       { id: 'ts-process', text: 'Replaced informal handoffs in ordering and fulfilment with documented processes the team could run without me.', tags: ['process', 'sop', 'documentation', 'operations', 'fulfilment', 'scale', 'systems'] },
