@@ -95,7 +95,7 @@ export const ROLES: Role[] = [
     facts: [
       { id: 'em-build', text: 'Built the business from nothing with no outside funding: supply chain, procurement, staffing and production planning.', tags: ['founder', 'startup', 'build', 'operations', 'staffing', 'production', 'scale'] },
       { id: 'em-growth', text: 'Grew revenue from zero to over $2M in six years while holding gross margins between 40% and 60%.', tags: ['growth', 'revenue', 'margin', 'pnl', 'finance', 'scale'] },
-      { id: 'em-team', text: 'Led a team of 11 to 20 people and owned the P&L end to end.', tags: ['leadership', 'team', 'pnl', 'management'] },
+      { id: 'em-team', text: 'Led a team of 4 and owned the P&L end to end.', tags: ['leadership', 'team', 'pnl', 'management'] },
       { id: 'em-retail', text: 'Won national retail listings with Boots, Holland & Barrett and Chemist Warehouse.', tags: ['sales', 'business development', 'retail', 'partnerships', 'accounts', 'customer', 'growth'] },
       { id: 'em-distributor', text: 'Restructured onto a distributor model that took over marketing and sales, reducing my side to fulfilment oversight.', tags: ['strategy', 'change', 'delegation', 'systems', 'restructure', 'channel'] },
       { id: 'em-exit', text: 'Agreed the sale of the business in 2026.', tags: ['exit', 'strategy', 'ownership'] },
@@ -125,7 +125,7 @@ export const ROLES: Role[] = [
       { id: 'so-build', text: 'Joined an early-stage agricultural start-up and built its operations function from the ground up.', tags: ['startup', 'build', 'operations', 'systems', 'scale', 'greenfield'] },
       { id: 'so-growth', text: 'Helped more than double revenue by increasing capacity and building the operating systems required to scale.', tags: ['growth', 'revenue', 'capacity', 'scale', 'systems'] },
       { id: 'so-plan', text: 'Managed production schedules, supply chain logistics and delivery timing so the product reached the market on schedule.', tags: ['planning', 'production', 'logistics', 'delivery', 'supply chain', 'scheduling'] },
-      { id: 'so-team', text: 'Led around 10 people across procurement, inventory, production, logistics and supplier management.', tags: ['leadership', 'procurement', 'inventory', 'logistics', 'team'] },
+      { id: 'so-team', text: 'Led about 10 people across procurement, inventory, production, logistics and supplier management.', tags: ['leadership', 'procurement', 'inventory', 'logistics', 'team'] },
       { id: 'so-founders', text: 'Worked directly with the founders to turn an idea into a working commercial operation.', tags: ['strategy', 'executive', 'stakeholder', 'founder', 'commercial'] },
     ],
   },
