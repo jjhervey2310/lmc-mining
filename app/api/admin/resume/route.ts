@@ -34,7 +34,13 @@ function tidyTitle(raw: string): string {
   for (const [re, to] of swaps) t = t.replace(re, to)
   // Drop trailing requisition noise: "Operations Manager - HRA - 128"
   t = t.replace(/\s*[-–]\s*\d{2,}\s*$/, '').replace(/\s*\(\s*\d+\s*\)\s*$/, '')
-  // Reorder "Operations, Supervisor" -> "Supervisor Operations" reads worse; leave commas.
+  // Codes are written rank-first ("Supv-Operations"), which reads backwards in a
+  // sentence: "I am a Supervisor Operations". Flip it to "Operations Supervisor".
+  const RANK = /^(Supervisor|Manager|Director|Coordinator|Specialist|Assistant|Administration)\s+(.+)$/i
+  if (/[-_]/.test(raw)) {
+    const m = t.match(RANK)
+    if (m && !/[,]/.test(t)) t = `${m[2]} ${m[1]}`
+  }
   return t.trim()
 }
 
