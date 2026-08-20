@@ -367,6 +367,9 @@ export function filename(t: Tailored, company?: string | null): string {
   const d = new Date()
   const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
   const safe = (s: string) => s.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 50)
-  const co = company ? ` (${safe(company)})` : ''
-  return `JACOB James HERVEY_${safe(t.headline)}${co}_${stamp}.docx`
+  // Company and role FIRST. Every file starting "JACOB James HERVEY_" made the
+  // folder unreadable at a glance — the distinguishing part was buried off the
+  // end of the Finder column (Jacob 2026-08-20).
+  const co = company ? safe(company) : 'Unknown'
+  return `${co} - ${safe(t.headline)} - CV ${stamp}.docx`
 }
