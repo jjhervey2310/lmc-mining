@@ -63,7 +63,8 @@ RULES — breaking any of these makes the output useless:
    facts from the SAME role, and swap in the posting's own vocabulary. You may NOT
    introduce a number, employer, date, system, certification or achievement that is
    not on the fact sheet.
-2. Keep every number exactly as written. €5M stays €5M. 40–60% stays 40–60%.
+2. Keep every number exactly as written, INCLUDING its period. €5M a month is
+   never "€5M a year". 40-60% stays 40-60%.
 3. Pick the bullets that answer the posting's stated requirements. Drop the rest.
    Order them so the most relevant is first within each role.
 4. Skills must be chosen from the supplied skill list only. Pick 11, ordered so the
@@ -197,7 +198,7 @@ function baseline(job: JobInput): Tailored {
     headline: job.title || 'Operations Leadership',
     positioning: 'Operations & General Management · Procurement & Supply Chain · Team Leadership',
     profile:
-      "Operations leader with 13 years running businesses end to end as an owner, GM and COO. I've built supply chains from scratch, run €5M of annual spend across 50 to 100 suppliers, held margins under pressure, and led teams across retail, hospitality and agriculture in the US, Northern Ireland and Ireland. I'm at my best taking over a messy operation, finding where it's losing money or time, and fixing it.",
+      "Operations leader with 13 years running businesses end to end as a CEO, COO and GM. I've built supply chains from scratch, run around €5M of procurement spend a month, held margins under pressure, and led teams across retail, hospitality and agriculture in the US, Northern Ireland and Ireland. I'm at my best taking over a messy operation, finding where it's losing money or time, and fixing it.",
     skills: SKILL_POOL.slice(0, 11),
     bullets: ROLES.flatMap((r) => r.facts.slice(0, 4).map((f) => ({ role: r.id, text: f.text }))),
     systems: SYSTEMS_FACTS.slice(0, 2).map((f) => f.text),
