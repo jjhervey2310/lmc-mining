@@ -74,6 +74,20 @@ async function build(ask: Ask) {
   job.title = tidyTitle(job.title)
 
   const { result, fallback } = await tailor(job)
+
+  // The model reads the posting body, so a raw code like "Supv-Operations" can
+  // reach the headline and the profile even when the title field was cleaned.
+  // Scrub it on the way out — this is the last gate before the document.
+  result.headline = tidyTitle(result.headline)
+  const rawTitle = String(ask.title || '').trim()
+  const codey = [rawTitle, job.title].filter((t) => t && /[-_]|\b(supv|mgr|sr|jr|dir|assoc|asst|coord|ops|exec|spec)\b/i.test(t))
+  for (const bad of codey) {
+    const re = new RegExp(bad.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+    result.profile = result.profile.replace(re, tidyTitle(bad))
+  }
+  // "I am a Operations Supervisor" -> "I am an Operations Supervisor"
+  result.profile = result.profile.replace(/\ba (?=[aeiou])/gi, (m) => (m[0] === 'A' ? 'An ' : 'an '))
+
   const { fitted, dropped } = fitOnePage(result)
   const bytes = render(fitted)
   const name = filename(fitted, job.company)
