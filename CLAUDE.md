@@ -38,7 +38,7 @@
 
 ## Marketing Automation (all $0, live 2026-07-05)
 - BRAND.md = voice/rules/review-checklist source of truth for ALL content
-- Scheduling: Supabase pg_cron + pg_net (NOT Vercel crons). Jobs: daily-hashprice-snapshot (0 0), daily-content-drop (0 13 UTC), weekly-newsletter (0 15 Sun UTC)
+- Scheduling: Supabase pg_cron + pg_net (NOT Vercel crons). 9 jobs as of 2026-08-21: daily-hashprice-snapshot (0 0), weekly-newsletter (0 15 Sun), make-content-warm (0 0 Sun), heygen-quota-alert (Sat 23:00), weekly-analytics-review (Mon 02:00), morning-brief (12:00), job-verify (12:30+16:30), comp-snapshot (20:05) — all UTC, all active; daily-content-drop (0 13) is INACTIVE, superseded by the Make pipeline. CAUTION: pg_net is fire-and-forget, so cron.job_run_details says "succeeded" even when the endpoint fails — check the target table for the row, never trust the run log alone
 - Secret for content endpoints: DAILY_CONTENT_SECRET (Vercel prod env). Endpoints reject without header x-content-secret
 - lib/daily-content.ts → /api/cron/daily-content: emails Jacob the day's video script + 4 platform captions, numbers computed live at send time
 - lib/make-content.ts → /api/make-content (secret: x-content-secret): gate-passed daily script + per-platform captions for the Make.com posting pipeline (Claude generate → fact/brand/evergreen gates + GPT review → Supabase make_content_cache; template fallback). Price numbers Sunday-only; Mon–Sat evergreen. See HANDOVER.md §0

@@ -13,7 +13,7 @@ const RED = '#ff4757'
 // Application-first on purpose: at $997 the right funnel is a short application,
 // then Jacob sends the payment link and books the kickoff. If a Stripe link is
 // ever created for direct checkout, set it here and the pay button appears.
-const STRIPE_997_LINK = ''
+const STRIPE_997_LINK = 'https://buy.stripe.com/5kQ5kE1w8bWIgA4cAQf7i02'
 
 const FAQ = [
   {

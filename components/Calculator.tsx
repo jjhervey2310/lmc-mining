@@ -37,12 +37,9 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
       .then((minerData) => setMiners(minerData.miners || []))
       .catch(() => setMiners([]))
 
-    // Server already provided live price/difficulty for the initial render.
-    // Only re-fetch client-side if that server-side fetch failed.
-    if (initialLiveData) {
-      setLoadingData(false)
-      return
-    }
+    // Server data paints instantly, but the page may be served from ISR cache,
+    // so always refresh price/difficulty client-side.
+    if (initialLiveData) setLoadingData(false)
 
     fetch('/api/btc-price')
       .then((r) => r.json())
@@ -114,7 +111,10 @@ export default function Calculator({ initialLiveData = null }: CalculatorProps) 
               <span className="ml-2 text-yellow-500">⚠ Cached data — {liveData.warning}</span>
             )}
           </span>
-          <span>Updated: {new Date(liveData.last_updated).toLocaleTimeString()}</span>
+          {/* Locale/timezone differ between server and visitor */}
+          <span suppressHydrationWarning>
+            Updated: {new Date(liveData.last_updated).toLocaleTimeString()}
+          </span>
         </div>
       )}
 

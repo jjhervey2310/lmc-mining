@@ -4,6 +4,10 @@ import Calculator from '@/components/Calculator'
 import BreakevenWidget from '@/components/BreakevenWidget'
 import { getLivePriceData } from '@/lib/btc-price'
 
+// Without an explicit revalidate, Next can bake this page fully static when the
+// price module's warm cache registers zero fetches at build time.
+export const revalidate = 600
+
 export const metadata: Metadata = {
   alternates: { canonical: '/calculator' },
   title: 'Bitcoin Mining ROI Calculator — Free Profitability Tool',

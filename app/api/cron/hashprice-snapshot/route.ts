@@ -21,10 +21,17 @@ export async function POST(req: Request) {
     const apiKey = process.env.COINGECKO_API_KEY
     const cgUrl = apiKey ? `${COINGECKO_URL}&x_cg_demo_api_key=${apiKey}` : COINGECKO_URL
 
-    const [priceRes, diffRes] = await Promise.all([
+    const [firstRes, diffRes] = await Promise.all([
       fetch(cgUrl, { cache: 'no-store' }),
       fetch('https://blockchain.info/q/getdifficulty', { cache: 'no-store' }),
     ])
+    let priceRes = firstRes
+
+    // Same keyless fallback as lib/btc-price.ts: a bad key (401/403) or a
+    // rate-limited keyed call (429) shouldn't cost the day's snapshot.
+    if (!priceRes.ok && apiKey && [401, 403, 429].includes(priceRes.status)) {
+      priceRes = await fetch(COINGECKO_URL, { cache: 'no-store' })
+    }
 
     if (!priceRes.ok) throw new Error(`CoinGecko ${priceRes.status}`)
     if (!diffRes.ok) throw new Error(`blockchain.info ${diffRes.status}`)
