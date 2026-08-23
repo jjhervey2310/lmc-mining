@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { runTraderCycle } from '@/lib/comp-trader'
 
-// Daily run of the competition trading bot (lib/comp-trader.ts): manages the
-// cash sleeve of Claude's book on momentum/trend rules, logs trades to
-// comp_trades, journals to comp_trader_journal. Scheduled via Supabase pg_cron
-// like every other cron here. Re-running the same day is safe — the journal
-// upserts on run_date and the rebalance bands stop duplicate trades.
+// Hourly run of the competition trading bot (lib/comp-trader.ts): scans the
+// market around the clock, manages the cash sleeve of Claude's book on
+// momentum/trend rules, logs trades to comp_trades, journals to
+// comp_trader_journal (one row per day, actions appended across runs).
+// Scheduled via Supabase pg_cron like every other cron here. Re-running is
+// safe — the rebalance bands stop duplicate trades.
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60

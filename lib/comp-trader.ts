@@ -2,11 +2,18 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { getMarketQuotes } from '@/lib/markets'
 import { getCompBooks } from '@/app/admin/dashboard/comp-data'
 
-// Daily bot for the trading competition: manages the CASH SLEEVE of Claude's
+// Hourly bot for the trading competition: manages the CASH SLEEVE of Claude's
 // book (never the strategic core positions) with a momentum/trend ruleset,
 // logs every trade to comp_trades like any other call, and keeps a journal
 // (comp_trader_journal) it re-reads each run — that history is how it "learns":
 // sleeve size adapts to whether the bot has actually been beating buy-and-hold.
+//
+// Fee awareness: the ledger itself is fee-free (all contestants trade free, so
+// burning fees only on bot trades would handicap one book unfairly), but every
+// action journals the fee a real exchange would charge (FEE_RATE per side) and
+// the rebalance bands + minimum trade size exist precisely so the strategy
+// stays profitable AFTER those modeled costs — a strategy that only works at
+// zero fees is not one worth graduating to real money.
 //
 // Hard guards, in priority order:
 //   1. Bot may only ever spend cash the ledger says exists; sells capped at
@@ -27,9 +34,10 @@ const SLEEVE_PCT_START = 20 // % of book value the bot may manage
 const SLEEVE_PCT_MIN = 10
 const SLEEVE_PCT_MAX = 25
 const TOP_N = 2 // hold the N strongest eligible assets
-const MIN_TRADE_USD = 10
+const MIN_TRADE_USD = 15 // below this, round-trip fees eat the edge
 const REBAL_BAND = 0.2 // trade only when target differs >20% from held
 const CIRCUIT_BREAKER = 0.85 // of 30-day high-water book total
+const FEE_RATE = 0.003 // modeled per-side exchange fee (0.3%), journaled not burned
 
 interface Signal {
   symbol: string
@@ -45,8 +53,9 @@ interface JournalRow {
   bot_cash: number
   bot_positions: Record<string, number>
   signals: Signal[]
-  actions: { action: string; symbol: string; qty: number; price: number; reason: string }[]
+  actions: { action: string; symbol: string; qty: number; price: number; fee: number; reason: string }[]
   book_total: number
+  fees_modeled: number
   notes: string
 }
 
@@ -154,7 +163,7 @@ export async function runTraderCycle(supabase: SupabaseClient): Promise<JournalR
     for (const [sym, qty] of Object.entries(botPositions)) {
       const price = priceOf(sym)
       if (qty * price >= MIN_TRADE_USD && price > 0) {
-        actions.push({ action: 'sell', symbol: sym, qty, price, reason: `circuit breaker: book ${((book.total / highWater) * 100).toFixed(1)}% of 30d high-water — bot to cash pending review` })
+        actions.push({ action: 'sell', symbol: sym, qty, price, fee: qty * price * FEE_RATE, reason: `circuit breaker: book ${((book.total / highWater) * 100).toFixed(1)}% of 30d high-water — bot to cash pending review` })
         botCash += qty * price
         delete botPositions[sym]
       }
@@ -175,7 +184,7 @@ export async function runTraderCycle(supabase: SupabaseClient): Promise<JournalR
       const excess = held - target
       if (price > 0 && excess >= MIN_TRADE_USD && (target === 0 || excess / Math.max(target, 1) > REBAL_BAND)) {
         const sellQty = target === 0 ? qty : excess / price
-        actions.push({ action: 'sell', symbol: sym, qty: sellQty, price, reason: target === 0 ? `signal lost (below 20d SMA or out of top ${TOP_N})` : 'rebalance above band' })
+        actions.push({ action: 'sell', symbol: sym, qty: sellQty, price, fee: sellQty * price * FEE_RATE, reason: target === 0 ? `signal lost (below 20d SMA or out of top ${TOP_N})` : 'rebalance above band' })
         botCash += sellQty * price
         botPositions[sym] = qty - sellQty
         if (botPositions[sym] <= 1e-12) delete botPositions[sym]
@@ -190,7 +199,7 @@ export async function runTraderCycle(supabase: SupabaseClient): Promise<JournalR
         if (spend >= MIN_TRADE_USD) {
           const buyQty = spend / price
           const sig = signals.find((s) => s.symbol === sym)
-          actions.push({ action: 'buy', symbol: sym, qty: buyQty, price, reason: `top-${TOP_N} momentum (7d ${(100 * (sig?.mom7 ?? 0)).toFixed(1)}%, above 20d SMA)` })
+          actions.push({ action: 'buy', symbol: sym, qty: buyQty, price, fee: spend * FEE_RATE, reason: `top-${TOP_N} momentum (7d ${(100 * (sig?.mom7 ?? 0)).toFixed(1)}%, above 20d SMA)` })
           botCash -= spend
           botPositions[sym] = (botPositions[sym] ?? 0) + buyQty
         }
@@ -207,19 +216,23 @@ export async function runTraderCycle(supabase: SupabaseClient): Promise<JournalR
       symbol: a.symbol,
       qty: a.qty,
       price: a.price,
-      note: `BOT ${day}: ${a.reason}`,
+      note: `BOT ${day}: ${a.reason} (modeled fee $${a.fee.toFixed(2)})`,
     })))
     if (error) throw new Error(`trade insert failed: ${error.message}`)
   }
 
+  // Hourly runs share one journal row per day — append actions, accumulate fees.
+  const sameDay = last?.run_date === day
+  const newFees = actions.reduce((s, a) => s + a.fee, 0)
   const row: JournalRow = {
     run_date: day,
     sleeve_pct: sleevePct,
     bot_cash: Number(botCash.toFixed(2)),
     bot_positions: botPositions,
     signals,
-    actions,
+    actions: sameDay ? [...(last?.actions ?? []), ...actions] : actions,
     book_total: book.total,
+    fees_modeled: Number(((sameDay ? last?.fees_modeled ?? 0 : 0) + newFees).toFixed(2)),
     notes,
   }
   const { error: jerr } = await supabase.from('comp_trader_journal').upsert(row, { onConflict: 'run_date' })
