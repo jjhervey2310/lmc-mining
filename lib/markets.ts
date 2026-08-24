@@ -53,6 +53,7 @@ const EQUITIES: [string, string][] = [
   ['META', 'META'],
   ['TSLA', 'TSLA'],
   ['TQQQ', 'TQQQ'],
+  ['SQQQ', 'SQQQ'],
 ]
 
 const CRYPTO_TTL_MS = 10_000
