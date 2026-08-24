@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
-import { Shell, Panel, Tile, checkAdmin } from '../ui'
+import { Shell, Panel, Tile, checkAdmin, usd } from '../ui'
+import TrendChart from '../trend-chart'
 
 // J&P FUND — the research desk: latest verified multi-agent market sweep
 // (TA, sentiment, flows, turnover, narratives, calendar) feeding the weekly call.
@@ -23,38 +24,187 @@ interface Brief {
 
 const px = (n: number) => (n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`)
 
+interface Holding { symbol: string; qty: number; avg_cost: number }
+interface Trade { id: number; traded_at: string; action: string; symbol: string; qty: number; price: number; note: string | null }
+interface Watch { symbol: string; thesis: string; trigger_level: string }
+
+// Symbol → CoinGecko id for pricing the fund's book. Extend as holdings do.
+const CG: Record<string, string> = {
+  BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', XRP: 'ripple', DOGE: 'dogecoin',
+  ADA: 'cardano', AVAX: 'avalanche-2', LINK: 'chainlink', LTC: 'litecoin', BCH: 'bitcoin-cash',
+  XLM: 'stellar', UNI: 'uniswap', AAVE: 'aave', SHIB: 'shiba-inu', PEPE: 'pepe',
+  BONK: 'bonk', WIF: 'dogwifcoin', DOT: 'polkadot', SUI: 'sui', HYPE: 'hyperliquid',
+}
+
+// null = price fetch failed (render "unavailable", never a zero — unknown ≠ empty).
+async function fundPrices(symbols: string[]): Promise<Record<string, number> | null> {
+  const ids = [...new Set(symbols.map((s) => CG[s.toUpperCase()]).filter(Boolean))]
+  if (!ids.length) return {}
+  try {
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd`, { next: { revalidate: 120 } })
+    if (!res.ok) return null
+    const j = (await res.json()) as Record<string, { usd?: number }>
+    return Object.fromEntries(Object.entries(CG).filter(([, id]) => j[id]?.usd).map(([s, id]) => [s, j[id].usd as number]))
+  } catch {
+    return null
+  }
+}
+
 export default async function FundPage({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
   const { secret = '' } = await searchParams
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const { data } = (await supabase?.from('fund_research')
-    .select('brief_date, content')
-    .order('brief_date', { ascending: false })
-    .limit(1)
-    .maybeSingle()) ?? { data: null }
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ] = await Promise.all([
+    supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
+    supabase?.from('fund_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
+    supabase?.from('fund_trades').select('id, traded_at, action, symbol, qty, price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
+    supabase?.from('fund_watchlist').select('symbol, thesis, trigger_level').order('added_at') ?? { data: null, error: true },
+    supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
+  ])
 
-  // A failed fetch must never render as an empty desk — unknown and empty look different.
-  if (!data) {
-    return (
-      <Shell secret={secret} active="fund">
-        <Panel accent="green" title="💼 J&P Fund — research desk">
-          <span className="text-[13px] text-red-600">No research brief reachable — table empty or fetch failed. Next sweep publishes here.</span>
-        </Panel>
-      </Shell>
-    )
-  }
+  const holdings = (holdingsQ.data ?? null) as Holding[] | null
+  const trades = (tradesQ.data ?? null) as Trade[] | null
+  const watchlist = (watchQ.data ?? null) as Watch[] | null
+  const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
 
-  const brief = data.content as unknown as Brief
-  const briefDate = data.brief_date as string
-  const fg = brief.sentiment.fear_greed
+  const priceSymbols = [...(holdings ?? []), ...(trades ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
+  const prices = await fundPrices(priceSymbols)
+
+  // Book math: cash is the USD row; every position priced live where a price came back.
+  const cash = holdings?.find((h) => h.symbol === 'USD')?.qty ?? 0
+  const positions = (holdings ?? []).filter((h) => h.symbol !== 'USD').map((h) => {
+    const now = prices?.[h.symbol.toUpperCase()] ?? null
+    return { ...h, now, value: now !== null ? h.qty * now : null, pnlPct: now !== null && h.avg_cost > 0 ? ((now - h.avg_cost) / h.avg_cost) * 100 : null }
+  })
+  const pricedValue = positions.reduce((s, p) => s + (p.value ?? 0), 0)
+  const allPriced = positions.every((p) => p.value !== null)
+  const total = allPriced ? pricedValue + cash : null
+
+  const brief = (research.data?.content ?? null) as Brief | null
+  const briefDate = (research.data?.brief_date ?? null) as string | null
+  const fg = brief?.sentiment.fear_greed ?? 0
+
+  const pct = (n: number | null) =>
+    n === null ? <span className="text-neutral-500">n/a</span>
+    : <span className={n >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}>{n >= 0 ? '+' : ''}{n.toFixed(1)}%</span>
 
   return (
     <Shell secret={secret} active="fund">
-      <Panel accent="green" title="💼 J&P Fund — research desk" right={<span className="text-[11px] text-neutral-500">brief {briefDate}</span>}>
+      {/* ── The book: holdings, equity curve, trades ── */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <Panel accent="green" title="💼 Holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
+          {holdings === null ? (
+            <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
+          ) : positions.length === 0 && cash === 0 ? (
+            <span className="text-[13px] text-neutral-500">No holdings logged yet. The book writes to <code>fund_holdings</code> (USD row = cash) — tell Claude a position and it lands here.</span>
+          ) : (
+            <div className="space-y-1.5">
+              {positions.map((p) => (
+                <div key={p.symbol} className="flex items-center gap-2 text-[13px]">
+                  <span className="w-14 font-bold text-amber-600 dark:text-amber-300">{p.symbol}</span>
+                  <span className="w-24 font-mono text-neutral-600 dark:text-neutral-400">{p.qty}</span>
+                  <span className="w-20 font-mono">{p.value !== null ? `$${usd(p.value)}` : 'no price'}</span>
+                  <span className="w-14 text-right font-mono text-[12px] text-neutral-500">{total ? `${(((p.value ?? 0) / total) * 100).toFixed(0)}%` : '—'}</span>
+                  <span className="ml-auto font-mono text-[12px]">{pct(p.pnlPct)}</span>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 border-t border-neutral-100 pt-1.5 text-[13px] dark:border-white/5">
+                <span className="w-14 font-bold text-neutral-600 dark:text-neutral-400">CASH</span>
+                <span className="font-mono">${usd(cash)}</span>
+                <span className="ml-auto font-mono text-[12px] text-neutral-500">{total ? `${((cash / total) * 100).toFixed(0)}%` : ''}</span>
+              </div>
+            </div>
+          )}
+        </Panel>
+
+        <Panel accent="purple" title="Equity curve" right={<span className="text-[11px] text-neutral-500">daily close</span>}>
+          {snaps.length > 1 ? (
+            <TrendChart
+              series={[{ key: 'fund', label: 'J&P', color: '#34d399', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
+              labels={snaps.map((s) => s.snapshot_date)} h={170} />
+          ) : (
+            <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots in <code>fund_snapshots</code> — banks nightly once the book has holdings.</span>
+          )}
+        </Panel>
+      </div>
+
+      {/* Trades done */}
+      <div className="mt-3">
+        <Panel accent="blue" title="Trades done" right={<span className="text-[11px] text-neutral-500">last 30 · “vs now” = market move since the fill</span>}>
+          {trades === null ? (
+            <span className="text-[13px] text-red-600">Trades unreachable — fetch failed, not empty.</span>
+          ) : trades.length === 0 ? (
+            <span className="text-[13px] text-neutral-500">No trades logged yet — fills land in <code>fund_trades</code> with reasoning in the note.</span>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-[13px]">
+                <thead><tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500">
+                  <th className="py-1 pr-2">Date</th><th className="pr-2">Side</th><th className="pr-2">Asset</th><th className="pr-2">Qty</th><th className="pr-2">Fill</th><th className="pr-2">vs now</th><th>Note</th>
+                </tr></thead>
+                <tbody>
+                  {trades.map((t) => {
+                    const now = prices?.[t.symbol.toUpperCase()] ?? null
+                    const move = now !== null && t.price > 0 ? ((now - t.price) / t.price) * 100 : null
+                    return (
+                      <tr key={t.id} className="border-t border-neutral-100 dark:border-white/5">
+                        <td className="py-1.5 pr-2 text-neutral-500">{new Date(t.traded_at).toLocaleDateString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric' })}</td>
+                        <td className={`pr-2 font-bold uppercase ${t.action === 'buy' ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{t.action}</td>
+                        <td className="pr-2 font-bold text-amber-600 dark:text-amber-300">{t.symbol}</td>
+                        <td className="pr-2 font-mono">{t.qty}</td>
+                        <td className="pr-2 font-mono">{px(t.price)}</td>
+                        <td className="pr-2 font-mono">{pct(move)}</td>
+                        <td className="max-w-[280px] truncate text-neutral-500">{t.note}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      {/* Watchlist */}
+      <div className="mt-3">
+        <Panel accent="amber" title="⚡ Watching — in before the move" right={<span className="text-[11px] text-neutral-500">Robinhood-listed only · triggers pre-committed</span>}>
+          {watchlist === null ? (
+            <span className="text-[13px] text-red-600">Watchlist unreachable — fetch failed, not empty.</span>
+          ) : (
+            <div className="grid gap-2 md:grid-cols-2">
+              {(watchlist ?? []).map((w) => {
+                const now = prices?.[w.symbol.toUpperCase()] ?? null
+                return (
+                  <div key={w.symbol} className="rounded-lg border border-neutral-200 p-2 dark:border-white/10">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-bold text-amber-600 dark:text-amber-300">{w.symbol}</span>
+                      {now !== null && <span className="font-mono text-[12px] text-neutral-500">{px(now)}</span>}
+                    </div>
+                    <div className="mt-0.5 text-[12px] text-neutral-600 dark:text-neutral-400">{w.thesis}</div>
+                    <div className="mt-1 text-[12px] font-bold text-teal-700 dark:text-teal-200">→ {w.trigger_level}</div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      {/* ── Research desk ── */}
+      {!brief ? (
+        <div className="mt-3">
+          <Panel accent="green" title="Research desk">
+            <span className="text-[13px] text-red-600">No research brief reachable — table empty or fetch failed. Next sweep publishes here.</span>
+          </Panel>
+        </div>
+      ) : (
+      <>
+      <div className="mt-3">
+      <Panel accent="green" title="Research desk" right={<span className="text-[11px] text-neutral-500">brief {briefDate}</span>}>
         <p className="text-[13px] leading-relaxed text-neutral-700 dark:text-neutral-300">{brief.headline}</p>
         <p className="mt-1 text-[11px] text-neutral-500">{brief.verified}</p>
       </Panel>
+      </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
         <Tile accent="green" i={0} label="Fear & Greed" value={String(fg)} tone={fg >= 70 ? 'neg' : fg <= 30 ? 'pos' : 'dim'} sub={`${brief.sentiment.fg_label} — ${brief.sentiment.fg_note}`} />
@@ -161,6 +311,8 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
           </ul>
         </Panel>
       </div>
+      </>
+      )}
 
       <div className="mt-3 text-[12px] text-neutral-500">
         The desk publishes from multi-agent research sweeps (content/narratives · TA computed from raw dailies · volume/flows ·
