@@ -69,7 +69,8 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
   const watchlist = (watchQ.data ?? null) as Watch[] | null
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
 
-  const priceSymbols = [...(holdings ?? []), ...(trades ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
+  // Watchlist symbols must be priced too — they carry live quotes on their cards.
+  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
   const prices = await fundPrices(priceSymbols)
 
   // Book math: cash is the USD row; every position priced live where a price came back.
