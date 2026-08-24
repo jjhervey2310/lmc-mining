@@ -22,7 +22,14 @@ interface Brief {
   implications: string[]
 }
 
-const px = (n: number) => (n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`)
+// Sub-cent coins need significant digits, not fixed ones: PEPE at 0.0000039
+// formats to "$0.0000" on toFixed(4), which reads as a broken zero.
+const px = (n: number) =>
+  n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}`
+  : n >= 1 ? `$${n.toFixed(2)}`
+  : n >= 0.01 ? `$${n.toFixed(4)}`
+  : n > 0 ? `$${n.toPrecision(3)}`
+  : '$0'
 
 interface Holding { symbol: string; qty: number; avg_cost: number }
 interface Trade { id: number; traded_at: string; action: string; symbol: string; qty: number; price: number; note: string | null }
