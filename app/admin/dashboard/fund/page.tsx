@@ -42,7 +42,7 @@ const CG: Record<string, string> = {
   ADA: 'cardano', AVAX: 'avalanche-2', LINK: 'chainlink', LTC: 'litecoin', BCH: 'bitcoin-cash',
   XLM: 'stellar', UNI: 'uniswap', AAVE: 'aave', SHIB: 'shiba-inu', PEPE: 'pepe',
   BONK: 'bonk', WIF: 'dogwifcoin', DOT: 'polkadot', SUI: 'sui', HYPE: 'hyperliquid',
-  LIT: 'lighter', ONDO: 'ondo-finance', MOODENG: 'moo-deng',
+  LIT: 'lighter', ONDO: 'ondo-finance', MOODENG: 'moo-deng', ZEC: 'zcash',
 }
 
 // null = price fetch failed (render "unavailable", never a zero — unknown ≠ empty).
