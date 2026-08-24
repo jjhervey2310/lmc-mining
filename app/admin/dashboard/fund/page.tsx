@@ -31,6 +31,7 @@ const px = (n: number) =>
   : n > 0 ? `$${n.toPrecision(3)}`
   : '$0'
 
+interface Radar { symbol: string; name: string; price: number; market_cap: number; turnover: number; d1: number; d7: number; d30: number; stage: string; score: number }
 interface Holding { symbol: string; qty: number; avg_cost: number }
 interface Trade { id: number; traded_at: string; action: string; symbol: string; qty: number; price: number; note: string | null }
 interface Watch { symbol: string; thesis: string; trigger_level: string }
@@ -63,18 +64,22 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('fund_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
     supabase?.from('fund_trades').select('id, traded_at, action, symbol, qty, price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
     supabase?.from('fund_watchlist').select('symbol, thesis, trigger_level').order('added_at') ?? { data: null, error: true },
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
+    supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
+      .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
   ])
 
   const holdings = (holdingsQ.data ?? null) as Holding[] | null
   const trades = (tradesQ.data ?? null) as Trade[] | null
   const watchlist = (watchQ.data ?? null) as Watch[] | null
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
+  const radar = (radarQ.data ?? null) as Radar[] | null
+  const byStage = (s: string) => (radar ?? []).filter((r) => r.stage === s)
 
   // Watchlist symbols must be priced too — they carry live quotes on their cards.
   const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
@@ -194,6 +199,49 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
                   </div>
                 )
               })}
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      {/* Runner radar — where money is arriving, staged by how far the move already went */}
+      <div className="mt-3">
+        <Panel accent="teal" title="🎯 Runner radar — catching rotation early"
+          right={<span className="text-[11px] text-neutral-500">Robinhood-listed · turnover = 24h vol ÷ mcap</span>}>
+          {radar === null ? (
+            <span className="text-[13px] text-red-600">Radar unreachable — fetch failed, not empty.</span>
+          ) : radar.length === 0 ? (
+            <span className="text-[13px] text-neutral-500">No scan banked yet — the Monday sweep writes <code>fund_radar</code>.</span>
+          ) : (
+            <div className="space-y-3">
+              {([
+                ['EARLY', 'Money arriving, price has NOT run yet — the hunting ground', 'text-green-700 dark:text-emerald-300', 'border-green-300 dark:border-emerald-400/30'],
+                ['RUNNING', 'Already moving — entries need a pullback, not a chase', 'text-amber-700 dark:text-amber-300', 'border-amber-300 dark:border-amber-400/30'],
+                ['EXTENDED', 'Move is late — this is where you become exit liquidity', 'text-red-600 dark:text-rose-300', 'border-red-300 dark:border-rose-400/30'],
+              ] as const).map(([stage, blurb, tone, bd]) => {
+                const list = byStage(stage)
+                if (!list.length) return null
+                return (
+                  <div key={stage}>
+                    <div className={`text-[12px] font-bold uppercase tracking-widest ${tone}`}>{stage} <span className="font-normal normal-case tracking-normal text-neutral-500">— {blurb}</span></div>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {list.map((r) => (
+                        <div key={r.symbol} className={`rounded-lg border ${bd} px-2 py-1 text-[12px]`}>
+                          <span className={`font-bold ${tone}`}>{r.symbol}</span>
+                          <span className="ml-1.5 font-mono text-neutral-500">{px(Number(r.price))}</span>
+                          <span className="ml-1.5 font-mono text-pink-600 dark:text-pink-300">{Number(r.turnover).toFixed(0)}%t</span>
+                          <span className={`ml-1.5 font-mono ${Number(r.d7) >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{Number(r.d7) >= 0 ? '+' : ''}{Number(r.d7).toFixed(0)}%7d</span>
+                          <span className="ml-1.5 font-mono text-neutral-500">{Number(r.d30) >= 0 ? '+' : ''}{Number(r.d30).toFixed(0)}%30d</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="border-t border-neutral-100 pt-2 text-[11px] text-neutral-500 dark:border-white/5">
+                EARLY = turnover ≥8% of mcap with the 30-day move still under 35%: attention is arriving before price has.
+                It is a shortlist to research, never an auto-buy — high turnover also marks a coin being distributed.
+              </div>
             </div>
           )}
         </Panel>
