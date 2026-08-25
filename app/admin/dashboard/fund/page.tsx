@@ -109,7 +109,7 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
     <Shell secret={secret} active="fund">
       {/* ── LIVE Robinhood agentic account (read-only mirror, synced by local tasks) ── */}
       <div className="mb-3">
-        <Panel accent="rose" title="🔴 Live account — Robinhood Agentic (real money)"
+        <Panel accent="rose" title="🔴 REAL MONEY — Robinhood"
           right={<span className="text-[11px] text-neutral-500">{liveBook?.length ? `synced ${new Date(liveBook[0].synced_at).toLocaleString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} DEN` : ''}</span>}>
           {liveBook === null ? (
             <span className="text-[13px] text-red-600">Live book unreachable — fetch failed, not empty.</span>
@@ -148,7 +148,7 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
 
       {/* ── The book: holdings, equity curve, trades ── */}
       <div className="grid gap-3 md:grid-cols-2">
-        <Panel accent="green" title="💼 Holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
+        <Panel accent="green" title="📝 PRACTICE BOOK — Claude's picks (paper)" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
           {holdings === null ? (
             <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
           ) : positions.length === 0 && cash === 0 ? (
