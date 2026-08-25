@@ -33,7 +33,7 @@ const px = (n: number) =>
 
 interface Radar { symbol: string; name: string; price: number; market_cap: number; turnover: number; d1: number; d7: number; d30: number; stage: string; score: number }
 interface Holding { symbol: string; qty: number; avg_cost: number }
-interface Trade { id: number; traded_at: string; action: string; symbol: string; qty: number; price: number; note: string | null }
+interface Trade { order_id: string; traded_at: string; side: string; symbol: string; qty: number; avg_price: number; note: string | null }
 interface Watch { symbol: string; thesis: string; trigger_level: string }
 
 // Symbol → CoinGecko id for pricing the fund's book. Extend as holdings do.
@@ -64,15 +64,14 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, liveQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
-    supabase?.from('fund_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
-    supabase?.from('fund_trades').select('id, traded_at, action, symbol, qty, price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
+    supabase?.from('live_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
+    supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
     supabase?.from('fund_watchlist').select('symbol, thesis, trigger_level').order('added_at') ?? { data: null, error: true },
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
-    supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol') ?? { data: null, error: true },
   ])
 
   const holdings = (holdingsQ.data ?? null) as Holding[] | null
@@ -81,10 +80,9 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
   const radar = (radarQ.data ?? null) as Radar[] | null
   const byStage = (s: string) => (radar ?? []).filter((r) => r.stage === s)
-  const liveBook = (liveQ.data ?? null) as (Holding & { synced_at: string })[] | null
 
   // Watchlist symbols must be priced too — they carry live quotes on their cards.
-  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? []), ...(liveBook ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
+  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
   const prices = await fundPrices(priceSymbols)
 
   // Book math: cash is the USD row; every position priced live where a price came back.
@@ -107,52 +105,13 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
 
   return (
     <Shell secret={secret} active="fund">
-      {/* ── LIVE Robinhood agentic account (read-only mirror, synced by local tasks) ── */}
-      <div className="mb-3">
-        <Panel accent="rose" title="🔴 REAL MONEY — Robinhood"
-          right={<span className="text-[11px] text-neutral-500">{liveBook?.length ? `synced ${new Date(liveBook[0].synced_at).toLocaleString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} DEN` : ''}</span>}>
-          {liveBook === null ? (
-            <span className="text-[13px] text-red-600">Live book unreachable — fetch failed, not empty.</span>
-          ) : liveBook.length === 0 ? (
-            <span className="text-[13px] text-neutral-500">No sync yet — positions land in <code>live_holdings</code> on the next task run.</span>
-          ) : (() => {
-            const pos = liveBook.filter((h) => h.symbol !== 'USD').map((h) => {
-              const now = prices?.[h.symbol.toUpperCase()] ?? null
-              return { ...h, now, value: now !== null ? Number(h.qty) * now : null,
-                pnlPct: now !== null && Number(h.avg_cost) > 0 ? ((now - Number(h.avg_cost)) / Number(h.avg_cost)) * 100 : null }
-            })
-            const liveCash = Number(liveBook.find((h) => h.symbol === 'USD')?.qty ?? 0)
-            const allP = pos.every((p) => p.value !== null)
-            const liveTotal = allP ? pos.reduce((s, p) => s + (p.value ?? 0), 0) + liveCash : null
-            return (
-              <div className="space-y-1.5">
-                {pos.map((p) => (
-                  <div key={p.symbol} className="flex items-center gap-2 text-[13px]">
-                    <span className="w-14 font-bold text-rose-600 dark:text-rose-300">{p.symbol}</span>
-                    <span className="w-28 font-mono text-neutral-600 dark:text-neutral-400">{p.qty}</span>
-                    <span className="w-20 font-mono">{p.value !== null ? `$${usd(p.value)}` : 'no price'}</span>
-                    <span className="w-14 text-right font-mono text-[12px] text-neutral-500">{liveTotal ? `${(((p.value ?? 0) / liveTotal) * 100).toFixed(0)}%` : '—'}</span>
-                    <span className="ml-auto font-mono text-[12px]">{pct(p.pnlPct)}</span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between border-t border-neutral-100 pt-1.5 text-[13px] dark:border-white/5">
-                  <span><span className="font-bold text-neutral-600 dark:text-neutral-400">CASH</span> <span className="font-mono">${usd(liveCash)}</span></span>
-                  <span className="font-mono font-bold text-rose-600 dark:text-rose-300">{liveTotal !== null ? `total $${usd(liveTotal)}` : 'partial pricing'}</span>
-                </div>
-                <div className="text-[11px] text-neutral-500">Read-only mirror of the agentic account — the live agent trades it, this desk only watches. P&L% shows n/a where Robinhood reports no cost basis (instant-buy/transfer lots).</div>
-              </div>
-            )
-          })()}
-        </Panel>
-      </div>
-
-      {/* ── The book: holdings, equity curve, trades ── */}
+      {/* ── The agentic account: holdings, equity curve, real fills ── */}
       <div className="grid gap-3 md:grid-cols-2">
-        <Panel accent="green" title="📝 PRACTICE BOOK — Claude's picks (paper)" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
+        <Panel accent="rose" title="🔴 Robinhood Agentic — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
           {holdings === null ? (
             <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
           ) : positions.length === 0 && cash === 0 ? (
-            <span className="text-[13px] text-neutral-500">No holdings logged yet. The book writes to <code>fund_holdings</code> (USD row = cash) — tell Claude a position and it lands here.</span>
+            <span className="text-[13px] text-neutral-500">No sync yet — positions land in <code>live_holdings</code> on the next sync.</span>
           ) : (
             <div className="space-y-1.5">
               {positions.map((p) => (
@@ -173,7 +132,7 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
           )}
         </Panel>
 
-        <Panel accent="purple" title="Equity curve" right={<span className="text-[11px] text-neutral-500">daily close</span>}>
+        <Panel accent="purple" title="Account equity" right={<span className="text-[11px] text-neutral-500">daily close</span>}>
           {snaps.length > 1 ? (
             <TrendChart
               series={[{ key: 'fund', label: 'J&P', color: '#34d399', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
@@ -186,11 +145,11 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
 
       {/* Trades done */}
       <div className="mt-3">
-        <Panel accent="blue" title="Trades done" right={<span className="text-[11px] text-neutral-500">last 30 · “vs now” = market move since the fill</span>}>
+        <Panel accent="blue" title="Trades done — real fills (agentic)" right={<span className="text-[11px] text-neutral-500">last 30 · “vs now” = market move since the fill</span>}>
           {trades === null ? (
             <span className="text-[13px] text-red-600">Trades unreachable — fetch failed, not empty.</span>
           ) : trades.length === 0 ? (
-            <span className="text-[13px] text-neutral-500">No trades logged yet — fills land in <code>fund_trades</code> with reasoning in the note.</span>
+            <span className="text-[13px] text-neutral-500">No fills synced yet — the account's real orders land in <code>live_trades</code>.</span>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-[13px]">
@@ -200,14 +159,14 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
                 <tbody>
                   {trades.map((t) => {
                     const now = prices?.[t.symbol.toUpperCase()] ?? null
-                    const move = now !== null && t.price > 0 ? ((now - t.price) / t.price) * 100 : null
+                    const move = now !== null && t.avg_price > 0 ? ((now - t.avg_price) / t.avg_price) * 100 : null
                     return (
-                      <tr key={t.id} className="border-t border-neutral-100 dark:border-white/5">
+                      <tr key={t.order_id} className="border-t border-neutral-100 dark:border-white/5">
                         <td className="py-1.5 pr-2 text-neutral-500">{new Date(t.traded_at).toLocaleDateString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric' })}</td>
-                        <td className={`pr-2 font-bold uppercase ${t.action === 'buy' ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{t.action}</td>
+                        <td className={`pr-2 font-bold uppercase ${t.side === 'buy' ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{t.side}</td>
                         <td className="pr-2 font-bold text-amber-600 dark:text-amber-300">{t.symbol}</td>
                         <td className="pr-2 font-mono">{t.qty}</td>
-                        <td className="pr-2 font-mono">{px(t.price)}</td>
+                        <td className="pr-2 font-mono">{px(Number(t.avg_price))}</td>
                         <td className="pr-2 font-mono">{pct(move)}</td>
                         <td className="max-w-[280px] truncate text-neutral-500">{t.note}</td>
                       </tr>

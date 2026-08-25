@@ -105,7 +105,7 @@ async function handle(req: Request) {
   const denverHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', hour: 'numeric', hour12: false }).format(new Date()))
   let banked: number | null = null
   if (denverHour === 0) {
-    const { data: holdings } = await supabase.from('fund_holdings').select('symbol, qty')
+    const { data: holdings } = await supabase.from('live_holdings').select('symbol, qty')
     if (holdings?.length) {
       const priceBy = new Map(rows.map((r) => [r.symbol, r.price]))
       let total = 0, missing = false
