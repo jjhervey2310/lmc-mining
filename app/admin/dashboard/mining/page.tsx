@@ -14,6 +14,13 @@ import PlanCashflow from '../plan-cashflow'
 export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
 export const dynamic = 'force-dynamic'
 
+// The fleet runs Luxor's LuxOS firmware overclocked, not stock Bitmain. Both
+// numbers are defined once here and used by the spot tiles AND the fleet P&L
+// below, so the top of the page can never disagree with the bottom.
+const STOCK_TH = 270 // Antminer S21 XP as shipped
+const LUX_TH = 300 // LuxOS overclock profile
+const LUX_FEE = 0.028 // Luxor all-in firmware + pool fee
+
 export default async function MiningPage({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
   const { secret = '' } = await searchParams
   checkAdmin(secret)
@@ -52,7 +59,7 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
         <Tile accent="green" label="S21 XP net/day" value={n ? `${n.profitable ? '+' : '-'}$${usd(Math.abs(n.s21NetDay))}` : '—'} tone={n?.profitable ? 'pos' : 'neg'}
           prev={prevN ? `${prevN.s21NetDay >= 0 ? '+' : '-'}$${usd(Math.abs(prevN.s21NetDay))}` : undefined}
           changePct={n && prevN ? pctVs(n.s21NetDay, prevN.s21NetDay) : undefined}
-          sub={n ? `stock 270TH · no pool fee · breakeven $${usd(n.breakevenBtcPrice, 0)}` : undefined} />
+          sub={n ? `stock ${STOCK_TH}TH · no pool fee · breakeven $${usd(n.breakevenBtcPrice, 0)}` : undefined} />
         <Tile accent="purple" label="Difficulty" value={n ? `${(n.difficulty / 1e12).toFixed(1)}T` : '—'}
           prev={prevSnap?.difficulty ? `${(Number(prevSnap.difficulty) / 1e12).toFixed(1)}T` : undefined}
           changePct={n && prevSnap?.difficulty ? pctVs(n.difficulty, Number(prevSnap.difficulty)) : undefined}
@@ -61,7 +68,13 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
             const d = Math.floor(totalMin / 1440), h = Math.floor((totalMin % 1440) / 60)
             return `retarget in ${d}d ${h}h · est ${retarget.difficultyChange >= 0 ? '+' : ''}${retarget.difficultyChange.toFixed(1)}%`
           })() : undefined} />
-        <Tile accent="cyan" label="S21 XP gross/day" value={n ? `$${usd(n.s21GrossDay)}` : '—'} sub="stock 270TH · no pool fee" />
+        <Tile accent="cyan" label="S21 XP gross/day" value={n ? `$${usd(n.s21GrossDay)}` : '—'} sub={`stock ${STOCK_TH}TH · no pool fee`} />
+        {/* The same rig on LuxOS. Shown gross-for-gross beside stock so the OC
+            uplift is like-for-like, with the fee-adjusted figure underneath —
+            that after-fee number is what the fleet P&L actually banks. */}
+        <Tile accent="amber" label="S21 XP gross/day · LuxOS"
+          value={n ? `$${usd(n.hashpricePerThDay * LUX_TH)}` : '—'} tone="pos"
+          sub={n ? `OC ${LUX_TH}TH · $${usd(n.hashpricePerThDay * LUX_TH * (1 - LUX_FEE))} after Luxor ${(LUX_FEE * 100).toFixed(1)}% fee · +$${usd(n.hashpricePerThDay * LUX_TH * (1 - LUX_FEE) - n.s21GrossDay)}/day vs stock` : undefined} />
         <Tile accent="green" label="Margin above breakeven" value={n ? `${(((n.btcPrice - n.breakevenBtcPrice) / n.breakevenBtcPrice) * 100).toFixed(1)}%` : '—'} tone={n && n.btcPrice > n.breakevenBtcPrice ? 'pos' : 'neg'} />
         <Tile accent="teal" label="Non-mining income 30d" value={`$${usd(income30d, 0)}`} tone={income30d >= 2300 ? 'pos' : income30d > 0 ? 'amber' : 'neg'} sub={`target $2,300/mo · tell the PA "log $97 audit"`} />
         <Tile accent="purple" label="Snapshots" value={String(rows.length)} sub="daily 00:00 UTC" />
@@ -72,9 +85,9 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
           billed monthly at 18×$225. Month = day×30.42, year = month×12 — the
           conventions reconcile exactly (audit fix 2026-08-05). */}
       <div className="mt-3">
-        <Panel accent="green" title="⛏ 18-rig fleet P&L — OC 300TH · Luxor 2.8%" right={<span className="text-[11px] text-neutral-500">live price+difficulty · Abundant Mines $225/mo per rig</span>}>
+        <Panel accent="green" title={`⛏ 18-rig fleet P&L — LuxOS OC ${LUX_TH}TH · Luxor ${(LUX_FEE * 100).toFixed(1)}%`} right={<span className="text-[11px] text-neutral-500">live price+difficulty · Abundant Mines $225/mo per rig</span>}>
           {n ? (() => {
-            const grossDay = n.hashpricePerThDay * 300 * 18 * (1 - 0.028)
+            const grossDay = n.hashpricePerThDay * LUX_TH * 18 * (1 - LUX_FEE)
             const hostMo = 18 * 225
             const LOAN_MO = 2485 // 18 × $6,900 − 5% = $117,990, minus Jacob's $20k deposit → $97,990 financed @10%/48mo (corrected 2026-08-10; was $140k/$3,551 sized for the old 25-unit plan)
             const grossMo = grossDay * 30.42
@@ -86,7 +99,7 @@ export default async function MiningPage({ searchParams }: { searchParams: Promi
             const sign = (v: number) => (v >= 0 ? '+' : '-')
             return (
               <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-                <Tile accent="green" label="Revenue/mo" value={`$${usd(grossMo, 0)}`} sub={`$${usd(grossDay)}/day · 300TH × 18 after 2.8% fee`} />
+                <Tile accent="green" label="Revenue/mo" value={`$${usd(grossMo, 0)}`} sub={`$${usd(grossDay)}/day · ${LUX_TH}TH × 18 after ${(LUX_FEE * 100).toFixed(1)}% fee`} />
                 <Tile accent="green" label="Hosting" value={`$${usd(hostMo, 0)}/mo`} sub={`$${usd(hostMo / 30.42)}/day`} />
                 <Tile accent="green" label="AM loan" value={`$${usd(LOAN_MO, 0)}/mo`} sub="$97,990 @10% · 48mo (after $20k deposit)" />
                 <Tile accent="cyan" label="After hosting" value={`${sign(afterHostMo)}$${usd(Math.abs(afterHostMo), 0)}/mo`} tone={afterHostMo >= 0 ? 'pos' : 'neg'} sub="before debt service" />
