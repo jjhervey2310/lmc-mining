@@ -105,38 +105,64 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
 
   return (
     <Shell secret={secret} active="fund">
-      {/* ── The agentic account: holdings, equity curve, real fills ── */}
-      <div className="grid gap-3 md:grid-cols-2">
-        <Panel accent="rose" title="🔴 Robinhood Agentic — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
-          {holdings === null ? (
-            <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
-          ) : positions.length === 0 && cash === 0 ? (
-            <span className="text-[13px] text-neutral-500">No sync yet — positions land in <code>live_holdings</code> on the next sync.</span>
-          ) : (
-            <div className="space-y-1.5">
-              {positions.map((p) => (
-                <div key={p.symbol} className="flex items-center gap-2 text-[13px]">
-                  <span className="w-14 font-bold text-amber-600 dark:text-amber-300">{p.symbol}</span>
-                  <span className="w-24 font-mono text-neutral-600 dark:text-neutral-400">{p.qty}</span>
-                  <span className="w-20 font-mono">{p.value !== null ? `$${usd(p.value)}` : 'no price'}</span>
-                  <span className="w-14 text-right font-mono text-[12px] text-neutral-500">{total ? `${(((p.value ?? 0) / total) * 100).toFixed(0)}%` : '—'}</span>
-                  <span className="ml-auto font-mono text-[12px]">{pct(p.pnlPct)}</span>
-                </div>
-              ))}
-              <div className="flex items-center gap-2 border-t border-neutral-100 pt-1.5 text-[13px] dark:border-white/5">
-                <span className="w-14 font-bold text-neutral-600 dark:text-neutral-400">CASH</span>
-                <span className="font-mono">${usd(cash)}</span>
-                <span className="ml-auto font-mono text-[12px] text-neutral-500">{total ? `${((cash / total) * 100).toFixed(0)}%` : ''}</span>
-              </div>
+      {/* ── The agentic account: holdings with full P&L, equity curve directly beneath ── */}
+      <Panel accent="rose" title="🔴 Robinhood Agentic — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
+        {holdings === null ? (
+          <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
+        ) : positions.length === 0 && cash === 0 ? (
+          <span className="text-[13px] text-neutral-500">No sync yet — positions land in <code>live_holdings</code> on the next sync.</span>
+        ) : (() => {
+          const rows = positions.map((p) => ({
+            ...p,
+            cost: p.avg_cost > 0 ? Number(p.qty) * Number(p.avg_cost) : null,
+            pnlUsd: p.avg_cost > 0 && p.value !== null ? p.value - Number(p.qty) * Number(p.avg_cost) : null,
+          }))
+          const totCost = rows.every((r) => r.cost !== null) ? rows.reduce((s, r) => s + (r.cost ?? 0), 0) : null
+          const totPnl = totCost !== null && total !== null ? total - cash - totCost : null
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[620px] text-[13px]">
+                <thead><tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500">
+                  <th className="py-1 pr-2">Asset</th><th className="pr-2">Qty</th><th className="pr-2">Bought @</th><th className="pr-2">Now</th><th className="pr-2">Value</th><th className="pr-2">$ up/down</th><th className="pr-2">%</th><th>Of book</th>
+                </tr></thead>
+                <tbody>
+                  {rows.map((p) => (
+                    <tr key={p.symbol} className="border-t border-neutral-100 dark:border-white/5">
+                      <td className="py-1.5 pr-2 font-bold text-rose-600 dark:text-rose-300">{p.symbol}</td>
+                      <td className="pr-2 font-mono text-neutral-600 dark:text-neutral-400">{p.qty}</td>
+                      <td className="pr-2 font-mono">{p.avg_cost > 0 ? px(Number(p.avg_cost)) : '—'}</td>
+                      <td className="pr-2 font-mono">{p.now !== null ? px(p.now) : 'n/a'}</td>
+                      <td className="pr-2 font-mono">{p.value !== null ? `$${usd(p.value)}` : 'no price'}</td>
+                      <td className={`pr-2 font-mono ${p.pnlUsd === null ? 'text-neutral-500' : p.pnlUsd >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
+                        {p.pnlUsd === null ? 'n/a' : `${p.pnlUsd >= 0 ? '+' : '−'}$${usd(Math.abs(p.pnlUsd))}`}
+                      </td>
+                      <td className="pr-2 font-mono">{pct(p.pnlPct)}</td>
+                      <td className="font-mono text-[12px] text-neutral-500">{total ? `${(((p.value ?? 0) / total) * 100).toFixed(0)}%` : '—'}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t border-neutral-200 dark:border-white/10">
+                    <td className="py-1.5 pr-2 font-bold text-neutral-600 dark:text-neutral-400">CASH</td>
+                    <td colSpan={3} />
+                    <td className="pr-2 font-mono">${usd(cash)}</td>
+                    <td className={`pr-2 font-mono font-bold ${totPnl === null ? 'text-neutral-500' : totPnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
+                      {totPnl === null ? '' : `${totPnl >= 0 ? '+' : '−'}$${usd(Math.abs(totPnl))} all-in`}
+                    </td>
+                    <td className="pr-2 font-mono">{totPnl !== null && totCost ? pct((totPnl / totCost) * 100) : ''}</td>
+                    <td className="font-mono text-[12px] text-neutral-500">{total ? `${((cash / total) * 100).toFixed(0)}%` : ''}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          )}
-        </Panel>
+          )
+        })()}
+      </Panel>
 
-        <Panel accent="purple" title="Account equity" right={<span className="text-[11px] text-neutral-500">daily close</span>}>
+      <div className="mt-3">
+        <Panel accent="purple" title="Account equity" right={<span className="text-[11px] text-neutral-500">daily close · real account value</span>}>
           {snaps.length > 1 ? (
             <TrendChart
-              series={[{ key: 'fund', label: 'J&P', color: '#34d399', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
-              labels={snaps.map((s) => s.snapshot_date)} h={170} />
+              series={[{ key: 'fund', label: 'AGENTIC', color: '#fda4af', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
+              labels={snaps.map((s) => s.snapshot_date)} h={190} />
           ) : (
             <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots in <code>fund_snapshots</code> — banks nightly once the book has holdings.</span>
           )}
