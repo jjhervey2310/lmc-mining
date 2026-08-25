@@ -64,7 +64,7 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, liveQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('fund_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
     supabase?.from('fund_trades').select('id, traded_at, action, symbol, qty, price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -72,6 +72,7 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
+    supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol') ?? { data: null, error: true },
   ])
 
   const holdings = (holdingsQ.data ?? null) as Holding[] | null
@@ -80,9 +81,10 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
   const radar = (radarQ.data ?? null) as Radar[] | null
   const byStage = (s: string) => (radar ?? []).filter((r) => r.stage === s)
+  const liveBook = (liveQ.data ?? null) as (Holding & { synced_at: string })[] | null
 
   // Watchlist symbols must be priced too — they carry live quotes on their cards.
-  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
+  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? []), ...(liveBook ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
   const prices = await fundPrices(priceSymbols)
 
   // Book math: cash is the USD row; every position priced live where a price came back.
@@ -105,6 +107,45 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
 
   return (
     <Shell secret={secret} active="fund">
+      {/* ── LIVE Robinhood agentic account (read-only mirror, synced by local tasks) ── */}
+      <div className="mb-3">
+        <Panel accent="rose" title="🔴 Live account — Robinhood Agentic (real money)"
+          right={<span className="text-[11px] text-neutral-500">{liveBook?.length ? `synced ${new Date(liveBook[0].synced_at).toLocaleString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} DEN` : ''}</span>}>
+          {liveBook === null ? (
+            <span className="text-[13px] text-red-600">Live book unreachable — fetch failed, not empty.</span>
+          ) : liveBook.length === 0 ? (
+            <span className="text-[13px] text-neutral-500">No sync yet — positions land in <code>live_holdings</code> on the next task run.</span>
+          ) : (() => {
+            const pos = liveBook.filter((h) => h.symbol !== 'USD').map((h) => {
+              const now = prices?.[h.symbol.toUpperCase()] ?? null
+              return { ...h, now, value: now !== null ? Number(h.qty) * now : null,
+                pnlPct: now !== null && Number(h.avg_cost) > 0 ? ((now - Number(h.avg_cost)) / Number(h.avg_cost)) * 100 : null }
+            })
+            const liveCash = Number(liveBook.find((h) => h.symbol === 'USD')?.qty ?? 0)
+            const allP = pos.every((p) => p.value !== null)
+            const liveTotal = allP ? pos.reduce((s, p) => s + (p.value ?? 0), 0) + liveCash : null
+            return (
+              <div className="space-y-1.5">
+                {pos.map((p) => (
+                  <div key={p.symbol} className="flex items-center gap-2 text-[13px]">
+                    <span className="w-14 font-bold text-rose-600 dark:text-rose-300">{p.symbol}</span>
+                    <span className="w-28 font-mono text-neutral-600 dark:text-neutral-400">{p.qty}</span>
+                    <span className="w-20 font-mono">{p.value !== null ? `$${usd(p.value)}` : 'no price'}</span>
+                    <span className="w-14 text-right font-mono text-[12px] text-neutral-500">{liveTotal ? `${(((p.value ?? 0) / liveTotal) * 100).toFixed(0)}%` : '—'}</span>
+                    <span className="ml-auto font-mono text-[12px]">{pct(p.pnlPct)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between border-t border-neutral-100 pt-1.5 text-[13px] dark:border-white/5">
+                  <span><span className="font-bold text-neutral-600 dark:text-neutral-400">CASH</span> <span className="font-mono">${usd(liveCash)}</span></span>
+                  <span className="font-mono font-bold text-rose-600 dark:text-rose-300">{liveTotal !== null ? `total $${usd(liveTotal)}` : 'partial pricing'}</span>
+                </div>
+                <div className="text-[11px] text-neutral-500">Read-only mirror of the agentic account — the live agent trades it, this desk only watches. P&L% shows n/a where Robinhood reports no cost basis (instant-buy/transfer lots).</div>
+              </div>
+            )
+          })()}
+        </Panel>
+      </div>
+
       {/* ── The book: holdings, equity curve, trades ── */}
       <div className="grid gap-3 md:grid-cols-2">
         <Panel accent="green" title="💼 Holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
