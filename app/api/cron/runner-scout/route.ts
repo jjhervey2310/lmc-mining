@@ -71,12 +71,22 @@ async function handle(req: Request) {
   })
   if (!rows.length) return NextResponse.json({ error: 'scan produced no rows' }, { status: 500 })
 
+  // Baseline for signal detection, read BEFORE the upsert overwrites today's row:
+  // the previous hour's reading if this is not the first scan of the day, else
+  // yesterday's close. Comparing every hour against yesterday made one intraday
+  // turnover climb re-fire the same signal on the hour, every hour (RE, 08-26:
+  // seven identical flags in fifteen hours).
+  const [{ data: priorYday }, { data: priorToday }] = await Promise.all([
+    supabase.from('fund_radar').select('symbol, stage, turnover').eq('scan_date', yesterday),
+    supabase.from('fund_radar').select('symbol, stage, turnover').eq('scan_date', day),
+  ])
+  const priorBy = new Map((priorYday ?? []).map((p) => [p.symbol as string, p]))
+  for (const p of priorToday ?? []) priorBy.set(p.symbol as string, p)
+
   const { error: radarErr } = await supabase.from('fund_radar').upsert(rows, { onConflict: 'scan_date,symbol' })
   if (radarErr) return NextResponse.json({ error: radarErr.message }, { status: 500 })
 
-  // Signal detection vs yesterday's scan: fresh EARLY entrants and turnover doublings.
-  const { data: prior } = await supabase.from('fund_radar').select('symbol, stage, turnover').eq('scan_date', yesterday)
-  const priorBy = new Map((prior ?? []).map((p) => [p.symbol as string, p]))
+  // Signal detection vs that baseline: fresh EARLY entrants and turnover doublings.
   const signals: string[] = []
   for (const r of rows) {
     const p = priorBy.get(r.symbol)
