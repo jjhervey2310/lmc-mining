@@ -78,7 +78,21 @@ async function sparkSeries(symbols: string[]): Promise<Record<string, number[]>>
   return out
 }
 
-export default async function FundPage({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
+export default async function FundPage(props: { searchParams: Promise<{ secret?: string }> }) {
+  try {
+    return await FundPageInner(props)
+  } catch (e) {
+    // Secret-gated page: showing the real error here is our only prod debugger (Vercel logs are plan-walled).
+    return (
+      <div className="p-6 font-mono text-sm text-red-600">
+        <div className="font-bold">J&P FUND crashed — desk needs this:</div>
+        <pre className="mt-2 whitespace-pre-wrap">{e instanceof Error ? `${e.name}: ${e.message}\n${e.stack}` : String(e)}</pre>
+      </div>
+    )
+  }
+}
+
+async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
   const { secret = '' } = await searchParams
   checkAdmin(secret)
 
