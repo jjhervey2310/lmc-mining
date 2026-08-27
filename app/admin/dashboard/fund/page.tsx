@@ -138,7 +138,16 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const allPriced = positions.every((p) => p.value !== null)
   const total = allPriced ? pricedValue + cash : null
 
-  const brief = (research.data?.content ?? null) as Brief | null
+  // Briefs written by the signal tasks can be partial — normalize so a missing
+  // section renders empty instead of crashing the page (fear_greed 500, 08-27).
+  const rawBrief = (research.data?.content ?? null) as Partial<Brief> | null
+  const brief: Brief | null = rawBrief ? {
+    headline: rawBrief.headline ?? '', verified: rawBrief.verified ?? '',
+    ta: rawBrief.ta ?? [], flows: rawBrief.flows ?? [], turnover: rawBrief.turnover ?? [],
+    narratives: rawBrief.narratives ?? [], calendar: rawBrief.calendar ?? [],
+    implications: rawBrief.implications ?? [],
+    sentiment: rawBrief.sentiment ?? { fear_greed: 0, fg_label: 'n/a', fg_note: 'not in this brief', funding: '', gaps: '' },
+  } : null
   const briefDate = (research.data?.brief_date ?? null) as string | null
   const fg = brief?.sentiment.fear_greed ?? 0
 
