@@ -31,7 +31,11 @@ export interface CompBook {
   trades: Trade[]
 }
 
-const usd = (n: number, d = 2) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+// Round before formatting so a residual -0.0001 of cash prints "0.00", not "-0.00".
+const usd = (n: number, d = 2) => {
+  const r = Number(n.toFixed(d))
+  return (r === 0 ? 0 : r).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+}
 const px = (n: number) => `$${usd(n, n < 10 ? 4 : 2)}`
 
 // Brand identities (Jacob 2026-08-01): Claude = orange, ChatGPT = its logo
