@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import RivalEntry from './competition'
 import TrendChart from './trend-chart'
 
@@ -41,24 +41,24 @@ const BRAND: Record<string, { chip: string; chipSel: string; name: string; nameS
   claude: {
     chip: 'border-amber-400 bg-amber-50 hover:bg-amber-100 dark:bg-amber-400/10 dark:hover:bg-amber-400/20',
     chipSel: 'border-amber-500 bg-amber-100 ring-2 ring-amber-400 dark:bg-amber-400/20',
-    name: 'font-bold text-amber-700',
-    tile: 'border-t-amber-500 from-amber-50',
-    value: 'text-amber-700',
+    name: 'font-bold text-amber-700 dark:text-amber-300',
+    tile: 'border-t-amber-500 from-amber-50 dark:from-amber-400/20',
+    value: 'text-amber-700 dark:text-amber-300',
   },
   gpt: {
     chip: 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/20',
     chipSel: 'border-emerald-500 bg-emerald-100 ring-2 ring-emerald-400 dark:bg-emerald-400/20',
-    name: 'font-bold text-emerald-700',
-    tile: 'border-t-emerald-500 from-emerald-50',
-    value: 'text-emerald-700',
+    name: 'font-bold text-emerald-700 dark:text-emerald-300',
+    tile: 'border-t-emerald-500 from-emerald-50 dark:from-emerald-400/20',
+    value: 'text-emerald-700 dark:text-emerald-300',
   },
   gemini: {
     chip: 'border-blue-400 bg-gradient-to-r from-blue-50 via-yellow-50 to-green-50 hover:brightness-95 dark:from-blue-400/15 dark:via-yellow-400/15 dark:to-green-400/15',
     chipSel: 'border-blue-500 bg-gradient-to-r from-blue-100 via-yellow-100 to-green-100 ring-2 ring-blue-400 dark:from-blue-400/25 dark:via-yellow-400/25 dark:to-green-400/25',
     name: 'font-bold bg-clip-text text-transparent',
     nameStyle: { backgroundImage: GOOGLE_RAINBOW },
-    tile: 'border-t-blue-500 from-blue-50 via-yellow-50',
-    value: 'text-blue-700',
+    tile: 'border-t-blue-500 from-blue-50 via-yellow-50 dark:from-blue-400/20 dark:via-yellow-400/10',
+    value: 'text-blue-700 dark:text-sky-300',
   },
 }
 
@@ -66,10 +66,49 @@ export interface DailyCurve { days: string[]; totals: Record<string, number[]> }
 
 const CURVE_COLOR: Record<string, string> = { claude: '#fbbf24', gpt: '#34d399', gemini: '#60a5fa' }
 
+interface Hist { points: { date: string; close: number }[]; entry: string; avg: number }
+
 export default function CompPanel({ books, start, secret, daily }: { books: CompBook[]; start: number; secret: string; daily?: DailyCurve }) {
   const [sel, setSel] = useState('claude')
   const b = books.find((x) => x.key === sel) ?? books[0]
   const totalPnl = b.positions.reduce((s, p) => s + (p.pnl ?? 0), 0)
+
+  // Per-holding price chart, opened by clicking a row. Cached per book+symbol
+  // so re-opening a position doesn't re-hit the feed.
+  const [openSym, setOpenSym] = useState<string | null>(null)
+  const [hist, setHist] = useState<Record<string, Hist | { error: string } | 'loading'>>({})
+
+  /** The day this book first bought the symbol — that's where the chart starts. */
+  const entryDate = (symbol: string) => {
+    const buys = b.trades
+      .filter((t) => t.symbol === symbol && /buy/i.test(t.action))
+      .map((t) => t.traded_at)
+      .sort()
+    return buys[0] ?? null
+  }
+
+  async function toggle(p: Pos) {
+    if (openSym === p.symbol) { setOpenSym(null); return }
+    setOpenSym(p.symbol)
+    const cacheKey = `${b.key}:${p.symbol}`
+    if (hist[cacheKey]) return
+    const from = entryDate(p.symbol)
+    setHist((h) => ({ ...h, [cacheKey]: 'loading' }))
+    try {
+      const q = new URLSearchParams({ secret, symbol: p.symbol })
+      if (from) q.set('from', from)
+      const res = await fetch(`/api/admin/history?${q}`)
+      const d = await res.json()
+      setHist((h) => ({
+        ...h,
+        [cacheKey]: res.ok && d.points?.length
+          ? { points: d.points, entry: from ? String(from).slice(0, 10) : '', avg: p.avg }
+          : { error: d.error || 'no history available' },
+      }))
+    } catch {
+      setHist((h) => ({ ...h, [cacheKey]: { error: 'could not reach the price feed' } }))
+    }
+  }
 
   return (
     <div>
@@ -82,7 +121,7 @@ export default function CompPanel({ books, start, secret, daily }: { books: Comp
               className={`border px-3 py-1.5 text-left font-mono text-[13px] transition-all ${x.key === sel ? br.chipSel : br.chip}`}>
               <span className="text-neutral-500">#{i + 1}{i === 0 && x.total != null ? ' 🏆' : ''}</span>{' '}
               <span className={br.name} style={br.nameStyle}>{x.name}</span>{' '}
-              <span className={x.total == null ? 'text-neutral-400' : x.total >= start ? 'text-green-600' : 'text-red-600'}>
+              <span className={x.total == null ? 'text-neutral-400' : x.total >= start ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}>
                 {x.total != null ? `$${usd(x.total)}` : 'no report'}
               </span>{' '}
               <span className="text-[10px] text-neutral-400">{x.week}</span>
@@ -95,26 +134,26 @@ export default function CompPanel({ books, start, secret, daily }: { books: Comp
       {/* Selected contestant's book */}
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
         {[
-          { label: `${b.name} total`, value: b.total != null ? `$${usd(b.total)}` : '—', tone: b.total == null ? '' : b.total >= start ? 'text-green-600' : 'text-red-600' },
+          { label: `${b.name} total`, value: b.total != null ? `$${usd(b.total)}` : '—', tone: b.total == null ? '' : b.total >= start ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300' },
           { label: 'Cash in bank', value: b.cash != null ? `$${usd(b.cash)}` : '—', tone: '' },
           { label: 'Holdings value', value: b.holdings != null ? `$${usd(b.holdings)}` : '—', tone: '' },
-          { label: 'Unrealized P&L', value: b.positions.length ? `${totalPnl >= 0 ? '+' : '-'}$${usd(Math.abs(totalPnl))}` : '—', tone: totalPnl >= 0 ? 'text-green-600' : 'text-red-600' },
-          { label: 'Realized P&L', value: b.realized == null ? '—' : `${b.realized >= 0 ? '+' : '-'}$${usd(Math.abs(b.realized))}`, tone: (b.realized ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' },
+          { label: 'Unrealized P&L', value: b.positions.length ? `${totalPnl >= 0 ? '+' : '-'}$${usd(Math.abs(totalPnl))}` : '—', tone: totalPnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300' },
+          { label: 'Realized P&L', value: b.realized == null ? '—' : `${b.realized >= 0 ? '+' : '-'}$${usd(Math.abs(b.realized))}`, tone: (b.realized ?? 0) >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300' },
         ].map((t) => {
           const br = BRAND[b.key] ?? BRAND.claude
           return (
             <div key={t.label} className={`lmc-card lmc-lift rounded-xl border border-neutral-200 border-t-4 bg-gradient-to-b to-white px-3 py-2 shadow-md dark:border-white/10 dark:to-neutral-900/60 ${br.tile}`}>
               <div className="text-[11px] uppercase tracking-widest text-neutral-600 dark:text-neutral-400">{t.label}</div>
-              <div className={`font-mono text-2xl font-bold leading-tight ${t.tone || br.value}`}>{t.value}</div>
+              <div className={`lmc-figure lmc-pop font-mono text-[26px] font-black leading-tight tabular-nums ${t.tone || br.value}`}>{t.value}</div>
             </div>
           )
         })}
       </div>
 
       {b.positions.length ? (
-        <div className="overflow-x-auto"><table className="w-full min-w-[560px] max-w-2xl border border-neutral-200 font-mono text-[12px]">
+        <div className="overflow-x-auto"><table className="w-full min-w-[560px] max-w-2xl border border-neutral-200 font-mono text-[12px] dark:border-white/10">
           <thead>
-            <tr className="bg-neutral-100 text-left text-[11px] uppercase tracking-wide text-neutral-500">
+            <tr className="bg-neutral-100 text-left text-[11px] uppercase tracking-wide text-neutral-500 dark:bg-white/[0.06] dark:text-neutral-400">
               <th className="px-2 py-1">held</th>
               <th className="px-2 py-1">qty</th>
               <th className="px-2 py-1">paid avg</th>
@@ -125,9 +164,17 @@ export default function CompPanel({ books, start, secret, daily }: { books: Comp
             </tr>
           </thead>
           <tbody>
-            {b.positions.map((p) => (
-              <tr key={p.symbol} className="border-t border-neutral-100">
-                <td className="px-2 py-1 font-semibold text-amber-700">{p.symbol}</td>
+            {b.positions.map((p) => {
+              const cacheKey = `${b.key}:${p.symbol}`
+              const h = hist[cacheKey]
+              const isOpen = openSym === p.symbol
+              return (
+              <React.Fragment key={p.symbol}>
+              <tr onClick={() => toggle(p)} title={`${p.symbol} — price since ${b.name} bought it`}
+                className={`cursor-pointer border-t border-neutral-100 transition-colors hover:bg-amber-50 dark:border-white/5 dark:hover:bg-white/[0.06] ${isOpen ? 'bg-amber-50 dark:bg-white/[0.06]' : ''}`}>
+                <td className="px-2 py-1 font-semibold text-amber-700 dark:text-amber-300">
+                  <span className="mr-1 inline-block text-[9px] text-neutral-400">{isOpen ? '▾' : '▸'}</span>{p.symbol}
+                </td>
                 <td className="px-2 py-1">{p.qty.toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
                 <td className="px-2 py-1">{px(p.avg)}</td>
                 <td className="px-2 py-1">${usd(p.spent)}</td>
@@ -141,14 +188,59 @@ export default function CompPanel({ books, start, secret, daily }: { books: Comp
                   )}
                 </td>
                 <td className="px-2 py-1">{p.value != null ? `$${usd(p.value)}` : '—'}</td>
-                <td className={`px-2 py-1 ${(p.pnl ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <td className={`px-2 py-1 ${(p.pnl ?? 0) >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
                   {p.pnl != null ? `${p.pnl >= 0 ? '+' : '-'}$${usd(Math.abs(p.pnl))} (${((p.pnl / p.spent) * 100).toFixed(1)}%)` : '—'}
                 </td>
               </tr>
-            ))}
+              {isOpen && (
+                <tr className="border-t border-neutral-100 dark:border-white/5">
+                  <td colSpan={7} className="px-2 py-3">
+                    {h === 'loading' && <div className="animate-pulse text-[12px] text-neutral-500">loading {p.symbol} price history…</div>}
+                    {h && h !== 'loading' && 'error' in h && (
+                      <div className="text-[12px] text-red-600 dark:text-rose-300">{p.symbol}: {h.error}</div>
+                    )}
+                    {h && h !== 'loading' && 'points' in h && (() => {
+                      const first = h.points[0].close
+                      const last = h.points[h.points.length - 1].close
+                      const sinceEntry = ((last - h.avg) / h.avg) * 100
+                      return (
+                        <div>
+                          <div className="mb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px]">
+                            <span className="font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">{p.symbol}</span>
+                            <span className="text-neutral-500 dark:text-neutral-400">
+                              since {b.name} bought it{h.entry ? ` · ${h.entry}` : ''}
+                            </span>
+                            <span className="text-neutral-500 dark:text-neutral-400">paid <b className="font-mono">{px(h.avg)}</b></span>
+                            <span className="text-neutral-500 dark:text-neutral-400">now <b className="font-mono">{px(last)}</b></span>
+                            <span className={`font-mono font-bold ${sinceEntry >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
+                              {sinceEntry >= 0 ? '+' : ''}{sinceEntry.toFixed(1)}% vs entry
+                            </span>
+                          </div>
+                          <TrendChart
+                            labels={h.points.map((q) => q.date)}
+                            series={[{
+                              key: p.symbol,
+                              label: p.symbol,
+                              color: CURVE_COLOR[b.key] ?? '#fbbf24',
+                              points: h.points.map((q) => q.close),
+                              format: (first < 10 ? 'usd4' : 'usd2') as 'usd4' | 'usd2',
+                            }]}
+                            h={180}
+                          />
+                          <div className="mt-1 text-[10px] text-neutral-500">
+                            daily close · slide to read any day · crypto from CoinGecko, equities from Yahoo
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </td>
+                </tr>
+              )}
+              </React.Fragment>
+            )})}
             {b.cash != null && (
-              <tr className="border-t border-neutral-200 bg-neutral-50">
-                <td className="px-2 py-1 font-semibold text-neutral-700">CASH</td>
+              <tr className="border-t border-neutral-200 bg-neutral-50 dark:border-white/10 dark:bg-white/[0.04]">
+                <td className="px-2 py-1 font-semibold text-neutral-700 dark:text-neutral-200">CASH</td>
                 <td className="px-2 py-1" colSpan={4}></td>
                 <td className="px-2 py-1">${usd(b.cash)}</td>
                 <td className="px-2 py-1"></td>

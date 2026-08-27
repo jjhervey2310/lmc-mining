@@ -113,3 +113,72 @@ export async function getMarketQuotes(): Promise<Quote[]> {
 
   return [...(cryptoCache?.quotes ?? []), ...(equityCache?.quotes ?? [])]
 }
+
+// ── price history ──
+//
+// Powers the per-holding chart on the TRADING page: click a position and see
+// what it has done since the day that book bought it. Crypto history comes from
+// CoinGecko's market_chart range, equities from the same keyless Yahoo v8 chart
+// endpoint the live quotes use.
+
+export type Resolved =
+  | { kind: 'crypto'; id: string }
+  | { kind: 'equity'; ticker: string }
+
+/** Map a book symbol to a feed. Unknown symbols are treated as Yahoo tickers,
+ *  which covers any equity a rival relays that we don't already track. */
+export function resolveSymbol(symbol: string): Resolved | null {
+  const s = symbol.trim().toUpperCase()
+  if (!s) return null
+  const coin = CRYPTO.find(([, sym]) => sym === s)
+  if (coin) return { kind: 'crypto', id: coin[0] }
+  if (!/^[A-Z0-9.\-]{1,10}$/.test(s)) return null
+  return { kind: 'equity', ticker: s }
+}
+
+export interface HistoryPoint { date: string; close: number }
+
+const day = (ms: number) => new Date(ms).toISOString().slice(0, 10)
+
+/** Last close per calendar day, oldest first. */
+function toDaily(pairs: [number, number][]): HistoryPoint[] {
+  const byDay = new Map<string, number>()
+  for (const [ms, price] of pairs) {
+    if (!isFinite(ms) || !isFinite(price)) continue
+    byDay.set(day(ms), price)
+  }
+  return [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, close]) => ({ date, close }))
+}
+
+export async function getHistory(symbol: string, fromMs: number): Promise<HistoryPoint[]> {
+  const r = resolveSymbol(symbol)
+  if (!r) return []
+  // Always ask for at least a couple of days so a same-day entry still plots.
+  const from = Math.min(fromMs, Date.now() - 2 * 864e5)
+  const to = Date.now()
+
+  if (r.kind === 'crypto') {
+    const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(r.id)}/market_chart/range`
+      + `?vs_currency=usd&from=${Math.floor(from / 1000)}&to=${Math.floor(to / 1000)}`
+    const key = process.env.COINGECKO_API_KEY
+    const res = await fetch(url, {
+      next: { revalidate: 300 },
+      headers: key ? { 'x-cg-demo-api-key': key } : {},
+    })
+    if (!res.ok) throw new Error(`coingecko history ${r.id} ${res.status}`)
+    const prices = (await res.json())?.prices
+    return Array.isArray(prices) ? toDaily(prices as [number, number][]) : []
+  }
+
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(r.ticker)}`
+    + `?period1=${Math.floor(from / 1000)}&period2=${Math.floor(to / 1000)}&interval=1d`
+  const res = await fetch(url, { next: { revalidate: 300 }, headers: { 'User-Agent': 'Mozilla/5.0' } })
+  if (!res.ok) throw new Error(`yahoo history ${r.ticker} ${res.status}`)
+  const result = (await res.json())?.chart?.result?.[0]
+  const stamps: number[] = result?.timestamp ?? []
+  const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close ?? []
+  const pairs = stamps
+    .map((t, i) => [t * 1000, closes[i]] as [number, number | null])
+    .filter((p): p is [number, number] => typeof p[1] === 'number')
+  return toDaily(pairs)
+}
