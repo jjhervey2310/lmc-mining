@@ -20,13 +20,15 @@ const FORMATTERS: Record<FormatKey, (n: number) => string> = {
 }
 const fmtWith = (k: FormatKey, n: number) => (FORMATTERS[k] ?? FORMATTERS.usd0)(n)
 
-export default function TrendChart({ series, labels, w = 900, h = 220, sharedScale = false }: {
+export default function TrendChart({ hidePct, series, labels, w = 900, h = 220, sharedScale = false }: {
   series: Series[]
   labels: string[]
   w?: number
   h?: number
   /** true = all series plotted on one common axis (comparing like with like) */
   sharedScale?: boolean
+  /** hide the first→last % chip — misleading when the series contains cash deposits */
+  hidePct?: boolean
 }) {
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
   // Scrub index: slide across the chart to read every series on that date.
@@ -70,9 +72,11 @@ export default function TrendChart({ series, labels, w = 900, h = 220, sharedSca
               <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: s.color, boxShadow: `0 0 10px ${s.color}` }} />
               <span className="text-neutral-600 dark:text-neutral-400">{s.label}</span>
               <span className="font-mono font-bold" style={{ color: s.color }}>{fmtWith(s.format, last)}</span>
-              <span className={`font-mono text-[11px] ${pct >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>
-                {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(1)}%
-              </span>
+              {!hidePct && (
+                <span className={`font-mono text-[11px] ${pct >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>
+                  {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(1)}%
+                </span>
+              )}
             </button>
           )
         })}

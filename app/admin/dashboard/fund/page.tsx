@@ -97,7 +97,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, notesQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, notesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -105,6 +105,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
+    supabase?.from('fund_flows').select('flow_date, amount') ?? { data: null },
     supabase?.from('pa_memory').select('topic, fact, updated_at')
       .in('topic', ['fund-trigger-watch', 'desk-orders', 'runner-scout-signal', 'evening-checkin'])
       .eq('active', true) ?? { data: null, error: true },
@@ -116,6 +117,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
   const radar = (radarQ.data ?? null) as Radar[] | null
   const byStage = (s: string) => (radar ?? []).filter((r) => r.stage === s)
+  const contributions = ((flowsQ.data ?? []) as { amount: number }[]).reduce((a, f) => a + Number(f.amount), 0)
   const notes = (notesQ.data ?? []) as { topic: string; fact: string; updated_at: string }[]
   const note = (t: string) => notes.find((n) => n.topic === t)
   const watchNote = note('fund-trigger-watch')
@@ -182,66 +184,57 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
       </div>
 
       {/* ── The agentic account: holdings with full P&L, equity curve directly beneath ── */}
-      <Panel accent="rose" title="🔴 Robinhood Agentic — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
+      <Panel accent="rose" title="🔴 Robinhood — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
         {holdings === null ? (
           <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
         ) : positions.length === 0 && cash === 0 ? (
           <span className="text-[13px] text-neutral-500">No sync yet — positions land in <code>live_holdings</code> on the next sync.</span>
-        ) : (() => {
-          const rows = positions.map((p) => ({
-            ...p,
-            cost: p.avg_cost > 0 ? Number(p.qty) * Number(p.avg_cost) : null,
-            pnlUsd: p.avg_cost > 0 && p.value !== null ? p.value - Number(p.qty) * Number(p.avg_cost) : null,
-          }))
-          const totCost = rows.every((r) => r.cost !== null) ? rows.reduce((s, r) => s + (r.cost ?? 0), 0) : null
-          const totPnl = totCost !== null && total !== null ? total - cash - totCost : null
-          return (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] text-[13px]">
-                <thead><tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500">
-                  <th className="py-1 pr-2">Asset</th><th className="pr-2">7d</th><th className="pr-2">Qty</th><th className="pr-2">Bought @</th><th className="pr-2">Now</th><th className="pr-2">Value</th><th className="pr-2">$ up/down</th><th className="pr-2">%</th><th>Of book</th>
-                </tr></thead>
-                <tbody>
-                  {rows.map((p) => (
-                    <tr key={p.symbol} className="border-t border-neutral-100 dark:border-white/5">
-                      <td className="py-1.5 pr-2 font-bold">
-                        <a href={`https://robinhood.com/us/en/crypto/${p.symbol}/`} target="_blank" rel="noreferrer"
-                          className="text-rose-600 underline decoration-dotted underline-offset-2 hover:text-rose-500 dark:text-rose-300">{p.symbol} ↗</a>
-                      </td>
-                      <td className="pr-2">{sparks[p.symbol] ? <Spark points={sparks[p.symbol]} w={90} h={26} /> : <span className="text-[11px] text-neutral-500">—</span>}</td>
-                      <td className="pr-2 font-mono text-neutral-600 dark:text-neutral-400">{p.qty}</td>
-                      <td className="pr-2 font-mono">{p.avg_cost > 0 ? px(Number(p.avg_cost)) : '—'}</td>
-                      <td className="pr-2 font-mono">{p.now !== null ? px(p.now) : 'n/a'}</td>
-                      <td className="pr-2 font-mono">{p.value !== null ? `$${usd(p.value)}` : 'no price'}</td>
-                      <td className={`pr-2 font-mono ${p.pnlUsd === null ? 'text-neutral-500' : p.pnlUsd >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
-                        {p.pnlUsd === null ? 'n/a' : `${p.pnlUsd >= 0 ? '+' : '−'}$${usd(Math.abs(p.pnlUsd))}`}
-                      </td>
-                      <td className="pr-2 font-mono">{pct(p.pnlPct)}</td>
-                      <td className="font-mono text-[12px] text-neutral-500">{total ? `${(((p.value ?? 0) / total) * 100).toFixed(0)}%` : '—'}</td>
-                    </tr>
-                  ))}
-                  <tr className="border-t border-neutral-200 dark:border-white/10">
-                    <td className="py-1.5 pr-2 font-bold text-neutral-600 dark:text-neutral-400">CASH</td>
-                    <td colSpan={4} />
-                    <td className="pr-2 font-mono">${usd(cash)}</td>
-                    <td className={`pr-2 font-mono font-bold ${totPnl === null ? 'text-neutral-500' : totPnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
-                      {totPnl === null ? '' : `${totPnl >= 0 ? '+' : '−'}$${usd(Math.abs(totPnl))} all-in`}
-                    </td>
-                    <td className="pr-2 font-mono">{totPnl !== null && totCost ? pct((totPnl / totCost) * 100) : ''}</td>
-                    <td className="font-mono text-[12px] text-neutral-500">{total ? `${((cash / total) * 100).toFixed(0)}%` : ''}</td>
-                  </tr>
-                </tbody>
-              </table>
+        ) : (
+          <div className="space-y-1">
+            {positions.map((p) => {
+              const cost = p.avg_cost > 0 ? Number(p.qty) * Number(p.avg_cost) : null
+              const pnlUsd = cost !== null && p.value !== null ? p.value - cost : null
+              return (
+                <details key={p.symbol} className="group rounded-lg border border-neutral-200 dark:border-white/10">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-[13px] [&::-webkit-details-marker]:hidden">
+                    <span className="w-12 font-bold text-rose-600 dark:text-rose-300">{p.symbol}</span>
+                    <span className="font-mono">{p.value !== null ? `$${usd(p.value)}` : 'no price'}</span>
+                    <span className={`font-mono text-[12px] ${pnlUsd === null ? 'text-neutral-500' : pnlUsd >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
+                      {pnlUsd === null ? '' : `${pnlUsd >= 0 ? '+' : '−'}$${usd(Math.abs(pnlUsd))}`}
+                    </span>
+                    <span className="font-mono text-[12px]">{pct(p.pnlPct)}</span>
+                    <span className="ml-auto font-mono text-[11px] text-neutral-500">{total ? `${(((p.value ?? 0) / total) * 100).toFixed(0)}% of book` : ''}</span>
+                    <span className="text-[11px] text-neutral-400 transition-transform group-open:rotate-90">▶</span>
+                  </summary>
+                  <div className="border-t border-neutral-100 px-2.5 py-2 dark:border-white/5">
+                    <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-neutral-600 dark:text-neutral-400">
+                      <span>qty <b className="font-mono text-neutral-800 dark:text-neutral-200">{p.qty}</b></span>
+                      <span>bought @ <b className="font-mono text-neutral-800 dark:text-neutral-200">{p.avg_cost > 0 ? px(Number(p.avg_cost)) : 'n/a'}</b></span>
+                      <span>now <b className="font-mono text-neutral-800 dark:text-neutral-200">{p.now !== null ? px(p.now) : 'n/a'}</b></span>
+                    </div>
+                    {sparks[p.symbol] ? (
+                      <div className="mt-2 overflow-x-auto"><Spark points={sparks[p.symbol]} w={640} h={150} /></div>
+                    ) : (
+                      <div className="mt-2 text-[12px] text-neutral-500">7-day chart unavailable this refresh.</div>
+                    )}
+                    <div className="mt-1 text-[11px] text-neutral-500">last 7 days · green = up over the window</div>
+                  </div>
+                </details>
+              )
+            })}
+            <div className="flex items-center justify-between px-2.5 pt-1.5 text-[13px]">
+              <span><span className="font-bold text-neutral-600 dark:text-neutral-400">CASH</span> <span className="font-mono">${usd(cash)}</span></span>
+              <span className="font-mono text-[12px] text-neutral-500">{total ? `${((cash / total) * 100).toFixed(0)}%` : ''}</span>
             </div>
-          )
-        })()}
+          </div>
+        )}
       </Panel>
 
       <div className="mt-3">
-        <Panel accent="purple" title="Account equity" right={<span className="text-[11px] text-neutral-500">daily close · real account value</span>}>
+        <Panel accent="purple" title="Account equity — TRUE P&L" right={<span className="text-[11px] text-neutral-500">{total !== null && contributions > 0 ? (() => { const pnl = total - contributions; return `deposited $${usd(contributions)} · P&L ${pnl >= 0 ? '+' : '−'}$${usd(Math.abs(pnl))} (${((pnl / contributions) * 100).toFixed(1)}%)` })() : 'daily close'}</span>}>
           {snaps.length > 1 ? (
             <TrendChart
-              series={[{ key: 'fund', label: 'AGENTIC', color: '#fda4af', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
+              hidePct series={[{ key: 'fund', label: 'ROBINHOOD', color: '#fda4af', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
               labels={snaps.map((s) => s.snapshot_date)} h={190} />
           ) : (
             <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots in <code>fund_snapshots</code> — banks nightly once the book has holdings.</span>

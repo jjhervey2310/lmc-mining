@@ -222,7 +222,7 @@ export function Shell({
     { id: 'posts', label: 'POSTS', href: `/admin/dashboard?secret=${secret}` },
     { id: 'mining', label: 'MINE SIM', href: `/admin/dashboard/mining?secret=${secret}` },
     { id: 'trading', label: 'TRADING', href: `/admin/dashboard/trading?secret=${secret}` },
-    { id: 'fund', label: 'J&P FUND', href: `/admin/dashboard/fund?secret=${secret}` },
+    { id: 'fund', label: 'ROBINHOOD', href: `/admin/dashboard/fund?secret=${secret}` },
     { id: 'jobs', label: 'JOBS', href: `/admin/dashboard/jobs?secret=${secret}` },
     { id: 'lfc', label: 'LFC', href: `/admin/dashboard/lfc?secret=${secret}` },
     { id: 'website', label: 'WEBSITE', href: `/admin/dashboard/website?secret=${secret}` },
