@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
-import { Shell, Panel, Tile, checkAdmin, usd } from '../ui'
+import { Shell, Panel, Tile, Spark, checkAdmin, usd } from '../ui'
 import TrendChart from '../trend-chart'
 
 // J&P FUND — the research desk: latest verified multi-agent market sweep
@@ -59,12 +59,31 @@ async function fundPrices(symbols: string[]): Promise<Record<string, number> | n
   }
 }
 
+// 7-day price history per held asset for the clickable holding sparklines.
+async function sparkSeries(symbols: string[]): Promise<Record<string, number[]>> {
+  const out: Record<string, number[]> = {}
+  await Promise.all(symbols.map(async (sym) => {
+    const id = CG[sym.toUpperCase()]
+    if (!id) return
+    try {
+      const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`, { next: { revalidate: 900 } })
+      if (!res.ok) return
+      const j = (await res.json()) as { prices?: [number, number][] }
+      const pts = (j.prices ?? []).map((p) => p[1])
+      // thin to ~60 points so the SVG stays light
+      if (pts.length > 60) out[sym] = pts.filter((_, i) => i % Math.ceil(pts.length / 60) === 0)
+      else if (pts.length > 1) out[sym] = pts
+    } catch { /* no spark beats a wrong spark */ }
+  }))
+  return out
+}
+
 export default async function FundPage({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
   const { secret = '' } = await searchParams
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, notesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -72,6 +91,9 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
+    supabase?.from('pa_memory').select('topic, fact, updated_at')
+      .in('topic', ['fund-trigger-watch', 'desk-orders', 'runner-scout-signal', 'evening-checkin'])
+      .eq('active', true) ?? { data: null, error: true },
   ])
 
   const holdings = (holdingsQ.data ?? null) as Holding[] | null
@@ -80,10 +102,17 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
   const radar = (radarQ.data ?? null) as Radar[] | null
   const byStage = (s: string) => (radar ?? []).filter((r) => r.stage === s)
+  const notes = (notesQ.data ?? []) as { topic: string; fact: string; updated_at: string }[]
+  const note = (t: string) => notes.find((n) => n.topic === t)
+  const watchNote = note('fund-trigger-watch')
+  // "Action needed" = the watcher wrote tap-ready orders, or a signal is uninvestigated.
+  const actionNeeded = /TAP-READY|CASH LANDED|\bDO THIS\b/i.test(watchNote?.fact ?? '')
+  const denverStamp = (iso?: string) => iso ? new Date(iso).toLocaleString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
 
   // Watchlist symbols must be priced too — they carry live quotes on their cards.
   const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
   const prices = await fundPrices(priceSymbols)
+  const sparks = await sparkSeries([...new Set((holdings ?? []).map((h) => h.symbol).filter((x) => x !== 'USD'))])
 
   // Book math: cash is the USD row; every position priced live where a price came back.
   const cash = holdings?.find((h) => h.symbol === 'USD')?.qty ?? 0
@@ -105,6 +134,30 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
 
   return (
     <Shell secret={secret} active="fund">
+      {/* ── Desk notes: whatever needs doing, the moment it needs doing ── */}
+      <div className="mb-3">
+        <Panel accent={actionNeeded ? 'amber' : 'teal'}
+          title={actionNeeded ? '⚡ ACTION NEEDED — from the desk' : '✅ Desk notes — nothing needs you'}
+          right={<span className="text-[11px] text-neutral-500">{watchNote ? `updated ${denverStamp(watchNote.updated_at)} DEN` : ''}</span>}>
+          {watchNote ? (
+            <pre className={`max-h-72 overflow-y-auto whitespace-pre-wrap font-sans text-[13px] leading-relaxed ${actionNeeded ? 'text-amber-800 dark:text-amber-200' : 'text-neutral-700 dark:text-neutral-300'}`}>{watchNote.fact}</pre>
+          ) : (
+            <span className="text-[13px] text-neutral-500">No watcher note yet — the nightly check writes here after every close.</span>
+          )}
+          {note('runner-scout-signal')?.fact.includes('UNINVESTIGATED') && (
+            <div className="mt-2 border-t border-neutral-100 pt-2 text-[12px] text-pink-700 dark:border-white/5 dark:text-pink-300">
+              📡 Radar signal awaiting investigation: {note('runner-scout-signal')?.fact.slice(0, 180)}
+            </div>
+          )}
+          {note('desk-orders') && (
+            <details className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
+              <summary className="cursor-pointer text-[12px] font-bold uppercase tracking-wider text-neutral-500">Standing order plan (co-signed) — tap to expand</summary>
+              <pre className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-400">{note('desk-orders')?.fact}</pre>
+            </details>
+          )}
+        </Panel>
+      </div>
+
       {/* ── The agentic account: holdings with full P&L, equity curve directly beneath ── */}
       <Panel accent="rose" title="🔴 Robinhood Agentic — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
         {holdings === null ? (
@@ -123,12 +176,16 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px] text-[13px]">
                 <thead><tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500">
-                  <th className="py-1 pr-2">Asset</th><th className="pr-2">Qty</th><th className="pr-2">Bought @</th><th className="pr-2">Now</th><th className="pr-2">Value</th><th className="pr-2">$ up/down</th><th className="pr-2">%</th><th>Of book</th>
+                  <th className="py-1 pr-2">Asset</th><th className="pr-2">7d</th><th className="pr-2">Qty</th><th className="pr-2">Bought @</th><th className="pr-2">Now</th><th className="pr-2">Value</th><th className="pr-2">$ up/down</th><th className="pr-2">%</th><th>Of book</th>
                 </tr></thead>
                 <tbody>
                   {rows.map((p) => (
                     <tr key={p.symbol} className="border-t border-neutral-100 dark:border-white/5">
-                      <td className="py-1.5 pr-2 font-bold text-rose-600 dark:text-rose-300">{p.symbol}</td>
+                      <td className="py-1.5 pr-2 font-bold">
+                        <a href={`https://robinhood.com/us/en/crypto/${p.symbol}/`} target="_blank" rel="noreferrer"
+                          className="text-rose-600 underline decoration-dotted underline-offset-2 hover:text-rose-500 dark:text-rose-300">{p.symbol} ↗</a>
+                      </td>
+                      <td className="pr-2">{sparks[p.symbol] ? <Spark points={sparks[p.symbol]} w={90} h={26} /> : <span className="text-[11px] text-neutral-500">—</span>}</td>
                       <td className="pr-2 font-mono text-neutral-600 dark:text-neutral-400">{p.qty}</td>
                       <td className="pr-2 font-mono">{p.avg_cost > 0 ? px(Number(p.avg_cost)) : '—'}</td>
                       <td className="pr-2 font-mono">{p.now !== null ? px(p.now) : 'n/a'}</td>
@@ -142,7 +199,7 @@ export default async function FundPage({ searchParams }: { searchParams: Promise
                   ))}
                   <tr className="border-t border-neutral-200 dark:border-white/10">
                     <td className="py-1.5 pr-2 font-bold text-neutral-600 dark:text-neutral-400">CASH</td>
-                    <td colSpan={3} />
+                    <td colSpan={4} />
                     <td className="pr-2 font-mono">${usd(cash)}</td>
                     <td className={`pr-2 font-mono font-bold ${totPnl === null ? 'text-neutral-500' : totPnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
                       {totPnl === null ? '' : `${totPnl >= 0 ? '+' : '−'}$${usd(Math.abs(totPnl))} all-in`}
