@@ -159,31 +159,6 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
 
   return (
     <Shell secret={secret} active="fund">
-      {/* ── Desk notes: whatever needs doing, the moment it needs doing ── */}
-      <div className="mb-3">
-        <Panel accent={actionNeeded ? 'amber' : 'teal'}
-          title={actionNeeded ? '⚡ ACTION NEEDED — from the desk' : '✅ Desk notes — nothing needs you'}
-          right={<span className="text-[11px] text-neutral-500">{watchNote ? `updated ${denverStamp(watchNote.updated_at)} DEN` : ''}</span>}>
-          {watchNote ? (
-            <pre className={`max-h-72 overflow-y-auto whitespace-pre-wrap font-sans text-[13px] leading-relaxed ${actionNeeded ? 'text-amber-800 dark:text-amber-200' : 'text-neutral-700 dark:text-neutral-300'}`}>{watchNote.fact}</pre>
-          ) : (
-            <span className="text-[13px] text-neutral-500">No watcher note yet — the nightly check writes here after every close.</span>
-          )}
-          {note('runner-scout-signal')?.fact.includes('UNINVESTIGATED') && (
-            <div className="mt-2 border-t border-neutral-100 pt-2 text-[12px] text-pink-700 dark:border-white/5 dark:text-pink-300">
-              📡 Radar signal awaiting investigation: {note('runner-scout-signal')?.fact.slice(0, 180)}
-            </div>
-          )}
-          {note('desk-orders') && (
-            <details className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
-              <summary className="cursor-pointer text-[12px] font-bold uppercase tracking-wider text-neutral-500">Standing order plan (co-signed) — tap to expand</summary>
-              <pre className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-400">{note('desk-orders')?.fact}</pre>
-            </details>
-          )}
-        </Panel>
-      </div>
-
-      {/* ── The agentic account: holdings with full P&L, equity curve directly beneath ── */}
       <Panel accent="rose" title="🔴 Robinhood — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
         {holdings === null ? (
           <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
@@ -242,6 +217,31 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
         </Panel>
       </div>
 
+      {/* ── Desk notes: whatever needs doing, the moment it needs doing ── */}
+      <div className="mb-3">
+        <Panel accent={actionNeeded ? 'amber' : 'teal'}
+          title={actionNeeded ? '⚡ ACTION NEEDED — from the desk' : '✅ Desk notes — nothing needs you'}
+          right={<span className="text-[11px] text-neutral-500">{watchNote ? `updated ${denverStamp(watchNote.updated_at)} DEN` : ''}</span>}>
+          {watchNote ? (
+            <pre className={`max-h-72 overflow-y-auto whitespace-pre-wrap font-sans text-[13px] leading-relaxed ${actionNeeded ? 'text-amber-800 dark:text-amber-200' : 'text-neutral-700 dark:text-neutral-300'}`}>{watchNote.fact}</pre>
+          ) : (
+            <span className="text-[13px] text-neutral-500">No watcher note yet — the nightly check writes here after every close.</span>
+          )}
+          {note('runner-scout-signal')?.fact.includes('UNINVESTIGATED') && (
+            <div className="mt-2 border-t border-neutral-100 pt-2 text-[12px] text-pink-700 dark:border-white/5 dark:text-pink-300">
+              📡 Radar signal awaiting investigation: {note('runner-scout-signal')?.fact.slice(0, 180)}
+            </div>
+          )}
+          {note('desk-orders') && (
+            <details className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
+              <summary className="cursor-pointer text-[12px] font-bold uppercase tracking-wider text-neutral-500">Standing order plan (co-signed) — tap to expand</summary>
+              <pre className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-400">{note('desk-orders')?.fact}</pre>
+            </details>
+          )}
+        </Panel>
+      </div>
+
+      {/* ── The agentic account: holdings with full P&L, equity curve directly beneath ── */}
       {/* Trades done */}
       <div className="mt-3">
         <Panel accent="blue" title="Trades done — real fills (agentic)" right={<span className="text-[11px] text-neutral-500">last 30 · “vs now” = market move since the fill</span>}>
