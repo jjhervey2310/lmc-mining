@@ -17,7 +17,7 @@ const RH_SYMBOLS = new Set([
   'FLR','GRAM','GRT','HBAR','HYPE','IMX','INJ','JTO','LDO','LINK','LIT','LTC','MEGA','MEW','MNT',
   'MOODENG','NEAR','ONDO','OP','ORCA','PENGU','PEPE','PNUT','POL','POPCAT','PYTH','QNT','RAY','RE',
   'RENDER','SEI','SENT','SHIB','SKR','SKY','SNX','SOL','STRK','SUI','SYRUP','TRUMP','UNI','VIRTUAL',
-  'VVV','W','WIF','WLD','WLFI','XCN','XLM','XPL','XRP','XTZ','ZEC','ZORA','ZRO','ZRX',
+  'VVV','W','WIF','WLD','WLFI','XCN','XLM','XPL','XRP','XTZ','ZEC','ZORA','ZRO','ZRX','PUMP',
 ])
 
 interface CgRow {
