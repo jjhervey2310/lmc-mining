@@ -41,6 +41,7 @@ const CRYPTO: [string, string][] = [
   ['sui', 'SUI'],
   ['spx6900', 'SPX'], // SPX6900 (ETH memecoin) — Jacob's SPX, not the S&P 500
   ['hyperliquid', 'HYPE'], // held in the trading competition
+  ['uniswap', 'UNI'], // held in the trading competition
 ]
 
 // The Magnificent 7, plus tickers held in the trading competition.
