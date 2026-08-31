@@ -229,7 +229,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           )}
           {note('runner-scout-signal')?.fact.includes('UNINVESTIGATED') && (
             <div className="mt-2 border-t border-neutral-100 pt-2 text-[12px] text-pink-700 dark:border-white/5 dark:text-pink-300">
-              📡 Radar signal awaiting investigation: {note('runner-scout-signal')?.fact.slice(0, 180)}
+              📡 Radar signal awaiting investigation: {(note('runner-scout-signal')?.fact ?? '').slice(0, 180)}
             </div>
           )}
           {note('desk-orders') && (
@@ -365,7 +365,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
       <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
         <Tile accent="green" i={0} label="Fear & Greed" value={String(fg)} tone={fg >= 70 ? 'neg' : fg <= 30 ? 'pos' : 'dim'} sub={`${brief.sentiment.fg_label} — ${brief.sentiment.fg_note}`} />
         <Tile accent="teal" i={1} label="Leverage" value="cool" tone="pos" sub="funding at floor, perps at spot discount" />
-        <Tile accent="cyan" i={2} label="ETF flows" value={brief.flows[0]?.value.match(/\d+-day/)?.[0] ?? 'inflow'} tone="pos" sub={brief.flows[1]?.note ?? ''} />
+        <Tile accent="cyan" i={2} label="ETF flows" value={brief.flows[0]?.value?.match(/\d+-day/)?.[0] ?? 'inflow'} tone="pos" sub={brief.flows[1]?.note ?? ''} />
         <Tile accent="amber" i={3} label="Structure" value="5/5 bull" tone="pos" sub="all majors above 20/50/200d SMAs" />
       </div>
 
@@ -463,7 +463,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
       <div className="mt-3">
         <Panel accent="amber" title="Desk notes — inputs to the next call, not orders">
           <ul className="list-disc space-y-1.5 pl-4 text-[13px] text-neutral-700 dark:text-neutral-300">
-            {brief.implications.map((s) => <li key={s.slice(0, 40)}>{s}</li>)}
+            {brief.implications.filter(Boolean).map((s) => <li key={String(s).slice(0, 40)}>{String(s)}</li>)}
           </ul>
         </Panel>
       </div>
