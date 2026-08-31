@@ -11,7 +11,18 @@ import PlanCashflow from '../plan-cashflow'
 // spot tiles with day-over-day deltas, retarget countdown, 18-rig P&L, the
 // what-if sliders, and the 48-month plan simulator.
 
-export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
+// MINE SIM is the terminal's landing tab now that POSTS is paused, so it
+// carries the PWA manifest link — without it the terminal can't be installed
+// or re-installed on the phone.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ secret?: string }> }): Promise<Metadata> {
+  const { secret = '' } = await searchParams
+  return {
+    robots: { index: false, follow: false, nocache: true },
+    title: 'LMC Terminal',
+    manifest: secret ? `/api/admin/manifest?secret=${encodeURIComponent(secret)}` : undefined,
+    appleWebApp: { capable: true, title: 'LMC Terminal', statusBarStyle: 'black-translucent' },
+  }
+}
 export const dynamic = 'force-dynamic'
 
 // The fleet runs Luxor's LuxOS firmware overclocked, not stock Bitmain. Both

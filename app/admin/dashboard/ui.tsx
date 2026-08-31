@@ -219,7 +219,6 @@ export function Shell({
   children: React.ReactNode
 }) {
   const tabs = [
-    { id: 'posts', label: 'POSTS', href: `/admin/dashboard?secret=${secret}` },
     { id: 'mining', label: 'MINE SIM', href: `/admin/dashboard/mining?secret=${secret}` },
     { id: 'trading', label: 'TRADING', href: `/admin/dashboard/trading?secret=${secret}` },
     { id: 'fund', label: 'ROBINHOOD', href: `/admin/dashboard/fund?secret=${secret}` },
