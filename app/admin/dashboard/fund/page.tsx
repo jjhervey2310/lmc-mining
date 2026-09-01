@@ -99,7 +99,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, gridQ, taxQ, notesQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, gridQ, trigQ, alertQ, taxQ, notesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -109,6 +109,8 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
     supabase?.from('fund_flows').select('flow_date, amount') ?? { data: null },
     supabase?.from('fund_grid').select('rank, symbol, thesis, entry').order('rank') ?? { data: null, error: true },
+    supabase?.from('desk_triggers').select('symbol, kind, level, band_pct, spec, active, last_alert_at').eq('active', true).order('symbol') ?? { data: null, error: true },
+    supabase?.from('desk_alert_log').select('at, symbol, kind, level, price, sent, queued, note').order('at', { ascending: false }).limit(20) ?? { data: null, error: true },
     supabase?.from('tax_events').select('event_date, tax_year, asset, event_type, quantity, proceeds_usd, basis_usd, realized_pnl_usd, note').order('event_date', { ascending: false }).limit(100) ?? { data: null, error: true },
     supabase?.from('pa_memory').select('topic, fact, updated_at')
       .in('topic', ['fund-trigger-watch', 'desk-orders', 'runner-scout-signal', 'evening-checkin', 'dashboard', 'house-strategy'])
@@ -136,6 +138,8 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const nextBuy = nb ? nb[0].trim() : ''
   const stratNote = note('house-strategy')
   const grid = (gridQ.data ?? null) as { rank: number; symbol: string; thesis: string; entry: string }[] | null
+  const triggers = (trigQ.data ?? null) as { symbol: string; kind: string; level: number; band_pct: number | null; spec: string | null; last_alert_at: string | null }[] | null
+  const alerts = (alertQ.data ?? null) as { at: string; symbol: string; kind: string; level: number | null; price: number | null; sent: boolean | null; queued: boolean | null; note: string | null }[] | null
   const taxRows = (taxQ.data ?? null) as { event_date: string; tax_year: number; asset: string; event_type: string; quantity: number; proceeds_usd: number; basis_usd: number; realized_pnl_usd: number; note: string | null }[] | null
   // stop level per symbol, best-effort parsed from the board text (e.g. "SOL ... stop $94")
   const stopFor = (sym: string) => {
@@ -266,6 +270,49 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           </Panel>
         </div>
       )}
+
+      {/* Armed lines + watcher activity — the 15-min loop, visible */}
+      <div className="mb-3 grid gap-3 md:grid-cols-2">
+        <Panel accent="teal" title="⚡ Armed lines — watcher targets" right={<span className="text-[11px] text-neutral-500">monitored every 15 min</span>}>
+          {triggers === null ? (
+            <span className="text-[13px] text-red-600">Triggers unreachable — fetch failed, not empty.</span>
+          ) : triggers.length === 0 ? (
+            <span className="text-[13px] text-neutral-500">No armed lines.</span>
+          ) : (
+            <div className="space-y-1.5">
+              {triggers.map((t, i) => (
+                <div key={i} className="text-[13px] tabular-nums">
+                  <span className="font-bold text-teal-700 dark:text-teal-300">{t.symbol}</span>
+                  <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-neutral-600 dark:bg-white/10 dark:text-neutral-300">{t.kind}</span>
+                  <span className="ml-2 font-mono">{px(Number(t.level))}</span>
+                  {t.band_pct != null && <span className="ml-1 text-[11px] text-neutral-500">±{Number(t.band_pct)}%</span>}
+                  {t.spec && <div className="text-[12px] text-neutral-500">{t.spec}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+        <Panel accent="cyan" title="Watcher activity" right={<span className="text-[11px] text-neutral-500">latest 20 · proof of life</span>}>
+          {alerts === null ? (
+            <span className="text-[13px] text-red-600">Alert log unreachable — fetch failed, not empty.</span>
+          ) : alerts.length === 0 ? (
+            <span className="text-[13px] text-neutral-500">No watcher events logged yet.</span>
+          ) : (
+            <div className="max-h-64 space-y-1 overflow-y-auto">
+              {alerts.map((a, i) => (
+                <div key={i} className="flex items-baseline gap-2 text-[12px] tabular-nums">
+                  <span className="whitespace-nowrap text-neutral-500">{denverStamp(a.at)}</span>
+                  <span className="font-bold text-neutral-800 dark:text-neutral-200">{a.symbol}</span>
+                  <span className="text-neutral-500">{a.kind}{a.level != null ? ` @ ${px(Number(a.level))}` : ''}</span>
+                  {a.price != null && <span className="font-mono text-neutral-600 dark:text-neutral-400">{px(Number(a.price))}</span>}
+                  {a.sent ? <span className="text-green-600 dark:text-emerald-300">sent</span> : a.queued ? <span className="text-amber-600 dark:text-amber-300">queued</span> : null}
+                  {a.note && <span className="truncate text-neutral-500">{a.note}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+      </div>
 
       {board && (
         <div className="mb-3">

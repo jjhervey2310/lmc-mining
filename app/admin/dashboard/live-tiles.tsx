@@ -77,6 +77,12 @@ export default function LiveTiles({ tiles, cash }: { tiles: TileData[]; cash: nu
                 <span>qty <b className="font-mono text-neutral-800 dark:text-neutral-200">{p.qty}</b></span>
                 <span>entry <b className="font-mono text-neutral-800 dark:text-neutral-200">{p.avgCost > 0 ? fmt(p.avgCost) : 'n/a'}</b></span>
                 {p.stop && <span>stop <b className="font-mono text-amber-700 dark:text-amber-300">{p.stop}</b></span>}
+                {p.now !== null && (
+                  <span className="text-neutral-500">
+                    est. buy <b className="font-mono text-neutral-700 dark:text-neutral-300">{fmt(p.now * 1.0095)}</b> · est. sell <b className="font-mono text-neutral-700 dark:text-neutral-300">{fmt(p.now * 0.9905)}</b>
+                    <span className="ml-1 text-[10px]">(±0.95% of mid, estimate)</span>
+                  </span>
+                )}
               </div>
               {p.spark && p.spark.length > 1 ? (
                 <div className="mt-2 overflow-x-auto"><Spark points={p.spark} w={620} h={140} /></div>
