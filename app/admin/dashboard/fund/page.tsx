@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
 import { Shell, Panel, Tile, Spark, checkAdmin, usd } from '../ui'
 import TrendChart from '../trend-chart'
+import LiveTiles from '../live-tiles'
 
 // J&P FUND — the research desk: latest verified multi-agent market sweep
 // (TA, sentiment, flows, turnover, narratives, calendar) feeding the weekly call.
@@ -97,7 +98,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, notesQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, taxQ, notesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -106,8 +107,9 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
     supabase?.from('fund_flows').select('flow_date, amount') ?? { data: null },
+    supabase?.from('tax_events').select('event_date, tax_year, asset, event_type, quantity, proceeds_usd, basis_usd, realized_pnl_usd, note').order('event_date', { ascending: false }).limit(100) ?? { data: null, error: true },
     supabase?.from('pa_memory').select('topic, fact, updated_at')
-      .in('topic', ['fund-trigger-watch', 'desk-orders', 'runner-scout-signal', 'evening-checkin'])
+      .in('topic', ['fund-trigger-watch', 'desk-orders', 'runner-scout-signal', 'evening-checkin', 'dashboard', 'house-strategy'])
       .eq('active', true) ?? { data: null, error: true },
   ])
 
@@ -125,6 +127,19 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const actionNeeded = /TAP-READY|CASH LANDED|\bDO THIS\b/i.test(watchNote?.fact ?? '')
   const denverStamp = (iso?: string) => iso ? new Date(iso).toLocaleString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
 
+  // ★ NEXT BUY banner + session board come from the live agent's 'dashboard' topic.
+  const boardNote = note('dashboard')
+  const board = boardNote?.fact ?? ''
+  const nb = board.match(/★ NEXT BUY[^\n]*\n?([\s\S]*?)(?:\n\s*\n|$)/)
+  const nextBuy = nb ? nb[0].trim() : ''
+  const stratNote = note('house-strategy')
+  const taxRows = (taxQ.data ?? null) as { event_date: string; tax_year: number; asset: string; event_type: string; quantity: number; proceeds_usd: number; basis_usd: number; realized_pnl_usd: number; note: string | null }[] | null
+  // stop level per symbol, best-effort parsed from the board text (e.g. "SOL ... stop $94")
+  const stopFor = (sym: string) => {
+    const m = board.match(new RegExp(sym + String.raw`[^\n]*?stop[^\d$]*\$?([\d,]+(?:\.\d+)?)`, 'i'))
+    return m ? '$' + m[1] : null
+  }
+
   // Watchlist symbols must be priced too — they carry live quotes on their cards.
   const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
   const prices = await fundPrices(priceSymbols)
@@ -139,6 +154,11 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const pricedValue = positions.reduce((s, p) => s + (p.value ?? 0), 0)
   const allPriced = positions.every((p) => p.value !== null)
   const total = allPriced ? pricedValue + cash : null
+  const tiles = positions.map((p) => ({
+    symbol: p.symbol, qty: Number(p.qty), avgCost: Number(p.avg_cost),
+    price: p.now, cgId: CG[p.symbol.toUpperCase()] ?? null,
+    spark: sparks[p.symbol] ?? null, stop: stopFor(p.symbol),
+  }))
 
   // Briefs written by the signal tasks are partial and loosely typed by default.
   // Sanitize EVERY field here — strings coerced, numbers defaulted, bad rows dropped —
@@ -166,49 +186,18 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
 
   return (
     <Shell secret={secret} active="fund">
+      {nextBuy && (
+        <div className="mb-3 rounded-xl border border-amber-400 bg-amber-50 px-3 py-2 dark:border-amber-400/40 dark:bg-amber-400/10">
+          <pre className="whitespace-pre-wrap font-sans text-[13px] font-medium leading-relaxed text-amber-800 dark:text-amber-200">{nextBuy}</pre>
+        </div>
+      )}
       <Panel accent="rose" title="🔴 Robinhood — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
         {holdings === null ? (
           <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
         ) : positions.length === 0 && cash === 0 ? (
           <span className="text-[13px] text-neutral-500">No sync yet — positions land in <code>live_holdings</code> on the next sync.</span>
         ) : (
-          <div className="space-y-1">
-            {positions.map((p) => {
-              const cost = p.avg_cost > 0 ? Number(p.qty) * Number(p.avg_cost) : null
-              const pnlUsd = cost !== null && p.value !== null ? p.value - cost : null
-              return (
-                <details key={p.symbol} className="group rounded-lg border border-neutral-200 dark:border-white/10">
-                  <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-[13px] [&::-webkit-details-marker]:hidden">
-                    <span className="w-12 font-bold text-rose-600 dark:text-rose-300">{p.symbol}</span>
-                    <span className="font-mono">{p.value !== null ? `$${usd(p.value)}` : 'no price'}</span>
-                    <span className={`font-mono text-[12px] ${pnlUsd === null ? 'text-neutral-500' : pnlUsd >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
-                      {pnlUsd === null ? '' : `${pnlUsd >= 0 ? '+' : '−'}$${usd(Math.abs(pnlUsd))}`}
-                    </span>
-                    <span className="font-mono text-[12px]">{pct(p.pnlPct)}</span>
-                    <span className="ml-auto font-mono text-[11px] text-neutral-500">{total ? `${(((p.value ?? 0) / total) * 100).toFixed(0)}% of book` : ''}</span>
-                    <span className="text-[11px] text-neutral-400 transition-transform group-open:rotate-90">▶</span>
-                  </summary>
-                  <div className="border-t border-neutral-100 px-2.5 py-2 dark:border-white/5">
-                    <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-neutral-600 dark:text-neutral-400">
-                      <span>qty <b className="font-mono text-neutral-800 dark:text-neutral-200">{p.qty}</b></span>
-                      <span>bought @ <b className="font-mono text-neutral-800 dark:text-neutral-200">{p.avg_cost > 0 ? px(Number(p.avg_cost)) : 'n/a'}</b></span>
-                      <span>now <b className="font-mono text-neutral-800 dark:text-neutral-200">{p.now !== null ? px(p.now) : 'n/a'}</b></span>
-                    </div>
-                    {sparks[p.symbol] ? (
-                      <div className="mt-2 overflow-x-auto"><Spark points={sparks[p.symbol]} w={640} h={150} /></div>
-                    ) : (
-                      <div className="mt-2 text-[12px] text-neutral-500">7-day chart unavailable this refresh.</div>
-                    )}
-                    <div className="mt-1 text-[11px] text-neutral-500">last 7 days · green = up over the window</div>
-                  </div>
-                </details>
-              )
-            })}
-            <div className="flex items-center justify-between px-2.5 pt-1.5 text-[13px]">
-              <span><span className="font-bold text-neutral-600 dark:text-neutral-400">CASH</span> <span className="font-mono">${usd(cash)}</span></span>
-              <span className="font-mono text-[12px] text-neutral-500">{total ? `${((cash / total) * 100).toFixed(0)}%` : ''}</span>
-            </div>
-          </div>
+          <LiveTiles tiles={tiles} cash={Number(cash)} />
         )}
       </Panel>
 
@@ -223,6 +212,20 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           )}
         </Panel>
       </div>
+
+      {board && (
+        <div className="mb-3">
+          <Panel accent="cyan" title="📋 Session board — live agent" right={<span className="text-[11px] text-neutral-500">{boardNote ? `updated ${denverStamp(boardNote.updated_at)} DEN` : ''}</span>}>
+            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-[13px] leading-relaxed tabular-nums text-neutral-700 dark:text-neutral-300">{board}</pre>
+            {stratNote && (
+              <details className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
+                <summary className="cursor-pointer text-[12px] font-bold uppercase tracking-wider text-neutral-500">House strategy (v2) — tap to expand</summary>
+                <pre className="mt-1 max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-400">{stratNote.fact}</pre>
+              </details>
+            )}
+          </Panel>
+        </div>
+      )}
 
       {/* ── Desk notes: whatever needs doing, the moment it needs doing ── */}
       <div className="mb-3">
@@ -476,6 +479,40 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
       </div>
       </>
       )}
+
+      {/* Tax ledger — append-only, from tax_events */}
+      <div className="mt-3">
+        <Panel accent="green" title="🧾 Tax ledger" right={<span className="text-[11px] text-neutral-500">append-only · realized events</span>}>
+          {taxRows === null ? (
+            <span className="text-[13px] text-red-600">Tax ledger unreachable — fetch failed, not empty.</span>
+          ) : taxRows.length === 0 ? (
+            <span className="text-[13px] text-neutral-500">No realized events yet.</span>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-[13px] tabular-nums">
+                <thead><tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500">
+                  <th className="py-1 pr-2">Date</th><th className="pr-2">Year</th><th className="pr-2">Asset</th><th className="pr-2">Event</th><th className="pr-2">Qty</th><th className="pr-2">Proceeds</th><th className="pr-2">Basis</th><th className="pr-2">Realized</th><th>Note</th>
+                </tr></thead>
+                <tbody>
+                  {taxRows.map((t, i) => (
+                    <tr key={i} className="border-t border-neutral-100 dark:border-white/5">
+                      <td className="py-1.5 pr-2 text-neutral-500">{t.event_date}</td>
+                      <td className="pr-2">{t.tax_year}</td>
+                      <td className="pr-2 font-bold text-amber-600 dark:text-amber-300">{t.asset}</td>
+                      <td className="pr-2">{t.event_type}</td>
+                      <td className="pr-2 font-mono">{t.quantity}</td>
+                      <td className="pr-2 font-mono">${usd(Number(t.proceeds_usd ?? 0))}</td>
+                      <td className="pr-2 font-mono">${usd(Number(t.basis_usd ?? 0))}</td>
+                      <td className={`pr-2 font-mono ${Number(t.realized_pnl_usd) >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{Number(t.realized_pnl_usd) >= 0 ? '+' : '−'}${usd(Math.abs(Number(t.realized_pnl_usd ?? 0)))}</td>
+                      <td className="max-w-[260px] truncate text-neutral-500">{t.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      </div>
 
       <div className="mt-3 text-[12px] text-neutral-500">
         The desk publishes from multi-agent research sweeps (content/narratives · TA computed from raw dailies · volume/flows ·
