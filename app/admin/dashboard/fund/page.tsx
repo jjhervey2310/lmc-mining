@@ -44,6 +44,7 @@ const CG: Record<string, string> = {
   XLM: 'stellar', UNI: 'uniswap', AAVE: 'aave', SHIB: 'shiba-inu', PEPE: 'pepe',
   BONK: 'bonk', WIF: 'dogwifcoin', DOT: 'polkadot', SUI: 'sui', HYPE: 'hyperliquid',
   LIT: 'lighter', ONDO: 'ondo-finance', MOODENG: 'moo-deng', ZEC: 'zcash', PUMP: 'pump-fun',
+  ARB: 'arbitrum', LDO: 'lido-dao', STRK: 'starknet', NEAR: 'near', FET: 'fetch-ai', SEI: 'sei-network',
 }
 
 // null = price fetch failed (render "unavailable", never a zero — unknown ≠ empty).
@@ -98,7 +99,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, taxQ, notesQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, gridQ, taxQ, notesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -107,6 +108,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
     supabase?.from('fund_flows').select('flow_date, amount') ?? { data: null },
+    supabase?.from('fund_grid').select('rank, symbol, thesis, entry').order('rank') ?? { data: null, error: true },
     supabase?.from('tax_events').select('event_date, tax_year, asset, event_type, quantity, proceeds_usd, basis_usd, realized_pnl_usd, note').order('event_date', { ascending: false }).limit(100) ?? { data: null, error: true },
     supabase?.from('pa_memory').select('topic, fact, updated_at')
       .in('topic', ['fund-trigger-watch', 'desk-orders', 'runner-scout-signal', 'evening-checkin', 'dashboard', 'house-strategy'])
@@ -133,6 +135,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const nb = board.match(/★ NEXT BUY[^\n]*\n?([\s\S]*?)(?:\n\s*\n|$)/)
   const nextBuy = nb ? nb[0].trim() : ''
   const stratNote = note('house-strategy')
+  const grid = (gridQ.data ?? null) as { rank: number; symbol: string; thesis: string; entry: string }[] | null
   const taxRows = (taxQ.data ?? null) as { event_date: string; tax_year: number; asset: string; event_type: string; quantity: number; proceeds_usd: number; basis_usd: number; realized_pnl_usd: number; note: string | null }[] | null
   // stop level per symbol, best-effort parsed from the board text (e.g. "SOL ... stop $94")
   const stopFor = (sym: string) => {
@@ -141,7 +144,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   }
 
   // Watchlist symbols must be priced too — they carry live quotes on their cards.
-  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
+  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? []), ...(grid ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
   const prices = await fundPrices(priceSymbols)
   const sparks = await sparkSeries([...new Set((holdings ?? []).map((h) => h.symbol).filter((x) => x !== 'USD'))])
 
@@ -212,6 +215,57 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           )}
         </Panel>
       </div>
+
+      {/* 🏁 Starting grid — the buy queue, pole first */}
+      {grid && grid.length > 0 && (
+        <div className="mb-3">
+          <Panel accent="amber" title="🏁 Starting grid — next buys in contention" right={<span className="text-[11px] text-neutral-500">re-ranked as evidence changes · pole buys when cash lands</span>}>
+            <div className="space-y-2">
+              {grid.filter((g) => g.rank === 1).map((g) => (
+                <div key={g.rank} className="rounded-xl border-2 border-amber-400 bg-amber-50 p-3 dark:border-amber-400/50 dark:bg-amber-400/10">
+                  <div className="flex items-baseline gap-2">
+                    <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[11px] font-bold text-black">P1 · POLE</span>
+                    <span className="text-[17px] font-bold text-amber-700 dark:text-amber-300">{g.symbol}</span>
+                    {prices?.[g.symbol] != null && <span className="font-mono text-[13px] tabular-nums text-neutral-600 dark:text-neutral-400">{px(prices[g.symbol])}</span>}
+                  </div>
+                  <p className="mt-1 text-[13px] leading-relaxed text-neutral-700 dark:text-neutral-300">{g.thesis}</p>
+                  <p className="mt-1 text-[12px] font-bold text-teal-700 dark:text-teal-300">→ {g.entry}</p>
+                </div>
+              ))}
+              <div className="grid gap-2 sm:grid-cols-2">
+                {grid.filter((g) => g.rank === 2 || g.rank === 3).map((g) => (
+                  <div key={g.rank} className="rounded-lg border border-neutral-300 p-2.5 dark:border-white/15">
+                    <div className="flex items-baseline gap-2">
+                      <span className="rounded bg-neutral-300 px-1.5 py-0.5 text-[10px] font-bold text-black dark:bg-neutral-500">P{g.rank}</span>
+                      <span className="font-bold text-neutral-800 dark:text-neutral-100">{g.symbol}</span>
+                      {prices?.[g.symbol] != null && <span className="font-mono text-[12px] tabular-nums text-neutral-500">{px(prices[g.symbol])}</span>}
+                    </div>
+                    <p className="mt-1 text-[12px] text-neutral-600 dark:text-neutral-400">{g.thesis}</p>
+                    <p className="mt-1 text-[11px] font-bold text-teal-700 dark:text-teal-300">→ {g.entry}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-1">
+                {grid.filter((g) => g.rank >= 4).map((g) => (
+                  <details key={g.rank} className="group rounded-lg border border-neutral-200 dark:border-white/10">
+                    <summary className="flex cursor-pointer list-none items-baseline gap-2 px-2.5 py-1.5 text-[13px] [&::-webkit-details-marker]:hidden">
+                      <span className="w-8 font-mono text-[11px] text-neutral-500">P{g.rank}</span>
+                      <span className="font-bold text-neutral-800 dark:text-neutral-200">{g.symbol}</span>
+                      {prices?.[g.symbol] != null && <span className="font-mono text-[12px] tabular-nums text-neutral-500">{px(prices[g.symbol])}</span>}
+                      <span className="ml-auto truncate text-[11px] text-neutral-500">{g.thesis.slice(0, 48)}…</span>
+                      <span className="text-[11px] text-neutral-400 transition-transform group-open:rotate-90">▶</span>
+                    </summary>
+                    <div className="border-t border-neutral-100 px-2.5 py-2 text-[12px] text-neutral-600 dark:border-white/5 dark:text-neutral-400">
+                      <p>{g.thesis}</p>
+                      <p className="mt-1 font-bold text-teal-700 dark:text-teal-300">→ {g.entry}</p>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+          </Panel>
+        </div>
+      )}
 
       {board && (
         <div className="mb-3">
