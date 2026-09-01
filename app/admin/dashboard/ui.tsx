@@ -244,7 +244,7 @@ export function Shell({
             the wordmark clipped VIDEOS off the screen entirely (Jacob 2026-08-06). */}
         <div className="border-b border-amber-500/40 pb-2 dark:border-amber-400/25">
           <div className="flex items-center justify-between gap-2">
-            <span className="whitespace-nowrap text-sm font-bold text-amber-500 dark:text-amber-300">⚡ LMC TERMINAL</span>
+            <span className="whitespace-nowrap text-sm font-bold text-amber-500 dark:text-amber-300">⚡ JACOB&apos;S DASHBOARD</span>
             <span className="flex shrink-0 items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
               <span className="lmc-pulse inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
               <span className="hidden sm:inline">{new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })} DEN · refresh 5m</span>

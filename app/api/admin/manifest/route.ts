@@ -13,8 +13,8 @@ export async function GET(req: Request) {
   }
   return NextResponse.json(
     {
-      name: 'LMC Terminal',
-      short_name: 'LMC',
+      name: "Jacob's Dashboard",
+      short_name: 'Dashboard',
       description: "Lightning Mines mission control — Jacob's private terminal",
       start_url: `/admin/dashboard?secret=${secret}`,
       scope: '/admin/',

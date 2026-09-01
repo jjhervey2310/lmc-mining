@@ -18,9 +18,9 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const { secret = '' } = await searchParams
   return {
     robots: { index: false, follow: false, nocache: true },
-    title: 'LMC Terminal',
+    title: "Jacob's Dashboard",
     manifest: secret ? `/api/admin/manifest?secret=${encodeURIComponent(secret)}` : undefined,
-    appleWebApp: { capable: true, title: 'LMC Terminal', statusBarStyle: 'black-translucent' },
+    appleWebApp: { capable: true, title: "Jacob's Dashboard", statusBarStyle: 'black-translucent' },
   }
 }
 export const dynamic = 'force-dynamic'
