@@ -218,12 +218,13 @@ export function Shell({
   active: 'posts' | 'mining' | 'trading' | 'fund' | 'jobs' | 'lfc' | 'website' | 'videos'
   children: React.ReactNode
 }) {
+  // POSTS, JOBS and LFC are paused (Jacob 2026-08-31). Their pages still exist
+  // and still work by URL — they are only off the nav, so putting them back is
+  // one line each.
   const tabs = [
     { id: 'mining', label: 'MINE SIM', href: `/admin/dashboard/mining?secret=${secret}` },
     { id: 'trading', label: 'TRADING', href: `/admin/dashboard/trading?secret=${secret}` },
     { id: 'fund', label: 'ROBINHOOD', href: `/admin/dashboard/fund?secret=${secret}` },
-    { id: 'jobs', label: 'JOBS', href: `/admin/dashboard/jobs?secret=${secret}` },
-    { id: 'lfc', label: 'LFC', href: `/admin/dashboard/lfc?secret=${secret}` },
     { id: 'website', label: 'WEBSITE', href: `/admin/dashboard/website?secret=${secret}` },
     { id: 'videos', label: 'VIDEOS', href: `/admin/dashboard/videos?secret=${secret}` },
   ]
