@@ -204,6 +204,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           triggers: (trigQ.data ?? null) as DeskState['triggers'],
           alerts: (alertQ.data ?? null) as DeskState['alerts'],
           board: boardNote ? { fact: boardNote.fact, updated_at: boardNote.updated_at } : null,
+          strategy: stratNote ? { fact: stratNote.fact, updated_at: stratNote.updated_at } : null,
           at: new Date().toISOString(),
         }}
       />
@@ -267,17 +268,6 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
                 ))}
               </div>
             </div>
-          </Panel>
-        </div>
-      )}
-
-      {stratNote && (
-        <div className="mb-3">
-          <Panel accent="purple" title="House strategy (v2)">
-            <details>
-              <summary className="cursor-pointer text-[12px] font-bold uppercase tracking-wider text-neutral-500">Tap to expand the standing rules</summary>
-              <pre className="mt-1 max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-400">{stratNote.fact}</pre>
-            </details>
           </Panel>
         </div>
       )}

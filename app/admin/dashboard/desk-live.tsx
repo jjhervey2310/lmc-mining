@@ -12,7 +12,7 @@ interface Holding { symbol: string; qty: number; avg_cost: number; synced_at: st
 interface Trigger { symbol: string; kind: string; level: number; band_pct: number | null; spec: string | null }
 interface Alert { at: string; symbol: string; kind: string; level: number | null; price: number | null; sent: boolean | null; queued: boolean | null; note: string | null }
 interface Board { fact: string; updated_at: string }
-export interface DeskState { holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; at: string }
+export interface DeskState { holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; strategy: Board | null; at: string }
 
 const fmt = (n: number) =>
   n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}`
@@ -196,6 +196,12 @@ export default function DeskLive({ initial, secret, cg, sparks }: {
         <div className="mt-3">
           <Panel accent="cyan" title="📋 Session board — live agent" right={<span className="text-[11px] text-neutral-500">{state.board ? `updated ${denver(state.board.updated_at)} DEN` : ''}</span>}>
             <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-[13px] leading-relaxed tabular-nums text-neutral-700 dark:text-neutral-300">{board}</pre>
+            {state.strategy && (
+              <details className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
+                <summary className="cursor-pointer text-[12px] font-bold uppercase tracking-wider text-neutral-500">House strategy — as of {denver(state.strategy.updated_at)} DEN · tap to expand</summary>
+                <pre className="mt-1 max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-400">{state.strategy.fact}</pre>
+              </details>
+            )}
           </Panel>
         </div>
       )}
