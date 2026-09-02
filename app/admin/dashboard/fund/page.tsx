@@ -3,12 +3,14 @@ import { createServiceClient } from '@/lib/supabase'
 import { Shell, Panel, Tile, Spark, checkAdmin, usd } from '../ui'
 import TrendChart from '../trend-chart'
 import LiveTiles from '../live-tiles'
+import DeskLive, { type DeskState } from '../desk-live'
 
 // J&P FUND — the research desk: latest verified multi-agent market sweep
 // (TA, sentiment, flows, turnover, narratives, calendar) feeding the weekly call.
 
 export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 interface TaRow { asset: string; price: number; sma20: number; sma50: number; sma200: number; vs: string; hi90: number; lo90: number; support: string; resistance: string; note: string }
 interface Brief {
@@ -101,7 +103,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const supabase = createServiceClient()
   const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, gridQ, trigQ, alertQ, taxQ, notesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
-    supabase?.from('live_holdings').select('symbol, qty, avg_cost').order('symbol') ?? { data: null, error: true },
+    supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
     supabase?.from('fund_watchlist').select('symbol, thesis, trigger_level').order('added_at') ?? { data: null, error: true },
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
@@ -193,20 +195,18 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
 
   return (
     <Shell secret={secret} active="fund">
-      {nextBuy && (
-        <div className="mb-3 rounded-xl border border-amber-400 bg-amber-50 px-3 py-2 dark:border-amber-400/40 dark:bg-amber-400/10">
-          <pre className="whitespace-pre-wrap font-sans text-[13px] font-medium leading-relaxed text-amber-800 dark:text-amber-200">{nextBuy}</pre>
-        </div>
-      )}
-      <Panel accent="rose" title="🔴 Robinhood — live holdings" right={<span className="text-[11px] text-neutral-500">{total !== null ? `total $${usd(total)}` : holdings?.length ? 'some prices unavailable' : ''}</span>}>
-        {holdings === null ? (
-          <span className="text-[13px] text-red-600">Holdings unreachable — fetch failed, not empty.</span>
-        ) : positions.length === 0 && cash === 0 ? (
-          <span className="text-[13px] text-neutral-500">No sync yet — positions land in <code>live_holdings</code> on the next sync.</span>
-        ) : (
-          <LiveTiles tiles={tiles} cash={Number(cash)} />
-        )}
-      </Panel>
+      <DeskLive
+        secret={secret}
+        cg={CG}
+        sparks={sparks}
+        initial={{
+          holdings: (holdingsQ.data ?? null) as DeskState['holdings'],
+          triggers: (trigQ.data ?? null) as DeskState['triggers'],
+          alerts: (alertQ.data ?? null) as DeskState['alerts'],
+          board: boardNote ? { fact: boardNote.fact, updated_at: boardNote.updated_at } : null,
+          at: new Date().toISOString(),
+        }}
+      />
 
       <div className="mt-3">
         <Panel accent="purple" title="Account equity — TRUE P&L" right={<span className="text-[11px] text-neutral-500">{total !== null && contributions > 0 ? (() => { const pnl = total - contributions; return `deposited $${usd(contributions)} · P&L ${pnl >= 0 ? '+' : '−'}$${usd(Math.abs(pnl))} (${((pnl / contributions) * 100).toFixed(1)}%)` })() : 'daily close'}</span>}>
@@ -271,59 +271,13 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
         </div>
       )}
 
-      {/* Armed lines + watcher activity — the 15-min loop, visible */}
-      <div className="mb-3 grid gap-3 md:grid-cols-2">
-        <Panel accent="teal" title="⚡ Armed lines — watcher targets" right={<span className="text-[11px] text-neutral-500">monitored every 15 min</span>}>
-          {triggers === null ? (
-            <span className="text-[13px] text-red-600">Triggers unreachable — fetch failed, not empty.</span>
-          ) : triggers.length === 0 ? (
-            <span className="text-[13px] text-neutral-500">No armed lines.</span>
-          ) : (
-            <div className="space-y-1.5">
-              {triggers.map((t, i) => (
-                <div key={i} className="text-[13px] tabular-nums">
-                  <span className="font-bold text-teal-700 dark:text-teal-300">{t.symbol}</span>
-                  <span className="ml-2 rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-neutral-600 dark:bg-white/10 dark:text-neutral-300">{t.kind}</span>
-                  <span className="ml-2 font-mono">{px(Number(t.level))}</span>
-                  {t.band_pct != null && <span className="ml-1 text-[11px] text-neutral-500">±{Number(t.band_pct)}%</span>}
-                  {t.spec && <div className="text-[12px] text-neutral-500">{t.spec}</div>}
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
-        <Panel accent="cyan" title="Watcher activity" right={<span className="text-[11px] text-neutral-500">latest 20 · proof of life</span>}>
-          {alerts === null ? (
-            <span className="text-[13px] text-red-600">Alert log unreachable — fetch failed, not empty.</span>
-          ) : alerts.length === 0 ? (
-            <span className="text-[13px] text-neutral-500">No watcher events logged yet.</span>
-          ) : (
-            <div className="max-h-64 space-y-1 overflow-y-auto">
-              {alerts.map((a, i) => (
-                <div key={i} className="flex items-baseline gap-2 text-[12px] tabular-nums">
-                  <span className="whitespace-nowrap text-neutral-500">{denverStamp(a.at)}</span>
-                  <span className="font-bold text-neutral-800 dark:text-neutral-200">{a.symbol}</span>
-                  <span className="text-neutral-500">{a.kind}{a.level != null ? ` @ ${px(Number(a.level))}` : ''}</span>
-                  {a.price != null && <span className="font-mono text-neutral-600 dark:text-neutral-400">{px(Number(a.price))}</span>}
-                  {a.sent ? <span className="text-green-600 dark:text-emerald-300">sent</span> : a.queued ? <span className="text-amber-600 dark:text-amber-300">queued</span> : null}
-                  {a.note && <span className="truncate text-neutral-500">{a.note}</span>}
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
-      </div>
-
-      {board && (
+      {stratNote && (
         <div className="mb-3">
-          <Panel accent="cyan" title="📋 Session board — live agent" right={<span className="text-[11px] text-neutral-500">{boardNote ? `updated ${denverStamp(boardNote.updated_at)} DEN` : ''}</span>}>
-            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-[13px] leading-relaxed tabular-nums text-neutral-700 dark:text-neutral-300">{board}</pre>
-            {stratNote && (
-              <details className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
-                <summary className="cursor-pointer text-[12px] font-bold uppercase tracking-wider text-neutral-500">House strategy (v2) — tap to expand</summary>
-                <pre className="mt-1 max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-400">{stratNote.fact}</pre>
-              </details>
-            )}
+          <Panel accent="purple" title="House strategy (v2)">
+            <details>
+              <summary className="cursor-pointer text-[12px] font-bold uppercase tracking-wider text-neutral-500">Tap to expand the standing rules</summary>
+              <pre className="mt-1 max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-neutral-600 dark:text-neutral-400">{stratNote.fact}</pre>
+            </details>
           </Panel>
         </div>
       )}
