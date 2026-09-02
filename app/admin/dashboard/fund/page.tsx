@@ -245,56 +245,6 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
         </Panel>
       </div>
 
-      {/* 🏁 Starting grid — the buy queue, pole first */}
-      {grid && grid.length > 0 && (
-        <div className="mb-3">
-          <Panel accent="amber" title="🏁 Starting grid — next buys in contention" right={<span className="text-[11px] text-neutral-500">re-ranked as evidence changes · pole buys when cash lands</span>}>
-            <div className="space-y-2">
-              {grid.filter((g) => g.rank === 1).map((g) => (
-                <div key={g.rank} className="rounded-xl border-2 border-amber-400 bg-amber-50 p-3 dark:border-amber-400/50 dark:bg-amber-400/10">
-                  <div className="flex items-baseline gap-2">
-                    <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[11px] font-bold text-black">P1 · POLE</span>
-                    <span className="text-[17px] font-bold text-amber-700 dark:text-amber-300">{g.symbol}</span>
-                    {prices?.[g.symbol] != null && <span className="font-mono text-[13px] tabular-nums text-neutral-600 dark:text-neutral-400">{px(prices[g.symbol])}</span>}
-                  </div>
-                  <p className="mt-1 text-[13px] leading-relaxed text-neutral-700 dark:text-neutral-300">{g.thesis}</p>
-                  <p className="mt-1 text-[12px] font-bold text-teal-700 dark:text-teal-300">→ {g.entry}</p>
-                </div>
-              ))}
-              <div className="grid gap-2 sm:grid-cols-2">
-                {grid.filter((g) => g.rank === 2 || g.rank === 3).map((g) => (
-                  <div key={g.rank} className="rounded-lg border border-neutral-300 p-2.5 dark:border-white/15">
-                    <div className="flex items-baseline gap-2">
-                      <span className="rounded bg-neutral-300 px-1.5 py-0.5 text-[10px] font-bold text-black dark:bg-neutral-500">P{g.rank}</span>
-                      <span className="font-bold text-neutral-800 dark:text-neutral-100">{g.symbol}</span>
-                      {prices?.[g.symbol] != null && <span className="font-mono text-[12px] tabular-nums text-neutral-500">{px(prices[g.symbol])}</span>}
-                    </div>
-                    <p className="mt-1 text-[12px] text-neutral-600 dark:text-neutral-400">{g.thesis}</p>
-                    <p className="mt-1 text-[11px] font-bold text-teal-700 dark:text-teal-300">→ {g.entry}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-1">
-                {grid.filter((g) => g.rank >= 4).map((g) => (
-                  <details key={g.rank} className="group rounded-lg border border-neutral-200 dark:border-white/10">
-                    <summary className="flex cursor-pointer list-none items-baseline gap-2 px-2.5 py-1.5 text-[13px] [&::-webkit-details-marker]:hidden">
-                      <span className="w-8 font-mono text-[11px] text-neutral-500">P{g.rank}</span>
-                      <span className="font-bold text-neutral-800 dark:text-neutral-200">{g.symbol}</span>
-                      {prices?.[g.symbol] != null && <span className="font-mono text-[12px] tabular-nums text-neutral-500">{px(prices[g.symbol])}</span>}
-                      <span className="ml-auto truncate text-[11px] text-neutral-500">{g.thesis.slice(0, 48)}…</span>
-                      <span className="text-[11px] text-neutral-400 transition-transform group-open:rotate-90">▶</span>
-                    </summary>
-                    <div className="border-t border-neutral-100 px-2.5 py-2 text-[12px] text-neutral-600 dark:border-white/5 dark:text-neutral-400">
-                      <p>{g.thesis}</p>
-                      <p className="mt-1 font-bold text-teal-700 dark:text-teal-300">→ {g.entry}</p>
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </div>
-          </Panel>
-        </div>
-      )}
 
       {/* ── Desk notes: whatever needs doing, the moment it needs doing ── */}
       <div className="mb-3">
