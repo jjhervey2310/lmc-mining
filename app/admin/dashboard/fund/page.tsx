@@ -101,7 +101,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, gridQ, trigQ, alertQ, taxQ, notesQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, notesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -110,7 +110,6 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
     supabase?.from('fund_flows').select('flow_date, amount') ?? { data: null },
-    supabase?.from('fund_grid').select('rank, symbol, thesis, entry').order('rank') ?? { data: null, error: true },
     supabase?.from('desk_triggers').select('symbol, kind, level, band_pct, spec, active, last_alert_at').eq('active', true).order('symbol') ?? { data: null, error: true },
     supabase?.from('desk_alert_log').select('at, symbol, kind, level, price, sent, queued, note').order('at', { ascending: false }).limit(20) ?? { data: null, error: true },
     supabase?.from('tax_events').select('event_date, tax_year, asset, event_type, quantity, proceeds_usd, basis_usd, realized_pnl_usd, note').order('event_date', { ascending: false }).limit(100) ?? { data: null, error: true },
@@ -139,7 +138,6 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const nb = board.match(/★ NEXT BUY[^\n]*\n?([\s\S]*?)(?:\n\s*\n|$)/)
   const nextBuy = nb ? nb[0].trim() : ''
   const stratNote = note('house-strategy')
-  const grid = (gridQ.data ?? null) as { rank: number; symbol: string; thesis: string; entry: string }[] | null
   const triggers = (trigQ.data ?? null) as { symbol: string; kind: string; level: number; band_pct: number | null; spec: string | null; last_alert_at: string | null }[] | null
   const alerts = (alertQ.data ?? null) as { at: string; symbol: string; kind: string; level: number | null; price: number | null; sent: boolean | null; queued: boolean | null; note: string | null }[] | null
   const taxRows = (taxQ.data ?? null) as { event_date: string; tax_year: number; asset: string; event_type: string; quantity: number; proceeds_usd: number; basis_usd: number; realized_pnl_usd: number; note: string | null }[] | null
@@ -150,7 +148,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   }
 
   // Watchlist symbols must be priced too — they carry live quotes on their cards.
-  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? []), ...(grid ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
+  const priceSymbols = [...(holdings ?? []), ...(trades ?? []), ...(watchlist ?? [])].map((r) => r.symbol).filter((s) => s !== 'USD')
   const prices = await fundPrices(priceSymbols)
   const sparks = await sparkSeries([...new Set((holdings ?? []).map((h) => h.symbol).filter((x) => x !== 'USD'))])
 
@@ -195,6 +193,32 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
 
   return (
     <Shell secret={secret} active="fund">
+      <DeskLive
+        secret={secret}
+        cg={CG}
+        sparks={sparks}
+        initial={{
+          holdings: (holdingsQ.data ?? null) as DeskState['holdings'],
+          triggers: (trigQ.data ?? null) as DeskState['triggers'],
+          alerts: (alertQ.data ?? null) as DeskState['alerts'],
+          board: boardNote ? { fact: boardNote.fact, updated_at: boardNote.updated_at } : null,
+          strategy: stratNote ? { fact: stratNote.fact, updated_at: stratNote.updated_at } : null,
+          at: new Date().toISOString(),
+        }}
+      />
+
+      <div className="mt-3">
+        <Panel accent="purple" title="Account equity — TRUE P&L" right={<span className="text-[11px] text-neutral-500">{total !== null && contributions > 0 ? (() => { const pnl = total - contributions; return `deposited $${usd(contributions)} · P&L ${pnl >= 0 ? '+' : '−'}$${usd(Math.abs(pnl))} (${((pnl / contributions) * 100).toFixed(1)}%)` })() : 'daily close'}</span>}>
+          {snaps.length > 1 ? (
+            <TrendChart
+              hidePct series={[{ key: 'fund', label: 'ROBINHOOD', color: '#fda4af', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
+              labels={snaps.map((s) => s.snapshot_date)} h={190} />
+          ) : (
+            <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots in <code>fund_snapshots</code> — banks nightly once the book has holdings.</span>
+          )}
+        </Panel>
+      </div>
+
       <DeskLive
         secret={secret}
         cg={CG}
@@ -360,7 +384,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
 
       {/* Runner radar — where money is arriving, staged by how far the move already went */}
       <div className="mt-3">
-        <Panel accent="teal" title="🎯 Runner radar — catching rotation early"
+        <Panel accent="teal" title="📡 RAW SCANNER — UNSCREENED, NOT PICKS"
           right={<span className="text-[11px] text-neutral-500">Robinhood-listed · turnover = 24h vol ÷ mcap</span>}>
           {radar === null ? (
             <span className="text-[13px] text-red-600">Radar unreachable — fetch failed, not empty.</span>
@@ -393,8 +417,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
                 )
               })}
               <div className="border-t border-neutral-100 pt-2 text-[11px] text-neutral-500 dark:border-white/5">
-                EARLY = turnover ≥8% of mcap with the 30-day move still under 35%: attention is arriving before price has.
-                It is a shortlist to research, never an auto-buy — high turnover also marks a coin being distributed.
+                Mechanical turnover scan, UNSCREENED against the desk's chase laws — names here are research inputs, never picks. The only law-screened ranking is the ★ pole line at the top of this page.
               </div>
             </div>
           )}
