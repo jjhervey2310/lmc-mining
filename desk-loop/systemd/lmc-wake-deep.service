@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC desk loop — deep reasoning wake (full model + web search, alert-only)
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/bin/bash /root/lmc-desk/wake.sh deep
+TimeoutStartSec=900

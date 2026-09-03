@@ -1,7 +1,7 @@
 [Unit]
-Description=LMC desk loop — hourly reasoning wake (alert-only)
+Description=LMC desk loop — FREE code triage (escalates to a paid deep wake only when warranted)
 [Service]
 Type=oneshot
 WorkingDirectory=/root/lmc-desk
-ExecStart=/bin/bash /root/lmc-desk/wake.sh
-TimeoutStartSec=900
+ExecStart=/usr/bin/python3 /root/lmc-desk/triage.py
+TimeoutStartSec=300

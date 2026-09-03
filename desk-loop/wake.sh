@@ -1,43 +1,78 @@
 #!/usr/bin/env bash
-# Hourly reasoning wake: gates -> context -> headless Claude -> loop-briefs + ntfy. Alert-only.
+# Reasoning wake. Two modes:
+#   triage (default) — cheap model, small ask: "has anything materially changed?"
+#   deep             — full model + web search, used on scheduled deep runs and on fired triggers
+# Cost is gated by a book-scaled budget (Jacob's rule: spend scales with the account, not the clock).
 set -euo pipefail
+MODE="${1:-triage}"
 ROOT=${LMC_DESK_ROOT:-/root/lmc-desk}; cd "$ROOT"; set -a; source .env; set +a
 STATE="$ROOT/state"; mkdir -p "$STATE"
-py() { python3 "$ROOT/$1"; }
 
 ENABLED=$(python3 -c 'from common import loop_enabled; print(loop_enabled())')
 [ "$ENABLED" = "True" ] || { echo "loop disabled — skip"; exit 0; }
-SPEND_OK=$(python3 -c 'from common import spend_ok; print(spend_ok())')
-[ "$SPEND_OK" = "True" ] || { echo "spend cap halt — skip"; exit 0; }
 
-CTX="$STATE/context.json"; py context.py > "$CTX"
-PROMPT="$(cat "$ROOT/wake_prompt.md")
+read -r ALLOWED_M SPENT_M ALLOWED_D SPENT_D OK <<<"$(python3 -c '
+from common import budget_status
+a,b,c,d,ok = budget_status(); print(f"{a:.2f} {b:.2f} {c:.3f} {d:.3f} {ok}")')"
+if [ "$OK" != "True" ]; then
+  echo "budget gate: spent \$$SPENT_M of \$$ALLOWED_M this month (today \$$SPENT_D) — skipping $MODE wake"
+  exit 0
+fi
+
+if [ "$MODE" = "deep" ]; then
+  MODEL="claude-sonnet-5"; TURNS=3; TOOLS="WebSearch"
+else
+  MODEL="claude-haiku-4-5-20251001"; TURNS=1; TOOLS=""
+fi
+
+python3 context.py > "$STATE/context.json"
+
+if [ "$MODE" = "deep" ]; then
+  ASK="$(cat "$ROOT/wake_prompt.md")"
+else
+  ASK="You are the cheap TRIAGE wake of a 24/7 trading desk. Context JSON attached. Do NOT search the web. In under 120 words answer only: (1) has anything MATERIALLY changed vs the last loop-brief — a held position near its stop, an armed line within 2% of triggering, book value moved >3%, or a radar name newly EARLY with score >=55? (2) Verdict line, exactly one of: 'ESCALATE: <one-line reason>' if a deep wake with web research is warranted now, or 'QUIET: <one-line reason>' if not. Be strict: escalate only for something actionable, not for noise."
+fi
+
+PROMPT="$ASK
 
 === CONTEXT JSON ===
-$(cat "$CTX")"
+$(cat "$STATE/context.json")"
 
 OUT="$STATE/wake_out.json"
-# Headless Claude Code: one web search allowed, JSON output carries cost for the spend ledger.
-claude -p "$PROMPT" --output-format json --max-turns 6 --allowedTools "WebSearch" --model claude-sonnet-5 > "$OUT" 2>"$STATE/wake_err.log" || true
-python3 - "$OUT" <<'PY'
-import json, sys, datetime
+if [ -n "$TOOLS" ]; then
+  claude -p "$PROMPT" --output-format json --max-turns "$TURNS" --allowedTools "$TOOLS" --model "$MODEL" > "$OUT" 2>"$STATE/wake_err.log" || true
+else
+  claude -p "$PROMPT" --output-format json --max-turns "$TURNS" --model "$MODEL" > "$OUT" 2>"$STATE/wake_err.log" || true
+fi
+
+python3 - "$OUT" "$MODE" <<'PY'
+import json, sys, datetime, subprocess
 sys.path.insert(0, "/root/lmc-desk"); from common import *
-o = json.load(open(sys.argv[1]))
-text = o.get("result") or ""
+o = json.load(open(sys.argv[1])); mode = sys.argv[2]
+text = (o.get("result") or "").strip()
 cost = float(o.get("total_cost_usd") or o.get("cost_usd") or 0)
-add_spend(cost)
-if not text.strip():
-    ntfy("Desk loop wake: empty result", open(STATE/"wake_err.log").read()[:800] or "no output", "low"); sys.exit(0)
+add_spend(cost); add_day_spend(cost)
+if not text:
+    ntfy("Desk loop: empty wake result", open(STATE/"wake_err.log").read()[:600] or "no output", "low"); sys.exit(0)
 stamp = now_denver().strftime("%Y-%m-%d %H:%M MT")
+if mode == "triage":
+    escalate = text.upper().find("ESCALATE:") >= 0
+    (STATE/"last_triage").write_text(f"{stamp} ${cost:.4f} {'ESCALATE' if escalate else 'QUIET'}\n{text}")
+    print(f"triage {'ESCALATE' if escalate else 'QUIET'} cost {cost:.4f}")
+    if escalate:
+        ntfy("🔎 Triage escalated — running deep wake", text[:400], "default")
+        subprocess.run(["systemctl", "start", "lmc-wake-deep.service"], check=False)
+    sys.exit(0)
+# deep: persist the brief and push
 prev = sb_get("pa_memory", "topic=eq.loop-briefs&select=fact")
 old = prev[0]["fact"] if prev else ""
-fact = f"── WAKE {stamp} (cost ${cost:.3f}) ──\n{text.strip()}\n\n{old}"[:18000]
-sb_upsert("pa_memory", [{"topic": "loop-briefs", "fact": fact, "source": "desk-loop", "active": True, "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")
-# push: ORDER SPEC lines if any action, else a one-line situation ping (queued in quiet hours)
+fact = f"── WAKE {stamp} (deep, cost ${cost:.3f}) ──\n{text}\n\n{old}"[:18000]
+sb_upsert("pa_memory", [{"topic": "loop-briefs", "fact": fact, "source": "desk-loop", "active": True,
+                         "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")
 spec = text.split("ORDER SPEC", 1)[1].strip() if "ORDER SPEC" in text else ""
 if spec and not spec.upper().startswith("NO ACTION"):
     ntfy("📋 Desk loop: ORDER SPEC ready", spec[:900], "high")
 else:
-    ntfy("Desk loop wake", (text.split("ORDER SPEC")[0])[-600:].strip(), "low")
-print(f"brief written, cost {cost:.3f}")
+    ntfy("Desk loop (deep)", text.split("ORDER SPEC")[0][-500:].strip(), "low")
+print(f"deep brief written, cost {cost:.3f}")
 PY

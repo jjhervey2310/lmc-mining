@@ -1,5 +1,5 @@
 [Unit]
-Description=Run LMC reasoning wake hourly
+Description=LMC free triage every hour
 [Timer]
 OnCalendar=*:07
 Persistent=true

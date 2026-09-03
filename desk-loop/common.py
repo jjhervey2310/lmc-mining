@@ -18,14 +18,28 @@ SB = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SBK = os.environ.get("SUPABASE_SERVICE_KEY", "")
 TZ = datetime.timezone(datetime.timedelta(hours=-6))  # Denver (MDT); install.sh also sets system tz
 
-def _req(url, method="GET", body=None, headers=None, timeout=30):
+def _req(url, method="GET", body=None, headers=None, timeout=30, retries=3):
+    """HTTP with backoff on 429/5xx — free CoinGecko rate-limits when two jobs overlap."""
     h = {"User-Agent": "lmc-desk-loop/1.0"}; h.update(headers or {})
     data = json.dumps(body).encode() if body is not None else None
     if data is not None: h["Content-Type"] = "application/json"
-    r = urllib.request.Request(url, data=data, method=method, headers=h)
-    with urllib.request.urlopen(r, timeout=timeout) as resp:
-        raw = resp.read().decode()
-        return json.loads(raw) if raw.strip().startswith(("{", "[")) else raw
+    last = None
+    for attempt in range(retries):
+        try:
+            r = urllib.request.Request(url, data=data, method=method, headers=h)
+            with urllib.request.urlopen(r, timeout=timeout) as resp:
+                raw = resp.read().decode()
+                return json.loads(raw) if raw.strip().startswith(("{", "[")) else raw
+        except urllib.error.HTTPError as e:
+            last = e
+            if e.code in (429, 500, 502, 503, 504) and attempt < retries - 1:
+                time.sleep(20 * (attempt + 1)); continue
+            raise
+        except Exception as e:
+            last = e
+            if attempt < retries - 1: time.sleep(3); continue
+            raise
+    raise last
 
 def sb_get(table, query=""):
     return _req(f"{SB}/rest/v1/{table}?{query}", headers={"apikey": SBK, "Authorization": f"Bearer {SBK}"})
@@ -95,6 +109,36 @@ def add_spend(usd):
         ntfy("⛔ Desk loop HALTED — spend cap", f"${d['usd']:.2f} of ${cap:.0f}/mo used. Wakes paused until next month or cap raised.", "high", force=True)
     return d
 
+def budget_status():
+    """Jacob's rule (2026-09-03): AI cost must scale with the book, not the clock.
+    Monthly allowance = max(WAKE_MIN_USD, WAKE_BUDGET_PCT% of book value).
+    Returns (allowed_month, spent_month, allowed_today, spent_today, ok_to_wake)."""
+    pct = float(config("wake_budget_pct", os.environ.get("WAKE_BUDGET_PCT", "1.5")))
+    floor = float(config("wake_min_usd", os.environ.get("WAKE_MIN_USD", "5")))
+    try:
+        book, _ = book_value()
+    except Exception:
+        book = 0.0
+    allowed_month = max(floor, book * pct / 100.0)
+    p = STATE / "spend.json"; m = now_denver().strftime("%Y-%m")
+    d = json.loads(p.read_text()) if p.exists() else {}
+    spent_month = d.get("usd", 0.0) if d.get("month") == m else 0.0
+    days_in_month = 30.0
+    allowed_today = allowed_month / days_in_month
+    dp = STATE / "spend_day.json"; today = now_denver().strftime("%Y-%m-%d")
+    dd = json.loads(dp.read_text()) if dp.exists() else {}
+    spent_today = dd.get("usd", 0.0) if dd.get("day") == today else 0.0
+    # Allow a 3x daily burst (event days cost more), still hard-capped by the month.
+    ok = spent_month < allowed_month and spent_today < allowed_today * 3
+    return allowed_month, spent_month, allowed_today, spent_today, ok
+
+def add_day_spend(usd):
+    dp = STATE / "spend_day.json"; today = now_denver().strftime("%Y-%m-%d")
+    dd = json.loads(dp.read_text()) if dp.exists() else {}
+    if dd.get("day") != today: dd = {"day": today, "usd": 0.0}
+    dd["usd"] = round(dd["usd"] + float(usd), 4); dp.write_text(json.dumps(dd))
+    return dd
+
 def spend_ok():
     p = STATE / "spend.json"; m = now_denver().strftime("%Y-%m")
     if (STATE / "halt_spend").exists():
@@ -108,11 +152,49 @@ CG = {"BTC":"bitcoin","ETH":"ethereum","SOL":"solana","XRP":"ripple","DOGE":"dog
       "OP":"optimism","ARB":"arbitrum","ZRO":"layerzero","LDO":"lido-dao","PUMP":"pump-fun","ZEC":"zcash","LIT":"lighter","SUI":"sui",
       "STRK":"starknet","NEAR":"near","FET":"fetch-ai","SEI":"sei-network","AVAX":"avalanche-2","ADA":"cardano","HYPE":"hyperliquid","PEPE":"pepe"}
 
+PRICE_TTL = 120  # seconds — jobs that run back-to-back share one fetch
+
 def prices(symbols):
+    """Cached + rate-limit-tolerant. Falls back to the last good cache rather than
+    failing a whole run (a stale price beats a crashed watcher; staleness is bounded)."""
     ids = sorted({CG[s] for s in symbols if s in CG})
     if not ids: return {}
-    j = _req(f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(ids)}&vs_currencies=usd")
-    return {s: j[CG[s]]["usd"] for s in symbols if s in CG and CG[s] in j and "usd" in j[CG[s]]}
+    cp = STATE / "prices.json"
+    cache = {}
+    if cp.exists():
+        try:
+            c = json.loads(cp.read_text())
+            if time.time() - c.get("at", 0) < PRICE_TTL:
+                cache = c.get("px", {})
+                if all(s in cache for s in symbols if s in CG):
+                    return {s: cache[s] for s in symbols if s in cache}
+            else:
+                cache = c.get("px", {})
+        except Exception:
+            cache = {}
+    px = {}
+    try:
+        j = _req(f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(ids)}&vs_currencies=usd", retries=2)
+        px = {s: j[CG[s]]["usd"] for s in symbols if s in CG and CG[s] in j and "usd" in j[CG[s]]}
+    except Exception:
+        pass
+    missing = [s for s in symbols if s in CG and s not in px]
+    if missing:
+        # Fallback: our own deployed markets feed (different provider, no shared rate limit).
+        try:
+            feed = _req("https://www.lightningmines.com/api/markets", retries=2)
+            live = {q["symbol"].upper(): q["price"] for q in feed.get("quotes", []) if q.get("price")}
+            for s in missing:
+                if s in live: px[s] = float(live[s])
+        except Exception:
+            pass
+    if px:
+        merged = {**cache, **px}
+        cp.write_text(json.dumps({"at": time.time(), "px": merged}))
+        return {s: merged[s] for s in symbols if s in merged}
+    if cache:
+        return {s: cache[s] for s in symbols if s in cache}   # bounded staleness beats a dead watcher
+    raise RuntimeError("no price source available (CoinGecko + fallback both failed, cache empty)")
 
 def book_value():
     rows = sb_get("live_holdings", "select=symbol,qty")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Every 15 min: compare live prices to active desk_triggers, log to desk_alert_log, push via ntfy."""
-import sys, datetime
+import sys, datetime, subprocess
 from common import *
 
 DEDUPE_HOURS = 6
@@ -34,6 +34,9 @@ def main():
         fired.append(note)
     drawdown_halted()
     (STATE / "last_price_check").write_text(now.isoformat())
+    if fired:
+        # A real level was reached — spend on a deep wake now rather than waiting for the schedule.
+        subprocess.run(["systemctl", "start", "lmc-wake-deep.service"], check=False)
     print(f"checked {len(trig)} triggers, {len(fired)} fired")
 
 if __name__ == "__main__":
