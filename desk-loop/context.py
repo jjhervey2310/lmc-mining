@@ -2,6 +2,7 @@
 """Assemble the hourly wake context (JSON to stdout): desk memory, book, radar, fee/flow data."""
 import json, re, urllib.request
 from common import *
+from common import _req  # underscore names are skipped by import *
 
 def topic(t):
     r = sb_get("pa_memory", f"topic=eq.{t}&select=fact,updated_at"); return r[0] if r else None

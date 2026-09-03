@@ -11,7 +11,8 @@ def load_env():
         for line in p.read_text().splitlines():
             line = line.split("#", 1)[0].strip()
             if "=" in line:
-                k, v = line.split("=", 1); os.environ.setdefault(k.strip(), v.strip())
+                k, v = line.split("=", 1); k, v = k.strip(), v.strip()
+                if v: os.environ[k] = v   # last non-empty wins; blanks never mask a real value
 load_env()
 SB = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SBK = os.environ.get("SUPABASE_SERVICE_KEY", "")
