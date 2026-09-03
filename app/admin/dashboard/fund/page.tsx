@@ -101,7 +101,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, notesQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, loopQ, notesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -113,6 +113,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('desk_triggers').select('symbol, kind, level, band_pct, spec, active, last_alert_at').eq('active', true).order('symbol') ?? { data: null, error: true },
     supabase?.from('desk_alert_log').select('at, symbol, kind, level, price, sent, queued, note').order('at', { ascending: false }).limit(20) ?? { data: null, error: true },
     supabase?.from('tax_events').select('event_date, tax_year, asset, event_type, quantity, proceeds_usd, basis_usd, realized_pnl_usd, note').order('event_date', { ascending: false }).limit(100) ?? { data: null, error: true },
+    supabase?.from('desk_config').select('value').eq('key', 'loop_enabled').maybeSingle() ?? { data: null },
     supabase?.from('pa_memory').select('topic, fact, updated_at')
       .in('topic', ['fund-trigger-watch', 'desk-orders', 'runner-scout-signal', 'evening-checkin', 'dashboard', 'house-strategy'])
       .eq('active', true) ?? { data: null, error: true },
@@ -203,6 +204,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           alerts: (alertQ.data ?? null) as DeskState['alerts'],
           board: boardNote ? { fact: boardNote.fact, updated_at: boardNote.updated_at } : null,
           strategy: stratNote ? { fact: stratNote.fact, updated_at: stratNote.updated_at } : null,
+          loop_enabled: loopQ.data ? String((loopQ.data as { value: string }).value).toLowerCase() === 'true' : null,
           at: new Date().toISOString(),
         }}
       />
@@ -229,6 +231,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           alerts: (alertQ.data ?? null) as DeskState['alerts'],
           board: boardNote ? { fact: boardNote.fact, updated_at: boardNote.updated_at } : null,
           strategy: stratNote ? { fact: stratNote.fact, updated_at: stratNote.updated_at } : null,
+          loop_enabled: loopQ.data ? String((loopQ.data as { value: string }).value).toLowerCase() === 'true' : null,
           at: new Date().toISOString(),
         }}
       />

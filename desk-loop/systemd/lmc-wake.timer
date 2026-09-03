@@ -1,0 +1,7 @@
+[Unit]
+Description=Run LMC reasoning wake hourly
+[Timer]
+OnCalendar=*:07
+Persistent=true
+[Install]
+WantedBy=timers.target

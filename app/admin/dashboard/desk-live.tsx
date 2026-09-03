@@ -12,7 +12,7 @@ interface Holding { symbol: string; qty: number; avg_cost: number; synced_at: st
 interface Trigger { symbol: string; kind: string; level: number; band_pct: number | null; spec: string | null }
 interface Alert { at: string; symbol: string; kind: string; level: number | null; price: number | null; sent: boolean | null; queued: boolean | null; note: string | null }
 interface Board { fact: string; updated_at: string }
-export interface DeskState { holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; strategy: Board | null; at: string }
+export interface DeskState { holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; strategy: Board | null; loop_enabled?: boolean | null; at: string }
 
 const fmt = (n: number) =>
   n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}`
@@ -35,6 +35,17 @@ export default function DeskLive({ initial, secret, cg, sparks }: {
   const [state, setState] = useState<DeskState>(initial)
   const [prices, setPrices] = useState<Record<string, number>>({})
   const [degraded, setDegraded] = useState(false)
+  const [toggling, setToggling] = useState(false)
+  const toggleLoop = async () => {
+    if (toggling) return
+    const on = state.loop_enabled !== false
+    if (!confirm(on ? 'PAUSE the 24/7 desk loop? (stops at the broker stay in place)' : 'RESUME the 24/7 desk loop?')) return
+    setToggling(true)
+    try {
+      const r = await fetch(`/api/fund/loop-toggle?secret=${encodeURIComponent(secret)}`, { method: 'POST' })
+      if (r.ok) { const j = await r.json(); setState((s) => ({ ...s, loop_enabled: j.loop_enabled })) }
+    } finally { setToggling(false) }
+  }
 
   // 60s: fresh desk state from the DB (authed route, no-store).
   useEffect(() => {
@@ -95,6 +106,17 @@ export default function DeskLive({ initial, secret, cg, sparks }: {
         </div>
       )}
 
+      <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 px-3 py-1.5 text-[12px] dark:border-white/10">
+        <span className="text-neutral-600 dark:text-neutral-400">
+          24/7 desk loop: {state.loop_enabled == null ? <span className="text-neutral-500">unknown</span>
+            : state.loop_enabled ? <span className="font-bold text-green-600 dark:text-emerald-300">● RUNNING</span>
+            : <span className="font-bold text-red-600 dark:text-rose-300">■ PAUSED</span>}
+        </span>
+        <button onClick={toggleLoop} disabled={toggling || state.loop_enabled == null}
+          className={`rounded-lg px-3 py-1 text-[12px] font-bold ${state.loop_enabled === false ? 'bg-green-600 text-white' : 'bg-red-600 text-white'} disabled:opacity-50`}>
+          {toggling ? '…' : state.loop_enabled === false ? 'RESUME LOOP' : 'KILL SWITCH — PAUSE LOOP'}
+        </button>
+      </div>
       {poleLine && (
         <div className="mb-3 rounded-xl border border-amber-400 bg-amber-50 px-3 py-2 dark:border-amber-400/40 dark:bg-amber-400/10">
           <pre className="whitespace-pre-wrap font-sans text-[13px] font-medium leading-relaxed text-amber-800 dark:text-amber-200">{poleLine.trim()}</pre>

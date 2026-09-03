@@ -1,0 +1,6 @@
+[Unit]
+Description=LMC desk loop — daily heartbeat + overnight digest
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/heartbeat.py

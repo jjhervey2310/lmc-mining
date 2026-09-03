@@ -1,0 +1,6 @@
+[Unit]
+Description=LMC desk loop — 15-min price check vs desk_triggers
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/price_check.py

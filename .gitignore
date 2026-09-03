@@ -66,3 +66,5 @@ content-engine/out/
 Keys/
 Website key/
 _to_delete/
+desk-loop/.env
+__pycache__/

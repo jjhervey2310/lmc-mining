@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC desk loop — hourly reasoning wake (alert-only)
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/bin/bash /root/lmc-desk/wake.sh
+TimeoutStartSec=900
