@@ -19,6 +19,15 @@ def topic(t, limit=2500, keep_tail=True):
         row["fact"] = f[:limit] + f"\n…[truncated, {len(f)} chars total]"
     return row
 
+def amendments():
+    """Every AMENDMENT block from house-strategy, verbatim and never elided.
+    These are the operative rules; they must reach the wake whole."""
+    r = sb_get("pa_memory", "topic=eq.house-strategy&select=fact")
+    if not r: return None
+    f = r[0].get("fact") or ""
+    i = f.find("=== AMENDMENT")
+    return f[i:][:6000] if i >= 0 else None
+
 def defillama_fees():
     try:
         j = _req("https://api.llama.fi/overview/fees?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true")
@@ -35,7 +44,8 @@ def main():
         "now_denver": now_denver().isoformat(),
         "loop_enabled": loop_enabled(), "spend_ok": spend_ok(), "drawdown_halted": drawdown_halted(),
         "pole_line": pole,
-        "topics": {"house-strategy": topic("house-strategy", 6000), "dashboard": topic("dashboard", 3000),
+        "topics": {"house-strategy": topic("house-strategy", 6000, keep_tail=True),
+                   "house-strategy-amendments": amendments(), "dashboard": topic("dashboard", 3000),
                    "catalyst-calendar": topic("catalyst-calendar", 1500), "agent-log": topic("agent-log", 1200),
                    "loop-briefs": topic("loop-briefs", 1200)},
         "holdings": sb_get("live_holdings", "select=symbol,qty,avg_cost,synced_at"),
