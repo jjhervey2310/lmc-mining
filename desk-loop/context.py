@@ -4,12 +4,19 @@ import json, re, urllib.request
 from common import *
 from common import _req  # underscore names are skipped by import *
 
-def topic(t, limit=2500):
-    """Truncate long memory topics — the full text re-sent every wake was the main cost driver."""
+def topic(t, limit=2500, keep_tail=True):
+    """Truncate long memory topics to control cost — but ALWAYS keep the tail.
+    house-strategy keeps its AMENDMENT LOG at the foot: a head-only truncation
+    silently hides every amendment from the wake that is supposed to obey them."""
     r = sb_get("pa_memory", f"topic=eq.{t}&select=fact,updated_at")
     if not r: return None
     row = dict(r[0]); f = row.get("fact") or ""
-    if len(f) > limit: row["fact"] = f[:limit] + f"\n…[truncated, {len(f)} chars total]"
+    if len(f) <= limit: return row
+    if keep_tail:
+        head = int(limit * 0.45); tail = limit - head
+        row["fact"] = f[:head] + f"\n…[{len(f) - limit} chars elided from the middle]…\n" + f[-tail:]
+    else:
+        row["fact"] = f[:limit] + f"\n…[truncated, {len(f)} chars total]"
     return row
 
 def defillama_fees():
@@ -28,7 +35,7 @@ def main():
         "now_denver": now_denver().isoformat(),
         "loop_enabled": loop_enabled(), "spend_ok": spend_ok(), "drawdown_halted": drawdown_halted(),
         "pole_line": pole,
-        "topics": {"house-strategy": topic("house-strategy", 3000), "dashboard": topic("dashboard", 3000),
+        "topics": {"house-strategy": topic("house-strategy", 6000), "dashboard": topic("dashboard", 3000),
                    "catalyst-calendar": topic("catalyst-calendar", 1500), "agent-log": topic("agent-log", 1200),
                    "loop-briefs": topic("loop-briefs", 1200)},
         "holdings": sb_get("live_holdings", "select=symbol,qty,avg_cost,synced_at"),
