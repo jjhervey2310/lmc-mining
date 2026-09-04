@@ -20,7 +20,7 @@ if [ "$OK" != "True" ]; then
 fi
 
 if [ "$MODE" = "deep" ]; then
-  MODEL="claude-sonnet-5"; TURNS=3; TOOLS="WebSearch"
+  MODEL="claude-sonnet-5"; TURNS=5; TOOLS="WebSearch"
 else
   MODEL="claude-haiku-4-5-20251001"; TURNS=1; TOOLS=""
 fi
@@ -43,6 +43,19 @@ if [ -n "$TOOLS" ]; then
   claude -p "$PROMPT" --output-format json --max-turns "$TURNS" --allowedTools "$TOOLS" --model "$MODEL" > "$OUT" 2>"$STATE/wake_err.log" || true
 else
   claude -p "$PROMPT" --output-format json --max-turns "$TURNS" --model "$MODEL" > "$OUT" 2>"$STATE/wake_err.log" || true
+fi
+
+# If the model ended on a tool call (turn budget exhausted) the result is empty. Retry once,
+# no tools, from context alone — a brief without a search beats no brief. (Defect seen 09-04 17:08.)
+if [ "$MODE" = "deep" ] && ! python3 -c 'import json,sys; o=json.load(open(sys.argv[1])); sys.exit(0 if (o.get("result") or "").strip() else 1)' "$OUT" 2>/dev/null; then
+  echo "empty deep result (stop_reason=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("stop_reason"))' "$OUT" 2>/dev/null)) — retrying without tools"
+  python3 - "$OUT" <<'PY'
+import json, sys; sys.path.insert(0, "/root/lmc-desk"); from common import add_spend, add_day_spend
+o = json.load(open(sys.argv[1])); c = float(o.get("total_cost_usd") or 0); add_spend(c); add_day_spend(c)
+PY
+  claude -p "$PROMPT
+
+NOTE: the previous attempt ran out of turns before writing. Do NOT search. Write the SITUATION BRIEF and ORDER SPEC now from the context alone; state what you could not verify." --output-format json --max-turns 1 --model "$MODEL" > "$OUT" 2>>"$STATE/wake_err.log" || true
 fi
 
 python3 - "$OUT" "$MODE" <<'PY'

@@ -8,3 +8,5 @@ Do exactly this:
 5. Write a SITUATION BRIEF (max 250 words): what changed since the last loop-brief, pole status vs its gates, any armed line near trigger, any risk to a held position.
 6. Then an EXACT ORDER SPEC block for the trading desk to execute (or "NO ACTION"): symbol, side, size in USD within laws, order type, level, stop, invalidation, and which law gate it passed. Alert-only: this is a recommendation for the executing desk, not an instruction to you.
 7. Output plain text with the two headers "SITUATION BRIEF" and "ORDER SPEC". No preamble.
+
+TURN DISCIPLINE: you have a small turn budget. Do at most ONE web search, and only if it changes an order decision. Always finish with the written SITUATION BRIEF and ORDER SPEC as your final message — a run that ends on a tool call produces nothing and wastes the spend.

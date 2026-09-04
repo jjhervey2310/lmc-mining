@@ -34,8 +34,11 @@ def main():
     snaps = sb_get("fund_snapshots", "select=snapshot_date,total&order=snapshot_date.desc&limit=1")
     if snaps:
         base = float(snaps[0]["total"]); tot, missing = book_value()
-        if not missing and base > 0 and abs(tot - base) / base * 100 >= BOOK_MOVE_PCT:
-            reasons.append(f"book {((tot-base)/base*100):+.1f}% vs {snaps[0]['snapshot_date']} (${tot:.2f})")
+        # Deposits after the snapshot are not market moves (09-04: a $70 deposit read as "book +14%").
+        dep = sum(float(f["amount"]) for f in sb_get("fund_flows", f"flow_date=gt.{snaps[0]['snapshot_date']}&select=amount"))
+        adj = tot - dep
+        if not missing and base > 0 and abs(adj - base) / base * 100 >= BOOK_MOVE_PCT:
+            reasons.append(f"book {((adj-base)/base*100):+.1f}% vs {snaps[0]['snapshot_date']} (${tot:.2f}, ex ${dep:.0f} deposits)")
 
     radar = sb_get("fund_radar", "stage=eq.EARLY&select=symbol,score,scan_date&order=scan_date.desc,score.desc&limit=5")
     seen_p = STATE / "seen_early.json"
