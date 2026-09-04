@@ -26,7 +26,11 @@ def amendments():
     if not r: return None
     f = r[0].get("fact") or ""
     i = f.find("=== AMENDMENT")
-    return f[i:][:6000] if i >= 0 else None
+    if i < 0: return None
+    block = f[i:]
+    # Amendments are appended chronologically — the NEWEST are at the tail, and the
+    # newest are the operative ones. Keep the tail, not the head.
+    return block if len(block) <= 8000 else "…[older amendments elided]…\n" + block[-8000:]
 
 def defillama_fees():
     try:
