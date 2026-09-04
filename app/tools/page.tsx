@@ -135,6 +135,11 @@ export default function ToolsPage() {
             <div className="text-sm font-semibold text-white mb-1">ROI Calculator</div>
             <div className="text-xs text-gray-500">Run your exact profitability numbers</div>
           </Link>
+          <Link href="/terminal" className="rounded-xl p-4 text-center block" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+            <div className="text-lg mb-1">📈</div>
+            <div className="text-sm font-semibold text-white mb-1">Mining Terminal</div>
+            <div className="text-xs text-gray-500">Chart hashprice, difficulty and miners</div>
+          </Link>
           <Link href="/hosting" className="rounded-xl p-4 text-center block" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
             <div className="text-lg mb-1">🏗️</div>
             <div className="text-sm font-semibold text-white mb-1">Hosting Comparison</div>
