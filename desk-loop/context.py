@@ -30,7 +30,7 @@ def amendments():
     block = f[i:]
     # Amendments are appended chronologically — the NEWEST are at the tail, and the
     # newest are the operative ones. Keep the tail, not the head.
-    return block if len(block) <= 8000 else "…[older amendments elided]…\n" + block[-8000:]
+    return block if len(block) <= 16000 else "…[older amendments elided]…\n" + block[-16000:]
 
 def defillama_fees():
     try:
