@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC daily breakout scan (20d high + volume + RS) — the hunting ground
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/breakout_scan.py
+TimeoutStartSec=900

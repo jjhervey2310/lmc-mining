@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC breakout scan daily 06:45 MT, ahead of the 07:07 deep wake
+[Timer]
+OnCalendar=*-*-* 06:45:00
+Persistent=true
+[Install]
+WantedBy=timers.target

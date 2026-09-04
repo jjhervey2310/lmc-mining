@@ -45,6 +45,12 @@ def main():
         reasons.append("new EARLY: " + ", ".join(f"{r['symbol']} {r['score']}" for r in fresh))
         seen_p.write_text(json.dumps(sorted(seen | {r["symbol"] for r in fresh})))
 
+    bp = STATE / "breakouts.json"
+    if bp.exists():
+        b = json.loads(bp.read_text())
+        if b.get("fresh") and b.get("at", "")[:10] == now_denver().strftime("%Y-%m-%d"):
+            reasons.append("fresh breakout: " + ", ".join(b["fresh"]))
+
     stamp = now_denver().strftime("%Y-%m-%d %H:%M MT")
     verdict = "ESCALATE" if reasons else "QUIET"
     (STATE / "last_triage").write_text(f"{stamp} {verdict} (free)\n" + ("; ".join(reasons) or "nothing material"))
