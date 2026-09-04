@@ -213,6 +213,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
       <div className="mt-3">
         <Panel accent="purple" title="Portfolio — book value & TRUE P&L" right={<span className="text-[11px] text-neutral-500">{total !== null && contributions > 0 ? (() => { const pnl = total - contributions; return `deposited $${usd(contributions)} · P&L ${pnl >= 0 ? '+' : '−'}$${usd(Math.abs(pnl))} (${((pnl / contributions) * 100).toFixed(1)}%)` })() : 'daily close'}</span>}>
           {snaps.length > 1 ? (
+            <>
             <TrendChart
               hidePct
               series={[
@@ -221,6 +222,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
               ]}
               labels={snaps.map((s) => s.snapshot_date)} h={190} />
             <div className="mt-1 text-[11px] text-neutral-500">Book value is the daily close in <code>fund_snapshots</code>. P&L subtracts every deposit in <code>fund_flows</code> dated on or before that day, so a deposit never reads as a gain. Deposits: {flows.map((f) => `${f.flow_date.slice(5)} +$${Number(f.amount).toFixed(0)}`).join(' · ') || 'none recorded'}.</div>
+            </>
           ) : (
             <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots in <code>fund_snapshots</code> — banks nightly once the book has holdings.</span>
           )}
