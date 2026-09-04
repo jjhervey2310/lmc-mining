@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC trailing-stop check every 15 min, offset from price_check
+[Timer]
+OnCalendar=*:05,20,35,50
+Persistent=true
+[Install]
+WantedBy=timers.target

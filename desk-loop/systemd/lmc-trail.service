@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC synthetic trailing stop watcher (A4) — alert-only
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/trail.py
+TimeoutStartSec=300

@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC radar stage study — does yesterday's label predict today's move (free)
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/stage_study.py
+TimeoutStartSec=300
