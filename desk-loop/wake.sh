@@ -14,7 +14,7 @@ ENABLED=$(python3 -c 'from common import loop_enabled; print(loop_enabled())')
 read -r ALLOWED_M SPENT_M ALLOWED_D SPENT_D OK <<<"$(python3 -c '
 from common import budget_status
 a,b,c,d,ok = budget_status(); print(f"{a:.2f} {b:.2f} {c:.3f} {d:.3f} {ok}")')"
-if [ "$OK" != "True" ]; then
+if [ "$OK" != "True" ] && [ "${2:-}" != "--force" ]; then   # --force = manual ops run, bypasses the budget gate once
   echo "budget gate: spent \$$SPENT_M of \$$ALLOWED_M this month (today \$$SPENT_D) — skipping $MODE wake"
   exit 0
 fi

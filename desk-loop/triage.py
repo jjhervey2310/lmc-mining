@@ -35,7 +35,7 @@ def main():
     if snaps:
         base = float(snaps[0]["total"]); tot, missing = book_value()
         # Deposits after the snapshot are not market moves (09-04: a $70 deposit read as "book +14%").
-        dep = sum(float(f["amount"]) for f in sb_get("fund_flows", f"flow_date=gt.{snaps[0]['snapshot_date']}&select=amount"))
+        dep = sum(float(f["amount"]) for f in sb_get("fund_flows", f"flow_date=gte.{snaps[0]['snapshot_date']}&select=amount"))
         adj = tot - dep
         if not missing and base > 0 and abs(adj - base) / base * 100 >= BOOK_MOVE_PCT:
             reasons.append(f"book {((adj-base)/base*100):+.1f}% vs {snaps[0]['snapshot_date']} (${tot:.2f}, ex ${dep:.0f} deposits)")
