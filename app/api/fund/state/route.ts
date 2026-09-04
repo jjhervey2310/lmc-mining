@@ -16,13 +16,15 @@ export async function GET(req: Request) {
   const supabase = createServiceClient()
   if (!supabase) return NextResponse.json({ error: 'db unavailable' }, { status: 503 })
 
-  const [h, t, a, b, st, le] = await Promise.all([
+  const [h, t, a, b, st, le, th] = await Promise.all([
     supabase.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol'),
     supabase.from('desk_triggers').select('symbol, kind, level, band_pct, spec').eq('active', true).order('symbol'),
     supabase.from('desk_alert_log').select('at, symbol, kind, level, price, sent, queued, note').order('at', { ascending: false }).limit(20),
     supabase.from('pa_memory').select('fact, updated_at').eq('topic', 'dashboard').maybeSingle(),
     supabase.from('pa_memory').select('fact, updated_at').eq('topic', 'house-strategy').maybeSingle(),
     supabase.from('desk_config').select('value, updated_at').eq('key', 'loop_enabled').maybeSingle(),
+    // desk_theses (build request #4): thesis + gate under each holding, POLE/WATCH/BARRED for the pole panel.
+    supabase.from('desk_theses').select('symbol, status, thesis, gate, updated_at').order('symbol'),
   ])
 
   return NextResponse.json({
@@ -31,6 +33,7 @@ export async function GET(req: Request) {
     alerts: a.data ?? null,
     board: b.data ?? null,
     strategy: st.data ?? null,
+    theses: th.data ?? null,
     loop_enabled: le.data ? String(le.data.value).toLowerCase() === 'true' : null,
     at: new Date().toISOString(),
   }, { headers: { 'Cache-Control': 'no-store' } })

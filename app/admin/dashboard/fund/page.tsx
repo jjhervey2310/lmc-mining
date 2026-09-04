@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
 import { Shell, Panel, Tile, Spark, checkAdmin, usd } from '../ui'
 import TrendChart from '../trend-chart'
-import LiveTiles from '../live-tiles'
 import DeskLive, { type DeskState } from '../desk-live'
 
 // J&P FUND — the research desk: latest verified multi-agent market sweep
@@ -101,7 +100,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, loopQ, notesQ] = await Promise.all([
+  const [research, holdingsQ, tradesQ, watchQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, loopQ, notesQ, thesesQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol') ?? { data: null, error: true },
     supabase?.from('live_trades').select('order_id, traded_at, side, symbol, qty, avg_price, note').order('traded_at', { ascending: false }).limit(30) ?? { data: null, error: true },
@@ -109,7 +108,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(60) ?? { data: null, error: true },
-    supabase?.from('fund_flows').select('flow_date, amount') ?? { data: null },
+    supabase?.from('fund_flows').select('flow_date, amount').order('flow_date') ?? { data: null },
     supabase?.from('desk_triggers').select('symbol, kind, level, band_pct, spec, active, last_alert_at').eq('active', true).order('symbol') ?? { data: null, error: true },
     supabase?.from('desk_alert_log').select('at, symbol, kind, level, price, sent, queued, note').order('at', { ascending: false }).limit(20) ?? { data: null, error: true },
     supabase?.from('tax_events').select('event_date, tax_year, asset, event_type, quantity, proceeds_usd, basis_usd, realized_pnl_usd, note').order('event_date', { ascending: false }).limit(100) ?? { data: null, error: true },
@@ -117,6 +116,8 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('pa_memory').select('topic, fact, updated_at')
       .in('topic', ['fund-trigger-watch', 'desk-orders', 'runner-scout-signal', 'evening-checkin', 'dashboard', 'house-strategy'])
       .eq('active', true) ?? { data: null, error: true },
+    // desk_theses (build request #4) — the desk maintains it; page renders thesis + gate per holding and the POLE row.
+    supabase?.from('desk_theses').select('symbol, status, thesis, gate, updated_at').order('symbol') ?? { data: null, error: true },
   ])
 
   const holdings = (holdingsQ.data ?? null) as Holding[] | null
@@ -125,7 +126,11 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
   const radar = (radarQ.data ?? null) as Radar[] | null
   const byStage = (s: string) => (radar ?? []).filter((r) => r.stage === s)
-  const contributions = ((flowsQ.data ?? []) as { amount: number }[]).reduce((a, f) => a + Number(f.amount), 0)
+  const flows = ((flowsQ.data ?? []) as { flow_date: string; amount: number }[])
+  const contributions = flows.reduce((a, f) => a + Number(f.amount), 0)
+  // Deposit-adjusted curve (build request #4 §3): book value minus every deposit dated on or before that snapshot = true P&L to date.
+  const depositedBy = (d: string) => flows.filter((f) => f.flow_date <= d).reduce((a, f) => a + Number(f.amount), 0)
+  const pnlSeries = snaps.map((s) => Number(s.total) - depositedBy(s.snapshot_date))
   const notes = (notesQ.data ?? []) as { topic: string; fact: string; updated_at: string }[]
   const note = (t: string) => notes.find((n) => n.topic === t)
   const watchNote = note('fund-trigger-watch')
@@ -162,11 +167,6 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const pricedValue = positions.reduce((s, p) => s + (p.value ?? 0), 0)
   const allPriced = positions.every((p) => p.value !== null)
   const total = allPriced ? pricedValue + cash : null
-  const tiles = positions.map((p) => ({
-    symbol: p.symbol, qty: Number(p.qty), avgCost: Number(p.avg_cost),
-    price: p.now, cgId: CG[p.symbol.toUpperCase()] ?? null,
-    spark: sparks[p.symbol] ?? null, stop: stopFor(p.symbol),
-  }))
 
   // Briefs written by the signal tasks are partial and loosely typed by default.
   // Sanitize EVERY field here — strings coerced, numbers defaulted, bad rows dropped —
@@ -204,50 +204,28 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           alerts: (alertQ.data ?? null) as DeskState['alerts'],
           board: boardNote ? { fact: boardNote.fact, updated_at: boardNote.updated_at } : null,
           strategy: stratNote ? { fact: stratNote.fact, updated_at: stratNote.updated_at } : null,
+          theses: (thesesQ.data ?? null) as DeskState['theses'],
           loop_enabled: loopQ.data ? String((loopQ.data as { value: string }).value).toLowerCase() === 'true' : null,
           at: new Date().toISOString(),
         }}
       />
 
       <div className="mt-3">
-        <Panel accent="purple" title="Account equity — TRUE P&L" right={<span className="text-[11px] text-neutral-500">{total !== null && contributions > 0 ? (() => { const pnl = total - contributions; return `deposited $${usd(contributions)} · P&L ${pnl >= 0 ? '+' : '−'}$${usd(Math.abs(pnl))} (${((pnl / contributions) * 100).toFixed(1)}%)` })() : 'daily close'}</span>}>
+        <Panel accent="purple" title="Portfolio — book value & TRUE P&L" right={<span className="text-[11px] text-neutral-500">{total !== null && contributions > 0 ? (() => { const pnl = total - contributions; return `deposited $${usd(contributions)} · P&L ${pnl >= 0 ? '+' : '−'}$${usd(Math.abs(pnl))} (${((pnl / contributions) * 100).toFixed(1)}%)` })() : 'daily close'}</span>}>
           {snaps.length > 1 ? (
             <TrendChart
-              hidePct series={[{ key: 'fund', label: 'ROBINHOOD', color: '#fda4af', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
+              hidePct
+              series={[
+                { key: 'fund', label: 'BOOK VALUE', color: '#fda4af', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) },
+                { key: 'pnl', label: 'P&L vs deposits', color: '#5eead4', format: 'usd2' as const, points: pnlSeries },
+              ]}
               labels={snaps.map((s) => s.snapshot_date)} h={190} />
+            <div className="mt-1 text-[11px] text-neutral-500">Book value is the daily close in <code>fund_snapshots</code>. P&L subtracts every deposit in <code>fund_flows</code> dated on or before that day, so a deposit never reads as a gain. Deposits: {flows.map((f) => `${f.flow_date.slice(5)} +$${Number(f.amount).toFixed(0)}`).join(' · ') || 'none recorded'}.</div>
           ) : (
             <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots in <code>fund_snapshots</code> — banks nightly once the book has holdings.</span>
           )}
         </Panel>
       </div>
-
-      <DeskLive
-        secret={secret}
-        cg={CG}
-        sparks={sparks}
-        initial={{
-          holdings: (holdingsQ.data ?? null) as DeskState['holdings'],
-          triggers: (trigQ.data ?? null) as DeskState['triggers'],
-          alerts: (alertQ.data ?? null) as DeskState['alerts'],
-          board: boardNote ? { fact: boardNote.fact, updated_at: boardNote.updated_at } : null,
-          strategy: stratNote ? { fact: stratNote.fact, updated_at: stratNote.updated_at } : null,
-          loop_enabled: loopQ.data ? String((loopQ.data as { value: string }).value).toLowerCase() === 'true' : null,
-          at: new Date().toISOString(),
-        }}
-      />
-
-      <div className="mt-3">
-        <Panel accent="purple" title="Account equity — TRUE P&L" right={<span className="text-[11px] text-neutral-500">{total !== null && contributions > 0 ? (() => { const pnl = total - contributions; return `deposited $${usd(contributions)} · P&L ${pnl >= 0 ? '+' : '−'}$${usd(Math.abs(pnl))} (${((pnl / contributions) * 100).toFixed(1)}%)` })() : 'daily close'}</span>}>
-          {snaps.length > 1 ? (
-            <TrendChart
-              hidePct series={[{ key: 'fund', label: 'ROBINHOOD', color: '#fda4af', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) }]}
-              labels={snaps.map((s) => s.snapshot_date)} h={190} />
-          ) : (
-            <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots in <code>fund_snapshots</code> — banks nightly once the book has holdings.</span>
-          )}
-        </Panel>
-      </div>
-
 
       {/* ── Desk notes: whatever needs doing, the moment it needs doing ── */}
       <div className="mb-3">
