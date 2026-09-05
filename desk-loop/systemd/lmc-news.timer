@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC news sweep 07:40 MT, before the 08:00 heartbeat
+[Timer]
+OnCalendar=*-*-* 07:40:00
+Persistent=true
+[Install]
+WantedBy=timers.target

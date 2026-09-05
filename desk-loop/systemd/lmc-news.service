@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC universe news sweep (top-10 daily, top-40 Sunday) — alert-only
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/news_sweep.py
+TimeoutStartSec=2400
