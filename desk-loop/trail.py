@@ -17,7 +17,7 @@ from pathlib import Path
 from common import *
 
 MAJORS = {"BTC", "ETH", "SOL"}
-TRAIL_MAJOR, TRAIL_OTHER = 0.12, 0.18
+TRAIL_MAJOR, TRAIL_OTHER = 0.25, 0.18   # A7: majors carry a 25% CATASTROPHE trail (close-based), satellite 18%
 MATERIAL_PCT = 2.0
 HALF_OFF_PCT = 25.0
 DEDUPE_H = 6
@@ -121,7 +121,7 @@ def main():
 
         # (4) HALF OFF at +25% — A4 §6, once per position (Jacob-ratified)
         gain = (p - cost) / cost * 100 if cost else 0
-        if gain >= HALF_OFF_PCT and not half.get(sym):
+        if sym not in MAJORS and gain >= HALF_OFF_PCT and not half.get(sym):   # A7: no take-profit on core
             half[sym] = now_iso
             ntfy(f"💰 {sym} +{gain:.0f}% — take half (A4 §6)", f"Sell half of {h['qty']} {sym} at ~${p:.6g} (fill ${cost:.6g}). Remainder keeps its stop/trail.", "high")
             log(sym, "half_off", cost * 1.25, p, f"+{gain:.1f}% from fill {cost}", True)
