@@ -30,7 +30,7 @@ Mark a line MECHANISM-GRADE at the end if it changes what the token is worth to 
     out = STATE / "news_out.json"
     with open(out, "w") as f:
         subprocess.run(["claude", "-p", prompt, "--output-format", "json", "--max-turns", str(len(batch) + 2),
-                        "--allowedTools", "WebSearch", "--model", "claude-haiku-4-5-20251001"], stdout=f, stderr=open(STATE / "news_err.log", "a"), timeout=900)
+                        "--allowedTools", "WebSearch", "--model", "claude-haiku-4-5-20251001"], stdout=f, stderr=open(STATE / "news_err.log", "a"), stdin=subprocess.DEVNULL, timeout=900)
     o = json.load(open(out)); cost = float(o.get("total_cost_usd") or 0)
     add_spend(cost); add_day_spend(cost)
     return (o.get("result") or "").strip(), cost
@@ -48,7 +48,7 @@ def main():
     texts, total = [], 0.0
     for i in range(0, len(names), BATCH):
         t, cost = sweep(names[i:i + BATCH]); total += cost; texts.append(t)
-        if not budget_status()[4]: texts.append("[budget gate hit — remaining batches skipped]"); break
+        if not budget_status()[4] and "--force" not in sys.argv: texts.append("[budget gate hit — remaining batches skipped]"); break
     body = "\n".join(x for x in texts if x)
     stamp = now_denver().strftime("%Y-%m-%d %H:%M MT")
     head = f"── NEWS SWEEP {stamp} — top {len(names)} by cap, cost ${total:.3f} ──\n{body}\n"
