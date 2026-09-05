@@ -191,6 +191,35 @@ export default function DeskLive({ initial, secret, cg, chart, realized, bottom 
               <span><span className="font-bold text-neutral-600 dark:text-neutral-400">CASH</span> <span className="font-mono">${cash.toFixed(2)}</span></span>
               <span className="text-neutral-500">positions <span className="font-mono text-neutral-700 dark:text-neutral-300">{allPriced ? `$${posValue.toFixed(2)}` : 'pricing…'}</span> · book <span className="font-mono font-bold text-neutral-800 dark:text-neutral-100">{allPriced ? `$${(posValue + cash).toFixed(2)}` : '…'}</span></span>
             </div>
+            {/* A8 structure strip: anchor ≥55% · sleeve ≤45% across ~7 slots (≤10% each) · cash floor 10% */}
+            {allPriced && (posValue + cash) > 0 && (() => {
+              const book = posValue + cash
+              const ANCHOR = new Set(['BTC', 'SOL', 'ETH'])
+              const val = (p: Holding) => Number(p.qty) * (live[p.symbol]?.price ?? 0)
+              const anchor = positions.filter((p) => ANCHOR.has(p.symbol)).reduce((s, p) => s + val(p), 0)
+              const sleeve = positions.filter((p) => !ANCHOR.has(p.symbol))
+              const sleeveV = sleeve.reduce((s, p) => s + val(p), 0)
+              const aPct = (anchor / book) * 100, sPct = (sleeveV / book) * 100, cPct = (cash / book) * 100
+              const fat = sleeve.filter((p) => val(p) / book > 0.10).map((p) => p.symbol)
+              const flags = [aPct < 55 ? `anchor ${aPct.toFixed(0)}% < 55%` : '', cPct < 10 ? `cash ${cPct.toFixed(0)}% < 10% floor — no new sleeve entries` : '', fat.length ? `over 10%: ${fat.join(', ')}` : ''].filter(Boolean)
+              return (
+                <div className="mt-1.5 border-t border-neutral-100 pt-1.5 dark:border-white/5">
+                  <div className="flex h-2 w-full overflow-hidden rounded bg-neutral-100 dark:bg-white/10" title="anchor · sleeve · cash">
+                    <div className="bg-rose-400/80" style={{ width: `${aPct}%` }} />
+                    <div className="bg-amber-400/80" style={{ width: `${sPct}%` }} />
+                    <div className="bg-neutral-400/60" style={{ width: `${cPct}%` }} />
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-neutral-600 dark:text-neutral-400">
+                    <span>A8 structure:</span>
+                    <span><b className="text-rose-600 dark:text-rose-300">anchor</b> BTC/SOL/ETH <span className="font-mono">{aPct.toFixed(0)}%</span> <span className="text-neutral-400">(≥55%)</span></span>
+                    <span><b className="text-amber-700 dark:text-amber-300">sleeve</b> <span className="font-mono">{sPct.toFixed(0)}%</span> · slots <span className="font-mono">{sleeve.length}/7</span> <span className="text-neutral-400">(≤45%, ≤10% each)</span></span>
+                    <span><b>cash</b> <span className="font-mono">{cPct.toFixed(0)}%</span> <span className="text-neutral-400">(floor 10%)</span></span>
+                    <span className="text-neutral-400">holdings {positions.length}/10</span>
+                  </div>
+                  {flags.length > 0 && <div className="mt-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-200">⚠ {flags.join(' · ')}</div>}
+                </div>
+              )
+            })()}
           </div>
         )}
       </Panel>
