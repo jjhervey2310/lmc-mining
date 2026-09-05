@@ -35,7 +35,7 @@ def trade(sym, bars, i, trail_major, trail_other, take_frac, take_at, pyramid):
         b = bars[j]
         if b["l"] <= stop:
             fill = min(stop, b["o"]) * (1 - COST_SIDE)
-            return banked + units * (fill - cost_basis), j - i, took, added
+            return (banked + units * (fill - cost_basis)) / entry, j - i, took, added
         if b["c"] > high:
             high = b["c"]
             stop = max(stop, high * (1 - trail))
@@ -47,7 +47,7 @@ def trade(sym, bars, i, trail_major, trail_other, take_frac, take_at, pyramid):
             cost_basis = (cost_basis * units + add_px * add_units) / (units + add_units); units += add_units; added = True
         j += 1
     fill = bars[-1]["c"] * (1 - COST_SIDE)
-    return banked + units * (fill - cost_basis), len(bars) - 1 - i, took, added
+    return (banked + units * (fill - cost_basis)) / entry, len(bars) - 1 - i, took, added
 
 def run(data, btc, per_week, **kw):
     cands = []
