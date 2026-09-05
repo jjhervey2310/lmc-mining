@@ -26,6 +26,11 @@ export async function GET(req: Request) {
     // desk_theses (build request #4): thesis + gate under each holding, POLE/WATCH/BARRED for the pole panel.
     supabase.from('desk_theses').select('symbol, status, thesis, gate, updated_at').order('symbol'),
   ])
+  // Latest radar scan (build request #6): stage/score/turnover beside each POLE/WATCH thesis. Numbers never come from thesis text.
+  const latestScan = await supabase.from('fund_radar').select('scan_date').order('scan_date', { ascending: false }).limit(1).maybeSingle()
+  const radar = latestScan.data?.scan_date
+    ? await supabase.from('fund_radar').select('symbol, stage, score, turnover, d1, d7, d30, price, scan_date').eq('scan_date', latestScan.data.scan_date)
+    : { data: null }
 
   return NextResponse.json({
     holdings: h.data ?? null,
@@ -34,6 +39,7 @@ export async function GET(req: Request) {
     board: b.data ?? null,
     strategy: st.data ?? null,
     theses: th.data ?? null,
+    radar: radar.data ?? null,
     loop_enabled: le.data ? String(le.data.value).toLowerCase() === 'true' : null,
     at: new Date().toISOString(),
   }, { headers: { 'Cache-Control': 'no-store' } })
