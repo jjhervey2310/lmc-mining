@@ -39,7 +39,7 @@ def main():
     if not loop_enabled():
         print("loop disabled"); return
     a, b, c, d, ok = budget_status()
-    if not ok:
+    if not ok and "--force" not in sys.argv:   # --force = one manual proof run past the daily burst cap
         print(f"budget gate: ${b:.2f} of ${a:.2f} — skipping news sweep"); return
     n = 40 if now_denver().weekday() == 6 else 10
     names = top_names(n)
