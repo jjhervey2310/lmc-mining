@@ -19,7 +19,7 @@ from common import *
 MAJORS = {"BTC", "ETH", "SOL"}
 TRAIL_MAJOR, TRAIL_OTHER = 0.25, 0.18   # A7: majors carry a 25% CATASTROPHE trail (close-based), satellite 18%
 MATERIAL_PCT = 2.0
-HALF_OFF_PCT = 25.0
+TAKE_PCT = 25.0            # A8 §4: take 1/3 at +25%, trail the rest
 DEDUPE_H = 6
 
 def last_completed_close(sym):
@@ -39,6 +39,22 @@ def last_completed_close(sym):
     if len(bars) < 2: return None, None
     b = bars[-2]
     return float(b["c"]), datetime.datetime.fromtimestamp(b["t"], datetime.timezone.utc).strftime("%Y-%m-%d")
+
+def daily_bars(sym):
+    """Completed daily bars for a symbol from the caches the scans keep (CoinGecko hist, else Coinbase cb)."""
+    cid = CG.get(sym)
+    try:
+        cp = STATE / "cg_ids.json"
+        if cp.exists(): cid = json.loads(cp.read_text()).get(sym) or cid
+    except Exception:
+        pass
+    f = STATE / "hist" / f"{cid}.json" if cid else None
+    if f and f.exists():
+        return json.loads(f.read_text())
+    f2 = STATE / "cb" / f"{sym}.json"
+    if f2.exists():
+        return [{"t": b["t"], "c": b["c"]} for b in json.loads(f2.read_text())] + [{"t": 0, "c": None}]   # trailing partial placeholder
+    return None
 
 def recent(iso, hours=DEDUPE_H):
     if not iso: return False
@@ -121,11 +137,25 @@ def main():
 
         # (4) HALF OFF at +25% — A4 §6, once per position (Jacob-ratified)
         gain = (p - cost) / cost * 100 if cost else 0
-        if sym not in MAJORS and gain >= HALF_OFF_PCT and not half.get(sym):   # A7: no take-profit on core
+        if sym not in MAJORS and gain >= TAKE_PCT and not half.get(sym):   # A7/A8: no take-profit on anchor
             half[sym] = now_iso
-            ntfy(f"💰 {sym} +{gain:.0f}% — take half (A4 §6)", f"Sell half of {h['qty']} {sym} at ~${p:.6g} (fill ${cost:.6g}). Remainder keeps its stop/trail.", "high")
-            log(sym, "half_off", cost * 1.25, p, f"+{gain:.1f}% from fill {cost}", True)
-            actions.append(f"HALF-OFF {sym} +{gain:.1f}%")
+            ntfy(f"💰 {sym} +{gain:.0f}% — take a THIRD (A8 §4)", f"Sell 1/3 of {h['qty']} {sym} at ~${p:.6g} (fill ${cost:.6g}). Remainder keeps its stop/trail; name becomes rotation-eligible.", "high")
+            log(sym, "take_third", cost * 1.25, p, f"+{gain:.1f}% from fill {cost}", True)
+            actions.append(f"TAKE-THIRD {sym} +{gain:.1f}%")
+
+        # (5) A8 §5 ROTATION CANDIDATE — only after the +25% third was taken: >10% below the 20d high,
+        #     or 7d RS below BTC for 5 straight daily bars. Loop flags; the desk decides.
+        if sym not in MAJORS and half.get(sym):
+            bars = daily_bars(sym); btcb = daily_bars("BTC")
+            if bars and btcb and len(bars) >= 27 and len(btcb) >= 27:
+                closes = [b["c"] for b in bars[:-1]]          # completed bars only
+                hi20 = max(closes[-20:]); below = closes[-1] < hi20 * 0.90
+                def rs(bs, k): return bs[-1-k]["c"] / bs[-8-k]["c"] - 1
+                weak = all(rs(bars[:-1], k) < rs(btcb[:-1], k) for k in range(5))
+                if (below or weak) and not recent(last_prop.get(f"rot:{sym}"), 24):
+                    why = "; ".join(w for w, ok in ((f"close {closes[-1]:.6g} is {(1-closes[-1]/hi20)*100:.0f}% below its 20d high", below), ("7d RS below BTC 5 days running", weak)) if ok)
+                    ntfy(f"🔁 ROTATION CANDIDATE {sym}", f"{why}. Profit third already taken. A8 §5: desk decides — proceeds to anchor (to 55%) first, then an open slot, else cash. Live ${p:.6g}.", "default")
+                    last_prop[f"rot:{sym}"] = now_iso; log(sym, "rotate", None, p, why, True); actions.append(f"ROTATE? {sym}: {why}")
 
     sp.write_text(json.dumps(st))
     if proposals:
