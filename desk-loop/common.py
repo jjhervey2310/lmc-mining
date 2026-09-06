@@ -206,18 +206,39 @@ def book_value():
         else: missing.append(r["symbol"])
     return total, missing
 
+ANCHOR_SYMS = {"BTC", "SOL"}     # v4: the anchor. Everything else held is the sleeve.
+BREAKER_DD, BREAKER_CLEAR = 0.20, 0.10
+
+def sleeve_breaker(holdings=None, px=None):
+    """A9 (2026-09-06): the circuit breaker is SLEEVE-ONLY. Ratio = sleeve market value / sleeve cost basis
+    (adds and proportional exits leave it unchanged, so it tracks P&L, not flows). Trips at 20% below the
+    ratio's high-water mark -> (True, info); clears on recovery to within 10%, or when the desk deletes
+    state/sleeve_breaker.json. The old whole-book 5% intraday halt is retired: an anchor drawdown is a
+    deposit opportunity, never a reason to freeze the sleeve."""
+    if holdings is None:
+        holdings = [h for h in sb_get("live_holdings", "select=symbol,qty,avg_cost") if h["symbol"] != "USD" and float(h["qty"] or 0) > 0]
+    sleeve = [h for h in holdings if h["symbol"] not in ANCHOR_SYMS]
+    f = STATE / "sleeve_breaker.json"
+    st = json.loads(f.read_text()) if f.exists() else {"hwm": 0.0, "since": None}
+    if not sleeve:
+        st.update({"hwm": 0.0, "since": None}); f.write_text(json.dumps(st)); return False, st
+    if px is None: px = prices([h["symbol"] for h in sleeve])
+    val = sum(float(h["qty"]) * px[h["symbol"]] for h in sleeve if h["symbol"] in px)
+    cost = sum(float(h["qty"]) * float(h["avg_cost"] or 0) for h in sleeve if h["symbol"] in px)
+    if cost <= 0 or val <= 0: return bool(st.get("since")), st
+    ratio = val / cost
+    st["hwm"] = max(float(st.get("hwm") or 0), ratio); st["ratio"] = ratio
+    if st.get("since"):
+        if ratio >= st["hwm"] * (1 - BREAKER_CLEAR): st["since"] = None          # recovered
+    elif ratio <= st["hwm"] * (1 - BREAKER_DD):
+        st["since"] = now_denver().isoformat()
+    f.write_text(json.dumps(st))
+    return bool(st.get("since")), st
+
 def drawdown_halted():
-    """5% intraday drop vs the latest banked snapshot -> halt new-entry briefs + page Jacob (once)."""
-    snaps = sb_get("fund_snapshots", "select=snapshot_date,total&order=snapshot_date.desc&limit=1")
-    if not snaps: return False
-    base = float(snaps[0]["total"]); total, missing = book_value()
-    if missing or base <= 0: return False
-    dd = (total - base) / base
-    flag = STATE / "halt_drawdown"
-    if dd <= -0.05:
-        if not flag.exists():
-            flag.write_text(f"{dd:.3%} vs {snaps[0]['snapshot_date']} base {base:.2f} now {total:.2f}")
-            ntfy("⛔ Desk loop: 5% intraday drawdown", f"Book {total:.2f} vs day-start {base:.2f} ({dd:.1%}). New-entry briefs paused; stops remain at broker. Open the desk.", "urgent", force=True)
-        return True
-    if flag.exists() and dd > -0.03: flag.unlink()  # re-arm after recovery
-    return flag.exists()
+    """A9: new-entry briefs halt only on the SLEEVE breaker. Kept under its old name for wake/context callers."""
+    try:
+        halted, _ = sleeve_breaker()
+        return halted
+    except Exception:
+        return False

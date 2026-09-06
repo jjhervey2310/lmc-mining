@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""TRAIL / RATCHET WATCHER — v3 (constitution v4 + v4.1, reconciled by the Code desk 2026-09-06).
+"""TRAIL / RATCHET WATCHER — v4 (constitution v4.1 + AMENDMENT A9, Code desk 2026-09-06 evening).
+A9 (build request #9, from the 09-06 strategy review vs the stored backtests):
+  ANCHOR trail = 30% CATASTROPHE trail from the highest completed close since entry, up only (the core-hold
+     test showed every 10-25% anchor trail losing to buy-and-hold; 30% was the least bad). No x0.90 ratchet.
+  SLEEVE: 18% trail from +18%, 25% past +50% (unchanged). NO take-profit flag below +50% (the breakout test
+     ranked no-TP > 1/3-off > half-off; a 27%-win-rate book lives on its tail). Third at +50%, once.
+  BREAKER is SLEEVE-ONLY: sleeve mark/cost ratio <= 0.80 x its high-water ratio -> halt new-entry briefs +
+     one push per episode (common.sleeve_breaker). The whole-book 5% intraday halt is gone: an anchor
+     drawdown is a deposit opportunity, not a reason to stop the sleeve.
 PRECEDENCE: the rulebook beats the formula.
   1. If desk_triggers carries a 'ratchet' / 'stall' / 'stop' row for a held symbol, THAT is the rule.
      Ratchets and stalls are DAILY-CLOSE based (last COMPLETED daily bar), never an intraday print.
@@ -28,12 +36,12 @@ from pathlib import Path
 from common import *
 
 ANCHOR = {"BTC", "SOL"}          # v4: ETH removed from the anchor by Jacob 09-05
-ANCHOR_TRAIL = 0.10              # x0.90 of the highest completed close
+ANCHOR_TRAIL = 0.30              # A9: 30% catastrophe trail off the highest completed close since entry, up only
 SLEEVE_TRAIL, SLEEVE_TRAIL_WIDE = 0.18, 0.25   # v4.1 §3: 18% until the position has been +50%, then 25%
 TRAIL_ENGAGE_PCT = 18.0          # v4: sleeve trail only once +18% from fill; before that the entry stop governs
 WIDE_AT_PCT = 50.0
 MATERIAL_PCT = 2.0
-TAKE_PCT = 25.0                  # A8 §4: take 1/3 at +25%, trail the rest
+TAKE_PCT = 50.0                  # A9: take 1/3 at +50% (was +25% under A8 — the test said the early third costs expectancy)
 DEDUPE_H = 6
 RECLAIM_DAYS = 5
 FLUSH_DROP = 0.12                # v4.1 flush trigger: close >= 12% below the 20-day-high close
@@ -212,7 +220,7 @@ def main():
         peak_gain = (high - cost) / cost * 100 if cost else 0
         close_gain = (ref - cost) / cost * 100 if cost else 0
         if anchor:
-            trail, label, engaged = ANCHOR_TRAIL, "anchor x0.90-of-high-close", True
+            trail, label, engaged = ANCHOR_TRAIL, "anchor 30% catastrophe trail (A9)", True
         else:
             trail = SLEEVE_TRAIL_WIDE if peak_gain >= WIDE_AT_PCT else SLEEVE_TRAIL
             label = f"sleeve {int(trail*100)}% trail" + (" (v4.1 wide leash, was +50%)" if trail == SLEEVE_TRAIL_WIDE else "")
@@ -236,14 +244,14 @@ def main():
         elif not anchor and not engaged and cur_stop is not None:
             pass                                          # entry stop governs below +18% — no early wrenches (v4)
 
-        # (4) TAKE A THIRD at +25% — A8 §4, sleeve only, once per position. A sell in the trade log while the
+        # (4) TAKE A THIRD at +50% — A9 (was A8 +25%), sleeve only, once per position. A sell in the trade log while the
         #     position is still held means the desk already took it — never re-ask.
         if sym in sold_while_held and not half.get(sym): half[sym] = sold_while_held[sym]
         gain = (p - cost) / cost * 100 if cost else 0
         if not anchor and gain >= TAKE_PCT and not half.get(sym):
             half[sym] = now_iso
-            ntfy(f"💰 {sym} +{gain:.0f}% — take a THIRD (A8 §4)", f"Sell 1/3 of {h['qty']} {sym} at ~{fmt(p)} (fill {fmt(cost)}). Remainder keeps its stop/trail; name becomes rotation-eligible.", "high")
-            log(sym, "take_third", cost * 1.25, p, f"+{gain:.1f}% from fill {cost}", True)
+            ntfy(f"💰 {sym} +{gain:.0f}% — take a THIRD (A9, +{TAKE_PCT:.0f}% rule)", f"Sell 1/3 of {h['qty']} {sym} at ~{fmt(p)} (fill {fmt(cost)}). Remainder keeps its 25% trail; name becomes rotation-eligible.", "high")
+            log(sym, "take_third", cost * (1 + TAKE_PCT / 100), p, f"+{gain:.1f}% from fill {cost}", True)
             actions.append(f"TAKE-THIRD {sym} +{gain:.1f}%")
 
         # (5) A8 §5 ROTATION CANDIDATE — only after the +25% third was taken
@@ -259,7 +267,15 @@ def main():
                     ntfy(f"🔁 ROTATION CANDIDATE {sym}", f"{why}. Profit third already taken. A8 §5: desk decides — proceeds to anchor (to 55%) first, then an open slot, else cash. Live {fmt(p)}.", "default")
                     last_prop[f"rot:{sym}"] = now_iso; log(sym, "rotate", None, p, why, True); actions.append(f"ROTATE? {sym}: {why}")
 
-    # (6) v4 RECLAIM candidates on recent sleeve stop-outs; (7) v4.1 FLUSH playbook on BTC closes
+    # (6) A9 SLEEVE BREAKER — sleeve-only, one push per episode; sets the halt the deep wake honours
+    try:
+        halted, info = sleeve_breaker(holdings, px)
+        if halted and not last_prop.get("breaker_episode") == info.get("since"):
+            last_prop["breaker_episode"] = info.get("since")
+            ntfy("⛔ SLEEVE BREAKER (A9)", f"Sleeve mark/cost {info['ratio']:.3f} is {(1-info['ratio']/info['hwm'])*100:.0f}% below its high-water {info['hwm']:.3f}. No new sleeve entries until it recovers to within 10% or the desk clears state/sleeve_breaker.json. Anchor untouched — a major drawdown is a deposit opportunity, not a breaker.", "high")
+            log("SLEEVE", "breaker", info["hwm"] * 0.8, info["ratio"], "A9 sleeve breaker tripped", True); actions.append("SLEEVE BREAKER")
+    except Exception as e: print(f"sleeve breaker check failed: {e}")
+    # (7) v4 RECLAIM candidates on recent sleeve stop-outs; (8) v4.1 FLUSH playbook on BTC closes
     try: reclaim_candidates(held, last_prop, now_iso, log, actions)
     except Exception as e: print(f"reclaim check failed: {e}")
     try: flush_check(st, last_prop, now_iso, log, actions)

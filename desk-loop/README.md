@@ -33,3 +33,6 @@ scp desk-loop/systemd/* root@209.97.150.226:/etc/systemd/system/
 ssh root@209.97.150.226 'cd /root/lmc-desk && systemctl daemon-reload && for t in systemd/*.timer; do systemctl enable --now $(basename $t); done && python3 -m py_compile *.py && python3 trail.py && python3 flow_scan.py && systemctl list-timers "lmc-*" --no-pager'
 ```
 `flow_scan.py --full` forces a whole-universe scan on any day.
+
+## A9 in the loop (2026-09-06, build request #9)
+`trail.py` v4: anchor = 30% catastrophe trail from the highest completed close (no x0.90 ratchet); sleeve 18% → 25% past +50%; no take-profit flag below +50%. `common.sleeve_breaker()` replaces the whole-book 5% halt: the deep wake stops proposing entries only when the SLEEVE mark/cost ratio is 20% under its high-water mark (state/sleeve_breaker.json; delete to clear). `breakout_scan.py` prints the REGIME (BTC vs 50d/200d from state/cb/BTC.json, or `desk_config.regime`) and applies the chase bars only outside BULL (+15% day = HALF size in BULL). `backtest_a9.py` writes the A9 grid to `pa_memory.backtest-results-a9`.
