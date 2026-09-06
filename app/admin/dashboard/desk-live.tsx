@@ -11,6 +11,10 @@ import HoldingChart from './holding-chart'
 //   3. Portfolio chart (server-rendered, passed in), one realized-P&L line.
 //   4. Armed lines, then collapsed panels. Compact: holdings + pole/watch fit a laptop screen.
 // Everything re-fetches every 60s from /api/fund/state (authed) + CoinGecko for prices.
+// Build request #7 (09-06): the headline P&L is DEPOSIT-ADJUSTED (value − baseline − net flows from capital_flows).
+// Account value is its own labeled number. Raw value change is never shown as P&L.
+// Constitution v4/v4.1 (09-05/06) on the structure strip: anchor = BTC + SOL (ETH out), slots = min(7, floor(book/$150)),
+// $50 minimum sleeve position once the book is >= $500, anchor tilt 60/40 SOL while SOL/BTC is up over 30 days.
 
 interface Holding { symbol: string; qty: number; avg_cost: number; synced_at: string }
 interface Trigger { symbol: string; kind: string; level: number; band_pct: number | null; spec: string | null }
@@ -23,6 +27,12 @@ export interface DeskState {
   theses?: Thesis[] | null; radar?: RadarRow[] | null; loop_enabled?: boolean | null; at: string
 }
 export interface Realized { pnl: number; wins: number; losses: number; n: number }
+export interface Capital {
+  reachable: boolean
+  baseline: { date: string; usd: number } | null
+  net_flows: number                       // Σdeposits − Σwithdrawals since the baseline
+  flows: { date: string; amount: number; kind: string; note: string | null }[]
+}
 interface Live { price: number; d1: number | null; d7: number | null; d30: number | null }
 
 const fmt = (n: number) =>
@@ -38,12 +48,13 @@ const Pct = ({ v, d = 1 }: { v: number | null | undefined; d?: number }) =>
   v == null ? <span className="text-neutral-400">—</span>
   : <span className={`font-mono tabular-nums ${v >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{v >= 0 ? '+' : ''}{v.toFixed(d)}%</span>
 
-export default function DeskLive({ initial, secret, cg, chart, realized, bottom }: {
+export default function DeskLive({ initial, secret, cg, chart, realized, capital, bottom }: {
   initial: DeskState
   secret: string
   cg: Record<string, string>
   chart: ReactNode
   realized: Realized | null
+  capital: Capital
   bottom: ReactNode
 }) {
   const [state, setState] = useState<DeskState>(initial)
@@ -189,19 +200,48 @@ export default function DeskLive({ initial, secret, cg, chart, realized, bottom 
             })}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 text-[12px] tabular-nums">
               <span><span className="font-bold text-neutral-600 dark:text-neutral-400">CASH</span> <span className="font-mono">${cash.toFixed(2)}</span></span>
-              <span className="text-neutral-500">positions <span className="font-mono text-neutral-700 dark:text-neutral-300">{allPriced ? `$${posValue.toFixed(2)}` : 'pricing…'}</span> · book <span className="font-mono font-bold text-neutral-800 dark:text-neutral-100">{allPriced ? `$${(posValue + cash).toFixed(2)}` : '…'}</span></span>
+              <span className="text-neutral-500">positions <span className="font-mono text-neutral-700 dark:text-neutral-300">{allPriced ? `$${posValue.toFixed(2)}` : 'pricing…'}</span> · <span className="font-bold">account value</span> <span className="font-mono font-bold text-neutral-800 dark:text-neutral-100">{allPriced ? `$${(posValue + cash).toFixed(2)}` : '…'}</span></span>
             </div>
-            {/* A8 structure strip: anchor ≥55% · sleeve ≤45% across ~7 slots (≤10% each) · cash floor 10% */}
+            {/* Build request #7: the ONLY headline P&L — deposit-adjusted. value − baseline − net flows since the baseline. */}
+            <div className="text-[12px] tabular-nums">
+              {!capital.reachable ? <span className="text-red-600 dark:text-rose-300">capital_flows unreachable — trading P&L unknown, not zero.</span>
+              : !capital.baseline ? <span className="text-amber-800 dark:text-amber-200">No baseline in capital_flows — trading P&L cannot be computed (desk to add a kind=baseline row).</span>
+              : allPriced ? (() => {
+                  const book = posValue + cash
+                  const capIn = capital.baseline.usd + capital.net_flows
+                  const pnl = book - capIn
+                  const pct = capIn > 0 ? (pnl / capIn) * 100 : 0
+                  const since = new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                  return (
+                    <span>
+                      <span className="font-bold text-neutral-600 dark:text-neutral-400">Trading P&L since {since}</span>{' '}
+                      <b className={`font-mono text-[13px] ${pnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{pnl >= 0 ? '+' : '−'}${Math.abs(pnl).toFixed(2)} ({pnl >= 0 ? '+' : ''}{pct.toFixed(1)}%)</b>
+                      <span className="text-neutral-500"> · capital in ${capIn.toFixed(2)} = baseline ${capital.baseline.usd.toFixed(2)} {capital.net_flows >= 0 ? '+' : '−'} ${Math.abs(capital.net_flows).toFixed(2)} net deposits · live, deposit-adjusted</span>
+                    </span>
+                  )
+                })()
+              : <span className="text-neutral-500">Trading P&L: pricing…</span>}
+            </div>
+            {/* Constitution v4/v4.1 structure strip: anchor BTC+SOL ≥55% · sleeve ≤45% across min(7, floor(book/$150)) slots (≤10% each, $50 min) · cash floor 10% · anchor tilt */}
             {allPriced && (posValue + cash) > 0 && (() => {
               const book = posValue + cash
-              const ANCHOR = new Set(['BTC', 'SOL', 'ETH'])
+              const ANCHOR = new Set(['BTC', 'SOL'])                      // v4: ETH out of the anchor (Jacob 09-05)
               const val = (p: Holding) => Number(p.qty) * (live[p.symbol]?.price ?? 0)
               const anchor = positions.filter((p) => ANCHOR.has(p.symbol)).reduce((s, p) => s + val(p), 0)
               const sleeve = positions.filter((p) => !ANCHOR.has(p.symbol))
               const sleeveV = sleeve.reduce((s, p) => s + val(p), 0)
               const aPct = (anchor / book) * 100, sPct = (sleeveV / book) * 100, cPct = (cash / book) * 100
+              const slots = Math.min(7, Math.floor(book / 150))              // v4.1 §2 slot formula
+              const minPos = book >= 500 ? 50 : null                          // minimum sleeve position once the book is ≥ $500
               const fat = sleeve.filter((p) => val(p) / book > 0.10).map((p) => p.symbol)
-              const flags = [aPct < 55 ? `anchor ${aPct.toFixed(0)}% < 55%` : '', cPct < 10 ? `cash ${cPct.toFixed(0)}% < 10% floor — no new sleeve entries` : '', fat.length ? `over 10%: ${fat.join(', ')}` : ''].filter(Boolean)
+              const solD30 = live['SOL']?.d30 ?? null, btcD30 = live['BTC']?.d30 ?? null
+              const tilt = solD30 != null && btcD30 != null ? (solD30 > btcD30 ? '60/40 SOL/BTC' : '50/50') : null   // v4.1 §4 anchor tilt on the 30d SOL/BTC ratio
+              const flags = [
+                aPct < 55 ? `anchor ${aPct.toFixed(0)}% < 55%` : '',
+                cPct < 10 ? `cash ${cPct.toFixed(0)}% < 10% floor — no new sleeve entries` : '',
+                sleeve.length > slots ? `sleeve ${sleeve.length} names > ${slots} slots` : '',
+                fat.length ? `over 10%: ${fat.join(', ')}` : '',
+              ].filter(Boolean)
               return (
                 <div className="mt-1.5 border-t border-neutral-100 pt-1.5 dark:border-white/5">
                   <div className="flex h-2 w-full overflow-hidden rounded bg-neutral-100 dark:bg-white/10" title="anchor · sleeve · cash">
@@ -210,9 +250,9 @@ export default function DeskLive({ initial, secret, cg, chart, realized, bottom 
                     <div className="bg-neutral-400/60" style={{ width: `${cPct}%` }} />
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-neutral-600 dark:text-neutral-400">
-                    <span>A8 structure:</span>
-                    <span><b className="text-rose-600 dark:text-rose-300">anchor</b> BTC/SOL/ETH <span className="font-mono">{aPct.toFixed(0)}%</span> <span className="text-neutral-400">(≥55%)</span></span>
-                    <span><b className="text-amber-700 dark:text-amber-300">sleeve</b> <span className="font-mono">{sPct.toFixed(0)}%</span> · slots <span className="font-mono">{sleeve.length}/7</span> <span className="text-neutral-400">(≤45%, ≤10% each)</span></span>
+                    <span>v4.1 structure:</span>
+                    <span><b className="text-rose-600 dark:text-rose-300">anchor</b> BTC/SOL <span className="font-mono">{aPct.toFixed(0)}%</span> <span className="text-neutral-400">(≥55%{tilt ? ` · basket ${tilt}` : ''})</span></span>
+                    <span><b className="text-amber-700 dark:text-amber-300">sleeve</b> <span className="font-mono">{sPct.toFixed(0)}%</span> · slots <span className="font-mono">{sleeve.length}/{slots}</span> <span className="text-neutral-400">(≤45%, ≤10% each{minPos ? `, $${minPos} min` : ''})</span></span>
                     <span><b>cash</b> <span className="font-mono">{cPct.toFixed(0)}%</span> <span className="text-neutral-400">(floor 10%)</span></span>
                     <span className="text-neutral-400">holdings {positions.length}/10</span>
                   </div>

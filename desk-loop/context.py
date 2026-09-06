@@ -52,12 +52,14 @@ def main():
                    "house-strategy-amendments": amendments(),
                    "breakout-signals": topic("breakout-signals", 2500), "breakout-backtest": topic("breakout-backtest", 1800), "dashboard": topic("dashboard", 3000),
                    "catalyst-calendar": topic("catalyst-calendar", 1500), "agent-log": topic("agent-log", 1200),
-                   "loop-briefs": topic("loop-briefs", 1200)},
+                   "flow-radar": topic("flow-radar", 1800, keep_tail=False), "loop-briefs": topic("loop-briefs", 1200)},
         "holdings": sb_get("live_holdings", "select=symbol,qty,avg_cost,synced_at"),
         "triggers": sb_get("desk_triggers", "active=eq.true&select=symbol,kind,level,band_pct,spec"),
         "radar_top": sb_get("fund_radar", "select=symbol,stage,turnover,d1,d7,d30,score,scan_date&order=scan_date.desc,score.desc&limit=8"),
         "alerts_recent": sb_get("desk_alert_log", "select=at,symbol,kind,level,price,note&order=at.desc&limit=5"),
         "defillama_fees_top": defillama_fees(),
+        # Build request #7: P&L in any brief must be deposit-adjusted — baseline + net flows travel with the context.
+        "capital_flows": sb_get("capital_flows", "select=flow_date,amount_usd,kind&order=flow_date"),
     }
     tot, missing = book_value(); ctx["book_value"] = tot; ctx["unpriced"] = missing
     print(json.dumps(ctx, default=str))

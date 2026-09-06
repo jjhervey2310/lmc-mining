@@ -35,7 +35,14 @@ def main():
     if snaps:
         base = float(snaps[0]["total"]); tot, missing = book_value()
         # Deposits after the snapshot are not market moves (09-04: a $70 deposit read as "book +14%").
-        dep = sum(float(f["amount"]) for f in sb_get("fund_flows", f"flow_date=gte.{snaps[0]['snapshot_date']}&select=amount"))
+        # Deposits since the snapshot: capital_flows is the law's table (09-06); fund_flows kept for older rows. Same-day rows counted once by date+amount.
+        seen = set(); dep = 0.0
+        for f in sb_get("capital_flows", f"flow_date=gte.{snaps[0]['snapshot_date']}&kind=in.(deposit,transfer_in,in)&select=flow_date,amount_usd") + \
+                 [{"flow_date": f["flow_date"], "amount_usd": f["amount"]} for f in sb_get("fund_flows", f"flow_date=gte.{snaps[0]['snapshot_date']}&select=flow_date,amount")]:
+            k = (f["flow_date"], round(float(f["amount_usd"]), 2))
+            if k not in seen: seen.add(k); dep += float(f["amount_usd"])
+        for f in sb_get("capital_flows", f"flow_date=gte.{snaps[0]['snapshot_date']}&kind=in.(withdrawal,transfer_out,out)&select=amount_usd"):
+            dep -= float(f["amount_usd"])
         adj = tot - dep
         if not missing and base > 0 and abs(adj - base) / base * 100 >= BOOK_MOVE_PCT:
             reasons.append(f"book {((adj-base)/base*100):+.1f}% vs {snaps[0]['snapshot_date']} (${tot:.2f}, ex ${dep:.0f} deposits)")

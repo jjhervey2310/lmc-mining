@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC flow radar (build request #8) — fees/volume/TVL/stablecoin flows, alert-only, $0
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/flow_scan.py
+TimeoutStartSec=1800

@@ -9,6 +9,8 @@ import { useState } from 'react'
 
 export type FormatKey = 'usd0' | 'usd2' | 'usd4' | 'terra'
 export interface Series { key: string; label: string; color: string; points: number[]; format: FormatKey }
+/** Vertical tick at a point index — a deposit landing, a rule change. Drawn as a dashed line with a label at the top. */
+export interface Marker { index: number; label: string; color?: string }
 
 /** Formatting lives here, not in the server component — closures cannot be
  *  serialized across the RSC boundary (that 500'd the whole page, 2026-08-06). */
@@ -20,9 +22,11 @@ const FORMATTERS: Record<FormatKey, (n: number) => string> = {
 }
 const fmtWith = (k: FormatKey, n: number) => (FORMATTERS[k] ?? FORMATTERS.usd0)(n)
 
-export default function TrendChart({ hidePct, series, labels, w = 900, h = 220, sharedScale = false }: {
+export default function TrendChart({ hidePct, series, labels, markers = [], w = 900, h = 220, sharedScale = false }: {
   series: Series[]
   labels: string[]
+  /** dated events to draw as vertical ticks (build request #7: deposits must be visible as deposits, never as growth) */
+  markers?: Marker[]
   w?: number
   h?: number
   /** true = all series plotted on one common axis (comparing like with like) */
@@ -108,6 +112,18 @@ export default function TrendChart({ hidePct, series, labels, w = 900, h = 220, 
           <line key={f} x1={pad.l} x2={w - pad.r} y1={pad.t + ih * f} y2={pad.t + ih * f}
             className="stroke-neutral-200 dark:stroke-white/10" strokeWidth="1" strokeDasharray="3 5" />
         ))}
+
+        {/* event markers — vertical ticks with a label, drawn under the lines */}
+        {markers.filter((m) => m.index >= 0 && m.index < n).map((m, mi) => {
+          const x = pad.l + (m.index / (n - 1)) * iw
+          const c = m.color ?? '#f59e0b'
+          return (
+            <g key={`m${mi}`}>
+              <line x1={x} x2={x} y1={pad.t} y2={pad.t + ih} stroke={c} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.8" />
+              <text x={x + 3} y={pad.t + 10} fontSize="10" fontFamily="monospace" fill={c}>{m.label}</text>
+            </g>
+          )
+        })}
 
         {shown.map((s, si) => {
           const d = path(s.points)

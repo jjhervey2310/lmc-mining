@@ -1,9 +1,17 @@
 # LMC desk loop — Stage 1 (alert-only)
 
-Runs on a DigitalOcean Ubuntu 24.04 droplet under `/root/lmc-desk`. Three systemd timers:
-- `lmc-price-check` every 15 min — live prices vs `desk_triggers`, logs to `desk_alert_log`, pushes via ntfy
-- `lmc-wake` hourly at :07 — headless Claude Code reasoning wake (one web search), writes `pa_memory.loop-briefs`, pushes ORDER SPEC / situation
-- `lmc-heartbeat` 08:00 Denver — flushes the overnight digest (quiet hours 23:00–08:00), heartbeat push, `pa_memory.loop-heartbeat`
+Runs on a DigitalOcean Ubuntu 24.04 droplet under `/root/lmc-desk`. systemd timers (all Denver time):
+- `lmc-price-check` every 15 min — live prices vs `desk_triggers`, logs to `desk_alert_log`, pushes via ntfy (free)
+- `lmc-trail` :05/:20/:35/:50 — `trail.py` v3: constitution v4/v4.1 trail + ratchet + third + rotation + reclaim + flush flags (free)
+- `lmc-wake` hourly at :07 — `triage.py`, pure code; escalates to `lmc-wake-deep` only on something mechanical (free)
+- `lmc-wake-deep` 07:07 + on escalation — headless Claude Code reasoning wake (one web search), writes `pa_memory.loop-briefs` (paid, budget-gated)
+- `lmc-breakout` 06:45 — 20d-high + volume + RS breakout scan over `universe.json`, `pa_memory.breakout-signals` (free)
+- `lmc-flow` 07:20 — `flow_scan.py` (build request #8): DefiLlama fees / revenue / DEX volume / TVL / stablecoin flows per RH name → `public.flow_radar`, `pa_memory.flow-radar`; PRE-EARLY names pushed + added to `desk_theses` as VERIFYING. Daily = held + POLE/WATCH/VERIFYING; Sunday (or `--full`) = whole universe (free)
+- `lmc-news` 07:40 — universe news sweep, top-10 daily / top-40 Sunday (paid, budget-gated)
+- `lmc-heartbeat` 08:00 — flushes the overnight digest (quiet hours 23:00–08:00), heartbeat push, `pa_memory.loop-heartbeat`
+- `lmc-stage-study` 08:20 — does yesterday's radar label predict today's move (free)
+
+`universe.json` = Robinhood-tradable names from `get_currency_pairs` (87 as of 2026-09-06; PUMP delisted, POL untradable, stables/gold excluded). The box cannot call the Robinhood connector — refresh it from a chat session weekly (topic `rh-universe`).
 
 Hard caps in code: monthly API spend cap (`MONTHLY_CAP_USD`, default $30 — halts wakes, pages once); kill switch `desk_config.loop_enabled`
 (one-tap toggle on the terminal's ROBINHOOD tab); 5% intraday drawdown vs last banked snapshot → no new-entry briefs + urgent page.
@@ -17,3 +25,11 @@ Hard caps in code: monthly API spend cap (`MONTHLY_CAP_USD`, default $30 — hal
 5. Watch the first hour: `journalctl -u lmc-wake -f`, and the ROBINHOOD tab's watcher feed.
 
 Secrets live only in `/root/lmc-desk/.env` (chmod 600). They are never committed, echoed, or pasted into chat.
+
+## Deploying a code change to the box (from the Mac, key auth)
+```
+scp desk-loop/*.py desk-loop/*.sh desk-loop/*.md desk-loop/universe.json root@209.97.150.226:/root/lmc-desk/
+scp desk-loop/systemd/* root@209.97.150.226:/etc/systemd/system/
+ssh root@209.97.150.226 'cd /root/lmc-desk && systemctl daemon-reload && for t in systemd/*.timer; do systemctl enable --now $(basename $t); done && python3 -m py_compile *.py && python3 trail.py && python3 flow_scan.py && systemctl list-timers "lmc-*" --no-pager'
+```
+`flow_scan.py --full` forces a whole-universe scan on any day.

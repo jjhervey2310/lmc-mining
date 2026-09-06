@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC flow radar 07:20 MT daily (held + watch); full universe on Sundays
+[Timer]
+OnCalendar=*-*-* 07:20:00
+Persistent=true
+[Install]
+WantedBy=timers.target

@@ -41,7 +41,7 @@ def main():
     lines.append("QUALIFYING TODAY: " + (", ".join(f"{h['symbol']} ${h['price']:.4g} (+{h['ext_pct']}% over 20d high, vol {h['vol_x']}x, RS {h['rs7_vs_btc']:+.1f})" for h in hits) or "none"))
     lines.append("FRESH (not on yesterday's list): " + (", ".join(h["symbol"] for h in fresh) or "none"))
     lines.append("NEAR (within 3% of the 20d high with RS, watch for the close): " + (", ".join(f"{h['symbol']} ({h['ext_pct']}%)" for h in near[:8]) or "none"))
-    lines.append("REMINDERS: entry is a daily CLOSE, size per A1, stop below the pre-breakout base, trail 12%/18%, half at +25% (A4). Hard-barred names stay barred unless the desk adopts the learning-sleeve proposal in code-desk.")
+    lines.append("REMINDERS (v4/v4.1): entry is a daily CLOSE into an open sleeve slot (slots = min(7, floor(book/$150)), $50 min at a $500+ book), size 5-7% (10% max, half while the macro modifier runs), stop at the named invalidation or -20%; the 18% trail engages at +18% from fill and widens to 25% past +50%; take 1/3 at +25%. RUNNING-stage and hard-barred names stay barred; 2 new entries/week.")
     out = "\n".join(lines); print(out)
     sb_upsert("pa_memory", [{"topic": "breakout-signals", "fact": out, "source": "desk-loop", "active": True,
                              "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")

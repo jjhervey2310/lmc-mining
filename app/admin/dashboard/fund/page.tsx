@@ -2,11 +2,13 @@ import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
 import { Shell, Panel, checkAdmin, usd } from '../ui'
 import TrendChart from '../trend-chart'
-import DeskLive, { type DeskState, type Realized } from '../desk-live'
+import DeskLive, { type DeskState, type Realized, type Capital } from '../desk-live'
 
 // ROBINHOOD — the live agentic account. v3 layout (build request #6):
 // holdings → pole + watch (live numbers) → portfolio chart + realized line → armed lines →
 // collapsed (watcher feed, rules, ledger, research + raw scanner). Read-only; service client behind checkAdmin.
+// Build request #7 (2026-09-06): P&L is DEPOSIT-ADJUSTED everywhere — value − baseline − net capital flows since
+// the baseline (public.capital_flows: kind baseline/deposit/withdrawal). Raw account growth is never called P&L.
 
 export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
 export const dynamic = 'force-dynamic'
@@ -75,7 +77,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, loopQ, notesQ, thesesQ] = await Promise.all([
+  const [research, holdingsQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, loopQ, notesQ, thesesQ, capQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
     supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol') ?? { data: null, error: true },
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
@@ -89,6 +91,8 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('desk_config').select('value').eq('key', 'loop_enabled').maybeSingle() ?? { data: null },
     supabase?.from('pa_memory').select('topic, fact, updated_at').in('topic', ['dashboard', 'house-strategy']).eq('active', true) ?? { data: null, error: true },
     supabase?.from('desk_theses').select('symbol, status, thesis, gate, updated_at').order('symbol') ?? { data: null, error: true },
+    // capital_flows (build request #7): baseline + every deposit/withdrawal the desk sees land. The desk appends; the page only reads.
+    supabase?.from('capital_flows').select('flow_date, amount_usd, kind, note').order('flow_date') ?? { data: null, error: true },
   ])
 
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
@@ -96,11 +100,28 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   const latestScan = radarAll?.[0]?.scan_date ?? null
   const radar = radarAll && latestScan ? radarAll.filter((r) => r.scan_date === latestScan) : radarAll
   const byStage = (s: string) => (radar ?? []).filter((r) => r.stage === s)
-  const flows = ((flowsQ.data ?? []) as { flow_date: string; amount: number }[])
-  const contributions = flows.reduce((a, f) => a + Number(f.amount), 0)
-  // Deposit-adjusted curve: book value minus every deposit dated on or before that snapshot = true P&L to date.
-  const depositedBy = (d: string) => flows.filter((f) => f.flow_date <= d).reduce((a, f) => a + Number(f.amount), 0)
-  const pnlSeries = snaps.map((s) => Number(s.total) - depositedBy(s.snapshot_date))
+  // Legacy fund_flows (pre-challenge deposits) — kept only for the note under the chart.
+  const legacyFlows = ((flowsQ.data ?? []) as { flow_date: string; amount: number }[])
+  // ── Build request #7: deposit-adjusted P&L from capital_flows ──
+  // Trading P&L = value − baseline − Σdeposits + Σwithdrawals since the baseline. % is on (baseline + net flows), the capital actually at work.
+  const capRows = (capQ.data ?? null) as { flow_date: string; amount_usd: number; kind: string; note: string | null }[] | null
+  const baselineRow = capRows?.find((r) => r.kind === 'baseline') ?? null
+  const isIn = (k: string) => ['deposit', 'transfer_in', 'in'].includes(k)
+  const isOut = (k: string) => ['withdrawal', 'transfer_out', 'out'].includes(k)
+  const capFlows = (capRows ?? []).filter((r) => (isIn(r.kind) || isOut(r.kind)) && (!baselineRow || r.flow_date > baselineRow.flow_date))
+    .map((r) => ({ date: r.flow_date, amount: (isOut(r.kind) ? -1 : 1) * Number(r.amount_usd), kind: r.kind, note: r.note }))
+  const netFlowsBy = (d: string) => capFlows.filter((f) => f.date <= d).reduce((a, f) => a + f.amount, 0)
+  const capital: Capital = {
+    reachable: capRows !== null,
+    baseline: baselineRow ? { date: baselineRow.flow_date, usd: Number(baselineRow.amount_usd) } : null,
+    net_flows: netFlowsBy('9999-12-31'),
+    flows: capFlows,
+  }
+  // Chart window = the challenge (from the baseline date). Capital line = baseline + cumulative net flows; the gap to book value IS the trading P&L.
+  const chartSnaps = baselineRow ? snaps.filter((s) => s.snapshot_date >= baselineRow.flow_date) : snaps
+  const capitalSeries = baselineRow ? chartSnaps.map((s) => Number(baselineRow.amount_usd) + netFlowsBy(s.snapshot_date)) : []
+  const markers = capFlows.map((f) => ({ index: chartSnaps.findIndex((s) => s.snapshot_date >= f.date), label: `${f.amount >= 0 ? '+' : '−'}$${Math.abs(f.amount).toFixed(0)} ${f.amount >= 0 ? 'deposit' : 'withdrawal'}`, color: f.amount >= 0 ? '#f59e0b' : '#f43f5e' }))
+    .filter((m) => m.index >= 0)
   const notes = (notesQ.data ?? []) as { topic: string; fact: string; updated_at: string }[]
   const note = (t: string) => notes.find((n) => n.topic === t)
   const boardNote = note('dashboard'); const stratNote = note('house-strategy')
@@ -134,21 +155,34 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   } : null
   const briefDate = (research.data?.brief_date ?? null) as string | null
 
+  const lastClose = total !== null && chartSnaps.length ? { date: chartSnaps[chartSnaps.length - 1].snapshot_date, total: Number(chartSnaps[chartSnaps.length - 1].total) } : null
+  const pnlAtClose = lastClose && capital.baseline ? lastClose.total - capital.baseline.usd - netFlowsBy(lastClose.date) : null
+  const capAtClose = lastClose && capital.baseline ? capital.baseline.usd + netFlowsBy(lastClose.date) : null
+  const sinceLabel = capital.baseline ? new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null
   const chart = (
-    <Panel accent="purple" title="Portfolio — book value & TRUE P&L"
-      right={<span className="text-[11px] text-neutral-500">{total !== null && contributions > 0 ? (() => { const pnl = total - contributions; return `deposited $${usd(contributions)} · P&L ${pnl >= 0 ? '+' : '−'}$${usd(Math.abs(pnl))} (${((pnl / contributions) * 100).toFixed(1)}%) at last close` })() : 'daily close'}</span>}>
-      {snaps.length > 1 ? (
+    <Panel accent="purple" title={`Portfolio — account value vs capital in${sinceLabel ? ` (since ${sinceLabel})` : ''}`}
+      right={<span className="text-[11px] text-neutral-500">
+        {pnlAtClose !== null && capAtClose ? <>trading P&L at last close <b className={`font-mono ${pnlAtClose >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{pnlAtClose >= 0 ? '+' : '−'}${usd(Math.abs(pnlAtClose))} ({((pnlAtClose / capAtClose) * 100).toFixed(1)}%)</b> · capital in ${usd(capAtClose)}</>
+          : !capital.reachable ? <span className="text-red-600">capital_flows unreachable — P&L unknown, not zero</span>
+          : 'no baseline row in capital_flows — desk to add (kind=baseline)'}
+      </span>}>
+      {chartSnaps.length > 1 ? (
         <>
-          <TrendChart hidePct h={170}
+          <TrendChart hidePct h={170} sharedScale={capitalSeries.length > 0}
+            markers={markers}
             series={[
-              { key: 'fund', label: 'BOOK VALUE', color: '#fda4af', format: 'usd2' as const, points: snaps.map((s) => Number(s.total)) },
-              { key: 'pnl', label: 'P&L vs deposits', color: '#5eead4', format: 'usd2' as const, points: pnlSeries },
+              { key: 'fund', label: 'ACCOUNT VALUE', color: '#fda4af', format: 'usd2' as const, points: chartSnaps.map((s) => Number(s.total)) },
+              ...(capitalSeries.length ? [{ key: 'cap', label: 'CAPITAL IN (baseline + deposits)', color: '#fbbf24', format: 'usd2' as const, points: capitalSeries }] : []),
             ]}
-            labels={snaps.map((s) => s.snapshot_date)} />
-          <div className="mt-1 text-[11px] text-neutral-500">Daily closes from <code>fund_snapshots</code>; P&L subtracts every deposit in <code>fund_flows</code> dated on or before that day. Deposits: {flows.map((f) => `${f.flow_date.slice(5)} +$${Number(f.amount).toFixed(0)}`).join(' · ') || 'none recorded'}.</div>
+            labels={chartSnaps.map((s) => s.snapshot_date)} />
+          <div className="mt-1 text-[11px] text-neutral-500">
+            Daily closes from <code>fund_snapshots</code>. The gap between the two lines is the trading P&L; deposits move the amber line, never the P&L.
+            {capital.flows.length ? ` Flows since baseline: ${capital.flows.map((f) => `${f.date.slice(5)} ${f.amount >= 0 ? '+' : '−'}$${Math.abs(f.amount).toFixed(0)}`).join(' · ')}.` : ' No deposits or withdrawals since the baseline.'}
+            {legacyFlows.length ? ` Pre-challenge funding (fund_flows): ${legacyFlows.map((f) => `${f.flow_date.slice(5)} +$${Number(f.amount).toFixed(0)}`).join(' · ')}.` : ''}
+          </div>
         </>
       ) : (
-        <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots.</span>
+        <span className="text-[13px] text-neutral-500">Curve starts at two daily snapshots{sinceLabel ? ` after ${sinceLabel}` : ''}.</span>
       )}
     </Panel>
   )
@@ -263,6 +297,7 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
         cg={ids}
         chart={chart}
         realized={realized}
+        capital={capital}
         bottom={bottom}
         initial={{
           holdings: (holdingsQ.data ?? null) as DeskState['holdings'],
