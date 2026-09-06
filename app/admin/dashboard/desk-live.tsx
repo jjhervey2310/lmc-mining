@@ -3,18 +3,20 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Panel } from './ui'
 import HoldingChart from './holding-chart'
+import PerfChart, { type PerfItem } from './perf-chart'
 
-// ROBINHOOD tab, live half — v3 (build requests #4 + #6, Jacob's spec):
-//   1. HOLDINGS first: qty · entry · live · ▲/▼ · stop · thesis + gate; tap a row for its 1y chart.
-//   2. POLE + WATCH with LIVE numbers (price, 24h/7d/30d, distance to armed entry lines, latest radar row).
-//      Thesis text comes from desk_theses; numbers NEVER come from thesis text.
-//   3. Portfolio chart (server-rendered, passed in), one realized-P&L line.
-//   4. Armed lines, then collapsed panels. Compact: holdings + pole/watch fit a laptop screen.
-// Everything re-fetches every 60s from /api/fund/state (authed) + CoinGecko for prices.
-// Build request #7 (09-06): the headline P&L is DEPOSIT-ADJUSTED (value − baseline − net flows from capital_flows).
-// Account value is its own labeled number. Raw value change is never shown as P&L.
-// Constitution v4/v4.1 (09-05/06) on the structure strip: anchor = BTC + SOL (ETH out), slots = min(7, floor(book/$150)),
-// $50 minimum sleeve position once the book is >= $500, anchor tilt 60/40 SOL while SOL/BTC is up over 30 days.
+// ROBINHOOD tab, live half — v4 (Jacob 2026-09-06: "easily readable", "the crypto up in line", "one chart with
+// all the holdings", "a button for up-to-date price + volume with an A–F timing rating", "buy right now if I click").
+//   1. HOLDINGS as a proper table: price · 24h · qty · entry · value + weight · P&L vs entry · stop + distance · role.
+//      Tap the symbol for its 1y chart; thesis + gate under a toggle. Then cash, account value, the deposit-adjusted
+//      Trading P&L headline (build request #7) and the v4.1 structure strip.
+//   2. UP NEXT — the queue (POLE → WATCH → VERIFYING from desk_theses, holdings excluded) with live numbers, the
+//      armed entry lines, flow-radar and radar chips, a TIMING button (/api/fund/timing: live price, 24h volume,
+//      A–F grade against the house laws + the tape, ruled size, stop) and a BUY button (/api/fund/buy: market order
+//      for the ruled size + stop-limit on 100% of the units, only on a human tap, hard bars never overridable).
+//      One PerfChart under it: every holding (solid) and every queue name (dashed), indexed to the window start.
+//   3. Portfolio chart (server-rendered) + realized line.  4. Armed lines.  5. Collapsed panels.
+// Numbers never come from thesis text. Everything re-fetches every 60s from /api/fund/state + CoinGecko.
 
 interface Holding { symbol: string; qty: number; avg_cost: number; synced_at: string }
 interface Trigger { symbol: string; kind: string; level: number; band_pct: number | null; spec: string | null }
@@ -22,9 +24,10 @@ interface Alert { at: string; symbol: string; kind: string; level: number | null
 interface Board { fact: string; updated_at: string }
 export interface Thesis { symbol: string; status: string; thesis: string | null; gate: string | null; updated_at: string | null }
 export interface RadarRow { symbol: string; stage: string; score: number; turnover: number; d1: number; d7: number; d30: number; price: number; scan_date: string }
+export interface FlowRow { symbol: string; flow_score: number | null; stage: string | null; fees_wow: number | null; vol_wow: number | null; scan_date: string }
 export interface DeskState {
   holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; strategy: Board | null
-  theses?: Thesis[] | null; radar?: RadarRow[] | null; loop_enabled?: boolean | null; at: string
+  theses?: Thesis[] | null; radar?: RadarRow[] | null; flow?: FlowRow[] | null; loop_enabled?: boolean | null; at: string
 }
 export interface Realized { pnl: number; wins: number; losses: number; n: number }
 export interface Capital {
@@ -33,20 +36,40 @@ export interface Capital {
   net_flows: number                       // Σdeposits − Σwithdrawals since the baseline
   flows: { date: string; amount: number; kind: string; note: string | null }[]
 }
-interface Live { price: number; d1: number | null; d7: number | null; d30: number | null }
+interface Live { price: number; d1: number | null; d7: number | null; d30: number | null; vol: number | null }
+interface Timing {
+  symbol: string; at: string; price: number; vol24h: number | null; avgVol20: number | null; volX: number | null
+  d1: number | null; d7: number | null; d30: number | null; hi20: number | null; extPct: number | null; rs7VsBtc: number | null
+  book: number; cash: number; slots: number; sleeveCount: number; weeklyEntries: number; blackout: string | null; halfSize: boolean
+  grade: 'A' | 'B' | 'C' | 'D' | 'F'; score: number; hard: string[]; soft: string[]; plus: string[]
+  size: { usd: number; pctBook: number; halfSize: boolean; cappedBy: string | null }
+  stop: { price: number; source: string; pct: number }
+  buyable: boolean; overridable: boolean; rh_configured: boolean
+}
+interface BuyResult { ok?: boolean; state?: string; order_id?: string; qty?: number; avg_price?: number; notional?: number; stop?: { order_id: string; stop: string; limit: string } | null; stop_error?: string | null; ledger_errors?: string[]; error?: string; message?: string }
 
+const ANCHOR = new Set(['BTC', 'SOL'])   // v4: ETH out of the anchor (Jacob 09-05)
 const fmt = (n: number) =>
   n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}`
   : n >= 1 ? `$${n.toFixed(2)}`
   : n >= 0.01 ? `$${n.toFixed(4)}`
   : n > 0 ? `$${n.toPrecision(3)}`
   : '$0'
+const usd2 = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const big = (n: number) => n >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}k` : `$${n.toFixed(0)}`
 const denver = (iso: string) =>
   new Date(iso).toLocaleString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const hoursOld = (iso?: string | null) => iso ? (Date.now() - new Date(iso).getTime()) / 36e5 : Infinity
 const Pct = ({ v, d = 1 }: { v: number | null | undefined; d?: number }) =>
   v == null ? <span className="text-neutral-400">—</span>
   : <span className={`font-mono tabular-nums ${v >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{v >= 0 ? '+' : ''}{v.toFixed(d)}%</span>
+const GRADE: Record<string, string> = {
+  A: 'bg-emerald-500 text-white', B: 'bg-green-500 text-white', C: 'bg-amber-400 text-black', D: 'bg-orange-500 text-white', F: 'bg-rose-600 text-white',
+}
+const STATUS: Record<string, string> = {
+  POLE: 'bg-amber-100 text-amber-800 dark:bg-amber-400/20 dark:text-amber-200', WATCH: 'bg-sky-100 text-sky-800 dark:bg-sky-400/20 dark:text-sky-200',
+  VERIFYING: 'bg-violet-100 text-violet-800 dark:bg-violet-400/20 dark:text-violet-200',
+}
 
 export default function DeskLive({ initial, secret, cg, chart, realized, capital, bottom }: {
   initial: DeskState
@@ -62,6 +85,9 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const [degraded, setDegraded] = useState(false)
   const [toggling, setToggling] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
+  const [thesisOpen, setThesisOpen] = useState<Record<string, boolean>>({})
+  const [timing, setTiming] = useState<Record<string, Timing | { error: string } | 'loading' | undefined>>({})
+  const [buying, setBuying] = useState<Record<string, BuyResult | 'working' | undefined>>({})
 
   const toggleLoop = async () => {
     if (toggling) return
@@ -93,12 +119,12 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const holdings = state.holdings ?? []
   const positions = holdings.filter((h) => h.symbol !== 'USD' && Number(h.qty) > 0)
   const held = new Set(positions.map((p) => p.symbol))
-  const watchRows = theses.filter((t) => (t.status === 'POLE' || t.status === 'WATCH') && !held.has(t.symbol))
-    .sort((a, b) => (a.status === 'POLE' ? -1 : 0) - (b.status === 'POLE' ? -1 : 0))
-  const liveSyms = [...new Set([...positions.map((p) => p.symbol), ...watchRows.map((t) => t.symbol)])]
+  const RANK: Record<string, number> = { POLE: 0, WATCH: 1, VERIFYING: 2 }
+  const queue = theses.filter((t) => t.status in RANK && !held.has(t.symbol)).sort((a, b) => RANK[a.status] - RANK[b.status] || a.symbol.localeCompare(b.symbol))
+  const liveSyms = [...new Set([...positions.map((p) => p.symbol), ...queue.map((t) => t.symbol)])]
   const liveKey = liveSyms.join(',')
 
-  // 60s: live price + 24h/7d/30d for held and watched symbols (one CoinGecko markets call).
+  // 60s: live price + 24h/7d/30d + 24h volume for held and queued symbols (one CoinGecko markets call).
   useEffect(() => {
     const syms = liveKey ? liveKey.split(',') : []
     const ids = [...new Set(syms.map((s) => cg[s.toUpperCase()]).filter(Boolean))]
@@ -108,14 +134,14 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
       try {
         const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids.join(',')}&price_change_percentage=24h,7d,30d&per_page=250`)
         if (!r.ok) return
-        const rows = (await r.json()) as { id: string; current_price: number; price_change_percentage_24h_in_currency?: number; price_change_percentage_7d_in_currency?: number; price_change_percentage_30d_in_currency?: number }[]
+        const rows = (await r.json()) as { id: string; current_price: number; total_volume?: number; price_change_percentage_24h_in_currency?: number; price_change_percentage_7d_in_currency?: number; price_change_percentage_30d_in_currency?: number }[]
         if (dead) return
         const byId = Object.fromEntries(rows.map((x) => [x.id, x]))
         setLive((prev) => {
           const next = { ...prev }
           for (const s of syms) {
             const x = byId[cg[s.toUpperCase()]]
-            if (x?.current_price) next[s] = { price: x.current_price, d1: x.price_change_percentage_24h_in_currency ?? null, d7: x.price_change_percentage_7d_in_currency ?? null, d30: x.price_change_percentage_30d_in_currency ?? null }
+            if (x?.current_price) next[s] = { price: x.current_price, d1: x.price_change_percentage_24h_in_currency ?? null, d7: x.price_change_percentage_7d_in_currency ?? null, d30: x.price_change_percentage_30d_in_currency ?? null, vol: x.total_volume ?? null }
           }
           return next
         })
@@ -136,11 +162,49 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const stopFor = (sym: string) => trig(sym, ['stop'])[0]?.level ?? null
   const thesisFor = (sym: string) => theses.find((t) => t.symbol === sym) ?? null
   const radarFor = (sym: string) => (state.radar ?? []).find((r) => r.symbol === sym) ?? null
+  const flowFor = (sym: string) => (state.flow ?? []).find((r) => r.symbol === sym) ?? null
   const heldPole = theses.find((t) => t.status === 'POLE' && held.has(t.symbol)) ?? null
-  const posValue = positions.reduce((s, p) => s + (live[p.symbol] ? Number(p.qty) * live[p.symbol].price : 0), 0)
+  const val = (p: Holding) => Number(p.qty) * (live[p.symbol]?.price ?? 0)
+  const posValue = positions.reduce((s, p) => s + val(p), 0)
   const allPriced = positions.every((p) => live[p.symbol] != null)
+  const book = posValue + cash
   const openPos = open ? positions.find((p) => p.symbol === open) ?? null : null
   const synced = positions.length ? [...positions].sort((a, b) => +new Date(b.synced_at) - +new Date(a.synced_at))[0].synced_at : null
+
+  const checkTiming = async (sym: string) => {
+    setTiming((t) => ({ ...t, [sym]: 'loading' }))
+    try {
+      const r = await fetch(`/api/fund/timing?secret=${encodeURIComponent(secret)}&symbol=${sym}`, { cache: 'no-store' })
+      const j = await r.json()
+      setTiming((t) => ({ ...t, [sym]: r.ok ? (j as Timing) : { error: j.error ?? `HTTP ${r.status}` } }))
+    } catch (e) { setTiming((t) => ({ ...t, [sym]: { error: e instanceof Error ? e.message : 'fetch failed' } })) }
+  }
+  const buy = async (sym: string, t: Timing, override: boolean) => {
+    const lines = [
+      `BUY ${sym} at market — about $${t.size.usd.toFixed(2)} (${t.size.pctBook.toFixed(1)}% of the book${t.size.cappedBy ? `, capped by ${t.size.cappedBy}` : ''})`,
+      `Live ${fmt(t.price)} · timing grade ${t.grade} (${t.score}/100)`,
+      `A stop-limit on 100% of the units goes in at fill: ${fmt(t.stop.price)} (${t.stop.pct.toFixed(0)}%, ${t.stop.source})`,
+      override ? `\nOVERRIDE of soft bars: ${t.soft.join('; ')}` : '',
+      '\nThis places a real order on Robinhood. Continue?',
+    ].join('\n')
+    if (!confirm(lines)) return
+    if (override && prompt('Type OVERRIDE to confirm you are overriding the desk rules for this trade:') !== 'OVERRIDE') return
+    setBuying((b) => ({ ...b, [sym]: 'working' }))
+    try {
+      const r = await fetch(`/api/fund/buy?secret=${encodeURIComponent(secret)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ symbol: sym, override }) })
+      const j = (await r.json()) as BuyResult
+      setBuying((b) => ({ ...b, [sym]: j }))
+      if (j.ok) {
+        const s = await fetch(`/api/fund/state?secret=${encodeURIComponent(secret)}`, { cache: 'no-store' })
+        if (s.ok) setState(await s.json())
+      }
+    } catch (e) { setBuying((b) => ({ ...b, [sym]: { error: 'network', message: e instanceof Error ? e.message : 'request failed' } })) }
+  }
+
+  const perfItems: PerfItem[] = [
+    ...positions.map((p): PerfItem => ({ symbol: p.symbol, cgId: cg[p.symbol.toUpperCase()] ?? null, kind: 'held', entry: Number(p.avg_cost) > 0 ? Number(p.avg_cost) : null })),
+    ...queue.map((t): PerfItem => ({ symbol: t.symbol, cgId: cg[t.symbol.toUpperCase()] ?? null, kind: 'queue', entry: null, status: t.status })),
+  ]
 
   return (
     <div className="space-y-2">
@@ -161,7 +225,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
       {/* ── 1. HOLDINGS ── */}
       <Panel accent="rose" title="🔴 Holdings — Robinhood, live"
         right={<span className="flex items-center gap-2 text-[11px] text-neutral-500">
-          {synced ? `synced ${denver(synced)}` : ''} · 60s · tap for chart
+          {synced ? `synced ${denver(synced)}` : ''} · 60s
           <button onClick={toggleLoop} disabled={toggling || state.loop_enabled == null} title="24/7 desk loop"
             className={`rounded-md px-2 py-0.5 text-[10px] font-bold text-white ${state.loop_enabled === false ? 'bg-red-600' : 'bg-green-600'} disabled:opacity-50`}>
             {toggling ? '…' : state.loop_enabled == null ? 'LOOP ?' : state.loop_enabled ? '● LOOP ON' : '■ LOOP PAUSED'}
@@ -172,61 +236,107 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         ) : positions.length === 0 ? (
           <span className="text-[13px] text-neutral-500">No open positions. Cash ${cash.toFixed(2)}.</span>
         ) : (
-          <div className="divide-y divide-neutral-100 dark:divide-white/5">
-            {positions.map((p) => {
-              const lv = live[p.symbol]
-              const now = lv?.price ?? null
-              const value = now !== null ? Number(p.qty) * now : null
-              const pct = now !== null && Number(p.avg_cost) > 0 ? ((now - Number(p.avg_cost)) / Number(p.avg_cost)) * 100 : null
-              const stop = stopFor(p.symbol)
-              const th = thesisFor(p.symbol)
-              return (
-                <div key={p.symbol} className="py-1.5">
-                  <button type="button" onClick={() => setOpen(p.symbol)} className="flex w-full flex-wrap items-baseline gap-x-2 text-left">
-                    <span className="w-12 text-[15px] font-bold text-rose-600 dark:text-rose-300">{p.symbol}</span>
-                    <span className="font-mono text-[14px] font-bold tabular-nums text-neutral-800 dark:text-neutral-100">{now !== null ? fmt(now) : '…'}</span>
-                    {pct !== null && <span className={`font-mono text-[12px] tabular-nums ${pct >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(1)}%</span>}
-                    <span className="text-[11px] text-neutral-500 tabular-nums">qty <b className="font-mono text-neutral-700 dark:text-neutral-300">{p.qty}</b> · entry <b className="font-mono text-neutral-700 dark:text-neutral-300">{Number(p.avg_cost) > 0 ? fmt(Number(p.avg_cost)) : 'n/a'}</b> · {stop !== null ? <>stop <b className="font-mono text-amber-700 dark:text-amber-300">{fmt(Number(stop))}</b>{now !== null && <span> ({(((Number(stop) - now) / now) * 100).toFixed(1)}%)</span>}</> : <b className="text-red-600 dark:text-rose-300">NO STOP</b>}</span>
-                    <span className="ml-auto font-mono text-[12px] tabular-nums text-neutral-600 dark:text-neutral-400">{value !== null ? `$${value.toFixed(2)}` : ''}</span>
-                  </button>
-                  {th ? (
-                    <div className="mt-0.5 text-[12px] leading-snug text-neutral-600 dark:text-neutral-400">
-                      <span className="mr-1 rounded bg-rose-100 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-rose-700 dark:bg-rose-400/15 dark:text-rose-300">{th.status}</span>{th.thesis}
-                      {th.gate && <span className="text-teal-700 dark:text-teal-300"> · gate → {th.gate}</span>}
-                    </div>
-                  ) : <div className="text-[11px] text-neutral-500">no thesis row in desk_theses</div>}
-                </div>
-              )
-            })}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 text-[12px] tabular-nums">
-              <span><span className="font-bold text-neutral-600 dark:text-neutral-400">CASH</span> <span className="font-mono">${cash.toFixed(2)}</span></span>
-              <span className="text-neutral-500">positions <span className="font-mono text-neutral-700 dark:text-neutral-300">{allPriced ? `$${posValue.toFixed(2)}` : 'pricing…'}</span> · <span className="font-bold">account value</span> <span className="font-mono font-bold text-neutral-800 dark:text-neutral-100">{allPriced ? `$${(posValue + cash).toFixed(2)}` : '…'}</span></span>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-[12px] tabular-nums">
+                <thead>
+                  <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
+                    <th className="py-1 pr-2">Asset</th><th className="pr-2 text-right">Price</th><th className="pr-2 text-right">24h</th><th className="pr-2 text-right">Qty</th>
+                    <th className="pr-2 text-right">Entry</th><th className="pr-2 text-right">Value · weight</th><th className="pr-2 text-right">P&L vs entry</th><th className="pr-2 text-right">Stop</th><th className="text-right">Thesis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...positions].sort((a, b) => val(b) - val(a)).map((p) => {
+                    const lv = live[p.symbol]; const now = lv?.price ?? null
+                    const value = now !== null ? Number(p.qty) * now : null
+                    const entry = Number(p.avg_cost) > 0 ? Number(p.avg_cost) : null
+                    const pnl = value !== null && entry ? value - Number(p.qty) * entry : null
+                    const pct = now !== null && entry ? ((now - entry) / entry) * 100 : null
+                    const stop = stopFor(p.symbol)
+                    const weight = value !== null && book > 0 ? (value / book) * 100 : null
+                    const th = thesisFor(p.symbol)
+                    const role = ANCHOR.has(p.symbol) ? 'anchor' : 'sleeve'
+                    return (
+                      <>
+                        <tr key={p.symbol} className="border-t border-neutral-100 dark:border-white/5">
+                          <td className="py-1.5 pr-2">
+                            <button type="button" onClick={() => setOpen(p.symbol)} className="text-left" title="1-year chart with entry and stop">
+                              <span className="text-[15px] font-black text-rose-600 dark:text-rose-300">{p.symbol}</span>
+                              <span className={`ml-1.5 rounded px-1 py-px text-[9px] font-bold uppercase tracking-wide ${role === 'anchor' ? 'bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200'}`}>{role}</span>
+                            </button>
+                          </td>
+                          <td className="pr-2 text-right font-mono text-[13px] font-bold text-neutral-800 dark:text-neutral-100">{now !== null ? fmt(now) : '…'}</td>
+                          <td className="pr-2 text-right"><Pct v={lv?.d1} /></td>
+                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{p.qty}</td>
+                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{entry ? fmt(entry) : 'n/a'}</td>
+                          <td className="pr-2 text-right">
+                            <span className="font-mono text-neutral-800 dark:text-neutral-100">{value !== null ? usd2(value) : '…'}</span>
+                            {weight !== null && (
+                              <span className="ml-1.5 inline-flex items-center gap-1 align-middle">
+                                <span className="inline-block h-1.5 w-12 overflow-hidden rounded bg-neutral-100 dark:bg-white/10"><span className={`block h-full ${role === 'anchor' ? 'bg-rose-400' : 'bg-amber-400'}`} style={{ width: `${Math.min(100, weight)}%` }} /></span>
+                                <span className="font-mono text-[10px] text-neutral-500">{weight.toFixed(0)}%</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="pr-2 text-right">
+                            {pnl !== null && pct !== null ? (
+                              <span className={`inline-block rounded-md px-1.5 py-px font-mono font-bold ${pnl >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300' : 'bg-rose-50 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300'}`}>{usd2(pnl)} · {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span>
+                            ) : <span className="text-neutral-400">—</span>}
+                          </td>
+                          <td className="pr-2 text-right">
+                            {stop !== null ? <span className="font-mono text-amber-700 dark:text-amber-300">{fmt(Number(stop))}{now !== null && <span className="text-[10px] text-neutral-500"> ({(((Number(stop) - now) / now) * 100).toFixed(1)}%)</span>}</span>
+                              : <span className="rounded bg-rose-600 px-1 py-px text-[10px] font-bold text-white">NO STOP</span>}
+                          </td>
+                          <td className="text-right">
+                            {th ? <button type="button" onClick={() => setThesisOpen((o) => ({ ...o, [p.symbol]: !o[p.symbol] }))} className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-600 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-300">{thesisOpen[p.symbol] ? 'hide' : th.status}</button>
+                              : <span className="text-[10px] text-neutral-400">none</span>}
+                          </td>
+                        </tr>
+                        {th && thesisOpen[p.symbol] && (
+                          <tr key={`${p.symbol}-th`}>
+                            <td colSpan={9} className="pb-1.5 text-[12px] leading-snug text-neutral-600 dark:text-neutral-400">{th.thesis}{th.gate && <span className="text-teal-700 dark:text-teal-300"> · gate → {th.gate}</span>}</td>
+                          </tr>
+                        )}
+                      </>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
-            {/* Build request #7: the ONLY headline P&L — deposit-adjusted. value − baseline − net flows since the baseline. */}
-            <div className="text-[12px] tabular-nums">
-              {!capital.reachable ? <span className="text-red-600 dark:text-rose-300">capital_flows unreachable — trading P&L unknown, not zero.</span>
-              : !capital.baseline ? <span className="text-amber-800 dark:text-amber-200">No baseline in capital_flows — trading P&L cannot be computed (desk to add a kind=baseline row).</span>
-              : allPriced ? (() => {
-                  const book = posValue + cash
-                  const capIn = capital.baseline.usd + capital.net_flows
-                  const pnl = book - capIn
-                  const pct = capIn > 0 ? (pnl / capIn) * 100 : 0
-                  const since = new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                  return (
-                    <span>
-                      <span className="font-bold text-neutral-600 dark:text-neutral-400">Trading P&L since {since}</span>{' '}
-                      <b className={`font-mono text-[13px] ${pnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{pnl >= 0 ? '+' : '−'}${Math.abs(pnl).toFixed(2)} ({pnl >= 0 ? '+' : ''}{pct.toFixed(1)}%)</b>
-                      <span className="text-neutral-500"> · capital in ${capIn.toFixed(2)} = baseline ${capital.baseline.usd.toFixed(2)} {capital.net_flows >= 0 ? '+' : '−'} ${Math.abs(capital.net_flows).toFixed(2)} net deposits · live, deposit-adjusted</span>
-                    </span>
-                  )
-                })()
-              : <span className="text-neutral-500">Trading P&L: pricing…</span>}
+
+            <div className="mt-1.5 grid gap-2 border-t border-neutral-100 pt-2 sm:grid-cols-3 dark:border-white/5">
+              <div className="rounded-lg bg-neutral-50 px-2.5 py-1.5 dark:bg-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Cash</div>
+                <div className="font-mono text-[15px] font-bold text-neutral-800 dark:text-neutral-100">{usd2(cash)}</div>
+                <div className="text-[10px] text-neutral-500">{book > 0 ? `${((cash / book) * 100).toFixed(0)}% of book · floor 10%` : ''}</div>
+              </div>
+              <div className="rounded-lg bg-neutral-50 px-2.5 py-1.5 dark:bg-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Account value</div>
+                <div className="font-mono text-[15px] font-bold text-neutral-800 dark:text-neutral-100">{allPriced ? usd2(book) : '…'}</div>
+                <div className="text-[10px] text-neutral-500">positions {allPriced ? usd2(posValue) : 'pricing…'} + cash</div>
+              </div>
+              <div className="rounded-lg bg-neutral-50 px-2.5 py-1.5 dark:bg-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Trading P&L{capital.baseline ? ` since ${new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</div>
+                {/* Build request #7: the ONLY headline P&L — deposit-adjusted. value − baseline − net flows since the baseline. */}
+                {!capital.reachable ? <div className="text-[12px] text-red-600 dark:text-rose-300">capital_flows unreachable — unknown, not zero</div>
+                : !capital.baseline ? <div className="text-[12px] text-amber-800 dark:text-amber-200">no baseline row in capital_flows</div>
+                : allPriced ? (() => {
+                    const capIn = capital.baseline.usd + capital.net_flows
+                    const pnl = book - capIn
+                    const pct = capIn > 0 ? (pnl / capIn) * 100 : 0
+                    return (
+                      <>
+                        <div className={`font-mono text-[15px] font-bold ${pnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{usd2(pnl)} <span className="text-[12px]">({pnl >= 0 ? '+' : ''}{pct.toFixed(1)}%)</span></div>
+                        <div className="text-[10px] text-neutral-500">capital in {usd2(capIn)} = baseline {usd2(capital.baseline.usd)} {capital.net_flows >= 0 ? '+' : '−'} {usd2(Math.abs(capital.net_flows))} deposits · deposit-adjusted</div>
+                      </>
+                    )
+                  })()
+                : <div className="text-[12px] text-neutral-500">pricing…</div>}
+              </div>
             </div>
+
             {/* Constitution v4/v4.1 structure strip: anchor BTC+SOL ≥55% · sleeve ≤45% across min(7, floor(book/$150)) slots (≤10% each, $50 min) · cash floor 10% · anchor tilt */}
-            {allPriced && (posValue + cash) > 0 && (() => {
-              const book = posValue + cash
-              const ANCHOR = new Set(['BTC', 'SOL'])                      // v4: ETH out of the anchor (Jacob 09-05)
-              const val = (p: Holding) => Number(p.qty) * (live[p.symbol]?.price ?? 0)
+            {allPriced && book > 0 && (() => {
               const anchor = positions.filter((p) => ANCHOR.has(p.symbol)).reduce((s, p) => s + val(p), 0)
               const sleeve = positions.filter((p) => !ANCHOR.has(p.symbol))
               const sleeveV = sleeve.reduce((s, p) => s + val(p), 0)
@@ -243,7 +353,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 fat.length ? `over 10%: ${fat.join(', ')}` : '',
               ].filter(Boolean)
               return (
-                <div className="mt-1.5 border-t border-neutral-100 pt-1.5 dark:border-white/5">
+                <div className="mt-2">
                   <div className="flex h-2 w-full overflow-hidden rounded bg-neutral-100 dark:bg-white/10" title="anchor · sleeve · cash">
                     <div className="bg-rose-400/80" style={{ width: `${aPct}%` }} />
                     <div className="bg-amber-400/80" style={{ width: `${sPct}%` }} />
@@ -260,36 +370,97 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 </div>
               )
             })()}
-          </div>
+          </>
         )}
       </Panel>
 
-      {/* ── 2. POLE + WATCH — live numbers beside each thesis; a held symbol never appears here ── */}
-      <Panel accent="amber" title="★ POLE + WATCH — in before the move"
-        right={<span className="text-[11px] text-neutral-500">desk_theses · numbers live, never from thesis text · holdings excluded</span>}>
+      {/* ── 2. UP NEXT — the queue, with timing grades and the buy button; one chart with everything on it ── */}
+      <Panel accent="amber" title="★ Up next — in line to add"
+        right={<span className="text-[11px] text-neutral-500">POLE → WATCH → VERIFYING · numbers live, never from thesis text · holdings excluded</span>}>
         {state.theses === null ? (
           <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
-        ) : watchRows.length === 0 ? (
-          <span className="text-[13px] text-amber-800 dark:text-amber-200">Nothing on watch{heldPole ? ` — desk_theses names ${heldPole.symbol} as POLE but it is held; desk must promote a candidate` : ''}.</span>
+        ) : queue.length === 0 ? (
+          <span className="text-[13px] text-amber-800 dark:text-amber-200">Nothing in line{heldPole ? ` — desk_theses names ${heldPole.symbol} as POLE but it is held; desk must promote a candidate` : ''}.</span>
         ) : (
           <div className="divide-y divide-neutral-100 dark:divide-white/5">
-            {heldPole && <div className="pb-1 text-[11px] text-amber-800 dark:text-amber-200">desk_theses POLE row is {heldPole.symbol}, which is held — suppressed; first WATCH row below is not a pole until the desk promotes it.</div>}
-            {watchRows.map((t) => {
-              const lv = live[t.symbol]; const r = radarFor(t.symbol)
-              const lines = trig(t.symbol, ['bid', 'deep_rung', 'entry', 'dump'])
+            {heldPole && <div className="pb-1 text-[11px] text-amber-800 dark:text-amber-200">desk_theses POLE row is {heldPole.symbol}, which is held — suppressed; the first name below is not a pole until the desk promotes it.</div>}
+            {queue.map((t, rank) => {
+              const lv = live[t.symbol]; const r = radarFor(t.symbol); const fl = flowFor(t.symbol)
+              const lines = trig(t.symbol, ['bid', 'deep_rung', 'entry', 'dump', 'reclaim'])
+              const tm = timing[t.symbol]; const br = buying[t.symbol]
+              const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
               return (
-                <div key={t.symbol} className="py-1.5">
-                  <div className="flex flex-wrap items-baseline gap-x-2 text-[12px]">
-                    <span className={`w-12 text-[15px] font-black ${t.status === 'POLE' ? 'text-amber-700 dark:text-amber-300' : 'text-neutral-700 dark:text-neutral-200'}`}>{t.status === 'POLE' ? '★ ' : ''}{t.symbol}</span>
+                <div key={t.symbol} className="py-2">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-800 font-mono text-[11px] font-bold text-white dark:bg-white dark:text-black">{rank + 1}</span>
+                    <span className="text-[16px] font-black text-neutral-800 dark:text-neutral-100">{t.symbol}</span>
+                    <span className={`rounded px-1.5 py-px text-[9px] font-bold uppercase tracking-wide ${STATUS[t.status] ?? 'bg-neutral-100 text-neutral-600'}`}>{t.status}</span>
                     <span className="font-mono text-[14px] font-bold tabular-nums text-neutral-800 dark:text-neutral-100">{lv ? fmt(lv.price) : '…'}</span>
                     <span className="text-neutral-500">24h <Pct v={lv?.d1} /> · 7d <Pct v={lv?.d7} /> · 30d <Pct v={lv?.d30} /></span>
+                    {lv?.vol != null && <span className="text-neutral-500">vol {big(lv.vol)}</span>}
                     {lines.map((l, i) => (
                       <span key={i} className="text-teal-700 dark:text-teal-300">{l.kind} <b className="font-mono">{fmt(Number(l.level))}</b>{lv && <span className="text-neutral-500"> ({(((Number(l.level) - lv.price) / lv.price) * 100).toFixed(1)}% away)</span>}</span>
                     ))}
-                    {r ? <span className="ml-auto text-[11px] text-neutral-500">radar {r.stage} · score {Number(r.score).toFixed(0)} · turn {Number(r.turnover).toFixed(0)}% · {r.scan_date.slice(5)}</span>
-                       : <span className="ml-auto text-[11px] text-neutral-400">no radar row</span>}
+                    {fl && fl.flow_score != null && <span className={`rounded px-1.5 py-px text-[10px] font-bold ${fl.stage === 'PRE-EARLY' || fl.stage === 'RISING' ? 'bg-sky-100 text-sky-800 dark:bg-sky-400/20 dark:text-sky-200' : 'bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300'}`} title={`flow radar ${fl.scan_date}`}>flow {fl.flow_score >= 0 ? '+' : ''}{Number(fl.flow_score).toFixed(0)} · {fl.stage}</span>}
+                    {r && <span className="text-[11px] text-neutral-500">radar {r.stage} · {Number(r.score).toFixed(0)} · turn {Number(r.turnover).toFixed(0)}%</span>}
+                    <span className="ml-auto flex items-center gap-1.5">
+                      <button type="button" onClick={() => checkTiming(t.symbol)} disabled={tm === 'loading'}
+                        className="rounded-lg bg-neutral-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-neutral-700 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-neutral-200">
+                        {tm === 'loading' ? 'checking…' : T ? `Timing ${T.grade} · refresh` : 'Timing A–F'}
+                      </button>
+                      {T && T.rh_configured && T.buyable && (
+                        <button type="button" onClick={() => buy(t.symbol, T, false)} disabled={br === 'working'}
+                          className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-500 disabled:opacity-50">
+                          {br === 'working' ? 'placing…' : `Buy $${T.size.usd.toFixed(0)}`}
+                        </button>
+                      )}
+                      {T && T.rh_configured && !T.buyable && T.overridable && (
+                        <button type="button" onClick={() => buy(t.symbol, T, true)} disabled={br === 'working'}
+                          className="rounded-lg border border-amber-500 px-2.5 py-1 text-[11px] font-bold text-amber-700 hover:bg-amber-50 disabled:opacity-50 dark:text-amber-300 dark:hover:bg-amber-400/10">
+                          {br === 'working' ? 'placing…' : `Override · buy $${T.size.usd.toFixed(0)}`}
+                        </button>
+                      )}
+                      {T && !T.rh_configured && (
+                        <a href={`https://robinhood.com/crypto/${t.symbol}`} target="_blank" rel="noreferrer"
+                          className="rounded-lg border border-emerald-600 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-400/10" title="Robinhood API keys are not set in Vercel — opens the app instead">
+                          Open in Robinhood ↗
+                        </a>
+                      )}
+                    </span>
                   </div>
                   <div className="mt-0.5 text-[12px] leading-snug text-neutral-600 dark:text-neutral-400">{t.thesis}{t.gate && <span className="text-teal-700 dark:text-teal-300"> · gate → {t.gate}</span>}</div>
+
+                  {tm && tm !== 'loading' && 'error' in tm && <div className="mt-1 text-[12px] text-red-600 dark:text-rose-300">Timing check failed: {tm.error}</div>}
+                  {T && (
+                    <div className="mt-1.5 rounded-xl border border-neutral-200 bg-neutral-50 p-2.5 dark:border-white/10 dark:bg-white/5">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className={`flex h-12 w-12 items-center justify-center rounded-xl text-[26px] font-black ${GRADE[T.grade]}`}>{T.grade}</span>
+                        <div className="text-[12px] leading-snug">
+                          <div className="font-bold text-neutral-800 dark:text-neutral-100">Timing {T.score}/100 · {T.hard.length ? 'BARRED by law' : T.buyable ? 'clear to buy' : 'soft bars — override only'}</div>
+                          <div className="text-neutral-500">as of {denver(T.at)} · price <b className="font-mono text-neutral-700 dark:text-neutral-200">{fmt(T.price)}</b> · 24h volume <b className="font-mono text-neutral-700 dark:text-neutral-200">{T.vol24h != null ? big(T.vol24h) : '—'}</b>{T.volX != null && <span> ({T.volX.toFixed(1)}× its 20d avg)</span>}</div>
+                          <div className="text-neutral-500">24h <Pct v={T.d1} /> · 7d <Pct v={T.d7} /> · 30d <Pct v={T.d30} /> · vs 20d high <Pct v={T.extPct} /> · vs BTC 7d <Pct v={T.rs7VsBtc} /></div>
+                        </div>
+                        <div className="ml-auto text-right text-[12px]">
+                          <div className="text-neutral-500">ruled size</div>
+                          <div className="font-mono text-[15px] font-bold text-neutral-800 dark:text-neutral-100">${T.size.usd.toFixed(2)} <span className="text-[11px] font-normal text-neutral-500">({T.size.pctBook.toFixed(1)}% of ${T.book.toFixed(0)}{T.size.halfSize ? ', half-size' : ''})</span></div>
+                          <div className="text-neutral-500">stop at fill <b className="font-mono text-amber-700 dark:text-amber-300">{fmt(T.stop.price)}</b> ({T.stop.pct.toFixed(0)}%)</div>
+                        </div>
+                      </div>
+                      <div className="mt-1.5 grid gap-x-4 gap-y-0.5 text-[11px] sm:grid-cols-2">
+                        {T.hard.map((x, i) => <div key={`h${i}`} className="text-rose-700 dark:text-rose-300">⛔ {x}</div>)}
+                        {T.plus.map((x, i) => <div key={`p${i}`} className="text-emerald-700 dark:text-emerald-300">{x}</div>)}
+                        {T.soft.map((x, i) => <div key={`s${i}`} className="text-amber-800 dark:text-amber-200">{x}</div>)}
+                        <div className="text-neutral-500">slots {T.sleeveCount}/{T.slots} · entries this week {T.weeklyEntries}/2 · cash ${T.cash.toFixed(0)}{T.blackout ? ` · ${T.blackout}` : ''}</div>
+                      </div>
+                      {!T.rh_configured && <div className="mt-1 text-[11px] text-neutral-500">Tap-to-buy needs Robinhood API credentials (RH_API_KEY + RH_PRIVATE_KEY) in Vercel env. Until then the button opens the Robinhood app; size and stop above are the order to place by hand.</div>}
+                    </div>
+                  )}
+                  {br && br !== 'working' && (
+                    <div className={`mt-1.5 rounded-xl border p-2 text-[12px] ${br.ok ? 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-400/10 dark:text-emerald-200' : 'border-rose-500 bg-rose-50 text-rose-900 dark:bg-rose-400/10 dark:text-rose-200'}`}>
+                      {br.ok ? <>✅ Bought <b className="font-mono">{br.qty} {t.symbol}</b> @ <b className="font-mono">{fmt(br.avg_price ?? 0)}</b> (${(br.notional ?? 0).toFixed(2)}, order {br.order_id?.slice(0, 8)}). {br.stop ? <>Stop-limit <b className="font-mono">{br.stop.stop}/{br.stop.limit}</b> placed (order {br.stop.order_id.slice(0, 8)}).</> : <b>⚠ STOP NOT PLACED{br.stop_error ? `: ${br.stop_error}` : ''} — place it now in the app.</b>}{br.ledger_errors?.length ? <span> Ledger: {br.ledger_errors.join('; ')}</span> : ''}</>
+                        : <>❌ {br.message ?? br.error ?? `order state ${br.state ?? 'unknown'}`}</>}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -297,6 +468,12 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         )}
         {boardPoleSym && held.has(boardPoleSym) && (
           <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-200">Session board still names {boardPoleSym} as pole but it is held — desk to refresh the board.</div>
+        )}
+        {perfItems.length > 0 && (
+          <div className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
+            <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-500">Where they are — every holding and every name in line, one chart</div>
+            <PerfChart items={perfItems} />
+          </div>
         )}
       </Panel>
 

@@ -1,0 +1,92 @@
+// Robinhood Crypto Trading API client (server only). Docs: https://docs.robinhood.com/crypto/trading/
+// Auth: x-api-key + x-timestamp + x-signature, where the signature is Ed25519 over
+//   `${apiKey}${timestamp}${path}${method}${body}`  (path includes the query string; body is the JSON text or '').
+// Credentials come ONLY from Vercel env: RH_API_KEY and RH_PRIVATE_KEY (base64 — either the 32-byte seed
+// or the 64-byte seed||pub form Robinhood's key script emits). Never logged, never returned to a client.
+// Used by ONE caller: /api/fund/buy, which only runs when Jacob taps the button on the ROBINHOOD tab.
+import { createPrivateKey, sign, randomUUID } from 'node:crypto'
+
+const BASE = 'https://trading.robinhood.com'
+const PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex')
+
+export function rhConfigured(): boolean {
+  return !!(process.env.RH_API_KEY && process.env.RH_PRIVATE_KEY)
+}
+
+function key() {
+  const raw = Buffer.from(process.env.RH_PRIVATE_KEY ?? '', 'base64')
+  const seed = raw.length >= 32 ? raw.subarray(0, 32) : raw
+  if (seed.length !== 32) throw new Error('RH_PRIVATE_KEY is not a 32- or 64-byte Ed25519 key')
+  return createPrivateKey({ key: Buffer.concat([PKCS8_PREFIX, seed]), format: 'der', type: 'pkcs8' })
+}
+
+async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+  const apiKey = process.env.RH_API_KEY
+  if (!apiKey) throw new Error('RH_API_KEY missing')
+  const ts = Math.floor(Date.now() / 1000).toString()
+  const text = body === undefined ? '' : JSON.stringify(body)
+  const sig = sign(null, Buffer.from(`${apiKey}${ts}${path}${method}${text}`), key()).toString('base64')
+  const res = await fetch(`${BASE}${path}`, {
+    method, cache: 'no-store',
+    headers: { 'x-api-key': apiKey, 'x-timestamp': ts, 'x-signature': sig, 'Content-Type': 'application/json; charset=utf-8' },
+    body: body === undefined ? undefined : text,
+  })
+  const j = (await res.json().catch(() => ({}))) as T & { detail?: string; errors?: unknown }
+  if (!res.ok) throw new Error(`Robinhood ${method} ${path} → ${res.status}: ${j?.detail ?? JSON.stringify(j?.errors ?? j).slice(0, 300)}`)
+  return j
+}
+
+export interface TradingPair { symbol: string; status: string; min_order_size: string; max_order_size: string; asset_increment?: string; quote_increment?: string }
+export async function tradingPair(symbol: string): Promise<TradingPair> {
+  const j = await call<{ results: TradingPair[] }>('GET', `/api/v1/crypto/trading/trading_pairs/?symbol=${symbol}-USD`)
+  const p = j.results?.[0]
+  if (!p) throw new Error(`${symbol}-USD is not a Robinhood pair`)
+  return p
+}
+
+export interface BestBidAsk { symbol: string; price: string; bid_inclusive_of_sell_spread: string; ask_inclusive_of_buy_spread: string; buy_spread?: string; sell_spread?: string; timestamp?: string }
+export async function bestBidAsk(symbol: string): Promise<BestBidAsk> {
+  const j = await call<{ results: BestBidAsk[] }>('GET', `/api/v1/crypto/marketdata/best_bid_ask/?symbol=${symbol}-USD`)
+  const q = j.results?.[0]
+  if (!q) throw new Error(`no quote for ${symbol}-USD`)
+  return q
+}
+
+export interface Order { id: string; state: string; side: string; type: string; symbol: string; average_price?: string | null; filled_asset_quantity?: string; created_at?: string; executions?: { effective_price: string; quantity: string; timestamp: string }[] }
+
+/** Round DOWN to the pair's increment and format without float noise. */
+export function quantize(qty: number, increment: string): string {
+  const inc = Number(increment) || 1e-8
+  const decimals = Math.max(0, (increment.split('.')[1] ?? '').length)
+  const q = Math.floor(qty / inc + 1e-9) * inc
+  return q.toFixed(decimals)
+}
+
+export async function marketBuy(symbol: string, assetQty: string): Promise<Order> {
+  return call<Order>('POST', '/api/v1/crypto/trading/orders/', {
+    client_order_id: randomUUID(), side: 'buy', type: 'market', symbol: `${symbol}-USD`,
+    market_order_config: { asset_quantity: assetQty },
+  })
+}
+
+/** The protective stop the constitution requires on 100% of the units at fill. */
+export async function stopLimitSell(symbol: string, assetQty: string, stopPrice: string, limitPrice: string): Promise<Order> {
+  return call<Order>('POST', '/api/v1/crypto/trading/orders/', {
+    client_order_id: randomUUID(), side: 'sell', type: 'stop_limit', symbol: `${symbol}-USD`,
+    stop_limit_order_config: { asset_quantity: assetQty, stop_price: stopPrice, limit_price: limitPrice, time_in_force: 'gtc' },
+  })
+}
+
+export async function getOrder(id: string): Promise<Order> {
+  return call<Order>('GET', `/api/v1/crypto/trading/orders/${id}/`)
+}
+
+/** Poll until the order leaves the open states (max ~12s). Returns the last state seen. */
+export async function awaitFill(id: string, tries = 12): Promise<Order> {
+  let o = await getOrder(id)
+  for (let i = 0; i < tries && ['queued', 'confirmed', 'partially_filled', 'open'].includes(o.state); i++) {
+    await new Promise((r) => setTimeout(r, 1000))
+    o = await getOrder(id)
+  }
+  return o
+}

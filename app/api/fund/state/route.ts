@@ -32,6 +32,12 @@ export async function GET(req: Request) {
     ? await supabase.from('fund_radar').select('symbol, stage, score, turnover, d1, d7, d30, price, scan_date').eq('scan_date', latestScan.data.scan_date)
     : { data: null }
 
+  // Latest flow radar (build request #8): flow score + stage beside each queue name.
+  const latestFlow = await supabase.from('flow_radar').select('scan_date').order('scan_date', { ascending: false }).limit(1).maybeSingle()
+  const flow = latestFlow.data?.scan_date
+    ? await supabase.from('flow_radar').select('symbol, flow_score, stage, fees_wow, vol_wow, scan_date').eq('scan_date', latestFlow.data.scan_date)
+    : { data: null }
+
   return NextResponse.json({
     holdings: h.data ?? null,
     triggers: t.data ?? null,
@@ -40,6 +46,7 @@ export async function GET(req: Request) {
     strategy: st.data ?? null,
     theses: th.data ?? null,
     radar: radar.data ?? null,
+    flow: flow.data ?? null,
     loop_enabled: le.data ? String(le.data.value).toLowerCase() === 'true' : null,
     at: new Date().toISOString(),
   }, { headers: { 'Cache-Control': 'no-store' } })
