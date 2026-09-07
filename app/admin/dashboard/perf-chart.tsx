@@ -34,14 +34,16 @@ export default function PerfChart({ items, secret }: { items: PerfItem[]; secret
         const it = want[k]
         try {
           // via our server: CoinGecko sends no CORS header on market_chart, so a browser fetch always fails (2026-09-07)
-          const r = await fetch(`/api/fund/history?id=${encodeURIComponent(it.cgId as string)}&days=${days}&secret=${encodeURIComponent(secret)}`, { cache: 'no-store' })
+          const get = () => fetch(`/api/fund/history?id=${encodeURIComponent(it.cgId as string)}&days=${days}&secret=${encodeURIComponent(secret)}`, { cache: 'no-store' })
+          let r = await get()
+          if (!r.ok && r.status >= 500) { await new Promise((res) => setTimeout(res, 3000)); r = await get() }   // upstream rate-limit: one retry
           const j = r.ok ? ((await r.json()) as { prices?: [number, number][] }) : null
           const raw = j?.prices ?? []
           const step = Math.max(1, Math.ceil(raw.length / 200))
           const thin = raw.filter((_, i) => i % step === 0 || i === raw.length - 1)
           if (!dead) setData((d) => ({ ...d, [`${days}|${it.symbol}`]: thin.length > 1 ? thin : null }))
         } catch { if (!dead) setData((d) => ({ ...d, [`${days}|${it.symbol}`]: null })) }
-        if (k < want.length - 1) await new Promise((res) => setTimeout(res, 250))
+        if (k < want.length - 1) await new Promise((res) => setTimeout(res, 400))   // the proxy serializes upstream calls; this just keeps the browser polite
       }
     })()
     return () => { dead = true }
