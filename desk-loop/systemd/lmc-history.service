@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC daily price-history sync to Supabase (cg_history) for the dashboard charts
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/history_sync.py
+TimeoutStartSec=1800

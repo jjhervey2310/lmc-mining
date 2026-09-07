@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC history sync 06:20 MT daily, ahead of the 06:45 breakout scan
+[Timer]
+OnCalendar=*-*-* 06:20:00
+Persistent=true
+[Install]
+WantedBy=timers.target
