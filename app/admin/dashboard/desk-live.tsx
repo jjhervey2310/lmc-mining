@@ -239,6 +239,43 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
           <span className="text-[13px] text-neutral-500">No open positions. Cash ${cash.toFixed(2)}.</span>
         ) : (
           <>
+            <div className="mb-2 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-white/5">
+                <div className="text-[11px] uppercase tracking-wider text-neutral-500">Cash held</div>
+                <div className="font-mono text-[28px] font-black leading-tight text-neutral-800 dark:text-neutral-100">{usd2(cash)}</div>
+                <div className="text-[10px] text-neutral-500">{book > 0 ? `${((cash / book) * 100).toFixed(0)}% of book · floor 10%` : ''}</div>
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-white/5">
+                <div className="text-[11px] uppercase tracking-wider text-neutral-500">Account value</div>
+                <div className="font-mono text-[28px] font-black leading-tight text-neutral-800 dark:text-neutral-100">{allPriced ? usd2(book) : '…'}</div>
+                {allPriced && (() => {
+                  // 24h move of the whole book: each position's value 24h ago = value / (1 + d1)
+                  const prev = positions.reduce((s, p) => { const d = live[p.symbol]?.d1; return s + (d == null ? val(p) : val(p) / (1 + d / 100)) }, 0) + cash
+                  const chg = book - prev; const pct = prev > 0 ? (chg / prev) * 100 : 0
+                  return <div className={`font-mono text-[13px] font-bold ${chg >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{chg >= 0 ? '▲' : '▼'} {usd2(Math.abs(chg))} ({pct >= 0 ? '+' : ''}{pct.toFixed(2)}%) today</div>
+                })()}
+                <div className="text-[10px] text-neutral-500">positions {allPriced ? usd2(posValue) : 'pricing…'} + cash</div>
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Trading P&L{capital.baseline ? ` since ${new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</div>
+                {/* Build request #7: the ONLY headline P&L — deposit-adjusted. value − baseline − net flows since the baseline. */}
+                {!capital.reachable ? <div className="text-[12px] text-red-600 dark:text-rose-300">capital_flows unreachable — unknown, not zero</div>
+                : !capital.baseline ? <div className="text-[12px] text-amber-800 dark:text-amber-200">no baseline row in capital_flows</div>
+                : allPriced ? (() => {
+                    const capIn = capital.baseline.usd + capital.net_flows
+                    const pnl = book - capIn
+                    const pct = capIn > 0 ? (pnl / capIn) * 100 : 0
+                    return (
+                      <>
+                        <div className={`font-mono text-[28px] font-black leading-tight ${pnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{usd2(pnl)} <span className="text-[14px]">({pnl >= 0 ? '+' : ''}{pct.toFixed(1)}%)</span></div>
+                        <div className="text-[10px] text-neutral-500">capital in {usd2(capIn)} = baseline {usd2(capital.baseline.usd)} {capital.net_flows >= 0 ? '+' : '−'} {usd2(Math.abs(capital.net_flows))} deposits · deposit-adjusted</div>
+                      </>
+                    )
+                  })()
+                : <div className="text-[12px] text-neutral-500">pricing…</div>}
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-[12px] tabular-nums">
                 <thead>
@@ -304,37 +341,6 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                   })}
                 </tbody>
               </table>
-            </div>
-
-            <div className="mt-1.5 grid gap-2 border-t border-neutral-100 pt-2 sm:grid-cols-3 dark:border-white/5">
-              <div className="rounded-lg bg-neutral-50 px-2.5 py-1.5 dark:bg-white/5">
-                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Cash</div>
-                <div className="font-mono text-[15px] font-bold text-neutral-800 dark:text-neutral-100">{usd2(cash)}</div>
-                <div className="text-[10px] text-neutral-500">{book > 0 ? `${((cash / book) * 100).toFixed(0)}% of book · floor 10%` : ''}</div>
-              </div>
-              <div className="rounded-lg bg-neutral-50 px-2.5 py-1.5 dark:bg-white/5">
-                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Account value</div>
-                <div className="font-mono text-[15px] font-bold text-neutral-800 dark:text-neutral-100">{allPriced ? usd2(book) : '…'}</div>
-                <div className="text-[10px] text-neutral-500">positions {allPriced ? usd2(posValue) : 'pricing…'} + cash</div>
-              </div>
-              <div className="rounded-lg bg-neutral-50 px-2.5 py-1.5 dark:bg-white/5">
-                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Trading P&L{capital.baseline ? ` since ${new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</div>
-                {/* Build request #7: the ONLY headline P&L — deposit-adjusted. value − baseline − net flows since the baseline. */}
-                {!capital.reachable ? <div className="text-[12px] text-red-600 dark:text-rose-300">capital_flows unreachable — unknown, not zero</div>
-                : !capital.baseline ? <div className="text-[12px] text-amber-800 dark:text-amber-200">no baseline row in capital_flows</div>
-                : allPriced ? (() => {
-                    const capIn = capital.baseline.usd + capital.net_flows
-                    const pnl = book - capIn
-                    const pct = capIn > 0 ? (pnl / capIn) * 100 : 0
-                    return (
-                      <>
-                        <div className={`font-mono text-[15px] font-bold ${pnl >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{usd2(pnl)} <span className="text-[12px]">({pnl >= 0 ? '+' : ''}{pct.toFixed(1)}%)</span></div>
-                        <div className="text-[10px] text-neutral-500">capital in {usd2(capIn)} = baseline {usd2(capital.baseline.usd)} {capital.net_flows >= 0 ? '+' : '−'} {usd2(Math.abs(capital.net_flows))} deposits · deposit-adjusted</div>
-                      </>
-                    )
-                  })()
-                : <div className="text-[12px] text-neutral-500">pricing…</div>}
-              </div>
             </div>
 
             {/* Constitution v4/v4.1 structure strip: anchor BTC+SOL ≥55% · sleeve ≤45% across min(7, floor(book/$150)) slots (≤10% each, $50 min) · cash floor 10% · anchor tilt */}

@@ -1,3 +1,5 @@
+import { createServiceClient } from '@/lib/supabase'
+
 // Symbol → CoinGecko id for the desk pages and routes. Hand map for the names the desk trades;
 // everything else resolves from the top-500 by market cap (cached a day). Shared by the ROBINHOOD
 // tab, /api/fund/timing and /api/fund/buy so a symbol never resolves differently in two places.
@@ -11,10 +13,20 @@ export const CG: Record<string, string> = {
   ARB: 'arbitrum', LDO: 'lido-dao', STRK: 'starknet', NEAR: 'near', FET: 'fetch-ai', SEI: 'sei-network',
   OP: 'optimism', XPL: 'plasma', ZRO: 'layerzero', ENA: 'ethena', AERO: 'aerodrome-finance', JTO: 'jito-governance-token',
   SYRUP: 'syrup', ASTER: 'aster-2', AVNT: 'avantis', MORPHO: 'morpho', EIGEN: 'eigenlayer', WLFI: 'world-liberty-financial',
+  TON: 'the-open-network', TAO: 'bittensor', CC: 'canton-network', WLD: 'worldcoin-wld', TRUMP: 'official-trump', SKR: 'seeker',
 }
 
 export async function resolveIds(symbols: string[]): Promise<Record<string, string>> {
   const out = { ...CG }
+  // cg_history (Supabase) carries symbol→id for the whole Robinhood universe, written daily by the droplet —
+  // a DB read, no CoinGecko call, and it is the same id the history proxy serves. (2026-09-07: TON had no id.)
+  try {
+    const sb = createServiceClient()
+    if (sb) {
+      const { data } = await sb.from('cg_history').select('symbol, id')
+      for (const r of (data ?? []) as { symbol: string | null; id: string }[]) { const k = r.symbol?.toUpperCase(); if (k && !out[k]) out[k] = r.id }
+    }
+  } catch { /* fall through */ }
   const missing = [...new Set(symbols.map((s) => s.toUpperCase()))].filter((s) => !out[s])
   if (!missing.length) return out
   try {
