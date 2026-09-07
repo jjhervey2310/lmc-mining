@@ -213,6 +213,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
           entry={Number(openPos.avg_cost) > 0 ? Number(openPos.avg_cost) : null}
           stop={stopFor(openPos.symbol) != null ? Number(stopFor(openPos.symbol)) : null}
           others={perfItems.map((i) => ({ symbol: i.symbol, cgId: i.cgId }))}
+          secret={secret}
           onClose={() => setOpen(null)} />
       )}
 

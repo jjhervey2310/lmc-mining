@@ -27,13 +27,15 @@ const pctFmt = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`
 export interface ChartName { symbol: string; cgId: string | null }
 type Series = [number, number][] | null | undefined   // undefined = loading, null = failed
 
-export default function HoldingChart({ symbol, cgId, entry, stop, others = [], onClose }: {
+export default function HoldingChart({ symbol, cgId, entry, stop, others = [], secret, onClose }: {
   symbol: string
   cgId: string | null
   entry: number | null
   stop: number | null
   /** every other name on the tab (holdings + queue) that can be overlaid for comparison */
   others?: ChartName[]
+  /** page secret — history is fetched through /api/fund/history because CoinGecko blocks browser CORS */
+  secret: string
   onClose: () => void
 }) {
   const [days, setDays] = useState<number>(90)
@@ -58,12 +60,10 @@ export default function HoldingChart({ symbol, cgId, entry, stop, others = [], o
       setData((d) => ({ ...d, [key]: undefined }))
       ;(async () => {
         try {
-          const r = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`)
+          const r = await fetch(`/api/fund/history?id=${encodeURIComponent(id)}&days=${days}&secret=${encodeURIComponent(secret)}`, { cache: 'no-store' })
           if (!r.ok) { if (!dead) setData((d) => ({ ...d, [key]: null })); return }
           const j = (await r.json()) as { prices?: [number, number][] }
-          const raw = j.prices ?? []
-          const step = Math.max(1, Math.ceil(raw.length / 240))   // ~240 points keeps the SVG light on a phone
-          const thin = raw.filter((_, i) => i % step === 0 || i === raw.length - 1)
+          const thin = j.prices ?? []   // already thinned to ~240 points server-side
           if (!dead) setData((d) => ({ ...d, [key]: thin.length > 1 ? thin : null }))
         } catch { if (!dead) setData((d) => ({ ...d, [key]: null })) }
       })()
