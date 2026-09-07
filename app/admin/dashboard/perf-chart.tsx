@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 // ONE chart, every name on it: holdings as solid lines, the queue (POLE / WATCH / VERIFYING) dashed,
 // each indexed to 0% at the start of the window so "where they are" is comparable at a glance.
 // Legend chips carry the live price, the window move and — for holdings — the move vs the entry.
-// Prices come from CoinGecko client-side (one market_chart call per name, staggered, cached per window).
+// Prices come from CoinGecko through /api/fund/history (one call per name, staggered, cached per window).
 
 export interface PerfItem { symbol: string; cgId: string | null; kind: 'held' | 'queue'; entry: number | null; status?: string }
 
@@ -17,7 +17,7 @@ const fmt = (n: number) =>
 
 type Series = { item: PerfItem; color: string; pts: [number, number][]; idx: number[] }
 
-export default function PerfChart({ items }: { items: PerfItem[] }) {
+export default function PerfChart({ items, secret }: { items: PerfItem[]; secret: string }) {
   const [days, setDays] = useState<number>(30)
   // keyed by `${days}|${symbol}` so switching the window never needs a synchronous reset inside the effect
   const [data, setData] = useState<Record<string, [number, number][] | null>>({})
@@ -33,7 +33,8 @@ export default function PerfChart({ items }: { items: PerfItem[] }) {
       for (let k = 0; k < want.length; k++) {
         const it = want[k]
         try {
-          const r = await fetch(`https://api.coingecko.com/api/v3/coins/${it.cgId}/market_chart?vs_currency=usd&days=${days}`)
+          // via our server: CoinGecko sends no CORS header on market_chart, so a browser fetch always fails (2026-09-07)
+          const r = await fetch(`/api/fund/history?id=${encodeURIComponent(it.cgId as string)}&days=${days}&secret=${encodeURIComponent(secret)}`, { cache: 'no-store' })
           const j = r.ok ? ((await r.json()) as { prices?: [number, number][] }) : null
           const raw = j?.prices ?? []
           const step = Math.max(1, Math.ceil(raw.length / 200))

@@ -474,7 +474,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         {perfItems.length > 0 && (
           <div className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
             <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-neutral-500">Where they are — every holding and every name in line, one chart</div>
-            <PerfChart items={perfItems} />
+            <PerfChart items={perfItems} secret={secret} />
           </div>
         )}
       </Panel>
