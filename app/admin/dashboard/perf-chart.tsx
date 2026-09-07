@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 
-// ONE chart, every name on it: holdings as solid lines, the queue (POLE / WATCH / VERIFYING) dashed,
-// each indexed to 0% at the start of the window so "where they are" is comparable at a glance.
-// Legend chips carry the live price, the window move and — for holdings — the move vs the entry.
-// Prices come from CoinGecko client-side (one market_chart call per name, staggered, cached per window).
+// ONE chart: holdings as solid lines, the queue (POLE / WATCH / VERIFYING) dashed, each indexed to 0% at the
+// start of the window so "where they are" is comparable at a glance. Legend chips carry the live price, the
+// window move and — for holdings — the move vs the entry.
+// LOADING RULE (Jacob 09-07): only HOLDINGS load on their own. Queue names are chips that fetch and draw only when
+// tapped, and the choice is remembered in this browser. Loaded series are cached per window, so the 60s state
+// refresh never re-downloads anything.
 
 export interface PerfItem { symbol: string; cgId: string | null; kind: 'held' | 'queue'; entry: number | null; status?: string }
 
@@ -23,12 +25,25 @@ export default function PerfChart({ items }: { items: PerfItem[] }) {
   const [data, setData] = useState<Record<string, [number, number][] | null>>({})
   const at = (sym: string) => data[`${days}|${sym}`]
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
+  // queue names the viewer has tapped onto the chart (remembered per browser; holdings never need this)
+  const [picked, setPicked] = useState<Record<string, boolean>>({})
+  // restore the remembered picks after mount (never during render — the server has no localStorage and would mismatch)
+  useEffect(() => {
+    let saved: Record<string, boolean> = {}
+    try { saved = JSON.parse(localStorage.getItem('lmc-perf-picked') ?? '{}') as Record<string, boolean> } catch { saved = {} }
+    if (Object.keys(saved).length) queueMicrotask(() => setPicked(saved))
+  }, [])
   const [cursor, setCursor] = useState<number | null>(null)
-  const key = items.map((i) => i.symbol).join(',')
+  const isOn = (i: PerfItem) => i.kind === 'held' ? !hidden[i.symbol] : !!picked[i.symbol]
+  const key = items.map((i) => `${i.symbol}:${i.kind}`).join(',')
+  const pickedKey = items.filter((i) => i.kind === 'queue' && picked[i.symbol]).map((i) => i.symbol).join(',')
+  const loadedKey = Object.keys(data).join(',')
 
   useEffect(() => {
     let dead = false
-    const want = items.filter((i) => i.cgId)
+    // fetch only what is ON and not already cached for this window: holdings always, queue names once tapped
+    const want = items.filter((i) => i.cgId && (i.kind === 'held' || picked[i.symbol]) && data[`${days}|${i.symbol}`] === undefined)
+    if (!want.length) return
     ;(async () => {
       for (let k = 0; k < want.length; k++) {
         const it = want[k]
@@ -45,7 +60,13 @@ export default function PerfChart({ items }: { items: PerfItem[] }) {
     })()
     return () => { dead = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, days])
+  }, [key, days, pickedKey, loadedKey])
+
+  const togglePick = (sym: string) => setPicked((p) => {
+    const next = { ...p, [sym]: !p[sym] }
+    try { localStorage.setItem('lmc-perf-picked', JSON.stringify(next)) } catch { /* private mode etc. */ }
+    return next
+  })
 
   const w = 900, h = 260
   const pad = { l: 8, r: 8, t: 14, b: 20 }
@@ -70,30 +91,33 @@ export default function PerfChart({ items }: { items: PerfItem[] }) {
     }
     return { item, color: PALETTE[k % PALETTE.length], pts, idx }
   })
-  const shown = series.filter((s) => s.idx.length && !hidden[s.item.symbol])
+  const shown = series.filter((s) => s.idx.length && isOn(s.item))
   const all = shown.flatMap((s) => s.idx)
   const lo = all.length ? Math.min(0, ...all) : -1, hi = all.length ? Math.max(0, ...all) : 1
   const span = hi - lo || 1
   const y = (v: number) => pad.t + ih - ((v - lo) / span) * ih
   const x = (i: number) => pad.l + (i / (n - 1)) * iw
   const dateAt = (i: number) => new Date(tAt(i)).toLocaleDateString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric' })
-  const loading = items.some((i) => i.cgId && at(i.symbol) === undefined)
+  const loading = items.some((i) => i.cgId && isOn(i) && at(i.symbol) === undefined)
 
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         {series.map((s) => {
-          const last = s.pts.length ? s.pts[s.pts.length - 1][1] : null
-          const win = s.idx.length ? s.idx[s.idx.length - 1] : null
+          const on = isOn(s.item)
+          const last = on && s.pts.length ? s.pts[s.pts.length - 1][1] : null
+          const win = on && s.idx.length ? s.idx[s.idx.length - 1] : null
           const vsEntry = last != null && s.item.entry ? (last / s.item.entry - 1) * 100 : null
-          const off = hidden[s.item.symbol]
+          const queued = s.item.kind === 'queue'
           return (
-            <button key={s.item.symbol} onClick={() => setHidden((hh) => ({ ...hh, [s.item.symbol]: !hh[s.item.symbol] }))}
-              className={`flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[11px] transition-all ${off ? 'opacity-35' : ''} border-neutral-200 bg-white hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10`}>
-              <span className="inline-block h-2 w-4 rounded-sm" style={{ background: s.color, opacity: s.item.kind === 'queue' ? 0.55 : 1, borderBottom: s.item.kind === 'queue' ? `2px dashed ${s.color}` : undefined }} />
+            <button key={s.item.symbol} onClick={() => queued ? togglePick(s.item.symbol) : setHidden((hh) => ({ ...hh, [s.item.symbol]: !hh[s.item.symbol] }))}
+              title={queued ? (on ? 'tap to remove from the chart' : 'tap to load onto the chart') : (on ? 'tap to hide' : 'tap to show')}
+              className={`flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[11px] transition-all ${on ? '' : queued ? 'border-dashed opacity-60' : 'opacity-35'} border-neutral-200 bg-white hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10`}>
+              <span className="inline-block h-2 w-4 rounded-sm" style={{ background: on ? s.color : 'transparent', border: on ? undefined : `1px dashed ${s.color}`, opacity: queued ? 0.7 : 1 }} />
               <span className="font-bold text-neutral-700 dark:text-neutral-200">{s.item.symbol}</span>
-              {s.item.kind === 'queue' && <span className="rounded bg-neutral-100 px-1 text-[9px] uppercase tracking-wide text-neutral-500 dark:bg-white/10">{s.item.status ?? 'queue'}</span>}
-              {last != null ? <span className="font-mono text-neutral-600 dark:text-neutral-300">{fmt(last)}</span> : <span className="text-neutral-400">{at(s.item.symbol) === null ? 'n/a' : '…'}</span>}
+              {queued && <span className="rounded bg-neutral-100 px-1 text-[9px] uppercase tracking-wide text-neutral-500 dark:bg-white/10">{s.item.status ?? 'queue'}</span>}
+              {!on && queued && <span className="text-[10px] text-neutral-400">+ add</span>}
+              {on && (last != null ? <span className="font-mono text-neutral-600 dark:text-neutral-300">{fmt(last)}</span> : <span className="text-neutral-400">{at(s.item.symbol) === null ? 'n/a' : '…'}</span>)}
               {win != null && <span className={`font-mono ${win >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>{win >= 0 ? '+' : ''}{win.toFixed(1)}%</span>}
               {vsEntry != null && <span className={`font-mono text-[10px] ${vsEntry >= 0 ? 'text-emerald-600/80 dark:text-emerald-300/80' : 'text-rose-600/80 dark:text-rose-300/80'}`}>vs entry {vsEntry >= 0 ? '+' : ''}{vsEntry.toFixed(1)}%</span>}
             </button>
@@ -144,7 +168,7 @@ export default function PerfChart({ items }: { items: PerfItem[] }) {
             {shown.map((s) => <span key={s.item.symbol} style={{ color: s.color }}>{s.item.symbol} {s.idx[cursor] >= 0 ? '+' : ''}{s.idx[cursor].toFixed(1)}%</span>)}
           </>
         ) : (
-          <span className="text-neutral-500 dark:text-white/40">{loading ? 'loading prices…' : 'solid = held · dashed = up next · indexed to 0% at the window start · click a chip to hide'}</span>
+          <span className="text-neutral-500 dark:text-white/40">{loading ? 'loading prices…' : 'holdings load on their own · tap an "up next" chip to add it · indexed to 0% at the window start'}</span>
         )}
       </div>
     </div>
