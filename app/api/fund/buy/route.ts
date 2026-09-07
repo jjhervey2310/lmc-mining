@@ -50,8 +50,8 @@ export async function POST(req: Request) {
     const notional = fillQty * fillPx
     const now = new Date().toISOString()
 
-    // STOP on 100% of the units, at the desk's armed stop or −20% from fill. Limit 5% under the stop.
-    const stopPx = t.stop.source.startsWith('desk_triggers') ? t.stop.price : fillPx * 0.80
+    // STOP on 100% of the units: the desk's armed stop row, else A9's max(20-day low, −20% from fill). Limit 5% under the stop.
+    const stopPx = t.stop.source.startsWith('desk_triggers') ? t.stop.price : Math.max(t.lo20 && t.lo20 < fillPx ? t.lo20 : 0, fillPx * 0.80)
     const qInc = pair.quote_increment ?? '0.000001'
     const stopStr = quantize(stopPx, qInc), limitStr = quantize(stopPx * 0.95, qInc)
     let stopOrder: { id: string; state: string } | null = null, stopError: string | null = null
@@ -60,10 +60,12 @@ export async function POST(req: Request) {
     }
 
     // Ledger — best effort, never blocks the response.
-    const note = `Tap-buy from the ROBINHOOD tab. Timing grade ${t.grade} (${t.score})${body.override ? ' — Jacob OVERRIDE on soft bars: ' + t.soft.join('; ') : ''}. Stop ${stopOrder ? `placed ${stopStr}/${limitStr} (order ${stopOrder.id})` : `NOT placed${stopError ? ': ' + stopError : ''}`}.`
+    // A9.1 §4: two books. A buy on the tested breakout signal without an override is SLEEVE-RULE; anything else is OWNER-BOOK.
+    const bookTag = t.signal && !body.override ? 'SLEEVE-RULE' : 'OWNER-BOOK'
+    const note = `[${bookTag}] Tap-buy from the ROBINHOOD tab. Timing grade ${t.grade} (${t.score}), regime ${t.regime}, signal ${t.signal ? 'yes' : 'no'} (${t.signalWhy})${body.override ? ' — Jacob OVERRIDE on soft bars: ' + t.soft.join('; ') : ''}. Stop ${stopOrder ? `placed ${stopStr}/${limitStr} (order ${stopOrder.id})` : `NOT placed${stopError ? ': ' + stopError : ''}`}.`
     const log: string[] = []
     if (fillQty > 0) {
-      const r1 = await supabase.from('live_trades').upsert({ order_id: placed.id, traded_at: now, side: 'buy', symbol, qty: fillQty, avg_price: fillPx, notional, initiator: 'jacob-tap', note: note.slice(0, 480) }, { onConflict: 'order_id' })
+      const r1 = await supabase.from('live_trades').upsert({ order_id: placed.id, traded_at: now, side: 'buy', symbol, qty: fillQty, avg_price: fillPx, notional, initiator: `jacob-tap/${bookTag}`, note: note.slice(0, 480) }, { onConflict: 'order_id' })
       if (r1.error) log.push(`live_trades: ${r1.error.message}`)
       const held = await supabase.from('live_holdings').select('qty, avg_cost').eq('symbol', symbol).maybeSingle()
       const oldQ = Number(held.data?.qty ?? 0), oldC = Number(held.data?.avg_cost ?? 0)
@@ -87,7 +89,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: filled.state === 'filled', state: filled.state, order_id: placed.id, symbol, qty: fillQty, avg_price: fillPx, notional,
       stop: stopOrder ? { order_id: stopOrder.id, state: stopOrder.state, stop: stopStr, limit: limitStr } : null, stop_error: stopError,
-      ledger_errors: log, timing: { grade: t.grade, score: t.score },
+      ledger_errors: log, book: bookTag, timing: { grade: t.grade, score: t.score },
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {
     return NextResponse.json({ error: 'broker', message: e instanceof Error ? e.message : String(e) }, { status: 502 })

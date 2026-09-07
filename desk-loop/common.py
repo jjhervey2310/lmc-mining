@@ -120,6 +120,12 @@ def budget_status():
     except Exception:
         book = 0.0
     allowed_month = max(floor, book * pct / 100.0)
+    # #9 addendum / A9.1 §5 (09-06): a HARD monthly cap from desk_config loop_budget_usd ($10) sits under the book-scaled rule.
+    try:
+        hard = float(config("loop_budget_usd", os.environ.get("LOOP_BUDGET_USD", "0")) or 0)
+        if hard > 0: allowed_month = min(allowed_month, hard)
+    except Exception:
+        pass
     p = STATE / "spend.json"; m = now_denver().strftime("%Y-%m")
     d = json.loads(p.read_text()) if p.exists() else {}
     spent_month = d.get("usd", 0.0) if d.get("month") == m else 0.0
@@ -233,6 +239,14 @@ def sleeve_breaker(holdings=None, px=None):
     elif ratio <= st["hwm"] * (1 - BREAKER_DD):
         st["since"] = now_denver().isoformat()
     f.write_text(json.dumps(st))
+    # Mirror to desk_config so the ROBINHOOD tab's timing grade / tap-buy (Vercel, no box access) honour the breaker.
+    try:
+        want = st.get("since") or ""
+        cur = config("sleeve_breaker", "") or ""
+        if (cur or "") != want:
+            sb_upsert("desk_config", [{"key": "sleeve_breaker", "value": want, "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "key")
+    except Exception:
+        pass
     return bool(st.get("since")), st
 
 def drawdown_halted():

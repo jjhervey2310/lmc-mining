@@ -4,11 +4,11 @@ Runs on a DigitalOcean Ubuntu 24.04 droplet under `/root/lmc-desk`. systemd time
 - `lmc-price-check` every 15 min — live prices vs `desk_triggers`, logs to `desk_alert_log`, pushes via ntfy (free)
 - `lmc-trail` :05/:20/:35/:50 — `trail.py` v3: constitution v4/v4.1 trail + ratchet + third + rotation + reclaim + flush flags (free)
 - `lmc-wake` hourly at :07 — `triage.py`, pure code; escalates to `lmc-wake-deep` only on something mechanical (free)
-- `lmc-wake-deep` 07:07 + on escalation — headless Claude Code reasoning wake (one web search), writes `pa_memory.loop-briefs` (paid, budget-gated)
+- `lmc-wake-deep` 00:07 / 06:07 / 12:07 / 18:07 + on escalation — headless Claude Code reasoning wake (one web search), writes `pa_memory.loop-briefs` (paid; capped by `desk_config.loop_budget_usd` = $10/mo under the book-scaled rule, A9.1 §5)
 - `lmc-breakout` 06:45 — 20d-high + volume + RS breakout scan over `universe.json`, `pa_memory.breakout-signals` (free)
 - `lmc-flow` 07:20 — `flow_scan.py` (build request #8): DefiLlama fees / revenue / DEX volume / TVL / stablecoin flows per RH name → `public.flow_radar`, `pa_memory.flow-radar`; PRE-EARLY names pushed + added to `desk_theses` as VERIFYING. Daily = held + POLE/WATCH/VERIFYING; Sunday (or `--full`) = whole universe (free)
 - `lmc-news` 07:40 — universe news sweep, top-10 daily / top-40 Sunday (paid, budget-gated)
-- `lmc-heartbeat` 08:00 — flushes the overnight digest (quiet hours 23:00–08:00), heartbeat push, `pa_memory.loop-heartbeat`
+- `lmc-heartbeat` 08:00 — flushes the overnight digest (quiet hours 23:00–08:00), heartbeat push with ACTUAL API spend vs cap + the fixed droplet cost + sleeve-breaker state, `pa_memory.loop-heartbeat`
 - `lmc-stage-study` 08:20 — does yesterday's radar label predict today's move (free)
 
 `universe.json` = Robinhood-tradable names from `get_currency_pairs` (87 as of 2026-09-06; PUMP delisted, POL untradable, stables/gold excluded). The box cannot call the Robinhood connector — refresh it from a chat session weekly (topic `rh-universe`).
@@ -36,3 +36,6 @@ ssh root@209.97.150.226 'cd /root/lmc-desk && systemctl daemon-reload && for t i
 
 ## A9 in the loop (2026-09-06, build request #9)
 `trail.py` v4: anchor = 30% catastrophe trail from the highest completed close (no x0.90 ratchet); sleeve 18% → 25% past +50%; no take-profit flag below +50%. `common.sleeve_breaker()` replaces the whole-book 5% halt: the deep wake stops proposing entries only when the SLEEVE mark/cost ratio is 20% under its high-water mark (state/sleeve_breaker.json; delete to clear). `breakout_scan.py` prints the REGIME (BTC vs 50d/200d from state/cb/BTC.json, or `desk_config.regime`) and applies the chase bars only outside BULL (+15% day = HALF size in BULL). `backtest_a9.py` writes the A9 grid to `pa_memory.backtest-results-a9`.
+
+## Sleeve audit (2026-09-06, build request #10)
+`backtest_audit.py` runs the review-#2 spec: next-open entry after a completed-close signal, 20-day window excluding the signal day, 1.9% round trip + 1%/side alt slippage + missed-limit modelling, results ex top 1/3/5 winners, walk-forward (grid chosen on 2023-24, judged on 2025-26), no-survivorship universe (every Coinbase USD pair incl. delisted — fetch them all into `state/cb` first; `universe_cb.json` beside `state/` carries the listing status), the portfolio simulation with $125/wk deposits under the A9 caps, anchor-only and BTC-only benchmarks, the BULL regime split, and BTC/SOL anchor trails (none/30%/20%) with drawdown + recovery. Writes `pa_memory.backtest-audit`. `AUDIT_NO_WRITE=1` prints only. The sleeve breaker is mirrored to `desk_config.sleeve_breaker` so the ROBINHOOD tab's timing grade honours it.

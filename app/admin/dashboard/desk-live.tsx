@@ -39,14 +39,15 @@ export interface Capital {
 interface Live { price: number; d1: number | null; d7: number | null; d30: number | null; vol: number | null }
 interface Timing {
   symbol: string; at: string; price: number; vol24h: number | null; avgVol20: number | null; volX: number | null
-  d1: number | null; d7: number | null; d30: number | null; hi20: number | null; extPct: number | null; rs7VsBtc: number | null
-  book: number; cash: number; slots: number; sleeveCount: number; weeklyEntries: number; blackout: string | null; halfSize: boolean
+  d1: number | null; d7: number | null; d30: number | null; hi20: number | null; lo20: number | null; extPct: number | null; rs7VsBtc: number | null
+  signal: boolean; signalWhy: string; regime: 'BULL' | 'NEUTRAL' | 'BEAR'; regimeWhy: string
+  book: number; cash: number; sleeveUsd: number; sleeveCap: number; blackout: string | null; halfSize: boolean; breaker: string | null
   grade: 'A' | 'B' | 'C' | 'D' | 'F'; score: number; hard: string[]; soft: string[]; plus: string[]
-  size: { usd: number; pctBook: number; halfSize: boolean; cappedBy: string | null }
+  size: { usd: number; pctBook: number; halfSize: boolean; cappedBy: string | null; book: 'SLEEVE-RULE' | 'OWNER-BOOK' }
   stop: { price: number; source: string; pct: number }
   buyable: boolean; overridable: boolean; rh_configured: boolean
 }
-interface BuyResult { ok?: boolean; state?: string; order_id?: string; qty?: number; avg_price?: number; notional?: number; stop?: { order_id: string; stop: string; limit: string } | null; stop_error?: string | null; ledger_errors?: string[]; error?: string; message?: string }
+interface BuyResult { ok?: boolean; state?: string; order_id?: string; qty?: number; avg_price?: number; notional?: number; book?: string; stop?: { order_id: string; stop: string; limit: string } | null; stop_error?: string | null; ledger_errors?: string[]; error?: string; message?: string }
 
 const ANCHOR = new Set(['BTC', 'SOL'])   // v4: ETH out of the anchor (Jacob 09-05)
 const fmt = (n: number) =>
@@ -182,7 +183,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const buy = async (sym: string, t: Timing, override: boolean) => {
     const lines = [
       `BUY ${sym} at market — about $${t.size.usd.toFixed(2)} (${t.size.pctBook.toFixed(1)}% of the book${t.size.cappedBy ? `, capped by ${t.size.cappedBy}` : ''})`,
-      `Live ${fmt(t.price)} · timing grade ${t.grade} (${t.score}/100)`,
+      `Live ${fmt(t.price)} · timing grade ${t.grade} (${t.score}/100) · regime ${t.regime} · ${override ? 'OWNER-BOOK' : t.size.book} trade`,
       `A stop-limit on 100% of the units goes in at fill: ${fmt(t.stop.price)} (${t.stop.pct.toFixed(0)}%, ${t.stop.source})`,
       override ? `\nOVERRIDE of soft bars: ${t.soft.join('; ')}` : '',
       '\nThis places a real order on Robinhood. Continue?',
@@ -335,22 +336,22 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
               </div>
             </div>
 
-            {/* Constitution v4/v4.1 structure strip: anchor BTC+SOL ≥55% · sleeve ≤45% across min(7, floor(book/$150)) slots (≤10% each, $50 min) · cash floor 10% · anchor tilt */}
+            {/* A9 / A9.1 structure strip: anchor BTC+SOL · sleeve = R&D budget ≤15% of book (≤10% per name, $50 flat) · uncommitted cash ≥5% · anchor tilt */}
             {allPriced && book > 0 && (() => {
               const anchor = positions.filter((p) => ANCHOR.has(p.symbol)).reduce((s, p) => s + val(p), 0)
               const sleeve = positions.filter((p) => !ANCHOR.has(p.symbol))
               const sleeveV = sleeve.reduce((s, p) => s + val(p), 0)
               const aPct = (anchor / book) * 100, sPct = (sleeveV / book) * 100, cPct = (cash / book) * 100
-              const slots = Math.min(7, Math.floor(book / 150))              // v4.1 §2 slot formula
-              const minPos = book >= 500 ? 50 : null                          // minimum sleeve position once the book is ≥ $500
+              const sleeveCap = book * 0.15, cashFloor = book * (book < 2000 ? 0.05 : 0.10)
+              const room = Math.min(sleeveCap - sleeveV, cash - cashFloor)
               const fat = sleeve.filter((p) => val(p) / book > 0.10).map((p) => p.symbol)
               const solD30 = live['SOL']?.d30 ?? null, btcD30 = live['BTC']?.d30 ?? null
-              const tilt = solD30 != null && btcD30 != null ? (solD30 > btcD30 ? '60/40 SOL/BTC' : '50/50') : null   // v4.1 §4 anchor tilt on the 30d SOL/BTC ratio
+              const tilt = solD30 != null && btcD30 != null ? (solD30 > btcD30 ? '60/40 SOL/BTC' : '50/50') : null   // anchor tilt on the 30d SOL/BTC ratio (retained in A9)
               const flags = [
-                aPct < 55 ? `anchor ${aPct.toFixed(0)}% < 55%` : '',
-                cPct < 10 ? `cash ${cPct.toFixed(0)}% < 10% floor — no new sleeve entries` : '',
-                sleeve.length > slots ? `sleeve ${sleeve.length} names > ${slots} slots` : '',
+                sPct > 15 ? `sleeve ${sPct.toFixed(0)}% > 15% cap` : '',
+                cash < cashFloor ? `cash $${cash.toFixed(0)} < $${cashFloor.toFixed(0)} floor — no new sleeve entries` : '',
                 fat.length ? `over 10%: ${fat.join(', ')}` : '',
+                room < 50 && cash >= cashFloor && sPct <= 15 ? `compliant entry size $${Math.max(0, room).toFixed(0)} < $50 — A9.1: skip until a deposit or an exit` : '',
               ].filter(Boolean)
               return (
                 <div className="mt-2">
@@ -360,11 +361,11 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                     <div className="bg-neutral-400/60" style={{ width: `${cPct}%` }} />
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-neutral-600 dark:text-neutral-400">
-                    <span>v4.1 structure:</span>
-                    <span><b className="text-rose-600 dark:text-rose-300">anchor</b> BTC/SOL <span className="font-mono">{aPct.toFixed(0)}%</span> <span className="text-neutral-400">(≥55%{tilt ? ` · basket ${tilt}` : ''})</span></span>
-                    <span><b className="text-amber-700 dark:text-amber-300">sleeve</b> <span className="font-mono">{sPct.toFixed(0)}%</span> · slots <span className="font-mono">{sleeve.length}/{slots}</span> <span className="text-neutral-400">(≤45%, ≤10% each{minPos ? `, $${minPos} min` : ''})</span></span>
-                    <span><b>cash</b> <span className="font-mono">{cPct.toFixed(0)}%</span> <span className="text-neutral-400">(floor 10%)</span></span>
-                    <span className="text-neutral-400">holdings {positions.length}/10</span>
+                    <span>A9 structure:</span>
+                    <span><b className="text-rose-600 dark:text-rose-300">anchor</b> BTC/SOL <span className="font-mono">{aPct.toFixed(0)}%</span> <span className="text-neutral-400">(30% catastrophe trail only{tilt ? ` · basket ${tilt}` : ''})</span></span>
+                    <span><b className="text-amber-700 dark:text-amber-300">sleeve</b> <span className="font-mono">{sPct.toFixed(0)}%</span> · ${sleeveV.toFixed(0)} of ${sleeveCap.toFixed(0)} <span className="text-neutral-400">(R&D cap 15%, ≤10% each, $50 flat)</span></span>
+                    <span><b>cash</b> <span className="font-mono">{cPct.toFixed(0)}%</span> <span className="text-neutral-400">(floor {book < 2000 ? '5' : '10'}%)</span> · next entry room <span className="font-mono">${Math.max(0, room).toFixed(0)}</span></span>
+                    <span className="text-neutral-400">holdings {positions.length}</span>
                   </div>
                   {flags.length > 0 && <div className="mt-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-200">⚠ {flags.join(' · ')}</div>}
                 </div>
@@ -436,7 +437,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                       <div className="flex flex-wrap items-center gap-3">
                         <span className={`flex h-12 w-12 items-center justify-center rounded-xl text-[26px] font-black ${GRADE[T.grade]}`}>{T.grade}</span>
                         <div className="text-[12px] leading-snug">
-                          <div className="font-bold text-neutral-800 dark:text-neutral-100">Timing {T.score}/100 · {T.hard.length ? 'BARRED by law' : T.buyable ? 'clear to buy' : 'soft bars — override only'}</div>
+                          <div className="font-bold text-neutral-800 dark:text-neutral-100">Timing {T.score}/100 · {T.hard.length ? 'BARRED by law' : T.buyable ? 'clear to buy' : 'process bars — override only'} · <span className={T.signal ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-200'}>{T.signal ? 'A9 breakout signal ✓' : 'no breakout signal'}</span> · regime {T.regime}</div>
                           <div className="text-neutral-500">as of {denver(T.at)} · price <b className="font-mono text-neutral-700 dark:text-neutral-200">{fmt(T.price)}</b> · 24h volume <b className="font-mono text-neutral-700 dark:text-neutral-200">{T.vol24h != null ? big(T.vol24h) : '—'}</b>{T.volX != null && <span> ({T.volX.toFixed(1)}× its 20d avg)</span>}</div>
                           <div className="text-neutral-500">24h <Pct v={T.d1} /> · 7d <Pct v={T.d7} /> · 30d <Pct v={T.d30} /> · vs 20d high <Pct v={T.extPct} /> · vs BTC 7d <Pct v={T.rs7VsBtc} /></div>
                         </div>
@@ -450,14 +451,14 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                         {T.hard.map((x, i) => <div key={`h${i}`} className="text-rose-700 dark:text-rose-300">⛔ {x}</div>)}
                         {T.plus.map((x, i) => <div key={`p${i}`} className="text-emerald-700 dark:text-emerald-300">{x}</div>)}
                         {T.soft.map((x, i) => <div key={`s${i}`} className="text-amber-800 dark:text-amber-200">{x}</div>)}
-                        <div className="text-neutral-500">slots {T.sleeveCount}/{T.slots} · entries this week {T.weeklyEntries}/2 · cash ${T.cash.toFixed(0)}{T.blackout ? ` · ${T.blackout}` : ''}</div>
+                        <div className="text-neutral-500">sleeve ${T.sleeveUsd.toFixed(0)} of ${T.sleeveCap.toFixed(0)} cap (15%) · cash ${T.cash.toFixed(0)} (floor 5%) · {T.size.book}{T.blackout ? ` · ${T.blackout}` : ''}{T.breaker ? ' · SLEEVE BREAKER TRIPPED' : ''}</div>
                       </div>
                       {!T.rh_configured && <div className="mt-1 text-[11px] text-neutral-500">Tap-to-buy needs Robinhood API credentials (RH_API_KEY + RH_PRIVATE_KEY) in Vercel env. Until then the button opens the Robinhood app; size and stop above are the order to place by hand.</div>}
                     </div>
                   )}
                   {br && br !== 'working' && (
                     <div className={`mt-1.5 rounded-xl border p-2 text-[12px] ${br.ok ? 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-400/10 dark:text-emerald-200' : 'border-rose-500 bg-rose-50 text-rose-900 dark:bg-rose-400/10 dark:text-rose-200'}`}>
-                      {br.ok ? <>✅ Bought <b className="font-mono">{br.qty} {t.symbol}</b> @ <b className="font-mono">{fmt(br.avg_price ?? 0)}</b> (${(br.notional ?? 0).toFixed(2)}, order {br.order_id?.slice(0, 8)}). {br.stop ? <>Stop-limit <b className="font-mono">{br.stop.stop}/{br.stop.limit}</b> placed (order {br.stop.order_id.slice(0, 8)}).</> : <b>⚠ STOP NOT PLACED{br.stop_error ? `: ${br.stop_error}` : ''} — place it now in the app.</b>}{br.ledger_errors?.length ? <span> Ledger: {br.ledger_errors.join('; ')}</span> : ''}</>
+                      {br.ok ? <>✅ Bought <b className="font-mono">{br.qty} {t.symbol}</b> @ <b className="font-mono">{fmt(br.avg_price ?? 0)}</b> (${(br.notional ?? 0).toFixed(2)}, order {br.order_id?.slice(0, 8)}, {br.book ?? 'book?'}). {br.stop ? <>Stop-limit <b className="font-mono">{br.stop.stop}/{br.stop.limit}</b> placed (order {br.stop.order_id.slice(0, 8)}).</> : <b>⚠ STOP NOT PLACED{br.stop_error ? `: ${br.stop_error}` : ''} — place it now in the app.</b>}{br.ledger_errors?.length ? <span> Ledger: {br.ledger_errors.join('; ')}</span> : ''}</>
                         : <>❌ {br.message ?? br.error ?? `order state ${br.state ?? 'unknown'}`}</>}
                     </div>
                   )}
