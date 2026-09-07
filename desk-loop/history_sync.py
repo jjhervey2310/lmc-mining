@@ -6,6 +6,7 @@ Free. ~88 CoinGecko calls spaced 2.5s = ~4 min. Reuses backtest.py's cached fetc
 import json, time, datetime
 from common import *
 from backtest import universe, id_map
+from backtest_house import candles as cb_candles
 from common import _req
 
 H365 = STATE / "hist365"; H365.mkdir(parents=True, exist_ok=True)
@@ -27,16 +28,26 @@ def main():
     for s in syms:
         cid = ids.get(s) or CG.get(s)
         if not cid: skipped.append(s); continue
+        # Coinbase first (keyless, no 429s, 83/88 names, cached 20h by backtest_house); CoinGecko only for the rest.
+        bars = None
         try:
-            bars = history365(cid)
-        except Exception as e:
-            skipped.append(f"{s}({type(e).__name__})"); continue
+            cb = cb_candles(s)
+            if cb and len(cb) >= 5:
+                cutoff = time.time() - 366 * 86400
+                bars = [{"t": b["t"], "c": b["c"]} for b in cb if b["t"] >= cutoff]
+        except Exception:
+            bars = None
+        if not bars:
+            try:
+                bars = history365(cid)
+            except Exception as e:
+                skipped.append(f"{s}({type(e).__name__})"); continue
         if not bars or len(bars) < 5: skipped.append(f"{s}(short)"); continue
         prices = [[b["t"] * 1000, round(b["c"], 8)] for b in bars if b.get("c") is not None]
         rows.append({"id": cid, "symbol": s, "days": 365, "prices": prices,
                      "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()})
-        if len(rows) % 20 == 0:
-            sb_upsert("cg_history", rows[-20:], "id")
+        if len(rows) % 10 == 0:
+            sb_upsert("cg_history", rows[-10:], "id")
     if rows:
         sb_upsert("cg_history", rows, "id")
     print(f"history sync: {len(rows)} ids written, {len(skipped)} skipped: {', '.join(skipped[:10])}")
