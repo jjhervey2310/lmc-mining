@@ -212,6 +212,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         <HoldingChart symbol={openPos.symbol} cgId={cg[openPos.symbol.toUpperCase()] ?? null}
           entry={Number(openPos.avg_cost) > 0 ? Number(openPos.avg_cost) : null}
           stop={stopFor(openPos.symbol) != null ? Number(stopFor(openPos.symbol)) : null}
+          others={perfItems.map((i) => ({ symbol: i.symbol, cgId: i.cgId }))}
           onClose={() => setOpen(null)} />
       )}
 
