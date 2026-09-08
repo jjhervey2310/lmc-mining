@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC analyst watch — new uploads from tracked analysts via free RSS (alert-only, $0)
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/analyst_watch.py
+TimeoutStartSec=300

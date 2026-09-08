@@ -1,0 +1,7 @@
+[Unit]
+Description=LMC analyst watch 4x daily, each just before a reasoning wake
+[Timer]
+OnCalendar=06,11,16,21:50
+Persistent=true
+[Install]
+WantedBy=timers.target
