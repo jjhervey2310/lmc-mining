@@ -50,6 +50,11 @@ Vercel/**
 Vercel/
 **/.claude/**
 .claude/**
+# but keep the version-controlled Expert Boardroom sub-agent panel + skills
+!.claude/agents/
+!.claude/agents/**
+!.claude/skills/
+!.claude/skills/**
 
 # vercel
 .vercel
