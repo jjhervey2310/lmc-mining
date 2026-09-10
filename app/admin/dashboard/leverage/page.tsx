@@ -38,6 +38,14 @@ type Verdict = {
   capacity_usd: number | null; evidence: string | null; sort_order: number
 }
 
+type VolRow = {
+  currency: string; expiry: string; observed_at: string; days_to_expiry: number | null
+  atm_iv: number | null; put_iv_25d: number | null; call_iv_25d: number | null
+  skew_25d: number | null; put_call_oi_ratio: number | null; dvol: number | null
+}
+
+type RealizedVol = { symbol: string; annualized_vol: number | null; sample_bars: number }
+
 type Position = {
   id: string; opened_at: string; market: string; contract: string | null
   side: string; leverage: number; notional_usd: number; entry_price: number
@@ -77,7 +85,7 @@ async function load() {
     try { return (await fn()).data } catch { return null }
   }
 
-  const [verdicts, positions, candle, funding, book, tape, carry, capacity] = await Promise.all([
+  const [verdicts, positions, candle, funding, book, tape, carry, capacity, vol, realized] = await Promise.all([
     q<Verdict[]>(() => sb.from('kr_research_verdicts').select('*').order('sort_order')),
     q<Position[]>(() => sb.from('kr_paper_positions').select('*').order('opened_at', { ascending: false }).limit(25)),
     q<{ bar_time: string }[]>(() => sb.from('kr_ohlcv').select('bar_time').order('bar_time', { ascending: false }).limit(1)),
@@ -88,6 +96,10 @@ async function load() {
       () => sb.from('kr_funding').select('symbol, funding_rate_annualized, open_interest_usd, observed_at').order('observed_at', { ascending: false }).limit(275)),
     q<{ pair: string; capacity_usd: number | null; round_trip_10k_bps: number | null; observed_at: string }[]>(
       () => sb.from('kr_book').select('pair, capacity_usd, round_trip_10k_bps, observed_at').order('observed_at', { ascending: false }).limit(60)),
+    q<VolRow[]>(() => sb.from('kr_vol_surface')
+      .select('currency, expiry, observed_at, days_to_expiry, atm_iv, put_iv_25d, call_iv_25d, skew_25d, put_call_oi_ratio, dvol')
+      .order('observed_at', { ascending: false }).limit(120)),
+    q<RealizedVol[]>(() => sb.from('kr_realized_vol').select('symbol, annualized_vol, sample_bars')),
   ])
 
   // Row counts come back on `count`, not `data` — a head:true request has no rows at
@@ -98,9 +110,9 @@ async function load() {
       return count ?? null
     } catch { return null }
   }
-  const [candles, fundingRows, bookRows, tapeRows] = await Promise.all(
-    ['kr_ohlcv', 'kr_funding', 'kr_book', 'kr_tape'].map(countOf))
-  const collected = [candles, fundingRows, bookRows, tapeRows]
+  const [candles, fundingRows, bookRows, tapeRows, volRows] = await Promise.all(
+    ['kr_ohlcv', 'kr_funding', 'kr_book', 'kr_tape', 'kr_vol_surface'].map(countOf))
+  const collected = [candles, fundingRows, bookRows, tapeRows, volRows]
     .reduce<number | null>((sum, n) => (n === null ? sum : (sum ?? 0) + n), null)
 
   return {
@@ -111,11 +123,15 @@ async function load() {
       { name: 'Funding, OI & basis',  table: 'kr_funding', key: 'funding' as const, minutes: staleness(funding?.[0]?.observed_at), budget: 15,  note: '275 perpetuals. NOTHING public returns a past hour’s funding rate — a gap here can never be filled.' },
       { name: 'Order book capacity',  table: 'kr_book', key: 'book' as const,    minutes: staleness(book?.[0]?.observed_at),    budget: 15,  note: 'Real cost of real size, walked through the book. Not the quoted spread.' },
       { name: 'Trade tape & flow',    table: 'kr_tape', key: 'tape' as const,    minutes: staleness(tape?.[0]?.window_start),   budget: 20,  note: 'Aggressor side, print sizes, tick volatility. None of it survives into a candle.' },
+      { name: 'Implied volatility',   table: 'kr_vol_surface', key: 'vol' as const, minutes: staleness(vol?.[0]?.observed_at),  budget: 20,  note: 'What the market EXPECTS, from ~1,800 Deribit options. A snapshot with no history endpoint behind it, so a gap is permanent.' },
     ],
     carry: dedupe(carry ?? [], (r) => r.symbol),
     capacity: dedupe(capacity ?? [], (r) => r.pair),
+    vol: dedupe(vol ?? [], (r) => `${r.currency}|${r.expiry}`)
+      .sort((a, b) => (a.days_to_expiry ?? 0) - (b.days_to_expiry ?? 0)),
+    realized: Object.fromEntries((realized ?? []).map((r) => [r.symbol, r])) as Record<string, RealizedVol>,
     collected,
-    counts: { candles, funding: fundingRows, book: bookRows, tape: tapeRows },
+    counts: { candles, funding: fundingRows, book: bookRows, tape: tapeRows, vol: volRows },
   }
 }
 
@@ -144,7 +160,7 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
     )
   }
 
-  const { verdicts, positions, streams, carry, capacity, collected, counts } = data
+  const { verdicts, positions, streams, carry, capacity, collected, counts, vol, realized } = data
   const live = streams.filter((s) => s.minutes !== null && s.minutes <= s.budget).length
   const running = verdicts.filter((v) => v.status === 'collecting').length
   const proven = verdicts.filter((v) => v.status === 'green').length
@@ -318,6 +334,71 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
                 )
               })}
             </div>
+          )}
+        </Panel>
+      </div>
+
+      {/* ── what the market expects, versus what it delivered ───────────── */}
+      <div className="mt-3">
+        <Panel accent="blue" title="🌪️ What the market expects — implied volatility"
+          right={<span className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">Deribit</span>}>
+          {vol.length === 0 ? (
+            <div className="py-4 text-center text-[13px] text-neutral-500 dark:text-neutral-400">
+              No option data collected yet.
+            </div>
+          ) : (
+            <>
+              <div className="mb-3 grid gap-2 sm:grid-cols-2">
+                {['BTC', 'ETH'].map((ccy) => {
+                  const rows = vol.filter((v) => v.currency === ccy)
+                  const dvol = rows.find((r) => r.dvol !== null)?.dvol ?? null
+                  const rv = realized[`${ccy}/USD`]?.annualized_vol ?? null
+                  const premium = dvol !== null && rv !== null ? dvol - rv * 100 : null
+                  return (
+                    <div key={ccy} className="rounded-lg border border-neutral-200 px-3 py-2 dark:border-white/10">
+                      <div className="text-[11px] uppercase tracking-widest text-neutral-500 dark:text-neutral-400">{ccy} variance risk premium</div>
+                      <div className={`font-mono text-2xl font-bold ${premium === null ? 'text-neutral-500' : premium > 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>
+                        {premium === null ? DASH : `${premium > 0 ? '+' : ''}${premium.toFixed(1)} pts`}
+                      </div>
+                      <div className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">
+                        implied {num(dvol, 1, '%')} · realised {num(rv !== null ? rv * 100 : null, 1, '%')}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[12px]">
+                  <thead className="text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                    <tr><th className="pb-1">expiry</th><th className="pb-1 text-right">days</th><th className="pb-1 text-right">ATM IV</th><th className="pb-1 text-right">25d put</th><th className="pb-1 text-right">25d call</th><th className="pb-1 text-right">skew</th><th className="pb-1 text-right">P/C OI</th></tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    {vol.slice(0, 14).map((v) => (
+                      <tr key={`${v.currency}|${v.expiry}`} className="border-t border-neutral-100 dark:border-white/5">
+                        <td className="py-0.5 font-sans">{v.currency} {new Date(v.expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</td>
+                        <td className="py-0.5 text-right text-neutral-500 dark:text-neutral-400">{num(v.days_to_expiry, 0)}</td>
+                        <td className="py-0.5 text-right">{num(v.atm_iv, 1, '%')}</td>
+                        <td className="py-0.5 text-right text-neutral-500 dark:text-neutral-400">{num(v.put_iv_25d, 1, '%')}</td>
+                        <td className="py-0.5 text-right text-neutral-500 dark:text-neutral-400">{num(v.call_iv_25d, 1, '%')}</td>
+                        <td className={`py-0.5 text-right ${v.skew_25d === null ? '' : v.skew_25d < 0 ? 'font-bold text-amber-600 dark:text-amber-300' : ''}`}>
+                          {v.skew_25d === null ? DASH : `${v.skew_25d > 0 ? '+' : ''}${v.skew_25d.toFixed(1)}`}
+                        </td>
+                        <td className="py-0.5 text-right text-neutral-500 dark:text-neutral-400">{num(v.put_call_oi_ratio, 2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-2 border-t border-neutral-200 pt-2 text-[12px] leading-relaxed text-neutral-500 dark:border-white/10 dark:text-neutral-400">
+                Implied volatility sits above realised more often than not, because someone is
+                paid to carry the risk of it not doing so — that gap is the <b>variance risk
+                premium</b>, and unlike a price forecast it does not need direction to be right.
+                <b> Skew</b> is 25-delta put minus call: positive means downside protection costs
+                more, the normal state. <b className="text-amber-600 dark:text-amber-300">Negative
+                skew is highlighted</b> — calls richer than puts is unusual and means the market is
+                paying for upside rather than hedging downside.
+              </div>
+            </>
           )}
         </Panel>
       </div>
