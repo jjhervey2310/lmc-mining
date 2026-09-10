@@ -40,7 +40,7 @@ interface Live { price: number; d1: number | null; d7: number | null; d30: numbe
 interface Timing {
   symbol: string; at: string; price: number; vol24h: number | null; avgVol20: number | null; volX: number | null
   d1: number | null; d7: number | null; d30: number | null; hi20: number | null; extPct: number | null; rs7VsBtc: number | null
-  tapeError: string | null
+  tapeError: string | null; hi20Source: 'cg_history' | 'coingecko' | null
   book: number; cash: number; slots: number; sleeveCount: number; weeklyEntries: number; blackout: string | null; halfSize: boolean
   grade: 'A' | 'B' | 'C' | 'D' | 'F'; score: number; hard: string[]; soft: string[]; plus: string[]
   size: { usd: number; pctBook: number; halfSize: boolean; cappedBy: string | null }
@@ -440,11 +440,18 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                   <div className="mt-0.5 text-[12px] leading-snug text-neutral-600 dark:text-neutral-400">{t.thesis}{t.gate && <span className="text-teal-700 dark:text-teal-300"> · gate → {t.gate}</span>}</div>
 
                   {tm && tm !== 'loading' && 'error' in tm && <div className="mt-1 text-[12px] text-red-600 dark:text-rose-300">Timing check failed: {tm.error}</div>}
-                  {T?.tapeError && (
+                  {T?.tapeError && T.hi20 === null && (
                     <div className="mt-1 rounded-lg border border-rose-400/50 bg-rose-500/10 px-2 py-1 text-[12px] leading-snug text-rose-700 dark:text-rose-300">
                       <b>Tape unread — grade is not trustworthy.</b> {T.tapeError}. Without the
                       20-day high the RUNNING extension law cannot be checked, so the desk refuses
                       the entry rather than clearing it on data it does not have. Re-run the check.
+                    </div>
+                  )}
+                  {T?.tapeError && T.hi20 !== null && (
+                    <div className="mt-1 rounded-lg border border-amber-400/50 bg-amber-400/10 px-2 py-1 text-[12px] leading-snug text-amber-700 dark:text-amber-300">
+                      <b>Volume unconfirmed.</b> {T.tapeError}. The 20-day high came from the
+                      stored daily series, so the RUNNING law was still checked — only the
+                      volume-vs-average test is missing from this grade.
                     </div>
                   )}
                   {T && (
