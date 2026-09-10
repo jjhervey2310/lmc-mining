@@ -62,12 +62,28 @@ const STATUS = {
   untested:   { dot: 'bg-neutral-300', chip: 'border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-white/5 dark:bg-white/[0.02] dark:text-neutral-500', label: 'QUEUED' },
 } as const
 
+// Ordered the way the research is actually gated, not alphabetically: the families that
+// can produce answers soonest come first. Volatility, carry and microstructure are not
+// directional, so they are not hostage to the market doing something new — which is what
+// blocks every trend and reversion hypothesis today.
 const FAMILY_LABEL: Record<string, string> = {
-  trend: 'Trend & momentum', reversion: 'Mean reversion', volatility: 'Volatility',
-  carry: 'Funding & carry', positioning: 'Positioning & crowding',
-  microstructure: 'Order book & tape', 'cross-section': 'Cross-sectional',
+  volatility: 'Volatility & implied vol',
+  carry: 'Funding & carry',
+  microstructure: 'Order book & tape',
+  positioning: 'Positioning & crowding',
+  structure: 'Return structure',
+  execution: 'Execution & cost',
+  risk: 'Risk & sizing',
+  trend: 'Trend & momentum',
+  reversion: 'Mean reversion',
+  'cross-section': 'Cross-sectional',
   seasonality: 'Seasonality',
+  'cross-venue': 'Cross-venue',
+  macro: 'Macro & cross-asset',
+  onchain: 'On-chain & fundamentals',
+  validation: 'How results are judged',
 }
+const FAMILY_ORDER = Object.keys(FAMILY_LABEL)
 
 /** Minutes since a timestamp, or null when there is nothing to measure from. */
 function staleness(iso: string | null | undefined): number | null {
@@ -167,7 +183,14 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
   const promising = verdicts.filter((v) => v.status === 'amber').length
   const open = positions.filter((p) => p.status === 'open')
 
-  const families = [...new Set(verdicts.map((v) => v.family))]
+  // Known families in the deliberate order above; anything unrecognised still renders,
+  // appended rather than dropped — a hypothesis silently missing from the board is worse
+  // than one in the wrong place.
+  const present = new Set(verdicts.map((v) => v.family))
+  const families = [
+    ...FAMILY_ORDER.filter((f) => present.has(f)),
+    ...[...present].filter((f) => !FAMILY_ORDER.includes(f)).sort(),
+  ]
   const withFunding = carry
     .filter((c) => c.funding_rate_annualized !== null)
     .sort((a, b) => Math.abs(b.funding_rate_annualized!) - Math.abs(a.funding_rate_annualized!))
