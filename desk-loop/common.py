@@ -98,20 +98,40 @@ def loop_enabled():
     return str(config("loop_enabled", "true")).lower() == "true"
 
 # ── spend cap: token accounting in state/spend.json, halt file when over ──
+_budget_cache = {}
+
+def loop_budget_usd():
+    """The monthly AI spend budget. SINGLE SOURCE OF TRUTH: desk_config.loop_budget_usd.
+    LOOP_BUDGET_USD / MONTHLY_CAP_USD in .env are fallbacks for a Supabase outage only — before
+    2026-09-10 the box enforced and reported the env's $30 while the desk's own budget row said $10."""
+    if "usd" not in _budget_cache:
+        try:
+            raw = config("loop_budget_usd")
+        except Exception:
+            raw = None
+        if raw in (None, ""):
+            raw = os.environ.get("LOOP_BUDGET_USD") or os.environ.get("MONTHLY_CAP_USD") or "10"
+        try:
+            _budget_cache["usd"] = float(raw)
+        except (TypeError, ValueError):
+            _budget_cache["usd"] = 10.0
+    return _budget_cache["usd"]
+
 def add_spend(usd):
     p = STATE / "spend.json"; m = now_denver().strftime("%Y-%m")
     d = json.loads(p.read_text()) if p.exists() else {}
     if d.get("month") != m: d = {"month": m, "usd": 0.0}
     d["usd"] = round(d["usd"] + float(usd), 4); p.write_text(json.dumps(d))
-    cap = float(os.environ.get("MONTHLY_CAP_USD", "30"))
+    cap = loop_budget_usd()
     if d["usd"] >= cap:
         (STATE / "halt_spend").write_text(f"{d['usd']} >= {cap} on {now_denver().isoformat()}")
-        ntfy("⛔ Desk loop HALTED — spend cap", f"${d['usd']:.2f} of ${cap:.0f}/mo used. Wakes paused until next month or cap raised.", "high", force=True)
+        ntfy("⛔ Desk loop HALTED — spend cap", f"${d['usd']:.2f} of ${cap:.2f}/mo used. Wakes paused until next month, or until desk_config.loop_budget_usd is raised.", "high", force=True)
     return d
 
 def budget_status():
     """Jacob's rule (2026-09-03): AI cost must scale with the book, not the clock.
-    Monthly allowance = max(WAKE_MIN_USD, WAKE_BUDGET_PCT% of book value).
+    Monthly allowance = max(WAKE_MIN_USD, WAKE_BUDGET_PCT% of book value), CAPPED by the budget on
+    record (desk_config.loop_budget_usd) — the book may grow the allowance, never past the budget.
     Returns (allowed_month, spent_month, allowed_today, spent_today, ok_to_wake)."""
     pct = float(config("wake_budget_pct", os.environ.get("WAKE_BUDGET_PCT", "1.5")))
     floor = float(config("wake_min_usd", os.environ.get("WAKE_MIN_USD", "5")))
@@ -119,7 +139,7 @@ def budget_status():
         book, _ = book_value()
     except Exception:
         book = 0.0
-    allowed_month = max(floor, book * pct / 100.0)
+    allowed_month = min(loop_budget_usd(), max(floor, book * pct / 100.0))
     p = STATE / "spend.json"; m = now_denver().strftime("%Y-%m")
     d = json.loads(p.read_text()) if p.exists() else {}
     spent_month = d.get("usd", 0.0) if d.get("month") == m else 0.0
@@ -207,7 +227,29 @@ def book_value():
     return total, missing
 
 ANCHOR_SYMS = {"BTC", "SOL"}     # v4: the anchor. Everything else held is the sleeve.
+ANCHOR_STANDING_TRAIL_USD = 5000.0   # A11 §3: at this book value the standing anchor trail returns, permanently
 BREAKER_DD, BREAKER_CLEAR = 0.20, 0.10
+
+def resting_stop_required(sym, book_usd=None):
+    """Does this symbol have to carry a resting stop row right now?
+
+    AMENDMENT A11 (ratified by Jacob 2026-09-08, pa_memory 'house-strategy'):
+      §1 the fixed anchor trails were CANCELLED — BTC and SOL hold through corrections with no
+         resting stop, an accepted risk;
+      §2 anchor protection is CONDITION-TRIGGERED (primary: a weekly close below the 20-week MA;
+         see the 'derisk_watch' rows in desk_triggers) — armed, not resting;
+      §3 the standing trail returns at ANCHOR_STANDING_TRAIL_USD of book value, permanently;
+      §4 the sleeve and the basket are UNCHANGED — every non-anchor position keeps a stop at all times.
+    So: only the anchor is ever exempt, and only while the book is under the threshold. If the book
+    cannot be valued we return True — an unproven exemption must not silence the law screen."""
+    if sym not in ANCHOR_SYMS:
+        return True                                  # A11 §4: sleeve + basket always
+    if book_usd is None:
+        try:
+            book_usd, _ = book_value()
+        except Exception:
+            return True                              # fail loud, not silent
+    return float(book_usd) >= ANCHOR_STANDING_TRAIL_USD
 
 def sleeve_breaker(holdings=None, px=None):
     """A9 (2026-09-06): the circuit breaker is SLEEVE-ONLY. Ratio = sleeve market value / sleeve cost basis

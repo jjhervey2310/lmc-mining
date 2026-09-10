@@ -17,7 +17,8 @@ set_key() {
   echo "  ✓ $name saved (${#val} characters)"
 }
 grep -q '^SUPABASE_URL=' "$ENV" || echo 'SUPABASE_URL=https://bngwwalucfirmcymqall.supabase.co' >> "$ENV"
-grep -q '^MONTHLY_CAP_USD=' "$ENV" || echo 'MONTHLY_CAP_USD=30' >> "$ENV"
+# Fallback only — desk_config.loop_budget_usd is the budget of record; this is read only if Supabase is down.
+grep -q '^LOOP_BUDGET_USD=' "$ENV" || echo 'LOOP_BUDGET_USD=10' >> "$ENV"
 echo "=== LMC desk — set secrets ===\nPaste each key with Cmd+V (Mac Terminal) or Ctrl+Shift+V, then press Enter.\nPress Enter alone to skip a key."
 set_key SUPABASE_SERVICE_KEY "1) Paste the Supabase SERVICE_ROLE key, then press Enter:"
 set_key ANTHROPIC_API_KEY    "2) Paste your NEW Anthropic API key, then press Enter:"
