@@ -1,5 +1,7 @@
 # LMC desk loop — Stage 1 (alert-only)
 
+**Operating reference: [`docs/`](docs/)** — [rule → code map](docs/RULES-TO-CODE.md) · [deploy runbook](docs/DEPLOY.md) · [changelog](docs/CHANGELOG.md) · [incidents](docs/INCIDENTS.md)
+
 Runs on a DigitalOcean Ubuntu 24.04 droplet under `/root/lmc-desk`. systemd timers (all Denver time):
 - `lmc-price-check` every 15 min — live prices vs `desk_triggers`, logs to `desk_alert_log`, pushes via ntfy (free)
 - `lmc-trail` :05/:20/:35/:50 — `trail.py` v3: constitution v4/v4.1 trail + ratchet + third + rotation + reclaim + flush flags (free)
