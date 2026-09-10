@@ -1,7 +1,10 @@
 // TIMING GRADE — A/B/C/D/F for "is NOW a good moment to add this name", scored against the house
 // laws (constitution v4/v4.1) and the tape. Deterministic, numbers only — never from thesis text.
 // HARD bars (chase laws, RUNNING extension, drawdown halt) are an F that no button can override:
-// the constitution says chase-bar exemptions are refused in any regime. PROCESS bars (cash floor,
+// the constitution says chase-bar exemptions are refused in any regime. An UNMEASURABLE law is a
+// hard bar too (2026-09-10): without the 20-day high the RUNNING extension check cannot run, and a
+// rate-limited chart fetch used to drop that law silently — leaving a name that might be 40% above
+// its 20-day high grading D and buyable on override. Not proven safe is not the same as safe. PROCESS bars (cash floor,
 // slots, weekly count, blackout) cap the grade at D — override territory, which the constitution allows
 // Jacob per trade, and the override is logged. A / B / C = clear to buy at the ruled size.
 
@@ -14,6 +17,7 @@ export interface TimingInput {
   d1: number | null; d7: number | null; d30: number | null       // % changes
   vol24h: number | null; avgVol20: number | null                 // USD
   hi20: number | null                                            // highest daily close of the prior 20 days
+  tapeError?: string | null                                      // why the 30-day chart is missing, when it is
   rs7VsBtc: number | null                                        // 7d return minus BTC's, percentage points
   armed: { kind: string; level: number }[]                       // desk_triggers rows for the symbol
   cashUsd: number; bookUsd: number
@@ -48,6 +52,7 @@ export function gradeTiming(i: TimingInput): TimingResult {
   if (i.d30 != null && i.d30 >= 70) hard.push(`chase law: +${i.d30.toFixed(0)}% in 30d (bar is +70%)`)
   const ext = i.hi20 ? (i.price / i.hi20 - 1) * 100 : null
   if (ext != null && ext > 15) hard.push(`RUNNING: ${ext.toFixed(0)}% above its 20-day high (no-entry zone past +15%)`)
+  if (i.hi20 == null) hard.push(`RUNNING law UNCHECKABLE: no 20-day high${i.tapeError ? ` — ${i.tapeError}` : ' — not enough daily history'}. Extension is unknown, so no entry is cleared.`)
   if (i.halted) hard.push('desk loop halted or paused — no new entries')
   if (i.held) hard.push('already held — adds go through the deposit basket, not the queue')
 
@@ -70,6 +75,8 @@ export function gradeTiming(i: TimingInput): TimingResult {
     const x = i.vol24h / i.avgVol20
     if (x >= 1.5) add(8, `volume ${x.toFixed(1)}x its 20-day average — move is confirmed`)
     else if (x < 0.7) ded(10, `volume ${x.toFixed(1)}x its 20-day average — no participation`)
+  } else if (i.avgVol20 == null) {
+    soft.push(`volume confirmation unchecked — no 20-day average volume${i.tapeError ? ` (${i.tapeError})` : ''}`)
   }
   const entryLines = i.armed.filter((a) => ['bid', 'entry', 'deep_rung', 'reclaim'].includes(a.kind))
   if (entryLines.length) {
