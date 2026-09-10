@@ -215,18 +215,18 @@ export function Shell({
   secret, active, children,
 }: {
   secret: string
-  active: 'posts' | 'mining' | 'trading' | 'fund' | 'jobs' | 'lfc' | 'website' | 'videos'
+  active: 'fund' | 'leverage' | 'mining' | 'todo' | 'posts' | 'trading' | 'jobs' | 'lfc' | 'website' | 'videos'
   children: React.ReactNode
 }) {
-  // POSTS, JOBS and LFC are paused (Jacob 2026-08-31). Their pages still exist
-  // and still work by URL — they are only off the nav, so putting them back is
-  // one line each.
+  // Four tabs, in Jacob's order (2026-09-10): the live money first, the desk
+  // being built second, the mining plan third, the list fourth.
+  // POSTS, JOBS, LFC, TRADING, WEBSITE and VIDEOS are parked — the pages still
+  // exist and still work by URL, they are only off the nav.
   const tabs = [
-    { id: 'mining', label: 'MINE SIM', href: `/admin/dashboard/mining?secret=${secret}` },
-    { id: 'trading', label: 'TRADING', href: `/admin/dashboard/trading?secret=${secret}` },
     { id: 'fund', label: 'ROBINHOOD', href: `/admin/dashboard/fund?secret=${secret}` },
-    { id: 'website', label: 'WEBSITE', href: `/admin/dashboard/website?secret=${secret}` },
-    { id: 'videos', label: 'VIDEOS', href: `/admin/dashboard/videos?secret=${secret}` },
+    { id: 'leverage', label: 'LEVERAGE', href: `/admin/dashboard/leverage?secret=${secret}` },
+    { id: 'mining', label: 'MINE SIM', href: `/admin/dashboard/mining?secret=${secret}` },
+    { id: 'todo', label: 'TO-DO', href: `/admin/dashboard/todo?secret=${secret}` },
   ]
   return (
     <div className="lmc-scene min-h-screen bg-slate-100 font-sans text-neutral-800 transition-colors duration-500 dark:bg-[#07070b] dark:text-neutral-200">

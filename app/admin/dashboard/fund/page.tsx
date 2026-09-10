@@ -11,7 +11,17 @@ import { resolveIds } from '@/lib/desk-cg'
 // Build request #7 (2026-09-06): P&L is DEPOSIT-ADJUSTED everywhere — value − baseline − net capital flows since
 // the baseline (public.capital_flows: kind baseline/deposit/withdrawal). Raw account growth is never called P&L.
 
-export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
+// ROBINHOOD is the terminal's landing tab (Jacob 2026-09-10), so it carries the
+// PWA manifest link — without it the terminal can't be installed on the phone.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ secret?: string }> }): Promise<Metadata> {
+  const { secret = '' } = await searchParams
+  return {
+    robots: { index: false, follow: false, nocache: true },
+    title: "Jacob's Dashboard",
+    manifest: secret ? `/api/admin/manifest?secret=${encodeURIComponent(secret)}` : undefined,
+    appleWebApp: { capable: true, title: "Jacob's Dashboard", statusBarStyle: 'black-translucent' },
+  }
+}
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 

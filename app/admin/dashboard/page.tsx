@@ -5,12 +5,12 @@ import { redirect } from 'next/navigation'
 // /admin/dashboard/posts — nothing deleted, ready to come back.
 //
 // This route stays because the installed phone app's start_url points at it;
-// changing that would only take effect on a reinstall. It forwards to MINE SIM,
+// changing that would only take effect on a reinstall. It forwards to ROBINHOOD,
 // which is now the first tab.
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardHome({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
   const { secret = '' } = await searchParams
-  redirect(`/admin/dashboard/mining?secret=${encodeURIComponent(secret)}`)
+  redirect(`/admin/dashboard/fund?secret=${encodeURIComponent(secret)}`)
 }
