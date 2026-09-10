@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
-import { resolveIds } from '@/lib/desk-cg'
+import { resolveIds, cgFetch } from '@/lib/desk-cg'
 import { gradeTiming, ANCHOR, type TimingInput } from '@/lib/desk-timing'
 import { rhConfigured } from '@/lib/robinhood'
 
@@ -35,15 +35,24 @@ export async function buildTiming(symbol: string) {
     supabase.from('desk_triggers').select('symbol, kind, level').eq('active', true),
     supabase.from('live_trades').select('symbol, side, traded_at').gte('traded_at', weekStart).eq('side', 'buy'),
     supabase.from('desk_config').select('key, value').in('key', ['loop_enabled', 'macro_half_size', 'entry_blackout']),
-    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${cgId},bitcoin&price_change_percentage=24h,7d,30d`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
-    fetch(`https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=usd&days=30&interval=daily`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
+    cgFetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${cgId},bitcoin&price_change_percentage=24h,7d,30d`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
+    // Why the chart failed matters: a rate-limited fetch used to look identical to a
+    // coin with no history, and both silently removed the RUNNING extension law from
+    // the grade. Keep the status so the reason can be reported.
+    cgFetch(`https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=usd&days=30&interval=daily`, { cache: 'no-store' })
+      .then(async (r) => r.ok ? { ok: true as const, data: await r.json() } : { ok: false as const, status: r.status })
+      .catch((e) => ({ ok: false as const, status: 0, message: e instanceof Error ? e.message : String(e) })),
   ])
   type Mk = { id: string; current_price: number; total_volume: number; price_change_percentage_24h_in_currency?: number; price_change_percentage_7d_in_currency?: number; price_change_percentage_30d_in_currency?: number }
   const rows = (mkt ?? []) as Mk[]
   const me = rows.find((r) => r.id === cgId); const btc = rows.find((r) => r.id === 'bitcoin')
   if (!me?.current_price) throw new Error(`CoinGecko has no live price for ${sym}`)
-  const prices = ((chart?.prices ?? []) as [number, number][]).map((p) => p[1])
-  const vols = ((chart?.total_volumes ?? []) as [number, number][]).map((v) => v[1])
+  const chartData = chart.ok ? (chart.data as { prices?: [number, number][]; total_volumes?: [number, number][] }) : null
+  const chartError = chart.ok ? null
+    : chart.status === 429 ? 'CoinGecko rate-limited the 30-day chart (429)'
+    : `CoinGecko chart fetch failed (${chart.status || 'network error'})`
+  const prices = ((chartData?.prices ?? []) as [number, number][]).map((p) => p[1])
+  const vols = ((chartData?.total_volumes ?? []) as [number, number][]).map((v) => v[1])
   const completedPx = prices.slice(0, -1), completedVol = vols.slice(0, -1)
   const hi20 = completedPx.length >= 5 ? Math.max(...completedPx.slice(-20)) : null
   const avgVol20 = completedVol.length >= 5 ? completedVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedVol.length) : null
@@ -53,7 +62,7 @@ export async function buildTiming(symbol: string) {
   const positions = holdings.filter((h) => h.symbol !== 'USD' && Number(h.qty) > 0)
   // Book value at CoinGecko prices for the held names (one more call; the page's own figure is client-side).
   const heldIds = await resolveIds(positions.map((p) => p.symbol))
-  const heldMkt = positions.length ? await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${[...new Set(positions.map((p) => heldIds[p.symbol]).filter(Boolean))].join(',')}&vs_currencies=usd`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : {}) as Record<string, { usd: number }> : {}
+  const heldMkt = positions.length ? await cgFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${[...new Set(positions.map((p) => heldIds[p.symbol]).filter(Boolean))].join(',')}&vs_currencies=usd`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : {}) as Record<string, { usd: number }> : {}
   const posValue = positions.reduce((s, p) => s + Number(p.qty) * (heldMkt[heldIds[p.symbol]]?.usd ?? 0), 0)
   const book = posValue + cash
   const cfg = Object.fromEntries(((cfgQ.data ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value]))
@@ -67,6 +76,7 @@ export async function buildTiming(symbol: string) {
     symbol: sym, price: me.current_price,
     d1: me.price_change_percentage_24h_in_currency ?? null, d7: me.price_change_percentage_7d_in_currency ?? null, d30: me.price_change_percentage_30d_in_currency ?? null,
     vol24h: me.total_volume ?? null, avgVol20, hi20,
+    tapeError: chartError,
     rs7VsBtc: me.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null,
     armed: ((trigQ.data ?? []) as { symbol: string; kind: string; level: number }[]).filter((t) => t.symbol === sym).map((t) => ({ kind: t.kind, level: Number(t.level) })),
     cashUsd: cash, bookUsd: book,
@@ -80,6 +90,7 @@ export async function buildTiming(symbol: string) {
     symbol: sym, cgId, at: nowIso,
     price: me.current_price, vol24h: me.total_volume ?? null, avgVol20, volX: me.total_volume && avgVol20 ? me.total_volume / avgVol20 : null,
     d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (me.current_price / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
+    tapeError: chartError,
     book, cash, slots: input.slots, sleeveCount: input.sleeveCount, weeklyEntries: input.weeklyEntries, blackout, halfSize,
     ...result,
     rh_configured: rhConfigured(),

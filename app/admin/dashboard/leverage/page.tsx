@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Shell, Panel, Tile, checkAdmin, usd } from '../ui'
 import { createServiceClient } from '@/lib/supabase'
+import ReadinessBrain, { type Track } from './brain'
 
 // LEVERAGE — the research desk (rebuilt 2026-09-10).
 //
@@ -152,6 +153,22 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
   const open = positions.filter((p) => p.status === 'open')
 
   const families = [...new Set(verdicts.map((v) => v.family))]
+
+  // Readiness brain: one track per hypothesis family, answered / asked.
+  // RESOLVED means the question has an answer either way — green (it works) or
+  // red (it is dead). A ruled-out idea is information gathered, so it counts.
+  // COLLECTING and QUEUED do not: those are still open questions.
+  const RESOLVED = new Set(['green', 'red'])
+  const tracks: Track[] = families.map((family) => {
+    const rows = verdicts.filter((v) => v.family === family)
+    const done = rows.filter((v) => RESOLVED.has(v.status)).length
+    const dead = rows.filter((v) => v.status === 'red').length
+    const works = rows.filter((v) => v.status === 'green').length
+    const detail = done === 0
+      ? `${rows.length} still open — ${rows.filter((v) => v.status === 'collecting').length} collecting`
+      : `${works} works, ${dead} ruled out, ${rows.length - done} still open`
+    return { key: family, label: FAMILY_LABEL[family] ?? family, done, total: rows.length, detail }
+  })
   const withFunding = carry
     .filter((c) => c.funding_rate_annualized !== null)
     .sort((a, b) => Math.abs(b.funding_rate_annualized!) - Math.abs(a.funding_rate_annualized!))
@@ -176,6 +193,19 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
         <Tile i={1} accent="purple" label="Hypotheses running" value={String(running)} sub={`${verdicts.length} on the agenda`} />
         <Tile i={2} accent="amber"  label="Promising" value={promising ? String(promising) : DASH} sub="beat costs, not yet deflated" />
         <Tile i={3} accent="green"  label="Proven" value={proven ? String(proven) : DASH} sub="survived every correction" tone={proven ? 'pos' : 'dim'} />
+      </div>
+
+      {/* ── how much of the research question has an answer yet ─────────── */}
+      <div className="mt-3">
+        <Panel accent="green" title="🧠 Research readiness">
+          <ReadinessBrain tracks={tracks} />
+          <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px] text-neutral-500 dark:border-white/10">
+            This is the honest completion bar for the research, not a confidence
+            score: it measures how many hypotheses have an answer, not how many
+            of them worked. Expect it to sit near zero for weeks — that is what
+            four days of data in one benign regime is worth.
+          </div>
+        </Panel>
       </div>
 
       {/* ── is the data actually arriving ───────────────────────────────── */}

@@ -40,6 +40,7 @@ interface Live { price: number; d1: number | null; d7: number | null; d30: numbe
 interface Timing {
   symbol: string; at: string; price: number; vol24h: number | null; avgVol20: number | null; volX: number | null
   d1: number | null; d7: number | null; d30: number | null; hi20: number | null; extPct: number | null; rs7VsBtc: number | null
+  tapeError: string | null
   book: number; cash: number; slots: number; sleeveCount: number; weeklyEntries: number; blackout: string | null; halfSize: boolean
   grade: 'A' | 'B' | 'C' | 'D' | 'F'; score: number; hard: string[]; soft: string[]; plus: string[]
   size: { usd: number; pctBook: number; halfSize: boolean; cappedBy: string | null }
@@ -439,6 +440,13 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                   <div className="mt-0.5 text-[12px] leading-snug text-neutral-600 dark:text-neutral-400">{t.thesis}{t.gate && <span className="text-teal-700 dark:text-teal-300"> · gate → {t.gate}</span>}</div>
 
                   {tm && tm !== 'loading' && 'error' in tm && <div className="mt-1 text-[12px] text-red-600 dark:text-rose-300">Timing check failed: {tm.error}</div>}
+                  {T?.tapeError && (
+                    <div className="mt-1 rounded-lg border border-rose-400/50 bg-rose-500/10 px-2 py-1 text-[12px] leading-snug text-rose-700 dark:text-rose-300">
+                      <b>Tape unread — grade is not trustworthy.</b> {T.tapeError}. Without the
+                      20-day high the RUNNING extension law cannot be checked, so the desk refuses
+                      the entry rather than clearing it on data it does not have. Re-run the check.
+                    </div>
+                  )}
                   {T && (
                     <div className="mt-1.5 rounded-xl border border-neutral-200 bg-neutral-50 p-2.5 dark:border-white/10 dark:bg-white/5">
                       <div className="flex flex-wrap items-center gap-3">
