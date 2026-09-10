@@ -4,18 +4,20 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 // The readiness brain (Jacob, 2026-09-10): a circuit-board brain that fills
 // with green as the desk learns what it needs, reaching 100% only once every
-// gate is answered.
+// question it is waiting on has an answer.
 //
 // Cold traces are blue. Everything below the learning line turns green and
-// lights up. The fill is a real fraction — gates locked / gates total — so the
-// same honesty rule as the rest of the terminal holds: this can never read
-// "ready" while a gate is still open.
+// lights up. The fill is a real fraction — answered / asked, summed across the
+// tracks — so the same honesty rule as the rest of the page holds: this can
+// never read "ready" while a question is still open, and with nothing to
+// measure it shows a dash rather than 0%.
 
-export type GateStatus = 'locked' | 'open'
-export interface Gate {
+/** One line of enquiry: `done` of `total` questions in it have an answer. */
+export interface Track {
   key: string
   label: string
-  status: GateStatus
+  done: number
+  total: number
   detail: string
 }
 
@@ -114,11 +116,15 @@ function Circuit({ lit }: { lit: boolean }) {
   )
 }
 
-export default function ReadinessBrain({ gates, durationMs = 2200 }: { gates: Gate[]; durationMs?: number }) {
+export default function ReadinessBrain({ tracks, durationMs = 2200 }: { tracks: Track[]; durationMs?: number }) {
   const uid = useId().replace(/:/g, '')
-  const lockedCount = gates.filter((g) => g.status === 'locked').length
-  const target = gates.length ? (lockedCount / gates.length) * 100 : 0
-  const ready = gates.length > 0 && lockedCount === gates.length
+  const asked = tracks.reduce((n, t) => n + t.total, 0)
+  const answered = tracks.reduce((n, t) => n + Math.min(t.done, t.total), 0)
+  // Nothing to measure is not the same claim as nothing learned, so the readout
+  // dashes instead of reading 0% — the page rule, applied to the brain.
+  const measurable = asked > 0
+  const target = measurable ? (answered / asked) * 100 : 0
+  const ready = measurable && answered === asked
 
   // Climb from empty on every load. Driven frame by frame rather than by a CSS
   // transition because the fill level is an SVG geometry attribute, and
@@ -191,17 +197,17 @@ export default function ReadinessBrain({ gates, durationMs = 2200 }: { gates: Ga
         </svg>
 
         <div className={`lmc-figure font-mono text-3xl font-bold leading-none tabular-nums ${ready ? 'text-emerald-600 dark:text-emerald-300' : 'text-sky-700 dark:text-sky-300'}`}>
-          {shown}%
+          {measurable ? `${shown}%` : '—'}
         </div>
         <div className="mt-1 text-[11px] uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
-          {ready ? 'gates cleared' : `${lockedCount} of ${gates.length} learned`}
+          {!measurable ? 'nothing to measure yet' : ready ? 'every question answered' : `${answered} of ${asked} answered`}
         </div>
       </div>
 
       <div className="min-w-0 flex-1">
         <ul className="space-y-2">
-          {gates.map((g) => {
-            const locked = g.status === 'locked'
+          {tracks.map((g) => {
+            const locked = g.total > 0 && g.done >= g.total
             return (
               <li key={g.key} className="flex gap-2.5">
                 <span
@@ -216,6 +222,7 @@ export default function ReadinessBrain({ gates, durationMs = 2200 }: { gates: Ga
                 </span>
                 <span className="min-w-0 text-[13px] leading-relaxed">
                   <b className={locked ? 'text-neutral-900 dark:text-neutral-100' : 'text-sky-700 dark:text-sky-300'}>{g.label}</b>
+                  <span className="font-mono text-[12px] text-neutral-500 dark:text-neutral-400"> {g.done}/{g.total}</span>
                   <span className="text-neutral-600 dark:text-neutral-400"> — {g.detail}</span>
                 </span>
               </li>
@@ -224,7 +231,9 @@ export default function ReadinessBrain({ gates, durationMs = 2200 }: { gates: Ga
         </ul>
         {!ready && (
           <div className="mt-3 text-[12px] text-neutral-500">
-            The brain cannot reach 100% while a gate is open, and the desk does not trade until it does.
+            The brain cannot reach 100% while a question is still open. A hypothesis
+            that comes back DEAD counts as answered — a ruled-out idea is information
+            gathered, not information missing.
           </div>
         )}
       </div>

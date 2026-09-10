@@ -218,12 +218,15 @@ export function Shell({
   active: 'fund' | 'leverage' | 'mining' | 'todo' | 'posts' | 'trading' | 'jobs' | 'lfc' | 'website' | 'videos'
   children: React.ReactNode
 }) {
-  // Four tabs, in Jacob's order (2026-09-10): the live money first, the desk
-  // being built second, the mining plan third, the list fourth.
-  // POSTS, JOBS, LFC, TRADING, WEBSITE and VIDEOS are parked — the pages still
-  // exist and still work by URL, they are only off the nav.
+  // Five tabs, in Jacob's order (2026-09-10): the live money first, the AI
+  // trading competition second, the desk being built third, the mining plan
+  // fourth, the list fifth. TRADING came back on 2026-09-10 — it was parked by
+  // accident in the four-tab trim, and it is the page Jacob checks daily.
+  // POSTS, JOBS, LFC, WEBSITE and VIDEOS stay parked — those pages still exist
+  // and still work by URL, they are only off the nav.
   const tabs = [
     { id: 'fund', label: 'ROBINHOOD', href: `/admin/dashboard/fund?secret=${secret}` },
+    { id: 'trading', label: 'TRADING', href: `/admin/dashboard/trading?secret=${secret}` },
     { id: 'leverage', label: 'LEVERAGE', href: `/admin/dashboard/leverage?secret=${secret}` },
     { id: 'mining', label: 'MINE SIM', href: `/admin/dashboard/mining?secret=${secret}` },
     { id: 'todo', label: 'TO-DO', href: `/admin/dashboard/todo?secret=${secret}` },
