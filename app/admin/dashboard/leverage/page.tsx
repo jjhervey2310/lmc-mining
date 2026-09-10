@@ -46,6 +46,14 @@ type VolRow = {
 
 type RealizedVol = { symbol: string; annualized_vol: number | null; sample_bars: number }
 
+type StableRow = {
+  llama_id: string; symbol: string; observed_at: string; circulating_usd: number | null
+  change_1d: number | null; change_7d: number | null; change_30d: number | null
+  price: number | null; depegged: boolean | null; total_supply_usd: number | null
+}
+
+type ChainRow = { chain: string; observed_at: string; tvl_usd: number | null }
+
 type Position = {
   id: string; opened_at: string; market: string; contract: string | null
   side: string; leverage: number; notional_usd: number; entry_price: number
@@ -101,7 +109,7 @@ async function load() {
     try { return (await fn()).data } catch { return null }
   }
 
-  const [verdicts, positions, candle, funding, book, tape, carry, capacity, vol, realized] = await Promise.all([
+  const [verdicts, positions, candle, funding, book, tape, carry, capacity, vol, realized, stables, chains] = await Promise.all([
     q<Verdict[]>(() => sb.from('kr_research_verdicts').select('*').order('sort_order')),
     q<Position[]>(() => sb.from('kr_paper_positions').select('*').order('opened_at', { ascending: false }).limit(25)),
     q<{ bar_time: string }[]>(() => sb.from('kr_ohlcv').select('bar_time').order('bar_time', { ascending: false }).limit(1)),
@@ -116,6 +124,11 @@ async function load() {
       .select('currency, expiry, observed_at, days_to_expiry, atm_iv, put_iv_25d, call_iv_25d, skew_25d, put_call_oi_ratio, dvol')
       .order('observed_at', { ascending: false }).limit(120)),
     q<RealizedVol[]>(() => sb.from('kr_realized_vol').select('symbol, annualized_vol, sample_bars')),
+    q<StableRow[]>(() => sb.from('kr_stablecoins')
+      .select('llama_id, symbol, observed_at, circulating_usd, change_1d, change_7d, change_30d, price, depegged, total_supply_usd')
+      .order('observed_at', { ascending: false }).limit(150)),
+    q<ChainRow[]>(() => sb.from('kr_chain_tvl').select('chain, observed_at, tvl_usd')
+      .order('observed_at', { ascending: false }).limit(60)),
   ])
 
   // Row counts come back on `count`, not `data` — a head:true request has no rows at
@@ -126,9 +139,9 @@ async function load() {
       return count ?? null
     } catch { return null }
   }
-  const [candles, fundingRows, bookRows, tapeRows, volRows] = await Promise.all(
-    ['kr_ohlcv', 'kr_funding', 'kr_book', 'kr_tape', 'kr_vol_surface'].map(countOf))
-  const collected = [candles, fundingRows, bookRows, tapeRows, volRows]
+  const [candles, fundingRows, bookRows, tapeRows, volRows, stableRows] = await Promise.all(
+    ['kr_ohlcv', 'kr_funding', 'kr_book', 'kr_tape', 'kr_vol_surface', 'kr_stablecoins'].map(countOf))
+  const collected = [candles, fundingRows, bookRows, tapeRows, volRows, stableRows]
     .reduce<number | null>((sum, n) => (n === null ? sum : (sum ?? 0) + n), null)
 
   return {
@@ -140,14 +153,19 @@ async function load() {
       { name: 'Order book capacity',  table: 'kr_book', key: 'book' as const,    minutes: staleness(book?.[0]?.observed_at),    budget: 15,  note: 'Real cost of real size, walked through the book. Not the quoted spread.' },
       { name: 'Trade tape & flow',    table: 'kr_tape', key: 'tape' as const,    minutes: staleness(tape?.[0]?.window_start),   budget: 20,  note: 'Aggressor side, print sizes, tick volatility. None of it survives into a candle.' },
       { name: 'Implied volatility',   table: 'kr_vol_surface', key: 'vol' as const, minutes: staleness(vol?.[0]?.observed_at),  budget: 20,  note: 'What the market EXPECTS, from ~1,800 Deribit options. A snapshot with no history endpoint behind it, so a gap is permanent.' },
+      { name: 'Capital flows',        table: 'kr_stablecoins', key: 'stables' as const, minutes: staleness(stables?.[0]?.observed_at), budget: 1500, note: 'Stablecoin supply and chain TVL. Daily resolution — dollars entering crypto before they reach a price.' },
     ],
     carry: dedupe(carry ?? [], (r) => r.symbol),
     capacity: dedupe(capacity ?? [], (r) => r.pair),
+    stables: dedupe(stables ?? [], (r) => r.llama_id)
+      .sort((a, b) => (b.circulating_usd ?? 0) - (a.circulating_usd ?? 0)),
+    chains: dedupe(chains ?? [], (r) => r.chain)
+      .sort((a, b) => (b.tvl_usd ?? 0) - (a.tvl_usd ?? 0)),
     vol: dedupe(vol ?? [], (r) => `${r.currency}|${r.expiry}`)
       .sort((a, b) => (a.days_to_expiry ?? 0) - (b.days_to_expiry ?? 0)),
     realized: Object.fromEntries((realized ?? []).map((r) => [r.symbol, r])) as Record<string, RealizedVol>,
     collected,
-    counts: { candles, funding: fundingRows, book: bookRows, tape: tapeRows, vol: volRows },
+    counts: { candles, funding: fundingRows, book: bookRows, tape: tapeRows, vol: volRows, stables: stableRows },
   }
 }
 
@@ -176,7 +194,7 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
     )
   }
 
-  const { verdicts, positions, streams, carry, capacity, collected, counts, vol, realized } = data
+  const { verdicts, positions, streams, carry, capacity, collected, counts, vol, realized, stables, chains } = data
   const live = streams.filter((s) => s.minutes !== null && s.minutes <= s.budget).length
   const running = verdicts.filter((v) => v.status === 'collecting').length
   const proven = verdicts.filter((v) => v.status === 'green').length
@@ -357,6 +375,91 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
                 )
               })}
             </div>
+          )}
+        </Panel>
+      </div>
+
+      {/* ── capital arriving, before it reaches a price ──────────────────── */}
+      <div className="mt-3">
+        <Panel accent="green" title="💵 Capital flows — money arriving at the market"
+          right={<span className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">DefiLlama</span>}>
+          {stables.length === 0 ? (
+            <div className="py-4 text-center text-[13px] text-neutral-500 dark:text-neutral-400">
+              No capital-flow data collected yet.
+            </div>
+          ) : (
+            <>
+              {(() => {
+                const total = stables[0]?.total_supply_usd ?? null
+                const usde = stables.find((c) => c.symbol === 'USDe')
+                const depegs = stables.filter((c) => c.depegged)
+                const weekly = stables.reduce((sum, c) => sum + (c.circulating_usd ?? 0) * (c.change_7d ?? 0), 0)
+                return (
+                  <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                    <Tile accent="green" label="Stablecoin supply" tone="dim"
+                      value={total === null ? DASH : `$${(total / 1e9).toFixed(1)}b`}
+                      sub="dollars inside crypto" />
+                    <Tile accent="teal" label="Arrived this week"
+                      tone={weekly >= 0 ? 'pos' : 'neg'}
+                      value={`${weekly >= 0 ? '+' : ''}$${(weekly / 1e9).toFixed(2)}b`}
+                      sub="net of redemptions" />
+                    <Tile accent="purple" label="USDe 30-day"
+                      tone={(usde?.change_30d ?? 0) >= 0 ? 'pos' : 'neg'}
+                      value={num(usde?.change_30d != null ? usde.change_30d * 100 : null, 1, '%')}
+                      sub="capital chasing the carry" />
+                    <Tile accent="rose" label="Below peg"
+                      tone={depegs.length ? 'neg' : 'dim'}
+                      value={depegs.length ? String(depegs.length) : DASH}
+                      sub={depegs.length ? depegs.slice(0, 2).map((d) => d.symbol).join(', ') : 'none over $10m'} />
+                  </div>
+                )
+              })()}
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <div className="mb-1 text-[10px] uppercase tracking-widest text-neutral-500 dark:text-neutral-400">Largest stablecoins</div>
+                  <table className="w-full text-left text-[12px]">
+                    <thead className="text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                      <tr><th className="pb-1">coin</th><th className="pb-1 text-right">supply</th><th className="pb-1 text-right">7d</th><th className="pb-1 text-right">30d</th></tr>
+                    </thead>
+                    <tbody className="font-mono">
+                      {stables.slice(0, 6).map((c) => (
+                        <tr key={c.llama_id} className="border-t border-neutral-100 dark:border-white/5">
+                          <td className="py-0.5 font-sans">{c.symbol}</td>
+                          <td className="py-0.5 text-right">${((c.circulating_usd ?? 0) / 1e9).toFixed(2)}b</td>
+                          <td className={`py-0.5 text-right ${(c.change_7d ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>{num(c.change_7d != null ? c.change_7d * 100 : null, 2, '%')}</td>
+                          <td className={`py-0.5 text-right ${(c.change_30d ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>{num(c.change_30d != null ? c.change_30d * 100 : null, 2, '%')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div>
+                  <div className="mb-1 text-[10px] uppercase tracking-widest text-neutral-500 dark:text-neutral-400">Capital committed by chain</div>
+                  <table className="w-full text-left text-[12px]">
+                    <thead className="text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                      <tr><th className="pb-1">chain</th><th className="pb-1 text-right">TVL</th></tr>
+                    </thead>
+                    <tbody className="font-mono">
+                      {chains.slice(0, 6).map((c) => (
+                        <tr key={c.chain} className="border-t border-neutral-100 dark:border-white/5">
+                          <td className="py-0.5 font-sans">{c.chain}</td>
+                          <td className="py-0.5 text-right">${((c.tvl_usd ?? 0) / 1e9).toFixed(2)}b</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div className="mt-2 border-t border-neutral-200 pt-2 text-[12px] leading-relaxed text-neutral-500 dark:border-white/10 dark:text-neutral-400">
+                Stablecoin supply is dollars entering crypto, visible before they reach a
+                price. <b>USDe is the one to watch:</b> it earns its yield by shorting perpetuals
+                to collect funding, so its growth measures capital chasing the carry — and more
+                capital harvesting funding should compress funding rates. Only coins trading
+                <i> below</i> peg count as depegged; tokenised treasuries trade above $1 by design.
+                <b> Token unlock schedules are not here</b> — DefiLlama paywalls them, and a known
+                gap is cheaper than data of unknown provenance.
+              </div>
+            </>
           )}
         </Panel>
       </div>
