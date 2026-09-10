@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Shell, Panel, Tile, checkAdmin } from '../ui'
+import ReadinessBrain, { type Gate } from './brain'
 
 // LEVERAGE — the leveraged desk Jacob and Claude are building (2026-09-10).
 //
@@ -9,6 +10,24 @@ import { Shell, Panel, Tile, checkAdmin } from '../ui'
 
 export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
 export const dynamic = 'force-dynamic'
+
+// The five gates. This array is the single source of truth for the readiness
+// brain — flip a status to 'locked' here and the green rises on its own.
+//
+// Answered by Jacob 2026-09-10. The leverage desk session owns these decisions;
+// if one is re-opened there, it gets re-opened here too.
+const GATES: Gate[] = [
+  { key: 'venue', status: 'open', label: 'Venue',
+    detail: 'Not chosen. Must be legal in Colorado and expose a real API the trader can hook into.' },
+  { key: 'size', status: 'locked', label: 'Starting size',
+    detail: '$1,000 — the number Jacob is willing to lose to zero, not the number that sounds good.' },
+  { key: 'leverage', status: 'locked', label: 'Max leverage',
+    detail: '3x hard ceiling. Roughly a 33% adverse move to liquidation, well outside the stop.' },
+  { key: 'liquidation', status: 'locked', label: 'Liquidation rule',
+    detail: 'A hard stop on every entry, placed well inside the venue liquidation price.' },
+  { key: 'killswitch', status: 'open', label: 'Kill switch',
+    detail: 'No agreed drawdown figure that flattens the book. The last gate, and the one that protects the other four.' },
+]
 
 export default async function LeveragePage({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
   const { secret = '' } = await searchParams
@@ -34,14 +53,8 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
       </div>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Panel accent="amber" title="⚙️ What this desk needs before it trades">
-          <ul className="ml-4 list-disc space-y-1.5 text-[13px] leading-relaxed text-neutral-700 dark:text-neutral-300">
-            <li><b>A venue.</b> Which exchange, and whether it is reachable and fundable from Colorado.</li>
-            <li><b>Starting size.</b> The number Jacob is genuinely willing to lose, not the number that sounds good.</li>
-            <li><b>Max leverage.</b> A hard ceiling written down before the first trade, not decided mid-trade.</li>
-            <li><b>A liquidation rule.</b> What distance from liquidation forces a de-risk, checked automatically.</li>
-            <li><b>A kill switch.</b> One drawdown figure that flattens the book with no discussion.</li>
-          </ul>
+        <Panel accent="amber" title="🧠 What this desk needs before it trades">
+          <ReadinessBrain gates={GATES} />
           <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px] text-neutral-500 dark:border-white/10">
             Leverage turns a bad week into a closed account. The rules go in
             before the money does, which is why this page exists before the desk does.
