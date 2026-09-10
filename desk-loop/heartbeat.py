@@ -3,9 +3,13 @@
 import datetime, json
 from common import *
 n = flush_queue()
-spend = json.loads((STATE/"spend.json").read_text()) if (STATE/"spend.json").exists() else {"usd": 0}
 tot, missing = book_value()
-msg = f"Loop alive. Book ${tot:.2f}. Spend this month ${spend.get('usd',0):.2f}/{os.environ.get('MONTHLY_CAP_USD','30')}. Overnight items flushed: {n}. Loop enabled: {loop_enabled()}."
+# Budget line reads desk_config.loop_budget_usd, the same number budget_status()/add_spend() enforce
+# (it used to print the env's MONTHLY_CAP_USD, which said $30 while the desk's budget row said $10).
+allowed_month, spent_month, _, spent_today, _ = budget_status()
+budget = loop_budget_usd()
+msg = (f"Loop alive. Book ${tot:.2f}. Spend this month ${spent_month:.2f}/${allowed_month:.2f} "
+       f"(today ${spent_today:.2f}; budget ${budget:.2f}/mo). Overnight items flushed: {n}. Loop enabled: {loop_enabled()}.")
 
 # Build request #11: new analyst uploads ride the 08:00 push as READING, never as a signal.
 ap = STATE / "analyst_pending"

@@ -8,6 +8,12 @@ A9 (build request #9, from the 09-06 strategy review vs the stored backtests):
   BREAKER is SLEEVE-ONLY: sleeve mark/cost ratio <= 0.80 x its high-water ratio -> halt new-entry briefs +
      one push per episode (common.sleeve_breaker). The whole-book 5% intraday halt is gone: an anchor
      drawdown is a deposit opportunity, not a reason to stop the sleeve.
+AMENDMENT A11 (2026-09-08, ratified): anchor protection is CONDITION-TRIGGERED, not resting. BTC and SOL
+  carry NO resting stop while the book is under $5,000 (common.ANCHOR_STANDING_TRAIL_USD); the desk places a
+  ~30% trail when a de-risk signal fires (primary: a weekly close below the 20-week MA — the 'derisk_watch'
+  rows in desk_triggers). The standing trail returns permanently at $5,000. The STOP PRESENCE screen below is
+  narrowed to match: it still alerts on every non-anchor position with no stop row (A11 §4), and on the anchor
+  once the book reaches the threshold. Anchor list + threshold live in common.py, nowhere else.
 PRECEDENCE: the rulebook beats the formula.
   1. If desk_triggers carries a 'ratchet' / 'stall' / 'stop' row for a held symbol, THAT is the rule.
      Ratchets and stalls are DAILY-CLOSE based (last COMPLETED daily bar), never an intraday print.
@@ -35,7 +41,7 @@ import json, datetime
 from pathlib import Path
 from common import *
 
-ANCHOR = {"BTC", "SOL"}          # v4: ETH removed from the anchor by Jacob 09-05
+ANCHOR = ANCHOR_SYMS             # v4: ETH removed from the anchor by Jacob 09-05. One list, in common.py.
 ANCHOR_TRAIL = 0.30              # A9: 30% catastrophe trail off the highest completed close since entry, up only
 SLEEVE_TRAIL, SLEEVE_TRAIL_WIDE = 0.18, 0.25   # v4.1 §3: 18% until the position has been +50%, then 25%
 TRAIL_ENGAGE_PCT = 18.0          # v4: sleeve trail only once +18% from fill; before that the entry stop governs
@@ -164,6 +170,12 @@ def main():
         sb_insert("desk_alert_log", [{"at": now_iso, "symbol": sym, "kind": kind, "level": level, "price": price,
                                      "sent": sent, "queued": False, "note": note[:240]}])
 
+    try:
+        book_usd, _ = book_value()          # A11 §3 threshold test; prices are cached, so no extra fetch
+    except Exception as e:
+        print(f"book value unavailable ({e}); stop-presence screen falls back to requiring a stop everywhere")
+        book_usd = None
+
     held = {h["symbol"] for h in holdings}
     # Entry timestamps + sells while held, from the trade log: the high-water mark counts only closes SINCE ENTRY
     # (a pre-entry high would put the formula stop above the market), and a sell while still held = the third is taken.
@@ -200,12 +212,20 @@ def main():
                 log(sym, t["kind"], lvl, p, f"close {close_day} {close} crossed; spec pushed", True)
                 actions.append(title)
 
-        # (2) STOP PRESENCE — A3 §3 / v4 "stops on 100% of units always"
-        if not stops:
+        # (2) STOP PRESENCE — A3 §3 / v4 "stops on 100% of units always", NARROWED BY A11 (2026-09-08).
+        #     common.resting_stop_required() owns the rule: the sleeve and the basket always need a stop row;
+        #     the anchor is exempt by design only while the book is under ANCHOR_STANDING_TRAIL_USD.
+        if not stops and resting_stop_required(sym, book_usd):
             key = f"nostop:{sym}"
             if not recent(last_prop.get(key)):
-                ntfy(f"⚠ {sym} has NO resting stop", f"Holding {h['qty']} {sym} @ {fmt(p)}. v4: stops on 100% of units, always. Place one now.", "high")
-                last_prop[key] = now_iso; log(sym, "nostop", None, p, "v4 breach: no stop row", True)
+                why = (f"v4: stops on 100% of units. A11 §3: the book is at or above ${ANCHOR_STANDING_TRAIL_USD:,.0f}, "
+                       "so the standing anchor trail is back — place it now."
+                       if anchor else
+                       "v4 / A11 §4: every non-anchor position carries a resting stop at all times. Place one now.")
+                ntfy(f"⚠ {sym} has NO resting stop", f"Holding {h['qty']} {sym} @ {fmt(p)}. {why}", "high")
+                last_prop[key] = now_iso
+                log(sym, "nostop", None, p, "A11 §3 breach: anchor above the standing-trail threshold, no stop row"
+                                           if anchor else "A11 §4 breach: no stop row on a non-anchor position", True)
                 actions.append(f"NO STOP {sym}")
 
         # (3) FORMULA — high-water mark is the highest COMPLETED daily close SINCE ENTRY (never an intraday print)
