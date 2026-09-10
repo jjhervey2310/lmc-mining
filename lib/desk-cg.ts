@@ -16,6 +16,21 @@ export const CG: Record<string, string> = {
   TON: 'the-open-network', TAO: 'bittensor', CC: 'canton-network', WLD: 'worldcoin-wld', TRUMP: 'official-trump', SKR: 'seeker',
 }
 
+/** CoinGecko fetch carrying the demo key when one is set.
+ *  The desk's calls used to go out anonymous while lib/markets.ts, btc-price.ts and the
+ *  hashprice cron all used the key — so a couple of Timing clicks in a row hit the
+ *  anonymous rate limit and the check 502'd (2026-09-10). A bad or expired key must not
+ *  kill the feed either, so a 401/403 retries once without it, as fetchCrypto does. */
+// The init type is taken from whatever `fetch` accepts here rather than a bare
+// RequestInit, so Next's `next: { revalidate }` option still type-checks.
+export async function cgFetch(url: string, init?: Parameters<typeof fetch>[1]): Promise<Response> {
+  const key = process.env.COINGECKO_API_KEY
+  if (!key) return fetch(url, init)
+  const sep = url.includes('?') ? '&' : '?'
+  const res = await fetch(`${url}${sep}x_cg_demo_api_key=${key}`, init)
+  return res.ok || (res.status !== 401 && res.status !== 403) ? res : fetch(url, init)
+}
+
 export async function resolveIds(symbols: string[]): Promise<Record<string, string>> {
   const out = { ...CG }
   // cg_history (Supabase) carries symbol→id for the whole Robinhood universe, written daily by the droplet —
@@ -31,7 +46,7 @@ export async function resolveIds(symbols: string[]): Promise<Record<string, stri
   if (!missing.length) return out
   try {
     for (const page of [1, 2]) {
-      const res = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}`, { next: { revalidate: 86400 } })
+      const res = await cgFetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}`, { next: { revalidate: 86400 } })
       if (!res.ok) break
       const rows = (await res.json()) as { id: string; symbol: string }[]
       for (const r of rows) { const s = r.symbol.toUpperCase(); if (missing.includes(s) && !out[s]) out[s] = r.id }

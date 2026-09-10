@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import MarketTicker from './ticker'
 import ChatFab from './chat-fab'
 import ThemeToggle from './theme-toggle'
+import RefreshButton from './refresh-button'
 
 export const AMBER = '#f59e0b'
 
@@ -218,12 +219,18 @@ export function Shell({
   active: 'fund' | 'leverage' | 'mining' | 'todo' | 'posts' | 'trading' | 'jobs' | 'lfc' | 'website' | 'videos'
   children: React.ReactNode
 }) {
-  // Four tabs, in Jacob's order (2026-09-10): the live money first, the desk
-  // being built second, the mining plan third, the list fourth.
-  // POSTS, JOBS, LFC, TRADING, WEBSITE and VIDEOS are parked — the pages still
-  // exist and still work by URL, they are only off the nav.
+  // Five tabs, in Jacob's order (2026-09-10): the live money first, the AI
+  // trading competition second, the desk being built third, the mining plan
+  // fourth, the list fifth. TRADING came back on 2026-09-10 — it was parked by
+  // accident in the four-tab trim, and it is the page Jacob checks daily.
+  // POSTS, JOBS, LFC, WEBSITE and VIDEOS stay parked — those pages still exist
+  // and still work by URL, they are only off the nav.
+  // One timestamp for the header: the clock, the staleness age and its tooltip
+  // must all describe the same render, not three separate Date.now() calls.
+  const renderedAt = new Date().toISOString()
   const tabs = [
     { id: 'fund', label: 'ROBINHOOD', href: `/admin/dashboard/fund?secret=${secret}` },
+    { id: 'trading', label: 'TRADING', href: `/admin/dashboard/trading?secret=${secret}` },
     { id: 'leverage', label: 'LEVERAGE', href: `/admin/dashboard/leverage?secret=${secret}` },
     { id: 'mining', label: 'MINE SIM', href: `/admin/dashboard/mining?secret=${secret}` },
     { id: 'todo', label: 'TO-DO', href: `/admin/dashboard/todo?secret=${secret}` },
@@ -247,8 +254,9 @@ export function Shell({
             <span className="whitespace-nowrap text-sm font-bold text-amber-500 dark:text-amber-300">⚡ JACOB&apos;S DASHBOARD</span>
             <span className="flex shrink-0 items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400">
               <span className="lmc-pulse inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-              <span className="hidden sm:inline">{new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })} DEN · refresh 5m</span>
-              <span className="sm:hidden">{denverTime(new Date().toISOString())}</span>
+              <span className="hidden sm:inline">{new Date(renderedAt).toLocaleString('en-US', { timeZone: 'America/Denver' })} DEN</span>
+              <span className="sm:hidden">{denverTime(renderedAt)}</span>
+              <RefreshButton renderedAt={renderedAt} />
               <ThemeToggle />
             </span>
           </div>
