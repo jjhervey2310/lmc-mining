@@ -4,7 +4,7 @@
 Signal (same as backtest.py): close > 20d high, volume >= 1.5x 20d avg, 7d RS > BTC, <=15% above the high.
 Writes state/breakouts.json (triage escalates on a fresh one) and pa_memory 'breakout-signals'.
 Free: daily bars cached under state/hist (refreshed once a day, 2.5s spacing to respect the free tier)."""
-import json, time, datetime, statistics as st
+import json, time, time, datetime, statistics as st
 from common import *
 from backtest import universe, id_map, history, LOOKBACK, VOL_MULT, MAX_EXT
 
@@ -26,17 +26,37 @@ def regime():
         pass
     return "NEUTRAL", "no 200d history cached — bars applied in full"
 
+CB = STATE / "cb"
+STALE_DAYS = 4          # history_sync refreshes at 06:20; anything older than this is reported, never silently dropped
+
+def cached_bars(sym):
+    """Daily bars (t,l,h,o,c,v) from the local Coinbase cache that history_sync refreshes at 06:20.
+    Returns (bars, age_days) or (None, reason). NO network: the old per-name CoinGecko fetch made this
+    scan take >900s and systemd killed it every morning from 09-05 to 09-10 — six days with no hunt,
+    and nothing surfaced it. A scan that cannot see a name must SAY so, never quietly skip it."""
+    f = CB / f"{sym}.json"
+    if not f.exists(): return None, "no cache"
+    try: bars = json.loads(f.read_text())
+    except Exception as e: return None, f"unreadable ({type(e).__name__})"
+    if not bars: return None, "empty"
+    age = (time.time() - f.stat().st_mtime) / 86400
+    if age > STALE_DAYS: return None, f"stale {age:.1f}d"
+    return bars, age
+
+
 def main():
-    syms = universe(); ids = id_map(set(syms))
-    btc = history("bitcoin", 60)
+    syms = universe()
+    btc, btc_age = cached_bars("BTC")
+    if not btc:
+        ntfy("\u26a0 Breakout scan blind", f"No usable BTC bars ({btc_age}) \u2014 the relative-strength test cannot run, so NO scan happened. This is a failure, not an empty result.", "high")
+        print(f"ABORT: BTC bars unusable ({btc_age})"); return
     reg, reg_why = regime()
-    hits, near, barred = [], [], []
+    hits, near, barred, unseen = [], [], [], []
     for s in syms:
-        cid = ids.get(s)
-        if not cid: continue
-        try: bars = history(cid, 60)
-        except Exception: continue
-        if len(bars) < LOOKBACK + 8: continue
+        bars, why = cached_bars(s)
+        if not bars:
+            unseen.append(f"{s} ({why})"); continue
+        if len(bars) < LOOKBACK + 8: unseen.append(f"{s} (only {len(bars)} bars)"); continue
         i = len(bars) - 1
         c, v = bars[i]["c"], bars[i]["v"]
         w = bars[i - LOOKBACK:i]
@@ -70,6 +90,7 @@ def main():
     lines.append("QUALIFYING TODAY: " + (", ".join(f"{h['symbol']} ${h['price']:.4g} (+{h['ext_pct']}% over 20d high, vol {h['vol_x']}x, RS {h['rs7_vs_btc']:+.1f}, d1 {h['d1_pct']:+.1f}%, d30 {h['d30_pct']:+.0f}%) size {h['size']}" for h in hits) or "none"))
     if barred: lines.append("SIGNAL BUT BARRED (chase law, non-BULL regime): " + ", ".join(f"{h['symbol']} {h['size']}" for h in barred))
     lines.append("FRESH (not on yesterday's list): " + (", ".join(h["symbol"] for h in fresh) or "none"))
+    lines.append(f"NOT SCANNED ({len(unseen)}): " + (", ".join(unseen) if unseen else "none \u2014 every universe name had fresh bars"))
     lines.append("NEAR (within 3% of the 20d high with RS, watch for the close): " + (", ".join(f"{h['symbol']} ({h['ext_pct']}%)" for h in near[:8]) or "none"))
     lines.append("REMINDERS (v4.1 + A9): entry is a daily CLOSE into an open sleeve slot ($50 flat at this book; half while the macro modifier runs or on a +15% day in BULL), stop = max(20d low, -20%) placed at fill; the 18% trail engages at +18% from fill and widens to 25% past +50%; NO take-profit below +50%, a third at +50%. Anchor (BTC/SOL) carries only a 30% catastrophe trail. Breaker is sleeve-only. Held names never qualify; RUNNING-stage stays barred.")
     out = "\n".join(lines); print(out)

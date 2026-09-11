@@ -269,6 +269,18 @@ def sleeve_breaker(holdings=None, px=None):
     cost = sum(float(h["qty"]) * float(h["avg_cost"] or 0) for h in sleeve if h["symbol"] in px)
     if cost <= 0 or val <= 0: return bool(st.get("since")), st
     ratio = val / cost
+    # COMPOSITION REBASE (2026-09-10 defect): the high-water mark describes the sleeve that WAS held.
+    # On 09-07 ARB was sold at +25.8% — a harvested win — and the ratio fell from 1.418 (with ARB) to
+    # 1.025 (NEAR alone). The breaker read a realised PROFIT as a 27.7% drawdown and froze new entries
+    # for three days. A ratio is only comparable to its own history while the holdings are the same set,
+    # so when the set changes the mark rebases to today's ratio and any trip is cleared.
+    # TRADE-OFF, stated: a drawdown that straddles an entry or exit is no longer caught. The proper fix
+    # is a breaker that counts REALISED P&L too; this one only stops it lying about wins.
+    syms_now = sorted(h["symbol"] for h in sleeve if h["symbol"] in px)
+    if st.get("syms") is not None and st["syms"] != syms_now:
+        st["rebased"] = {"at": now_denver().isoformat(), "from_hwm": st.get("hwm"), "was": st.get("syms"), "now": syms_now}
+        st["hwm"] = ratio; st["since"] = None
+    st["syms"] = syms_now
     st["hwm"] = max(float(st.get("hwm") or 0), ratio); st["ratio"] = ratio
     if st.get("since"):
         if ratio >= st["hwm"] * (1 - BREAKER_CLEAR): st["since"] = None          # recovered

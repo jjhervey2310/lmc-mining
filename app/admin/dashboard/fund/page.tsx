@@ -48,6 +48,15 @@ export default async function FundPage(props: { searchParams: Promise<{ secret?:
   try {
     return await FundPageInner(props)
   } catch (e) {
+    // Next signals notFound() and redirect() by THROWING, so a bare catch here swallowed
+    // the 404 that checkAdmin raises: an unauthenticated request got HTTP 200 and this
+    // stack trace instead of a not-found page. Nothing sensitive leaked, because
+    // checkAdmin throws before any data is fetched — but the guard was one code
+    // reordering away from rendering real positions into a public error page.
+    //
+    // Control-flow throws are re-raised untouched; only genuine faults reach the panel.
+    if (isControlFlow(e)) throw e
+
     // Secret-gated page: the real error is our only prod debugger (Vercel logs are plan-walled).
     return (
       <div className="p-6 font-mono text-sm text-red-600">
@@ -56,6 +65,14 @@ export default async function FundPage(props: { searchParams: Promise<{ secret?:
       </div>
     )
   }
+}
+
+/** Next's notFound()/redirect() throw an error carrying a `digest` string beginning
+ *  `NEXT_`. Matching on the digest rather than the class is what Next's own docs
+ *  prescribe, and it survives the error crossing a server-component boundary. */
+function isControlFlow(e: unknown): boolean {
+  const digest = (e as { digest?: unknown } | null)?.digest
+  return typeof digest === 'string' && digest.startsWith('NEXT_')
 }
 
 async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {

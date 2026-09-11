@@ -12,14 +12,28 @@ import { useEffect, useId, useRef, useState } from 'react'
 // never read "ready" while a question is still open, and with nothing to
 // measure it shows a dash rather than 0%.
 
-/** One line of enquiry: `done` of `total` questions in it have an answer. */
+/** One line of enquiry.
+ *
+ *  `credit` drives the fill and is deliberately continuous: a question that is answered
+ *  counts in full, and one that is still collecting counts for a FRACTION of the evidence
+ *  it has gathered. Counting only finished answers made the readout sit flat for days and
+ *  then jump, which tells you nothing about whether the work is moving.
+ *
+ *  The fraction is capped below 1 on purpose. Data gathered is progress towards an answer
+ *  and is not an answer, so no amount of collecting can make a track read as complete.
+ */
 export interface Track {
   key: string
   label: string
-  done: number
+  credit: number      // 0..total, fractional
+  answered: number    // whole questions with a verdict either way
   total: number
+  evidence: number    // 0..1, how much of the data the open questions still need
   detail: string
 }
+
+/** Evidence counts for at most this much of a question. It is progress, not an answer. */
+export const EVIDENCE_WEIGHT = 0.5
 
 // Stylised brain silhouette: a bumpy blob plus a stem, drawn in a 120x104 box.
 const OUTLINE = [
@@ -119,12 +133,14 @@ function Circuit({ lit }: { lit: boolean }) {
 export default function ReadinessBrain({ tracks, durationMs = 2200 }: { tracks: Track[]; durationMs?: number }) {
   const uid = useId().replace(/:/g, '')
   const asked = tracks.reduce((n, t) => n + t.total, 0)
-  const answered = tracks.reduce((n, t) => n + Math.min(t.done, t.total), 0)
+  const answered = tracks.reduce((n, t) => n + Math.min(t.credit, t.total), 0)
+  const settled = tracks.reduce((n, t) => n + t.answered, 0)
   // Nothing to measure is not the same claim as nothing learned, so the readout
   // dashes instead of reading 0% — the page rule, applied to the brain.
   const measurable = asked > 0
   const target = measurable ? (answered / asked) * 100 : 0
-  const ready = measurable && answered === asked
+  // Ready means every question ANSWERED, not every question well supplied with data.
+  const ready = measurable && settled === asked
 
   // Climb from empty on every load. Driven frame by frame rather than by a CSS
   // transition because the fill level is an SVG geometry attribute, and
@@ -207,7 +223,7 @@ export default function ReadinessBrain({ tracks, durationMs = 2200 }: { tracks: 
       <div className="min-w-0 flex-1">
         <ul className="space-y-2">
           {tracks.map((g) => {
-            const locked = g.total > 0 && g.done >= g.total
+            const locked = g.total > 0 && g.answered >= g.total
             return (
               <li key={g.key} className="flex gap-2.5">
                 <span
@@ -222,7 +238,14 @@ export default function ReadinessBrain({ tracks, durationMs = 2200 }: { tracks: 
                 </span>
                 <span className="min-w-0 text-[13px] leading-relaxed">
                   <b className={locked ? 'text-neutral-900 dark:text-neutral-100' : 'text-sky-700 dark:text-sky-300'}>{g.label}</b>
-                  <span className="font-mono text-[12px] text-neutral-500 dark:text-neutral-400"> {g.done}/{g.total}</span>
+                  <span className="font-mono text-[12px] text-neutral-500 dark:text-neutral-400">
+                    {' '}{g.answered}/{g.total}
+                    {!locked && g.evidence > 0 && (
+                      <span className="text-sky-600/70 dark:text-sky-400/70">
+                        {' '}+{Math.round(g.evidence * 100)}% data
+                      </span>
+                    )}
+                  </span>
                   <span className="text-neutral-600 dark:text-neutral-400"> — {g.detail}</span>
                 </span>
               </li>

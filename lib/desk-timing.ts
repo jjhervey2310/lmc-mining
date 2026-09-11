@@ -27,6 +27,7 @@ export interface TimingInput {
   halted: boolean                                                // loop drawdown halt / kill switch off
   halfSize: boolean                                              // macro modifier active
   held: boolean
+  priceStale?: { at: string } | null   // price came from cg_history, not a live quote
 }
 
 export interface TimingResult {
@@ -55,6 +56,9 @@ export function gradeTiming(i: TimingInput): TimingResult {
   if (i.hi20 == null) hard.push(`RUNNING law UNCHECKABLE: no 20-day high${i.tapeError ? ` — ${i.tapeError}` : ' — not enough daily history'}. Extension is unknown, so no entry is cleared.`)
   if (i.halted) hard.push('desk loop halted or paused — no new entries')
   if (i.held) hard.push('already held — adds go through the deposit basket, not the queue')
+  // A rate-limited quote falls back to the last daily close so the grade is still readable, but an
+  // order must never be sized or stopped off a stale mark (2026-09-10: CoinGecko 429s blanked the tab).
+  if (i.priceStale) hard.push(`stale price — last close from ${i.priceStale.at.slice(0, 16).replace('T', ' ')}Z, no live quote. Refresh before any order.`)
 
   // ── TAPE ──
   if (ext != null) {
