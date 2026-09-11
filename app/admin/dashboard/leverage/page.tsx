@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase'
 import ReadinessBrain, { type Track } from './brain'
 import ResearchPulse from './pulse'
 import ScoreboardPulse from './scoreboard-pulse'
+import PaperTrades, { type Candle, type Trade } from './trades'
 
 // LEVERAGE — the research desk (rebuilt 2026-09-10).
 //
@@ -190,7 +191,8 @@ async function load() {
   }
 
   const [verdicts, positions, candle, funding, book, tape, carry, capacity, vol, realized, stables, chains,
-         liq, deep, venueFunding, specs, forward, wallets, findings] = await Promise.all([
+         liq, deep, venueFunding, specs, forward, wallets,
+         paperTrades, paperCandles, findings] = await Promise.all([
     q<Verdict[]>(() => sb.from('kr_research_verdicts').select('*').order('sort_order')),
     q<Position[]>(() => sb.from('kr_paper_positions').select('*').order('opened_at', { ascending: false }).limit(25)),
     q<{ bar_time: string }[]>(() => sb.from('kr_ohlcv').select('bar_time').order('bar_time', { ascending: false }).limit(1)),
@@ -228,6 +230,17 @@ async function load() {
     // Written by the collector itself, six-hourly, with nobody at the keyboard. Deliberately
     // a different table from kr_research_verdicts: the two will disagree, and an automated
     // writer that could overwrite a person's reasoning would do so at the worst moment.
+    // The decisions worth LOOKING at: real rules, not the always-long control, and the
+    // ones that actually moved. A list dominated by benchmark-long would show the market
+    // rather than anything the research decided.
+    q<Trade[]>(() => sb.from('kr_paper_positions')
+      .select('id, rule, market, side, opened_at, closed_at, entry_price, exit_price, stop_price, target_price, liquidation_price, realized_pnl_usd, notional_usd, status, exit_reason, thesis')
+      .not('rule', 'is', null).not('rule', 'like', 'benchmark%')
+      .order('opened_at', { ascending: false }).limit(40)),
+    q<Candle[]>(() => sb.from('kr_ohlcv')
+      .select('symbol, bar_time, open, high, low, close')
+      .eq('interval_minutes', 5)
+      .order('bar_time', { ascending: false }).limit(6000)),
     q<FindingRow[]>(() => sb.from('kr_findings')
       .select('test_id, verdict_id, at, episodes, markets, trials, mean_excess, median_excess, t_corrected, beat_market, horizon_hours, status, detail')
       .order('at', { ascending: false }).limit(400)),
@@ -284,6 +297,8 @@ async function load() {
   const latestFindings = allFindings.filter((f) => f.at === newestRun)
 
   return {
+    paperTrades: paperTrades ?? [],
+    paperCandles: paperCandles ?? [],
     findings: latestFindings,
     findingRuns: new Set(allFindings.map((f) => f.at)).size,
     verdicts: verdicts ?? [],
@@ -346,7 +361,8 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
   }
 
   const { verdicts, positions, streams, carry, capacity, collected, counts, vol, realized, stables, chains,
-          depth, forwardBoard, specs, venueFunding, findings, findingRuns } = data
+          depth, forwardBoard, specs, venueFunding, findings, findingRuns,
+          paperTrades, paperCandles } = data
   const live = streams.filter((s) => s.minutes !== null && s.minutes <= s.budget).length
   const running = verdicts.filter((v) => v.status === 'collecting').length
   const proven = verdicts.filter((v) => v.status === 'green').length
@@ -714,6 +730,33 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
           )}
         </Panel>
       </div>
+
+      {/* ── watch a decision, with the levels it was judged against ─────── */}
+      {paperTrades.length > 0 && (
+        <div className="mt-3">
+          <Panel
+            accent="blue"
+            title="📉 Watch a paper decision"
+            right={
+              <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                {paperTrades.length} most recent
+              </span>
+            }
+          >
+            <div className="mb-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[12px] leading-relaxed text-neutral-600 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400">
+              <b className="text-neutral-800 dark:text-neutral-200">Click any decision to see what it did.</b>{' '}
+              The shaded band is the window the position was open; the lines are the levels it
+              was judged against — entry, exit, stop, target and where it would have been
+              liquidated. Candles rather than a price line deliberately: a stop is hit by the
+              LOW of a bar, not its close, and a close-only chart would show a trade surviving
+              a bar that in fact ended it. The always-long control is excluded, because a list
+              full of it would show the market rather than anything the research decided.
+              Paper only — no venue is connected and no order can be placed.
+            </div>
+            <PaperTrades trades={paperTrades} candles={paperCandles} />
+          </Panel>
+        </div>
+      )}
 
       {/* ── what the collector measured on its own ──────────────────────── */}
       {findings.length > 0 && (() => {
