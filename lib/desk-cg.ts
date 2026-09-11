@@ -74,3 +74,19 @@ export async function lastKnownPrices(ids: string[]): Promise<Record<string, { u
   } catch { /* caller decides what a missing price means */ }
   return out
 }
+
+/** Live spot from Coinbase Exchange — keyless, not rate-limited, and it covers 83 of the 88 names in
+ *  the Robinhood universe. This exists because CoinGecko 429s from Vercel's shared IPs, which was
+ *  leaving the grader priced off yesterday's close (Jacob 2026-09-11: "we cant have stale scores").
+ *  Returns null rather than throwing: the caller decides what a missing price means. */
+export async function coinbaseSpot(symbol: string): Promise<{ usd: number; bid: number; ask: number; at: string } | null> {
+  try {
+    const r = await fetch(`https://api.exchange.coinbase.com/products/${symbol.toUpperCase()}-USD/ticker`,
+      { headers: { 'User-Agent': 'lightningmines-dashboard/1.0' }, cache: 'no-store' })
+    if (!r.ok) return null
+    const j = (await r.json()) as { price?: string; bid?: string; ask?: string; time?: string }
+    const usd = Number(j.price)
+    if (!(usd > 0)) return null
+    return { usd, bid: Number(j.bid) || usd, ask: Number(j.ask) || usd, at: j.time ?? new Date().toISOString() }
+  } catch { return null }
+}
