@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
-import { resolveIds, cgFetch } from '@/lib/desk-cg'
+import { resolveIds, cgFetch, lastKnownPrices } from '@/lib/desk-cg'
 import { gradeTiming, ANCHOR, type TimingInput } from '@/lib/desk-timing'
 import { rhConfigured } from '@/lib/robinhood'
 
@@ -62,9 +62,17 @@ export async function buildTiming(symbol: string) {
   const positions = holdings.filter((h) => h.symbol !== 'USD' && Number(h.qty) > 0)
   // Book value at CoinGecko prices for the held names (one more call; the page's own figure is client-side).
   const heldIds = await resolveIds(positions.map((p) => p.symbol))
-  const heldMkt = positions.length ? await cgFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${[...new Set(positions.map((p) => heldIds[p.symbol]).filter(Boolean))].join(',')}&vs_currencies=usd`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : {}) as Record<string, { usd: number }> : {}
-  const posValue = positions.reduce((s, p) => s + Number(p.qty) * (heldMkt[heldIds[p.symbol]]?.usd ?? 0), 0)
+  const heldIdList = [...new Set(positions.map((p) => heldIds[p.symbol]).filter(Boolean))]
+  const heldMkt = positions.length ? await cgFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${heldIdList.join(',')}&vs_currencies=usd`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : {}).catch(() => ({})) as Record<string, { usd: number }> : {}
+  // A rate-limited price must NEVER value a position at zero: that collapses the book to cash, zeroes
+  // the slot count and caps every grade at D (2026-09-10 defect). Fall back to the last known close.
+  const missing = positions.filter((p) => !(heldMkt[heldIds[p.symbol]]?.usd > 0))
+  const fallback = missing.length ? await lastKnownPrices(missing.map((p) => heldIds[p.symbol])) : {}
+  const priceOf = (sym: string) => heldMkt[heldIds[sym]]?.usd || fallback[heldIds[sym]]?.usd || null
+  const unpriced = positions.filter((p) => priceOf(p.symbol) == null).map((p) => p.symbol)
+  const posValue = positions.reduce((s, p) => s + Number(p.qty) * (priceOf(p.symbol) ?? 0), 0)
   const book = posValue + cash
+  const stalePriced = missing.filter((p) => fallback[heldIds[p.symbol]]).map((p) => p.symbol)
   const cfg = Object.fromEntries(((cfgQ.data ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value]))
   const nowIso = new Date().toISOString()
   const blackoutCfg = cfg.entry_blackout ?? '2026-09-14T00:00:00Z/2026-09-17T06:00:00Z|FOMC blackout Sept 13 18:00 MT – Sept 16 close'
@@ -92,6 +100,7 @@ export async function buildTiming(symbol: string) {
     d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (me.current_price / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
     tapeError: chartError,
     book, cash, slots: input.slots, sleeveCount: input.sleeveCount, weeklyEntries: input.weeklyEntries, blackout, halfSize,
+    book_health: { unpriced, stale_priced: stalePriced, trustworthy: unpriced.length === 0 },
     ...result,
     rh_configured: rhConfigured(),
   }

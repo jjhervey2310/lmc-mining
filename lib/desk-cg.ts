@@ -54,3 +54,23 @@ export async function resolveIds(symbols: string[]): Promise<Record<string, stri
   } catch { /* unmapped symbols show "…" for price, never a zero */ }
   return out
 }
+
+/** Last known USD close per CoinGecko id from Supabase `cg_history` (written daily by the droplet).
+ *  The live CoinGecko calls get rate-limited from Vercel's shared IPs; without this a missed price
+ *  becomes 0 and silently collapses the book (2026-09-10: it zeroed BTC+SOL+NEAR and capped every
+ *  timing grade at D). A stale close is a fact; a zero is a lie. */
+export async function lastKnownPrices(ids: string[]): Promise<Record<string, { usd: number; at: string }>> {
+  const out: Record<string, { usd: number; at: string }> = {}
+  const want = [...new Set(ids.filter(Boolean))]
+  if (!want.length) return out
+  try {
+    const sb = createServiceClient()
+    if (!sb) return out
+    const { data } = await sb.from('cg_history').select('id, prices, updated_at').in('id', want)
+    for (const r of (data ?? []) as { id: string; prices: [number, number][]; updated_at: string }[]) {
+      const p = r.prices?.[r.prices.length - 1]
+      if (p && Number(p[1]) > 0) out[r.id] = { usd: Number(p[1]), at: r.updated_at }
+    }
+  } catch { /* caller decides what a missing price means */ }
+  return out
+}
