@@ -55,6 +55,24 @@ type StableRow = {
 
 type ChainRow = { chain: string; observed_at: string; tvl_usd: number | null }
 
+type SpecRow = {
+  contract: string; observed_at: string
+  maintenance_rate: number | null; leverage_max: number | null
+}
+
+type VenueFundingRow = {
+  coin: string; venue: string; observed_at: string
+  funding_rate_annualized: number | null; interval_hours: number | null
+}
+
+type ForwardRow = {
+  rule: string | null; market: string; side: string
+  realized_pnl_usd: number | null; notional_usd: number | null
+  opened_at: string; status: string
+}
+
+type DepthRow = { interval_minutes: number; market: string; at: string }
+
 type Position = {
   id: string; opened_at: string; market: string; contract: string | null
   side: string; leverage: number; notional_usd: number; entry_price: number
@@ -94,6 +112,39 @@ const FAMILY_LABEL: Record<string, string> = {
 }
 const FAMILY_ORDER = Object.keys(FAMILY_LABEL)
 
+/** Where a leveraged position is closed out, as a fraction of the entry price.
+ *  Derived from the venue's maintenance rate rather than the 1/L rule, which is
+ *  optimistic in every case: at 5x on BTC the true distance is 19.76%, not 20%. */
+function liquidationDistance(leverage: number, maintenanceRate: number): number {
+  return Math.abs((1 - 1 / leverage) / (1 - maintenanceRate) - 1)
+}
+
+function normalCdf(x: number): number {
+  // Abramowitz & Stegun 7.1.26 — plenty for a display figure.
+  const t = 1 / (1 + 0.2316419 * Math.abs(x))
+  const d = 0.3989422804014327 * Math.exp(-x * x / 2)
+  const p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 +
+            t * (-1.821255978 + t * 1.330274429))))
+  return x >= 0 ? 1 - p : p
+}
+
+/** Odds the path TOUCHES the liquidation level before the horizon — first passage,
+ *  not where price ends up. A position dies at the lowest point on the path, and using
+ *  the terminal distribution instead understates the risk by roughly half.
+ *  Drift is zero: assuming a market rises while computing the odds of a fall is how a
+ *  plan gets talked into surviving on paper. */
+function liquidationOdds(distance: number, annualVol: number, days: number): number {
+  if (distance <= 0 || distance >= 1 || annualVol <= 0 || days <= 0) return 0
+  const years = days / 365
+  const sigma = annualVol * Math.sqrt(years)
+  const barrier = Math.log(1 - distance)
+  const nu = (-(annualVol ** 2) / 2) * years
+  const first = normalCdf((barrier - nu) / sigma)
+  const exponent = (2 * nu * barrier) / (sigma ** 2)
+  if (exponent > 700) return 1
+  return Math.min(1, Math.max(0, first + Math.exp(exponent) * normalCdf((barrier + nu) / sigma)))
+}
+
 /** Minutes since a timestamp, or null when there is nothing to measure from. */
 function staleness(iso: string | null | undefined): number | null {
   if (!iso) return null
@@ -110,7 +161,8 @@ async function load() {
     try { return (await fn()).data } catch { return null }
   }
 
-  const [verdicts, positions, candle, funding, book, tape, carry, capacity, vol, realized, stables, chains] = await Promise.all([
+  const [verdicts, positions, candle, funding, book, tape, carry, capacity, vol, realized, stables, chains,
+         liq, deep, venueFunding, specs, forward, wallets] = await Promise.all([
     q<Verdict[]>(() => sb.from('kr_research_verdicts').select('*').order('sort_order')),
     q<Position[]>(() => sb.from('kr_paper_positions').select('*').order('opened_at', { ascending: false }).limit(25)),
     q<{ bar_time: string }[]>(() => sb.from('kr_ohlcv').select('bar_time').order('bar_time', { ascending: false }).limit(1)),
@@ -130,6 +182,21 @@ async function load() {
       .order('observed_at', { ascending: false }).limit(150)),
     q<ChainRow[]>(() => sb.from('kr_chain_tvl').select('chain, observed_at, tvl_usd')
       .order('observed_at', { ascending: false }).limit(60)),
+    q<{ at: string }[]>(() => sb.from('kr_market_stats').select('at')
+      .order('at', { ascending: false }).limit(1)),
+    q<DepthRow[]>(() => sb.from('kr_deep_candles').select('interval_minutes, market, at')
+      .order('at', { ascending: true }).limit(1000)),
+    q<VenueFundingRow[]>(() => sb.from('kr_venue_funding')
+      .select('coin, venue, observed_at, funding_rate_annualized, interval_hours')
+      .order('observed_at', { ascending: false }).limit(700)),
+    q<SpecRow[]>(() => sb.from('kr_contract_specs')
+      .select('contract, observed_at, maintenance_rate, leverage_max')
+      .order('observed_at', { ascending: false }).limit(80)),
+    q<ForwardRow[]>(() => sb.from('kr_paper_positions')
+      .select('rule, market, side, realized_pnl_usd, notional_usd, opened_at, status')
+      .not('rule', 'is', null).order('opened_at', { ascending: false }).limit(2000)),
+    q<{ observed_at: string }[]>(() => sb.from('kr_traders').select('observed_at')
+      .order('observed_at', { ascending: false }).limit(1)),
   ])
 
   // Row counts come back on `count`, not `data` — a head:true request has no rows at
@@ -140,14 +207,47 @@ async function load() {
       return count ?? null
     } catch { return null }
   }
-  const [candles, fundingRows, bookRows, tapeRows, volRows, stableRows] = await Promise.all(
-    ['kr_ohlcv', 'kr_funding', 'kr_book', 'kr_tape', 'kr_vol_surface', 'kr_stablecoins'].map(countOf))
-  const collected = [candles, fundingRows, bookRows, tapeRows, volRows, stableRows]
+  const [candles, fundingRows, bookRows, tapeRows, volRows, stableRows,
+         liqRows, deepRows, venueRows, fillRows, forwardRows] = await Promise.all(
+    ['kr_ohlcv', 'kr_funding', 'kr_book', 'kr_tape', 'kr_vol_surface', 'kr_stablecoins',
+     'kr_market_stats', 'kr_deep_candles', 'kr_venue_funding', 'kr_wallet_fills',
+     'kr_paper_positions'].map(countOf))
+  const collected = [candles, fundingRows, bookRows, tapeRows, volRows, stableRows,
+                     liqRows, deepRows, venueRows, fillRows]
     .reduce<number | null>((sum, n) => (n === null ? sum : (sum ?? 0) + n), null)
+
+  // Oldest deep candle per interval — the answer to "how much history do we have",
+  // which is the number that was actually blocking every hypothesis.
+  const deepRowsList = deep ?? []
+  const deepNewestRow = deepRowsList.length ? deepRowsList[deepRowsList.length - 1] : null
+  const depth = [60, 240, 1440].map((interval) => {
+    const rows = deepRowsList.filter((r) => r.interval_minutes === interval)
+    return { interval, oldest: rows.length ? rows[0].at : null, markets: new Set(rows.map((r) => r.market)).size }
+  })
+
+  // Forward record, grouped by preregistered variant. Net only — a gross figure quoted
+  // without its cost is the commonest way a paper record flatters itself.
+  const byRule = new Map<string, { trades: number; net: number; wins: number }>()
+  for (const row of forward ?? []) {
+    if (!row.rule || row.realized_pnl_usd === null) continue
+    const seen = byRule.get(row.rule) ?? { trades: 0, net: 0, wins: 0 }
+    seen.trades += 1
+    seen.net += row.realized_pnl_usd
+    if (row.realized_pnl_usd > 0) seen.wins += 1
+    byRule.set(row.rule, seen)
+  }
+  const notional = (forward ?? []).find((r) => r.notional_usd)?.notional_usd ?? 1000
+  const forwardBoard = [...byRule.entries()]
+    .map(([rule, v]) => ({ rule, ...v, bps: (v.net / v.trades) / notional * 10000 }))
+    .sort((a, b) => b.bps - a.bps)
 
   return {
     verdicts: verdicts ?? [],
     positions: positions ?? [],
+    depth,
+    forwardBoard,
+    specs: dedupe(specs ?? [], (r) => r.contract),
+    venueFunding: dedupe(venueFunding ?? [], (r) => `${r.coin}|${r.venue}`),
     streams: [
       { name: 'Candles, 5-minute',    table: 'kr_ohlcv', key: 'candles' as const,  minutes: staleness(candle?.[0]?.bar_time),      budget: 15,  note: '20 markets. Kraken serves only 60 hours of history, so a long outage is permanent.' },
       { name: 'Funding, OI & basis',  table: 'kr_funding', key: 'funding' as const, minutes: staleness(funding?.[0]?.observed_at), budget: 15,  note: '275 perpetuals. NOTHING public returns a past hour’s funding rate — a gap here can never be filled.' },
@@ -155,6 +255,10 @@ async function load() {
       { name: 'Trade tape & flow',    table: 'kr_tape', key: 'tape' as const,    minutes: staleness(tape?.[0]?.window_start),   budget: 20,  note: 'Aggressor side, print sizes, tick volatility. None of it survives into a candle.' },
       { name: 'Implied volatility',   table: 'kr_vol_surface', key: 'vol' as const, minutes: staleness(vol?.[0]?.observed_at),  budget: 20,  note: 'What the market EXPECTS, from ~1,800 Deribit options. A snapshot with no history endpoint behind it, so a gap is permanent.' },
       { name: 'Capital flows',        table: 'kr_stablecoins', key: 'stables' as const, minutes: staleness(stables?.[0]?.observed_at), budget: 1500, note: 'Stablecoin supply and chain TVL. Daily resolution — dollars entering crypto before they reach a price.' },
+      { name: 'Liquidations & positioning', table: 'kr_market_stats', key: 'liq' as const, minutes: staleness(liq?.[0]?.at), budget: 180, note: '180 days across 17 markets. Who got CLOSED OUT versus who chose to sell — opposite trades that price alone cannot distinguish.' },
+      { name: 'Deep candle history', table: 'kr_deep_candles', key: 'deep' as const, minutes: staleness(deepNewestRow?.at), budget: 180, note: 'Hourly, 4-hour and daily back to 2021. The horizons these hypotheses actually use; 5-minute bars were never the right resolution for them.' },
+      { name: 'Binance & Bybit funding', table: 'kr_venue_funding', key: 'venue' as const, minutes: staleness(venueFunding?.[0]?.observed_at), budget: 30, note: 'Read through Hyperliquid because both geo-block us. Annualised only — settlement intervals differ per venue AND per coin.' },
+      { name: 'Winning & losing wallets', table: 'kr_traders', key: 'wallets' as const, minutes: staleness(wallets?.[0]?.observed_at), budget: 1500, note: 'Hyperliquid leaderboard with an equally sized LOSER arm. A condition found only among winners explains nothing.' },
     ],
     carry: dedupe(carry ?? [], (r) => r.symbol),
     capacity: dedupe(capacity ?? [], (r) => r.pair),
@@ -166,7 +270,9 @@ async function load() {
       .sort((a, b) => (a.days_to_expiry ?? 0) - (b.days_to_expiry ?? 0)),
     realized: Object.fromEntries((realized ?? []).map((r) => [r.symbol, r])) as Record<string, RealizedVol>,
     collected,
-    counts: { candles, funding: fundingRows, book: bookRows, tape: tapeRows, vol: volRows, stables: stableRows },
+    counts: { candles, funding: fundingRows, book: bookRows, tape: tapeRows, vol: volRows,
+              stables: stableRows, liq: liqRows, deep: deepRows, venue: venueRows,
+              wallets: fillRows, forward: forwardRows },
   }
 }
 
@@ -195,7 +301,8 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
     )
   }
 
-  const { verdicts, positions, streams, carry, capacity, collected, counts, vol, realized, stables, chains } = data
+  const { verdicts, positions, streams, carry, capacity, collected, counts, vol, realized, stables, chains,
+          depth, forwardBoard, specs, venueFunding } = data
   const live = streams.filter((s) => s.minutes !== null && s.minutes <= s.budget).length
   const running = verdicts.filter((v) => v.status === 'collecting').length
   const proven = verdicts.filter((v) => v.status === 'green').length
@@ -291,6 +398,231 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
               )
             })}
           </div>
+        </Panel>
+      </div>
+
+      {/* ── how much history each horizon actually has ──────────────────── */}
+      <div className="mt-3">
+        <Panel accent="cyan" title="📚 History depth — what the hypotheses are being fed">
+          <div className="mb-3 text-[12px] leading-snug text-neutral-600 dark:text-neutral-300">
+            Every directional hypothesis needs 150&ndash;500 independent observations. For
+            five days they were fed a <strong>2.5-day window</strong>, because 5-minute was
+            the only interval ever requested — and the same Kraken endpoint returns 721 bars
+            at <em>any</em> interval, two years of them when asked for daily. Gate serves
+            2,000 a call back to March 2021. That was the constraint, and it was self-inflicted.
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {depth.map((row) => {
+              const label = row.interval === 1440 ? 'Daily' : row.interval === 240 ? '4-hour' : 'Hourly'
+              const days = row.oldest ? Math.round((Date.now() - new Date(row.oldest).getTime()) / 86400000) : null
+              return (
+                <div key={row.interval} className="rounded-lg border border-neutral-200/70 bg-neutral-50/60 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900/40">
+                  <div className="text-[11px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">{label}</div>
+                  <div className="font-mono text-[18px] font-bold text-neutral-900 dark:text-neutral-100">
+                    {days === null ? DASH : `${days.toLocaleString()}d`}
+                  </div>
+                  <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                    {row.markets === 0 ? 'not collected yet' : `${row.markets} markets · back to ${row.oldest!.slice(0, 10)}`}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Panel>
+      </div>
+
+      {/* ── funding on the venues that matter ───────────────────────────── */}
+      <div className="mt-3">
+        <Panel accent="amber" title="🌍 Binance & Bybit funding — read through Hyperliquid">
+          <div className="mb-3 text-[12px] leading-snug text-neutral-600 dark:text-neutral-300">
+            Both geo-block us directly and would from Colorado too, yet Binance is where the
+            marginal leveraged dollar sits. <strong>Annualised only.</strong> Settlement
+            intervals differ per venue <em>and</em> per coin, so the published rates are not
+            comparable: on BTC the raw numbers make Binance look 4.6&times; Hyperliquid when
+            annualising puts Hyperliquid 1.7&times; higher.
+          </div>
+          {venueFunding.length === 0 ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-200">
+              Not collected yet — the collector needs the latest build.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="text-left text-neutral-500 dark:text-neutral-400">
+                  <tr>
+                    <th className="py-1 pr-3 font-medium">coin</th>
+                    <th className="py-1 pr-3 text-right font-medium">binance</th>
+                    <th className="py-1 pr-3 text-right font-medium">bybit</th>
+                    <th className="py-1 pr-3 text-right font-medium">hyperliquid</th>
+                    <th className="py-1 text-right font-medium">spread</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono">
+                  {Object.entries(
+                    venueFunding.reduce<Record<string, Record<string, number | null>>>((acc, r) => {
+                      acc[r.coin] = acc[r.coin] ?? {}
+                      acc[r.coin][r.venue] = r.funding_rate_annualized
+                      return acc
+                    }, {}))
+                    .map(([coin, byVenue]) => {
+                      const values = Object.values(byVenue).filter((v): v is number => v !== null && v !== undefined)
+                      // Only coins where EVERY venue annualised — a spread against a rate
+                      // that could not be annualised is the exact error to avoid.
+                      const complete = values.length === Object.keys(byVenue).length && values.length >= 2
+                      return { coin, byVenue, spread: complete ? Math.max(...values) - Math.min(...values) : null }
+                    })
+                    .filter((r) => r.spread !== null)
+                    .sort((a, b) => b.spread! - a.spread!)
+                    .slice(0, 12)
+                    .map(({ coin, byVenue, spread }) => (
+                      <tr key={coin} className="border-t border-neutral-200/60 dark:border-neutral-800">
+                        <td className="py-1 pr-3">{coin}</td>
+                        {['binance', 'bybit', 'hyperliquid'].map((venue) => {
+                          const v = byVenue[venue]
+                          return (
+                            <td key={venue} className={`py-1 pr-3 text-right ${v == null ? 'text-neutral-400' : v < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                              {v == null ? DASH : `${(v * 100).toFixed(1)}%`}
+                            </td>
+                          )
+                        })}
+                        <td className="py-1 text-right font-bold">{(spread! * 100).toFixed(1)} pts</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      {/* ── the forward record: the one thing that cannot be backfilled ──── */}
+      <div className="mt-3">
+        <Panel
+          accent="green"
+          title="📈 Forward paper record — out of sample, costs charged"
+          right={<span className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">
+            {counts.forward === null ? DASH : `${counts.forward.toLocaleString()} decisions`}
+          </span>}
+        >
+          <div className="mb-3 text-[12px] leading-snug text-neutral-600 dark:text-neutral-300">
+            Six preregistered rules at four horizons — <strong>24 trials</strong>, and that
+            count feeds the deflated Sharpe. Decisions use closed bars only, entry and exit
+            at a bar close, costs from our own measured round trip charged at both ends.
+            Read every row against <strong>benchmark-long</strong>, which is simply always
+            long: over a falling stretch a rule that merely loses less is still winning.
+          </div>
+          {forwardBoard.length === 0 ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-200">
+              No decisions resolved yet. The collector needs the latest build, and the
+              newest bars deliberately resolve nothing until their exit bar has closed —
+              scoring a position whose exit has not happened is how an open loser gets
+              left out of a record.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="text-left text-neutral-500 dark:text-neutral-400">
+                  <tr>
+                    <th className="py-1 pr-3 font-medium">rule @ horizon</th>
+                    <th className="py-1 pr-3 text-right font-medium">trades</th>
+                    <th className="py-1 pr-3 text-right font-medium">net / trade</th>
+                    <th className="py-1 pr-3 text-right font-medium">vs benchmark</th>
+                    <th className="py-1 text-right font-medium">winners</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono">
+                  {forwardBoard.map((row) => {
+                    const horizon = row.rule.split('@')[1] ?? ''
+                    const control = forwardBoard.find((r) => r.rule === `benchmark-long@${horizon}`)
+                    const edge = control && control.rule !== row.rule ? row.bps - control.bps : null
+                    const isControl = row.rule.startsWith('benchmark-long@')
+                    return (
+                      <tr key={row.rule} className={`border-t border-neutral-200/60 dark:border-neutral-800 ${isControl ? 'text-neutral-500 dark:text-neutral-400' : ''}`}>
+                        <td className="py-1 pr-3">{row.rule}{isControl ? ' · control' : ''}</td>
+                        <td className="py-1 pr-3 text-right">{row.trades}</td>
+                        <td className={`py-1 pr-3 text-right ${row.bps >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {row.bps >= 0 ? '+' : ''}{row.bps.toFixed(1)} bps
+                        </td>
+                        <td className={`py-1 pr-3 text-right ${edge === null ? '' : edge >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {edge === null ? DASH : `${edge >= 0 ? '+' : ''}${edge.toFixed(1)} bps`}
+                        </td>
+                        <td className="py-1 text-right">{row.wins}/{row.trades}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      {/* ── leverage survivability ──────────────────────────────────────── */}
+      <div className="mt-3">
+        <Panel accent="rose" title="💀 Where leverage dies — odds of being closed out">
+          <div className="mb-3 text-[12px] leading-snug text-neutral-600 dark:text-neutral-300">
+            From the venue&rsquo;s published maintenance rate and our own measured
+            volatility, <strong>assuming zero drift</strong>. These are first-passage odds:
+            a position is closed by the <em>lowest point on the path</em>, not by where
+            price ends up, and asking the terminal question understates the risk by roughly
+            half. If you believe a bull run is starting, the numbers improve sharply — but
+            that is a bet on the drift and belongs stated out loud, not buried in a default.
+          </div>
+          {specs.length === 0 ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-200">
+              No margin parameters collected yet — the collector needs the latest build.
+              Showing nothing rather than the 1/L approximation, which is optimistic in
+              every case.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="text-left text-neutral-500 dark:text-neutral-400">
+                  <tr>
+                    <th className="py-1 pr-3 font-medium">market</th>
+                    <th className="py-1 pr-3 text-right font-medium">vol</th>
+                    <th className="py-1 pr-3 text-right font-medium">maint.</th>
+                    <th className="py-1 pr-3 text-right font-medium">3x / 30d</th>
+                    <th className="py-1 pr-3 text-right font-medium">5x / 30d</th>
+                    <th className="py-1 pr-3 text-right font-medium">3x / 180d</th>
+                    <th className="py-1 pr-3 text-right font-medium">5x / 180d</th>
+                    <th className="py-1 text-right font-medium">max under 20% / 180d</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono">
+                  {specs.map((spec) => {
+                    const base = spec.contract.replace('_USDT', '')
+                    const rv = realized[`${base}/USD`]
+                    const mr = spec.maintenance_rate
+                    if (!rv?.annualized_vol || mr === null) return null
+                    const v = rv.annualized_vol
+                    const odds = (lev: number, days: number) =>
+                      liquidationOdds(liquidationDistance(lev, mr), v, days)
+                    let safest: number | null = null
+                    for (let lev = 20; lev > 1; lev -= 1) {
+                      if (odds(lev, 180) < 0.20) { safest = lev; break }
+                    }
+                    const cell = (p: number) => (
+                      <td className={`py-1 pr-3 text-right ${p >= 0.5 ? 'text-rose-600 dark:text-rose-400' : p >= 0.2 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        {(p * 100).toFixed(1)}%
+                      </td>
+                    )
+                    return (
+                      <tr key={spec.contract} className="border-t border-neutral-200/60 dark:border-neutral-800">
+                        <td className="py-1 pr-3">{base}</td>
+                        <td className="py-1 pr-3 text-right">{(v * 100).toFixed(0)}%</td>
+                        <td className="py-1 pr-3 text-right">{(mr * 100).toFixed(2)}%</td>
+                        {cell(odds(3, 30))}{cell(odds(5, 30))}{cell(odds(3, 180))}{cell(odds(5, 180))}
+                        <td className={`py-1 text-right ${safest === null ? 'text-rose-600 dark:text-rose-400' : ''}`}>
+                          {safest === null ? 'none' : `${safest}x`}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Panel>
       </div>
 
