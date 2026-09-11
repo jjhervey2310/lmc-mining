@@ -74,6 +74,13 @@ type ForwardRow = {
   opened_at: string; status: string
 }
 
+type FindingRow = {
+  test_id: string; verdict_id: string | null; at: string; episodes: number
+  markets: number; trials: number; mean_excess: number | null
+  median_excess: number | null; t_corrected: number | null; beat_market: number | null
+  horizon_hours: number | null; status: string; detail: string | null
+}
+
 type DepthRow = { interval_minutes: number; market: string; at: string }
 
 type Position = {
@@ -165,7 +172,7 @@ async function load() {
   }
 
   const [verdicts, positions, candle, funding, book, tape, carry, capacity, vol, realized, stables, chains,
-         liq, deep, venueFunding, specs, forward, wallets] = await Promise.all([
+         liq, deep, venueFunding, specs, forward, wallets, findings] = await Promise.all([
     q<Verdict[]>(() => sb.from('kr_research_verdicts').select('*').order('sort_order')),
     q<Position[]>(() => sb.from('kr_paper_positions').select('*').order('opened_at', { ascending: false }).limit(25)),
     q<{ bar_time: string }[]>(() => sb.from('kr_ohlcv').select('bar_time').order('bar_time', { ascending: false }).limit(1)),
@@ -200,6 +207,12 @@ async function load() {
       .not('rule', 'is', null).order('opened_at', { ascending: false }).limit(2000)),
     q<{ observed_at: string }[]>(() => sb.from('kr_traders').select('observed_at')
       .order('observed_at', { ascending: false }).limit(1)),
+    // Written by the collector itself, six-hourly, with nobody at the keyboard. Deliberately
+    // a different table from kr_research_verdicts: the two will disagree, and an automated
+    // writer that could overwrite a person's reasoning would do so at the worst moment.
+    q<FindingRow[]>(() => sb.from('kr_findings')
+      .select('test_id, verdict_id, at, episodes, markets, trials, mean_excess, median_excess, t_corrected, beat_market, horizon_hours, status, detail')
+      .order('at', { ascending: false }).limit(400)),
   ])
 
   // Row counts come back on `count`, not `data` — a head:true request has no rows at
@@ -244,7 +257,16 @@ async function load() {
     .map(([rule, v]) => ({ rule, ...v, bps: (v.net / v.trades) / notional * 10000 }))
     .sort((a, b) => b.bps - a.bps)
 
+  // Only the newest run. Every earlier run is kept in the table so a drifting result can
+  // be caught by comparing a test against its own past, but showing them all at once would
+  // read as many findings where there is one, measured repeatedly.
+  const allFindings = findings ?? []
+  const newestRun = allFindings.length ? allFindings[0].at : null
+  const latestFindings = allFindings.filter((f) => f.at === newestRun)
+
   return {
+    findings: latestFindings,
+    findingRuns: new Set(allFindings.map((f) => f.at)).size,
     verdicts: verdicts ?? [],
     positions: positions ?? [],
     depth,
@@ -305,7 +327,7 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
   }
 
   const { verdicts, positions, streams, carry, capacity, collected, counts, vol, realized, stables, chains,
-          depth, forwardBoard, specs, venueFunding } = data
+          depth, forwardBoard, specs, venueFunding, findings, findingRuns } = data
   const live = streams.filter((s) => s.minutes !== null && s.minutes <= s.budget).length
   const running = verdicts.filter((v) => v.status === 'collecting').length
   const proven = verdicts.filter((v) => v.status === 'green').length
@@ -659,6 +681,129 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
           )}
         </Panel>
       </div>
+
+      {/* ── what the collector measured on its own ──────────────────────── */}
+      {findings.length > 0 && (() => {
+        // Grouped by test so one row is one question, with its horizons side by side.
+        // The horizon is where the answer lives: the same trigger can be worth holding
+        // for two days and worthless at twenty, and a single averaged number hides that.
+        const byTest = new Map<string, FindingRow[]>()
+        for (const f of findings) {
+          const rows = byTest.get(f.test_id) ?? []
+          rows.push(f)
+          byTest.set(f.test_id, rows)
+        }
+        const peak = (rows: FindingRow[]) =>
+          Math.max(...rows.map((r) => Math.abs(r.t_corrected ?? 0)))
+        const tests = [...byTest.entries()].sort((a, b) => peak(b[1]) - peak(a[1]))
+        const horizons = [...new Set(findings.map((f) => f.horizon_hours ?? 0))].sort((a, b) => a - b)
+        const trials = findings[0]?.trials ?? 0
+        // Bonferroni, honestly applied: with this many trials, |t| >= 2 turns up several
+        // times by luck alone. Quoting the 2.0 bar against a grid this wide is how a
+        // fitted number gets called a finding.
+        const bar = trials > 1 ? Math.sqrt(2 * Math.log(2 * trials / 0.05)) : 2
+        const best = tests[0]
+        return (
+          <div className="mt-3">
+            <Panel
+              accent="cyan"
+              title="🤖 What the collector measured on its own"
+              right={
+                <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  {findings.length} results · {findingRuns} run{findingRuns === 1 ? '' : 's'}
+                </span>
+              }
+            >
+              <div className="mb-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[12px] leading-relaxed text-neutral-600 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400">
+                <b className="text-neutral-800 dark:text-neutral-200">This table moves without anyone here.</b>{' '}
+                The collector re-runs every test six-hourly against the daily bars already on
+                disk and writes the results itself. Numbers are excess over each market&rsquo;s
+                own return, so a market that simply rose cannot make a rule look able, and a
+                positive figure means the trade made money <i>whichever way it faced</i> —
+                short results are already mirrored.{' '}
+                <b className="text-neutral-800 dark:text-neutral-200">
+                  Nothing here can turn green.
+                </b>{' '}
+                Green needs out-of-sample survival and a Deflated Sharpe correction, which one
+                backtest cannot supply. Across {trials} trials the honest significance bar is
+                |t| ≥ {bar.toFixed(2)}, not 2.00
+                {best && peak(best[1]) < bar
+                  ? `, and the strongest thing measured is ${best[0]} at t = ${peak(best[1]).toFixed(2)}.`
+                  : '.'}
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-[12px]">
+                  <thead>
+                    <tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wider text-neutral-500 dark:border-white/10 dark:text-neutral-400">
+                      <th className="py-1.5 pr-3 font-semibold">Test</th>
+                      <th className="py-1.5 pr-3 font-semibold">Way</th>
+                      {horizons.map((h) => (
+                        <th key={h} className="py-1.5 pr-3 text-right font-semibold">
+                          {h >= 24 ? `${Math.round(h / 24)}d` : `${h}h`}
+                        </th>
+                      ))}
+                      <th className="py-1.5 text-right font-semibold">Peak t</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    {tests.map(([testId, rows]) => {
+                      const way = rows[0].detail?.startsWith('short') ? 'short' : 'long'
+                      const thin = rows.every((r) => r.episodes < 30)
+                      return (
+                        <tr key={testId}
+                            className="border-b border-neutral-100 last:border-0 dark:border-white/5">
+                          <td className="py-1.5 pr-3 font-sans">
+                            <span className="font-semibold">{testId}</span>
+                            {thin && (
+                              <span className="ml-1.5 text-[10px] uppercase tracking-wider text-neutral-400">
+                                too few
+                              </span>
+                            )}
+                          </td>
+                          <td className={`py-1.5 pr-3 text-[10px] uppercase tracking-wider ${
+                            way === 'short' ? 'text-rose-600 dark:text-rose-400'
+                                            : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            {way}
+                          </td>
+                          {horizons.map((h) => {
+                            const cell = rows.find((r) => (r.horizon_hours ?? 0) === h)
+                            if (!cell) return <td key={h} className="py-1.5 pr-3 text-right text-neutral-300">–</td>
+                            const t = cell.t_corrected ?? 0
+                            // Shaded by evidence, not by whether the number is pleasing:
+                            // a large excess on a t of 0.4 is noise and must not look warm.
+                            const strong = Math.abs(t) >= bar
+                            const notable = Math.abs(t) >= 1.2
+                            return (
+                              <td key={h} className={`py-1.5 pr-3 text-right ${
+                                strong ? 'font-bold text-emerald-600 dark:text-emerald-400'
+                                       : notable ? 'text-neutral-800 dark:text-neutral-200'
+                                                 : 'text-neutral-400 dark:text-neutral-500'}`}>
+                                {((cell.median_excess ?? 0) * 100).toFixed(2)}%
+                                <span className="ml-1 text-[10px] opacity-60">t{t.toFixed(2)}</span>
+                              </td>
+                            )
+                          })}
+                          <td className="py-1.5 text-right font-semibold">
+                            {peak(rows).toFixed(2)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-2 text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400">
+                Each cell is the median excess at that holding period, with its
+                correlation-corrected t beside it. Median rather than mean deliberately: these
+                payoffs are heavily right-skewed, so a mean can be positive while most trades
+                lose, and the mean is the number that talks a plan into existence.
+              </div>
+            </Panel>
+          </div>
+        )
+      })()}
 
       {/* ── the scoreboard ──────────────────────────────────────────────── */}
       <ScoreboardPulse secret={secret} />
