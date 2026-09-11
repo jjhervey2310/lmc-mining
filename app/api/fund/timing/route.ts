@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { resolveIds, cgFetch, lastKnownPrices } from '@/lib/desk-cg'
 import { gradeTiming, ANCHOR, type TimingInput } from '@/lib/desk-timing'
-import { rhConfigured } from '@/lib/robinhood'
+import { rhConfigured, bestBidAsk } from '@/lib/robinhood'
 
 // TIMING CHECK for one symbol: up-to-date price + 24h volume + an A–F grade against the house laws
 // and the tape, plus the ruled size and the stop the buy would carry. Read-only; secret-gated.
@@ -46,7 +46,30 @@ export async function buildTiming(symbol: string) {
   type Mk = { id: string; current_price: number; total_volume: number; price_change_percentage_24h_in_currency?: number; price_change_percentage_7d_in_currency?: number; price_change_percentage_30d_in_currency?: number }
   const rows = (mkt ?? []) as Mk[]
   const me = rows.find((r) => r.id === cgId); const btc = rows.find((r) => r.id === 'bitcoin')
-  if (!me?.current_price) throw new Error(`CoinGecko has no live price for ${sym}`)
+  // Don't throw on a rate limit: fall back to the last known close so the tab still renders a reasoned
+  // grade. gradeTiming turns priceStale into a HARD bar, so this can inform but never fund an order.
+  // PRICE SOURCE ORDER (Jacob 2026-09-10: "robinhood which your connected to has the live prices"):
+  //   1. CoinGecko  - preferred only because it also carries 24h/7d/30d and volume in one call
+  //   2. ROBINHOOD  - live, not rate-limited, and it is the venue we would actually fill on, so its
+  //                   ask-inclusive-of-spread is the truest number for sizing a buy
+  //   3. cg_history - last daily close. STALE, and gradeTiming hard-bars any order priced off it.
+  let priceStale: { at: string } | null = null
+  let priceSource: 'coingecko' | 'robinhood' | 'cg_history' = 'coingecko'
+  let rhQuote: { bid: number; ask: number; mid: number } | null = null
+  let livePrice = me?.current_price ?? null
+  if (!livePrice && rhConfigured()) {
+    try {
+      const q = await bestBidAsk(sym)
+      const bid = Number(q.bid_inclusive_of_sell_spread), ask = Number(q.ask_inclusive_of_buy_spread)
+      const mid = Number(q.price) || (bid > 0 && ask > 0 ? (bid + ask) / 2 : 0)
+      if (mid > 0) { livePrice = mid; priceSource = 'robinhood'; rhQuote = { bid, ask, mid } }
+    } catch { /* not a pair, or RH unreachable - fall through */ }
+  }
+  if (!livePrice) {
+    const lk = await lastKnownPrices([cgId])
+    if (lk[cgId]) { livePrice = lk[cgId].usd; priceStale = { at: lk[cgId].at }; priceSource = 'cg_history' }
+  }
+  if (!livePrice) throw new Error(`No price for ${sym}: CoinGecko rate-limited, Robinhood has no ${sym}-USD quote, and cg_history has no row for ${cgId}`)
   const chartData = chart.ok ? (chart.data as { prices?: [number, number][]; total_volumes?: [number, number][] }) : null
   const chartError = chart.ok ? null
     : chart.status === 429 ? 'CoinGecko rate-limited the 30-day chart (429)'
@@ -81,11 +104,11 @@ export async function buildTiming(symbol: string) {
   const halfSize = cfg.macro_half_size != null ? String(cfg.macro_half_size).toLowerCase() === 'true' : nowIso < '2026-09-17T00:00:00Z'
 
   const input: TimingInput = {
-    symbol: sym, price: me.current_price,
-    d1: me.price_change_percentage_24h_in_currency ?? null, d7: me.price_change_percentage_7d_in_currency ?? null, d30: me.price_change_percentage_30d_in_currency ?? null,
-    vol24h: me.total_volume ?? null, avgVol20, hi20,
+    symbol: sym, price: livePrice, priceStale,
+    d1: me?.price_change_percentage_24h_in_currency ?? null, d7: me?.price_change_percentage_7d_in_currency ?? null, d30: me?.price_change_percentage_30d_in_currency ?? null,
+    vol24h: me?.total_volume ?? null, avgVol20, hi20,
     tapeError: chartError,
-    rs7VsBtc: me.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null,
+    rs7VsBtc: me?.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null,
     armed: ((trigQ.data ?? []) as { symbol: string; kind: string; level: number }[]).filter((t) => t.symbol === sym).map((t) => ({ kind: t.kind, level: Number(t.level) })),
     cashUsd: cash, bookUsd: book,
     sleeveCount: positions.filter((p) => !ANCHOR.has(p.symbol)).length, slots: Math.min(7, Math.floor(book / 150)), holdingsCount: positions.length,
@@ -96,8 +119,8 @@ export async function buildTiming(symbol: string) {
   const result = gradeTiming(input)
   return {
     symbol: sym, cgId, at: nowIso,
-    price: me.current_price, vol24h: me.total_volume ?? null, avgVol20, volX: me.total_volume && avgVol20 ? me.total_volume / avgVol20 : null,
-    d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (me.current_price / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
+    price: livePrice, price_source: priceSource, price_stale: priceStale, rh_quote: rhQuote, vol24h: me?.total_volume ?? null, avgVol20, volX: me?.total_volume && avgVol20 ? me.total_volume / avgVol20 : null,
+    d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (livePrice / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
     tapeError: chartError,
     book, cash, slots: input.slots, sleeveCount: input.sleeveCount, weeklyEntries: input.weeklyEntries, blackout, halfSize,
     book_health: { unpriced, stale_priced: stalePriced, trustworthy: unpriced.length === 0 },
