@@ -9,7 +9,10 @@
 // Jacob per trade, and the override is logged. A / B / C = clear to buy at the ruled size.
 
 export const ANCHOR = new Set(['BTC', 'SOL'])   // v4: ETH out of the anchor
-export type Grade = 'A' | 'B' | 'C' | 'D' | 'F'
+// '?' = COULD NOT GRADE (no live price). It is NOT an F. An F is a judgement about the entry;
+// '?' means the grader was blind. Conflating them made five B-scoring names look like rejects
+// when CoinGecko rate-limited us (Jacob 2026-09-11: "why are they all ranked D or F").
+export type Grade = 'A' | 'B' | 'C' | 'D' | 'F' | '?'
 
 export interface TimingInput {
   symbol: string
@@ -116,7 +119,13 @@ export function gradeTiming(i: TimingInput): TimingResult {
     : { price: round2(i.price * 0.80 * 1e6) / 1e6, source: 'v4 default −20% from fill', pct: -20 }
 
   score = Math.max(0, Math.min(100, Math.round(score)))
-  let grade: Grade = hard.length ? 'F' : score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'F'
+  // A stale price means UNGRADEABLE, not failed: report '?' and keep the merit score visible so a
+  // data outage is never mistaken for a bad name. The hard bar still stands — '?' is never buyable.
+  const blind = i.priceStale != null || i.hi20 == null
+  const meritHard = hard.filter((h) => !/^stale price|^RUNNING law UNCHECKABLE/.test(h))
+  let grade: Grade = blind && meritHard.length === 0 ? '?'
+    : meritHard.length || hard.length ? 'F'
+    : score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'F'
   if (capD && (grade === 'A' || grade === 'B' || grade === 'C')) grade = 'D'
   return {
     grade, score, hard, soft, plus,

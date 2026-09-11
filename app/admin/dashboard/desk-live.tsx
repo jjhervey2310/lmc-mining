@@ -66,6 +66,7 @@ const Pct = ({ v, d = 1 }: { v: number | null | undefined; d?: number }) =>
   : <span className={`font-mono tabular-nums ${v >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{v >= 0 ? '+' : ''}{v.toFixed(d)}%</span>
 const GRADE: Record<string, string> = {
   A: 'bg-emerald-500 text-white', B: 'bg-green-500 text-white', C: 'bg-amber-400 text-black', D: 'bg-orange-500 text-white', F: 'bg-rose-600 text-white',
+  '?': 'bg-neutral-400 text-white',   // could not grade (no live price) — never a judgement on the name
 }
 const STATUS: Record<string, string> = {
   POLE: 'bg-amber-100 text-amber-800 dark:bg-amber-400/20 dark:text-amber-200', WATCH: 'bg-sky-100 text-sky-800 dark:bg-sky-400/20 dark:text-sky-200',
@@ -87,6 +88,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const [toggling, setToggling] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
   const [thesisOpen, setThesisOpen] = useState<Record<string, boolean>>({})
+  const [showBelowC, setShowBelowC] = useState(false)
   const [timing, setTiming] = useState<Record<string, Timing | { error: string } | 'loading' | undefined>>({})
   const [buying, setBuying] = useState<Record<string, BuyResult | 'working' | undefined>>({})
 
@@ -412,11 +414,17 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         ) : (
           <div className="divide-y divide-neutral-100 dark:divide-white/5">
             {heldPole && <div className="pb-1 text-[11px] text-amber-800 dark:text-amber-200">desk_theses POLE row is {heldPole.symbol}, which is held — suppressed; the first name below is not a pole until the desk promotes it.</div>}
+            {/* Jacob 2026-09-11: "i only want things on that list that are a c+ or higher". D and F are
+                collapsed, not deleted. A name that has not been checked yet, or that could not be graded
+                for want of a live price ('?'), still shows — hiding those would hide the good ones, which
+                is exactly what happened when a rate limit turned five B-scoring names into Fs. */}
             {queue.map((t, rank) => {
               const lv = live[t.symbol]; const r = radarFor(t.symbol); const fl = flowFor(t.symbol)
               const lines = trig(t.symbol, ['bid', 'deep_rung', 'entry', 'dump', 'reclaim'])
               const tm = timing[t.symbol]; const br = buying[t.symbol]
               const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
+              const belowC = T != null && (T.grade === 'D' || T.grade === 'F')
+              if (belowC && !showBelowC) return null
               return (
                 <div key={t.symbol} className="py-2">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
@@ -506,6 +514,23 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 </div>
               )
             })}
+            {/* The C+ filter hides names, so it must always say how many and let you look. A quiet
+                filter that silently drops a name is the same failure as a zero standing in for a
+                fetch that failed. */}
+            {(() => {
+              const below = queue.filter((t) => {
+                const tm = timing[t.symbol]
+                const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
+                return T != null && (T.grade === 'D' || T.grade === 'F')
+              })
+              if (!below.length) return null
+              return (
+                <button type="button" onClick={() => setShowBelowC((v) => !v)}
+                  className="w-full py-1.5 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
+                  {showBelowC ? '▾ hide' : '▸ show'} {below.length} below C · {below.map((t) => t.symbol).join(' ')}
+                </button>
+              )
+            })()}
           </div>
         )}
         {boardPoleSym && held.has(boardPoleSym) && (
