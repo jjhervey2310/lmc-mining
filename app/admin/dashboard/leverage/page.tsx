@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Shell, Panel, Tile, checkAdmin, usd } from '../ui'
 import { createServiceClient } from '@/lib/supabase'
-import ReadinessBrain, { type Track } from './brain'
+import ReadinessBrain, { EVIDENCE_WEIGHT, type Track } from './brain'
 
 // LEVERAGE — the research desk (rebuilt 2026-09-10).
 //
@@ -327,13 +327,26 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
   const RESOLVED = new Set(['green', 'red'])
   const tracks: Track[] = families.map((family) => {
     const rows = verdicts.filter((v) => v.family === family)
-    const done = rows.filter((v) => RESOLVED.has(v.status)).length
+    const answered = rows.filter((v) => RESOLVED.has(v.status)).length
     const dead = rows.filter((v) => v.status === 'red').length
     const works = rows.filter((v) => v.status === 'green').length
-    const detail = done === 0
-      ? `${rows.length} still open — ${rows.filter((v) => v.status === 'collecting').length} collecting`
-      : `${works} works, ${dead} ruled out, ${rows.length - done} still open`
-    return { key: family, label: FAMILY_LABEL[family] ?? family, done, total: rows.length, detail }
+
+    // Open questions contribute the share of the data they still need, capped well below
+    // a whole answer. Counting only finished verdicts left this flat for days at a time,
+    // which says nothing about whether the work is moving — and collection genuinely is
+    // the slow part, so it deserves to show.
+    const open = rows.filter((v) => !RESOLVED.has(v.status))
+    const needed = open.reduce((n, v) => n + (v.observations_needed ?? 0), 0)
+    const held = open.reduce(
+      (n, v) => n + Math.min(v.observations ?? 0, v.observations_needed ?? 0), 0)
+    const evidence = needed > 0 ? held / needed : 0
+    const credit = answered + EVIDENCE_WEIGHT * evidence * open.length
+
+    const detail = answered === 0
+      ? `${rows.length} still open — ${Math.round(evidence * 100)}% of the data they need`
+      : `${works} works, ${dead} ruled out, ${rows.length - answered} open`
+    return { key: family, label: FAMILY_LABEL[family] ?? family,
+             credit, answered, total: rows.length, evidence, detail }
   })
   const withFunding = carry
     .filter((c) => c.funding_rate_annualized !== null)
