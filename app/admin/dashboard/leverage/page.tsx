@@ -37,6 +37,7 @@ type Verdict = {
   oos_sharpe: number | null; deflated_sharpe: number | null
   net_return_annual: number | null; cost_drag_annual: number | null
   capacity_usd: number | null; evidence: string | null; sort_order: number
+  markets: string[] | null
 }
 
 type VolRow = {
@@ -674,30 +675,74 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
                     const s = STATUS[(v.status as keyof typeof STATUS)] ?? STATUS.untested
                     const pct = v.observations_needed > 0
                       ? Math.min(100, (v.observations / v.observations_needed) * 100) : 0
+                    const settled = v.status === 'green' || v.status === 'red'
                     return (
-                      <div key={v.id} className={`rounded-lg border px-2.5 py-2 ${s.chip}`}>
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-[13px] font-semibold">{v.name}</span>
-                          <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider opacity-70">{s.label}</span>
-                        </div>
-                        <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug opacity-80">{v.hypothesis}</div>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-neutral-200 dark:bg-white/10">
-                            <div className={`h-full ${s.dot}`} style={{ width: `${pct}%` }} />
+                      <details key={v.id} className={`group rounded-lg border px-2.5 py-2 ${s.chip}`}>
+                        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="truncate text-[13px] font-semibold">{v.name}</span>
+                            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider opacity-70">{s.label}</span>
                           </div>
-                          <span className="shrink-0 font-mono text-[10px] opacity-70">
-                            {v.observations}/{v.observations_needed}
-                          </span>
-                        </div>
+                          <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug opacity-80 group-open:line-clamp-none">
+                            {v.hypothesis}
+                          </div>
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <div className="h-1 flex-1 overflow-hidden rounded-full bg-neutral-200 dark:bg-white/10">
+                              <div className={`h-full ${s.dot}`} style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="shrink-0 font-mono text-[10px] opacity-70">
+                              {v.observations}/{v.observations_needed}
+                            </span>
+                          </div>
+                          {v.evidence && (
+                            <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60 group-open:hidden">
+                              {settled ? 'click for the finding and what it means' : 'click for what has been measured so far'}
+                            </div>
+                          )}
+                          {!v.evidence && (
+                            <div className="mt-1 text-[10px] uppercase tracking-wider opacity-50 group-open:hidden">
+                              not yet tested
+                            </div>
+                          )}
+                        </summary>
+
                         {(v.oos_sharpe !== null || v.net_return_annual !== null) && (
-                          <div className="mt-1 flex gap-3 font-mono text-[10px] opacity-80">
+                          <div className="mt-2 flex gap-3 font-mono text-[10px] opacity-80">
                             <span>OOS SR {num(v.oos_sharpe, 2)}</span>
                             <span>defl {num(v.deflated_sharpe, 2)}</span>
                             <span>net {num(v.net_return_annual !== null ? v.net_return_annual * 100 : null, 0, '%')}</span>
                           </div>
                         )}
-                        {v.evidence && <div className="mt-1 text-[11px] italic opacity-75">{v.evidence}</div>}
-                      </div>
+
+                        {v.evidence ? (
+                          <div className="mt-2 border-t border-current/15 pt-2">
+                            {v.status === 'green' && (
+                              <div className="mb-1.5 text-[10px] font-bold uppercase tracking-widest opacity-70">
+                                What this means for trading
+                              </div>
+                            )}
+                            {v.status === 'red' && (
+                              <div className="mb-1.5 text-[10px] font-bold uppercase tracking-widest opacity-70">
+                                Why it was ruled out
+                              </div>
+                            )}
+                            <div className="whitespace-pre-line text-[11.5px] leading-relaxed opacity-90">
+                              {v.evidence}
+                            </div>
+                            {(v.markets?.length ?? 0) > 0 && (
+                              <div className="mt-2 font-mono text-[10px] opacity-60">
+                                measured on: {v.markets!.join(' · ')}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="mt-2 border-t border-current/15 pt-2 text-[11.5px] leading-relaxed opacity-75">
+                            Nothing measured yet. This question is on the board so that it
+                            cannot be quietly dropped, and so that the readiness figure
+                            counts it against what still has to be answered.
+                          </div>
+                        )}
+                      </details>
                     )
                   })}
                 </div>
