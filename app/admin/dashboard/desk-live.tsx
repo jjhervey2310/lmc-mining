@@ -253,12 +253,28 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 <div className="text-[11px] uppercase tracking-wider text-neutral-500">Account value</div>
                 <div className="font-mono text-[28px] font-black leading-tight text-neutral-800 dark:text-neutral-100">{allPriced ? usd2(book) : '…'}</div>
                 {allPriced && (() => {
-                  // 24h move of the whole book: each position's value 24h ago = value / (1 + d1)
+                  // MARKET MOVE ONLY. Each position's value 24h ago = value / (1 + d1); cash is carried at its
+                  // CURRENT level on both sides so a deposit cancels out and can never appear as a gain.
+                  // Jacob 2026-09-11, on a $100 deposit that lifted the book $103: "that should never read as a gain".
                   const prev = positions.reduce((s, p) => { const d = live[p.symbol]?.d1; return s + (d == null ? val(p) : val(p) / (1 + d / 100)) }, 0) + cash
                   const chg = book - prev; const pct = prev > 0 ? (chg / prev) * 100 : 0
-                  return <div className={`font-mono text-[13px] font-bold ${chg >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{chg >= 0 ? '▲' : '▼'} {usd2(Math.abs(chg))} ({pct >= 0 ? '+' : ''}{pct.toFixed(2)}%) today</div>
+                  const today = new Date(Date.now() - 6 * 3600e3).toISOString().slice(0, 10)   // Denver date
+                  const inToday = (capital.flows ?? []).filter((f) => f.date >= today)
+                  const depToday = inToday.reduce((a, f) => a + (/deposit|transfer_in|in/i.test(f.kind) ? Number(f.amount) : -Number(f.amount)), 0)
+                  return (
+                    <>
+                      <div className={`font-mono text-[13px] font-bold ${chg >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
+                        {chg >= 0 ? '\u25b2' : '\u25bc'} {usd2(Math.abs(chg))} ({pct >= 0 ? '+' : ''}{pct.toFixed(2)}%) <span className="font-normal text-neutral-500">market today</span>
+                      </div>
+                      {depToday !== 0 && (
+                        <div className="mt-0.5 rounded bg-amber-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-amber-900 dark:bg-amber-400/20 dark:text-amber-200">
+                          {depToday > 0 ? '+' : '\u2212'}{usd2(Math.abs(depToday))} deposited today \u2014 YOUR money, not a gain
+                        </div>
+                      )}
+                    </>
+                  )
                 })()}
-                <div className="text-[10px] text-neutral-500">positions {allPriced ? usd2(posValue) : 'pricing…'} + cash</div>
+                <div className="text-[10px] text-neutral-500">positions {allPriced ? usd2(posValue) : 'pricing…'} + cash · the headline number is size, not performance</div>
               </div>
               <div className="rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-white/5">
                 <div className="text-[10px] uppercase tracking-wider text-neutral-500">Trading P&L{capital.baseline ? ` since ${new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</div>
