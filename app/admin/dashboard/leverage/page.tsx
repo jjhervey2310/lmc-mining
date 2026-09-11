@@ -128,7 +128,17 @@ const FAMILY_ORDER = Object.keys(FAMILY_LABEL)
 // value — so this multiplied into every track as undefined and the brain read NaN%. The
 // component still renders, and the family lines beneath it still read correctly, which is
 // what let it sit there looking merely unfinished rather than broken.
-const EVIDENCE_WEIGHT = 0.5
+/** How far one question has been researched, from 0 to 1.
+ *
+ *  A question that came back DEAD is fully researched — a ruled-out idea is information
+ *  gathered, not information missing — so it counts the same as one that worked. An open
+ *  question counts the share of the observations it asked for that have actually arrived,
+ *  capped at one so an over-supplied hypothesis cannot lend credit to a starved one. */
+function completionOf(v: Verdict): number {
+  if (v.status === 'green' || v.status === 'red') return 1
+  if (!v.observations_needed) return 0
+  return Math.min(1, (v.observations ?? 0) / v.observations_needed)
+}
 
 /** Where a leveraged position is closed out, as a fraction of the entry price.
  *  Derived from the venue's maintenance rate rather than the 1/L rule, which is
@@ -375,16 +385,17 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
     const dead = rows.filter((v) => v.status === 'red').length
     const works = rows.filter((v) => v.status === 'green').length
 
-    // Open questions contribute the share of the data they still need, capped well below
-    // a whole answer. Counting only finished verdicts left this flat for days at a time,
-    // which says nothing about whether the work is moving — and collection genuinely is
-    // the slow part, so it deserves to show.
+    // How much of THIS family is researched. One question is worth one question: answered
+    // counts as fully done whichever way it came out, and an open one counts the share of
+    // its own data that has arrived. Weighting by observation counts instead would let a
+    // single hypothesis needing 2,000 rows drown out ninety needing 200, and the figure
+    // would then describe the collector's workload rather than the board's progress.
     const open = rows.filter((v) => !RESOLVED.has(v.status))
     const needed = open.reduce((n, v) => n + (v.observations_needed ?? 0), 0)
     const held = open.reduce(
       (n, v) => n + Math.min(v.observations ?? 0, v.observations_needed ?? 0), 0)
     const evidence = needed > 0 ? held / needed : 0
-    const credit = answered + EVIDENCE_WEIGHT * evidence * open.length
+    const credit = rows.reduce((n, v) => n + completionOf(v), 0)
 
     const detail = answered === 0
       ? `${rows.length} still open — ${Math.round(evidence * 100)}% of the data they need`
@@ -397,9 +408,12 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
   // every time a row lands, which is what "is the work progressing" actually asks.
   // Observations are capped at what each hypothesis needs, so an over-supplied one cannot
   // borrow credit for a starved one and hide that the starved one is stuck.
-  const dataNeeded = verdicts.reduce((n, v) => n + (v.observations_needed ?? 0), 0)
-  const dataHeld = verdicts.reduce(
-    (n, v) => n + Math.min(v.observations ?? 0, v.observations_needed ?? 0), 0)
+  const fullyDone = verdicts.filter((v) => completionOf(v) >= 1).length
+  const inProgress = verdicts.filter((v) => {
+    const c = completionOf(v)
+    return c > 0 && c < 1
+  }).length
+  const notStarted = verdicts.filter((v) => completionOf(v) === 0).length
 
   const withFunding = carry
     .filter((c) => c.funding_rate_annualized !== null)
@@ -438,7 +452,8 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
       {/* ── how much of the research question has an answer yet ─────────── */}
       <div className="mt-3">
         <Panel accent="green" title="🧠 Research readiness">
-          <ReadinessBrain tracks={tracks} dataHeld={dataHeld} dataNeeded={dataNeeded} />
+          <ReadinessBrain tracks={tracks} fullyDone={fullyDone}
+                          inProgress={inProgress} notStarted={notStarted} />
           <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px] text-neutral-500 dark:border-white/10">
             This is the honest completion bar for the research, not a confidence
             score: it measures how many hypotheses have an answer, not how many

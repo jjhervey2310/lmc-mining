@@ -131,8 +131,9 @@ function Circuit({ lit }: { lit: boolean }) {
 }
 
 export default function ReadinessBrain(
-  { tracks, dataHeld = 0, dataNeeded = 0, durationMs = 2200 }:
-  { tracks: Track[]; dataHeld?: number; dataNeeded?: number; durationMs?: number }) {
+  { tracks, fullyDone = 0, inProgress = 0, notStarted = 0, durationMs = 2200 }:
+  { tracks: Track[]; fullyDone?: number; inProgress?: number; notStarted?: number
+    durationMs?: number }) {
   const uid = useId().replace(/:/g, '')
   const asked = tracks.reduce((n, t) => n + t.total, 0)
   const answered = tracks.reduce((n, t) => n + Math.min(t.credit, t.total), 0)
@@ -218,27 +219,28 @@ export default function ReadinessBrain(
           {measurable ? `${shown}%` : '—'}
         </div>
         <div className="mt-1 text-[11px] uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
-          {!measurable ? 'nothing to measure yet' : ready ? 'every question answered' : `${Math.round(answered)} of ${asked} answered`}
+          {!measurable ? 'nothing to measure yet'
+            : ready ? 'every question answered'
+            : 'of the scoreboard researched'}
         </div>
 
-        {/* How much of the WORK is done, which is a different question from how many
-            questions have an answer. The figure above moves in whole steps and can sit
-            still for days while collection grinds on; this one moves every time a row
-            lands. Both are honest and neither replaces the other. */}
-        {dataNeeded > 0 && (
-          <div className="mt-3 w-full">
-            <div className="h-1.5 overflow-hidden rounded-full bg-neutral-200 dark:bg-white/10">
-              <div className="h-full rounded-full bg-sky-500 transition-[width] duration-700 dark:bg-sky-400"
-                   style={{ width: `${Math.min(100, (dataHeld / dataNeeded) * 100)}%` }} />
+        {/* The counts rather than a second percentage. Two percentages invited the reader
+            to work out how they differed; these say plainly what the one above is made of,
+            and 90 untouched questions is the honest headline of this project right now. */}
+        {measurable && (
+          <div className="mt-3 space-y-0.5 text-left font-mono text-[11px] tabular-nums">
+            <div className="text-emerald-600 dark:text-emerald-400">
+              {fullyDone} answered
             </div>
-            <div className="mt-1 font-mono text-[13px] font-semibold tabular-nums text-sky-700 dark:text-sky-300">
-              {((dataHeld / dataNeeded) * 100).toFixed(1)}%
+            <div className="text-sky-700 dark:text-sky-300">
+              {inProgress} collecting
             </div>
-            <div className="text-[10px] uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
-              of all research data collected
+            <div className="text-neutral-500 dark:text-neutral-400">
+              {notStarted} not started
             </div>
           </div>
         )}
+
       </div>
 
       <div className="min-w-0 flex-1">
