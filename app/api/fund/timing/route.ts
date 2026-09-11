@@ -48,28 +48,32 @@ export async function buildTiming(symbol: string) {
   const me = rows.find((r) => r.id === cgId); const btc = rows.find((r) => r.id === 'bitcoin')
   // Don't throw on a rate limit: fall back to the last known close so the tab still renders a reasoned
   // grade. gradeTiming turns priceStale into a HARD bar, so this can inform but never fund an order.
-  // PRICE SOURCE ORDER (Jacob 2026-09-10: "robinhood which your connected to has the live prices"):
-  //   1. CoinGecko  - preferred only because it also carries 24h/7d/30d and volume in one call
-  //   2. ROBINHOOD  - live, not rate-limited, and it is the venue we would actually fill on, so its
-  //                   ask-inclusive-of-spread is the truest number for sizing a buy
+  // PRICE SOURCE ORDER (Jacob 2026-09-10: "use robinhood as the main source as its what we trade on"):
+  //   1. ROBINHOOD  - PRIMARY. It is the venue we fill on, it is not rate-limited, and its
+  //                   ask-inclusive-of-buy-spread is the real cost of the trade being graded.
+  //   2. CoinGecko  - price fallback. It is still called regardless, because it alone carries the
+  //                   24h/7d/30d changes and the volume the grade needs; only its PRICE is secondary.
   //   3. cg_history - last daily close. STALE, and gradeTiming hard-bars any order priced off it.
+  // NOTE: hi20 comes from CoinGecko daily closes, so extPct mixes venues by a few basis points.
+  // That is smaller than the close-vs-intraday gap already in that ratio, but it is a known seam.
   let priceStale: { at: string } | null = null
-  let priceSource: 'coingecko' | 'robinhood' | 'cg_history' = 'coingecko'
+  let priceSource: 'robinhood' | 'coingecko' | 'cg_history' = 'robinhood'
   let rhQuote: { bid: number; ask: number; mid: number } | null = null
-  let livePrice = me?.current_price ?? null
-  if (!livePrice && rhConfigured()) {
+  let livePrice: number | null = null
+  if (rhConfigured()) {
     try {
       const q = await bestBidAsk(sym)
       const bid = Number(q.bid_inclusive_of_sell_spread), ask = Number(q.ask_inclusive_of_buy_spread)
       const mid = Number(q.price) || (bid > 0 && ask > 0 ? (bid + ask) / 2 : 0)
-      if (mid > 0) { livePrice = mid; priceSource = 'robinhood'; rhQuote = { bid, ask, mid } }
-    } catch { /* not a pair, or RH unreachable - fall through */ }
+      if (mid > 0) { livePrice = mid; rhQuote = { bid, ask, mid } }
+    } catch { /* not a Robinhood pair, or RH unreachable - fall through */ }
   }
+  if (!livePrice && me?.current_price) { livePrice = me.current_price; priceSource = 'coingecko' }
   if (!livePrice) {
     const lk = await lastKnownPrices([cgId])
     if (lk[cgId]) { livePrice = lk[cgId].usd; priceStale = { at: lk[cgId].at }; priceSource = 'cg_history' }
   }
-  if (!livePrice) throw new Error(`No price for ${sym}: CoinGecko rate-limited, Robinhood has no ${sym}-USD quote, and cg_history has no row for ${cgId}`)
+  if (!livePrice) throw new Error(`No price for ${sym}: Robinhood has no ${sym}-USD quote, CoinGecko is rate-limited, and cg_history has no row for ${cgId}`)
   const chartData = chart.ok ? (chart.data as { prices?: [number, number][]; total_volumes?: [number, number][] }) : null
   const chartError = chart.ok ? null
     : chart.status === 429 ? 'CoinGecko rate-limited the 30-day chart (429)'
