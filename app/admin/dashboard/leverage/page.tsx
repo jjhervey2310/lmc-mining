@@ -309,7 +309,17 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
   const live = streams.filter((s) => s.minutes !== null && s.minutes <= s.budget).length
   const running = verdicts.filter((v) => v.status === 'collecting').length
   const proven = verdicts.filter((v) => v.status === 'green').length
-  const promising = verdicts.filter((v) => v.status === 'amber').length
+  const amber = verdicts.filter((v) => v.status === 'amber')
+  const green = verdicts.filter((v) => v.status === 'green')
+  const promising = amber.length
+  // A scoreboard that loaded and found nothing promising is a RESULT. Rendering that as a
+  // dash the way an unreadable table is rendered conflates "none" with "unknown", and the
+  // two are opposite claims. The dash is kept for the case it was meant for: no verdicts
+  // could be read at all.
+  const boardRead = verdicts.length > 0
+  const nameList = (rows: Verdict[], limit = 2) =>
+    rows.slice(0, limit).map((v) => v.name).join(', ')
+      + (rows.length > limit ? ` +${rows.length - limit}` : '')
   const open = positions.filter((p) => p.status === 'open')
 
   // Known families in the deliberate order declared above — soonest-answerable first;
@@ -376,8 +386,13 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Tile i={0} accent="cyan"   label="Observations archived" value={collected === null ? DASH : collected.toLocaleString()} sub={`${live}/${streams.length} streams live`} tone={live === streams.length ? 'pos' : 'neg'} />
         <Tile i={1} accent="purple" label="Hypotheses running" value={String(running)} sub={`${verdicts.length} on the agenda`} />
-        <Tile i={2} accent="amber"  label="Promising" value={promising ? String(promising) : DASH} sub="beat costs, not yet deflated" />
-        <Tile i={3} accent="green"  label="Proven" value={proven ? String(proven) : DASH} sub="survived every correction" tone={proven ? 'pos' : 'dim'} />
+        <Tile i={2} accent="amber" label="Promising"
+              value={boardRead ? String(promising) : DASH}
+              sub={promising ? nameList(amber) : 'large effect, not yet significant'} />
+        <Tile i={3} accent="green" label="Proven"
+              value={boardRead ? String(proven) : DASH}
+              sub={proven ? nameList(green) : 'survived every correction'}
+              tone={proven ? 'pos' : 'dim'} />
       </div>
 
       {/* ── how much of the research question has an answer yet ─────────── */}
