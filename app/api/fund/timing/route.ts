@@ -30,11 +30,16 @@ export async function buildTiming(symbol: string) {
     return new Date(mon.getTime() - DENVER_OFFSET_H * 3600e3).toISOString()
   })()
 
-  const [holdQ, trigQ, tradesQ, cfgQ, mkt, chart] = await Promise.all([
+  const [holdQ, trigQ, tradesQ, cfgQ, histQ, mkt, chart] = await Promise.all([
     supabase.from('live_holdings').select('symbol, qty, avg_cost'),
     supabase.from('desk_triggers').select('symbol, kind, level').eq('active', true),
     supabase.from('live_trades').select('symbol, side, traded_at').gte('traded_at', weekStart).eq('side', 'buy'),
     supabase.from('desk_config').select('key, value').in('key', ['loop_enabled', 'macro_half_size', 'entry_blackout']),
+    // The droplet already syncs a year of daily closes per id into cg_history, so
+    // the 20-day high does not need a CoinGecko call at all for a name in the
+    // universe. That matters because the chart call is the one that gets
+    // rate-limited, and without a 20-day high the RUNNING law cannot be checked.
+    supabase.from('cg_history').select('id, symbol, prices, updated_at').or(`id.eq.${cgId},symbol.eq.${sym}`).limit(1),
     cgFetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${cgId},bitcoin&price_change_percentage=24h,7d,30d`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
     // Why the chart failed matters: a rate-limited fetch used to look identical to a
     // coin with no history, and both silently removed the RUNNING extension law from
@@ -48,14 +53,34 @@ export async function buildTiming(symbol: string) {
   const me = rows.find((r) => r.id === cgId); const btc = rows.find((r) => r.id === 'bitcoin')
   if (!me?.current_price) throw new Error(`CoinGecko has no live price for ${sym}`)
   const chartData = chart.ok ? (chart.data as { prices?: [number, number][]; total_volumes?: [number, number][] }) : null
-  const chartError = chart.ok ? null
+  const chartFailure = chart.ok ? null
     : chart.status === 429 ? 'CoinGecko rate-limited the 30-day chart (429)'
     : `CoinGecko chart fetch failed (${chart.status || 'network error'})`
   const prices = ((chartData?.prices ?? []) as [number, number][]).map((p) => p[1])
   const vols = ((chartData?.total_volumes ?? []) as [number, number][]).map((v) => v[1])
+  // The last point of a CoinGecko daily series is today's incomplete bar, and
+  // cg_history stores that series verbatim — so both get the same trim.
   const completedPx = prices.slice(0, -1), completedVol = vols.slice(0, -1)
-  const hi20 = completedPx.length >= 5 ? Math.max(...completedPx.slice(-20)) : null
+  const highOf = (px: number[]) => px.length >= 5 ? Math.max(...px.slice(-20)) : null
+
+  // 20-day high, preferring the stored series: no call, no rate limit. Stale rows
+  // are refused rather than quietly used — a high computed from week-old bars is
+  // not the check the law asks for.
+  const histRow = ((histQ.data ?? []) as { prices: [number, number][] | null; updated_at: string }[])[0]
+  const histAgeH = histRow?.updated_at ? (Date.now() - new Date(histRow.updated_at).getTime()) / 36e5 : null
+  const histFresh = histAgeH !== null && histAgeH <= 48
+  const histPx = histFresh && Array.isArray(histRow?.prices) ? histRow.prices.map((p) => p[1]).slice(0, -1) : []
+  const hi20FromDb = highOf(histPx)
+  const hi20 = hi20FromDb ?? highOf(completedPx)
+  const hi20Source = hi20FromDb !== null ? 'cg_history' : hi20 !== null ? 'coingecko' : null
+
   const avgVol20 = completedVol.length >= 5 ? completedVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedVol.length) : null
+  // A failed chart only breaks the RUNNING law when the stored series could not
+  // supply the high either. When it could, the chart costs us the volume
+  // confirmation and nothing more, so say that instead of barring the entry.
+  const tapeError = hi20 === null ? chartFailure
+    : chartFailure ? `${chartFailure} — 20-day high served from cg_history, volume unconfirmed`
+    : null
 
   const holdings = (holdQ.data ?? []) as { symbol: string; qty: number; avg_cost: number }[]
   const cash = Number(holdings.find((h) => h.symbol === 'USD')?.qty ?? 0)
@@ -76,7 +101,7 @@ export async function buildTiming(symbol: string) {
     symbol: sym, price: me.current_price,
     d1: me.price_change_percentage_24h_in_currency ?? null, d7: me.price_change_percentage_7d_in_currency ?? null, d30: me.price_change_percentage_30d_in_currency ?? null,
     vol24h: me.total_volume ?? null, avgVol20, hi20,
-    tapeError: chartError,
+    tapeError: hi20 === null ? tapeError : null,
     rs7VsBtc: me.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null,
     armed: ((trigQ.data ?? []) as { symbol: string; kind: string; level: number }[]).filter((t) => t.symbol === sym).map((t) => ({ kind: t.kind, level: Number(t.level) })),
     cashUsd: cash, bookUsd: book,
@@ -90,7 +115,7 @@ export async function buildTiming(symbol: string) {
     symbol: sym, cgId, at: nowIso,
     price: me.current_price, vol24h: me.total_volume ?? null, avgVol20, volX: me.total_volume && avgVol20 ? me.total_volume / avgVol20 : null,
     d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (me.current_price / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
-    tapeError: chartError,
+    tapeError, hi20Source,
     book, cash, slots: input.slots, sleeveCount: input.sleeveCount, weeklyEntries: input.weeklyEntries, blackout, halfSize,
     ...result,
     rh_configured: rhConfigured(),
