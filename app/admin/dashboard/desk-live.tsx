@@ -173,6 +173,9 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const synced = positions.length ? [...positions].sort((a, b) => +new Date(b.synced_at) - +new Date(a.synced_at))[0].synced_at : null
 
   const checkTiming = async (sym: string) => {
+    // A second tap CLOSES the panel (Jacob 2026-09-10: "when you click it again it should close it,
+    // just refreshes right now"). Re-opening re-fetches, so nothing is lost by closing.
+    if (timing[sym] && timing[sym] !== 'loading') { setTiming((t) => ({ ...t, [sym]: undefined })); return }
     setTiming((t) => ({ ...t, [sym]: 'loading' }))
     try {
       const r = await fetch(`/api/fund/timing?secret=${encodeURIComponent(secret)}&symbol=${sym}`, { cache: 'no-store' })
@@ -229,7 +232,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
       <Panel accent="rose" title="🔴 Holdings — Robinhood, live"
         right={<span className="flex items-center gap-2 text-[11px] text-neutral-500">
           {synced ? `synced ${denver(synced)}` : ''} · 60s
-          <button onClick={toggleLoop} disabled={toggling || state.loop_enabled == null} title="24/7 desk loop"
+          <button type="button" onClick={toggleLoop} disabled={toggling || state.loop_enabled == null} title="24/7 desk loop"
             className={`rounded-md px-2 py-0.5 text-[10px] font-bold text-white ${state.loop_enabled === false ? 'bg-red-600' : 'bg-green-600'} disabled:opacity-50`}>
             {toggling ? '…' : state.loop_enabled == null ? 'LOOP ?' : state.loop_enabled ? '● LOOP ON' : '■ LOOP PAUSED'}
           </button>
@@ -415,7 +418,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                     <span className="ml-auto flex items-center gap-1.5">
                       <button type="button" onClick={() => checkTiming(t.symbol)} disabled={tm === 'loading'}
                         className="rounded-lg bg-neutral-800 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-neutral-700 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-neutral-200">
-                        {tm === 'loading' ? 'checking…' : T ? `Timing ${T.grade} · refresh` : 'Timing A–F'}
+                        {tm === 'loading' ? 'checking…' : T ? `Timing ${T.grade} · hide` : 'Timing A–F'}
                       </button>
                       {T && T.rh_configured && T.buyable && (
                         <button type="button" onClick={() => buy(t.symbol, T, false)} disabled={br === 'working'}
