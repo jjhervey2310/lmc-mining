@@ -3,6 +3,7 @@ import { Shell, Panel, Tile, checkAdmin, usd } from '../ui'
 import { createServiceClient } from '@/lib/supabase'
 import ReadinessBrain, { EVIDENCE_WEIGHT, type Track } from './brain'
 import ResearchPulse from './pulse'
+import ScoreboardPulse from './scoreboard-pulse'
 
 // LEVERAGE — the research desk (rebuilt 2026-09-10).
 //
@@ -645,6 +646,7 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
       </div>
 
       {/* ── the scoreboard ──────────────────────────────────────────────── */}
+      <ScoreboardPulse secret={secret} />
       <div className="mt-3">
         <Panel
           accent="purple"
@@ -681,11 +683,17 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
                       ? Math.min(100, (v.observations / v.observations_needed) * 100) : 0
                     const settled = v.status === 'green' || v.status === 'red'
                     return (
-                      <details key={v.id} className={`group rounded-lg border px-2.5 py-2 ${s.chip}`}>
+                      <details key={v.id} data-family={v.family}
+                               className={`group rounded-lg border px-2.5 py-2 ${s.chip}`}>
                         <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                           <div className="flex items-baseline justify-between gap-2">
                             <span className="truncate text-[13px] font-semibold">{v.name}</span>
-                            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider opacity-70">{s.label}</span>
+                            <span className="flex shrink-0 items-center gap-1.5">
+                              <span className="researching-tag hidden font-mono text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                collecting now
+                              </span>
+                              <span className="font-mono text-[10px] uppercase tracking-wider opacity-70">{s.label}</span>
+                            </span>
                           </div>
                           <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug opacity-80 group-open:line-clamp-none">
                             {v.hypothesis}
