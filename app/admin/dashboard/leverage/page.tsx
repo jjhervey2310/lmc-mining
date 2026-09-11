@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Shell, Panel, Tile, checkAdmin, usd } from '../ui'
 import { createServiceClient } from '@/lib/supabase'
-import ReadinessBrain, { EVIDENCE_WEIGHT, type Track } from './brain'
+import ReadinessBrain, { type Track } from './brain'
 import ResearchPulse from './pulse'
 import ScoreboardPulse from './scoreboard-pulse'
 
@@ -81,7 +81,8 @@ type FindingRow = {
   horizon_hours: number | null; status: string; detail: string | null
 }
 
-type DepthRow = { interval_minutes: number; market: string; at: string }
+type DepthRow = { interval_minutes: number; markets: number; bars: number
+                  oldest: string | null; newest: string | null }
 
 type Position = {
   id: string; opened_at: string; market: string; contract: string | null
@@ -121,6 +122,13 @@ const FAMILY_LABEL: Record<string, string> = {
   validation: 'How results are judged',
 }
 const FAMILY_ORDER = Object.keys(FAMILY_LABEL)
+
+// Declared here rather than imported from ./brain, which carries 'use client'. A server
+// component importing a plain value from a client module receives undefined, not the
+// value — so this multiplied into every track as undefined and the brain read NaN%. The
+// component still renders, and the family lines beneath it still read correctly, which is
+// what let it sit there looking merely unfinished rather than broken.
+const EVIDENCE_WEIGHT = 0.5
 
 /** Where a leveraged position is closed out, as a fraction of the entry price.
  *  Derived from the venue's maintenance rate rather than the 1/L rule, which is
@@ -194,8 +202,8 @@ async function load() {
       .order('observed_at', { ascending: false }).limit(60)),
     q<{ at: string }[]>(() => sb.from('kr_market_stats').select('at')
       .order('at', { ascending: false }).limit(1)),
-    q<DepthRow[]>(() => sb.from('kr_deep_candles').select('interval_minutes, market, at')
-      .order('at', { ascending: true }).limit(1000)),
+    q<DepthRow[]>(() => sb.from('kr_deep_candle_depth')
+      .select('interval_minutes, markets, bars, oldest, newest')),
     q<VenueFundingRow[]>(() => sb.from('kr_venue_funding')
       .select('coin, venue, observed_at, funding_rate_annualized, interval_hours')
       .order('observed_at', { ascending: false }).limit(700)),
@@ -235,10 +243,11 @@ async function load() {
   // Oldest deep candle per interval — the answer to "how much history do we have",
   // which is the number that was actually blocking every hypothesis.
   const deepRowsList = deep ?? []
-  const deepNewestRow = deepRowsList.length ? deepRowsList[deepRowsList.length - 1] : null
+  const deepNewestRow = deepRowsList.reduce<DepthRow | null>(
+    (best, row) => (row.newest && (!best?.newest || row.newest > best.newest) ? row : best), null)
   const depth = [60, 240, 1440].map((interval) => {
-    const rows = deepRowsList.filter((r) => r.interval_minutes === interval)
-    return { interval, oldest: rows.length ? rows[0].at : null, markets: new Set(rows.map((r) => r.market)).size }
+    const row = deepRowsList.find((r) => r.interval_minutes === interval)
+    return { interval, oldest: row?.oldest ?? null, markets: row?.markets ?? 0 }
   })
 
   // Forward record, grouped by preregistered variant. Net only — a gross figure quoted
@@ -281,7 +290,7 @@ async function load() {
       { name: 'Implied volatility',   table: 'kr_vol_surface', key: 'vol' as const, minutes: staleness(vol?.[0]?.observed_at),  budget: 20,  note: 'What the market EXPECTS, from ~1,800 Deribit options. A snapshot with no history endpoint behind it, so a gap is permanent.' },
       { name: 'Capital flows',        table: 'kr_stablecoins', key: 'stables' as const, minutes: staleness(stables?.[0]?.observed_at), budget: 1500, note: 'Stablecoin supply and chain TVL. Daily resolution — dollars entering crypto before they reach a price.' },
       { name: 'Liquidations & positioning', table: 'kr_market_stats', key: 'liq' as const, minutes: staleness(liq?.[0]?.at), budget: 180, note: '180 days across 17 markets. Who got CLOSED OUT versus who chose to sell — opposite trades that price alone cannot distinguish.' },
-      { name: 'Deep candle history', table: 'kr_deep_candles', key: 'deep' as const, minutes: staleness(deepNewestRow?.at), budget: 180, note: 'Hourly, 4-hour and daily back to 2021. The horizons these hypotheses actually use; 5-minute bars were never the right resolution for them.' },
+      { name: 'Deep candle history', table: 'kr_deep_candles', key: 'deep' as const, minutes: staleness(deepNewestRow?.newest), budget: 180, note: 'Hourly, 4-hour and daily back to 2021. The horizons these hypotheses actually use; 5-minute bars were never the right resolution for them.' },
       { name: 'Binance & Bybit funding', table: 'kr_venue_funding', key: 'venue' as const, minutes: staleness(venueFunding?.[0]?.observed_at), budget: 30, note: 'Read through Hyperliquid because both geo-block us. Annualised only — settlement intervals differ per venue AND per coin.' },
       { name: 'Winning & losing wallets', table: 'kr_traders', key: 'wallets' as const, minutes: staleness(wallets?.[0]?.observed_at), budget: 1500, note: 'Hyperliquid leaderboard with an equally sized LOSER arm. A condition found only among winners explains nothing.' },
     ],
@@ -383,6 +392,15 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
     return { key: family, label: FAMILY_LABEL[family] ?? family,
              credit, answered, total: rows.length, evidence, detail }
   })
+  // How much of the RESEARCH ITSELF is done, as distinct from how many questions have an
+  // answer. Answered-questions moves in whole steps and sits still for days; this moves
+  // every time a row lands, which is what "is the work progressing" actually asks.
+  // Observations are capped at what each hypothesis needs, so an over-supplied one cannot
+  // borrow credit for a starved one and hide that the starved one is stuck.
+  const dataNeeded = verdicts.reduce((n, v) => n + (v.observations_needed ?? 0), 0)
+  const dataHeld = verdicts.reduce(
+    (n, v) => n + Math.min(v.observations ?? 0, v.observations_needed ?? 0), 0)
+
   const withFunding = carry
     .filter((c) => c.funding_rate_annualized !== null)
     .sort((a, b) => Math.abs(b.funding_rate_annualized!) - Math.abs(a.funding_rate_annualized!))
@@ -420,7 +438,7 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
       {/* ── how much of the research question has an answer yet ─────────── */}
       <div className="mt-3">
         <Panel accent="green" title="🧠 Research readiness">
-          <ReadinessBrain tracks={tracks} />
+          <ReadinessBrain tracks={tracks} dataHeld={dataHeld} dataNeeded={dataNeeded} />
           <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px] text-neutral-500 dark:border-white/10">
             This is the honest completion bar for the research, not a confidence
             score: it measures how many hypotheses have an answer, not how many
