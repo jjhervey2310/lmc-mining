@@ -187,7 +187,6 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   // threw "Cannot access 'flowFor' before initialization" on every render with two or more names
   // queued — which server-rendered into the crash panel and read as the whole dashboard going down
   // (2026-09-12). One name never tripped it, because a sort of one element never calls its comparator.
-  const flowFor = (sym: string) => (state.flow ?? []).find((r) => r.symbol === sym) ?? null
 
   const convictionOf = (sym: string) => {
     const th = theses.find((x) => x.symbol === sym)
@@ -288,11 +287,6 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const boardAge = hoursOld(state.board?.updated_at)
   const stale = oldestSync > 12 || boardAge > 36
   const stopFor = (sym: string) => trig(sym, ['stop'])[0]?.level ?? null
-<<<<<<< Updated upstream
-  const thesisFor = (sym: string) => theses.find((t) => t.symbol === sym) ?? null
-  const radarFor = (sym: string) => (state.radar ?? []).find((r) => r.symbol === sym) ?? null
-=======
->>>>>>> Stashed changes
   const heldPole = theses.find((t) => t.status === 'POLE' && held.has(t.symbol)) ?? null
   // THE SERVER'S NUMBER IS THE NUMBER. It prices on Robinhood -> Coinbase -> last close, the same
   // chain the grader uses, so the tab and the desk can never disagree. The client's own CoinGecko
