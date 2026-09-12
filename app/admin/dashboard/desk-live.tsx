@@ -157,17 +157,22 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   // `queue` stays in its stable desk order so the auto-grade effect's key does not churn as grades
   // land; this is a separate view for rendering. Best score first, ungraded next (they are still
   // resolving, not rejected), then '?' which could not be graded, and D/F last — those collapse.
+  // LETTER FIRST, THEN SCORE. Score alone put a 92-scoring C above a 90-scoring A, because a capped
+  // grade keeps its high score (volume unverifiable costs 8 and caps at C). The letter is the verdict;
+  // the score only orders names that share one.
+  const LETTER: Record<string, number> = { A: 0, B: 1, C: 2 }
   const gradeRank = (sym: string) => {
     const tm = timing[sym]
     const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
-    if (!T) return { tier: 1, score: 0 }                 // ungraded / still loading
-    if (T.grade === 'D' || T.grade === 'F') return { tier: 3, score: T.score }
-    if (T.grade === '?') return { tier: 2, score: T.score }
-    return { tier: 0, score: T.score }                   // A/B/C ranked by score
+    if (!T) return { tier: 1, letter: 9, score: 0 }                      // still grading
+    if (T.grade === 'D' || T.grade === 'F') return { tier: 3, letter: 9, score: T.score }
+    if (T.grade === '?') return { tier: 2, letter: 9, score: T.score }
+    return { tier: 0, letter: LETTER[T.grade] ?? 9, score: T.score }
   }
   const queueRanked = [...queue].sort((a, b) => {
     const ra = gradeRank(a.symbol), rb = gradeRank(b.symbol)
-    return ra.tier - rb.tier || rb.score - ra.score || RANK[a.status] - RANK[b.status] || a.symbol.localeCompare(b.symbol)
+    return ra.tier - rb.tier || ra.letter - rb.letter || rb.score - ra.score
+      || RANK[a.status] - RANK[b.status] || a.symbol.localeCompare(b.symbol)
   })
   // POLE IS THE BEST GRADE, FULL STOP (Jacob 2026-09-11: "pole should be best graded. its for pole
   // position"). I argued for requiring a verified mechanism too; he overruled it, and it is his book.

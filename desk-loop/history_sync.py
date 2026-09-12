@@ -34,7 +34,7 @@ def main():
             cb = cb_candles(s)
             if cb and len(cb) >= 5:
                 cutoff = time.time() - 366 * 86400
-                bars = [{"t": b["t"], "c": b["c"]} for b in cb if b["t"] >= cutoff]
+                bars = [{"t": b["t"], "c": b["c"], "v": b.get("v")} for b in cb if b["t"] >= cutoff]   # keep v: dropping it here is why cg_history had no volume
         except Exception:
             bars = None
         if not bars:
