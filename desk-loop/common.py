@@ -174,47 +174,79 @@ CG = {"BTC":"bitcoin","ETH":"ethereum","SOL":"solana","XRP":"ripple","DOGE":"dog
 
 PRICE_TTL = 120  # seconds — jobs that run back-to-back share one fetch
 
-def prices(symbols):
-    """Cached + rate-limit-tolerant. Falls back to the last good cache rather than
-    failing a whole run (a stale price beats a crashed watcher; staleness is bounded)."""
-    ids = sorted({CG[s] for s in symbols if s in CG})
-    if not ids: return {}
+def cb_spot(sym):
+    """Live spot from Coinbase Exchange: keyless, never rate-limited, 83 of the 88 universe names."""
+    try:
+        j = _req(f"https://api.exchange.coinbase.com/products/{sym}-USD/ticker", retries=1, timeout=12)
+        p = float(j.get("price") or 0)
+        return p if p > 0 else None
+    except Exception:
+        return None
+
+def prices(symbols, max_age=60):
+    """LIVE FIRST (2026-09-11, Jacob: "we have the live prices"). Order:
+       1. COINBASE spot per symbol - keyless, unthrottled, the reason a stale price is now a FAULT
+          rather than a normal Tuesday. This is what the web grader uses too.
+       2. CoinGecko batch - one call, fills the handful Coinbase has no pair for.
+       3. our own /api/markets feed - different provider again.
+       4. bounded-stale cache - LAST resort, and the caller is told via prices_stale().
+    A 60s cache short-circuit stops two timers firing seconds apart from re-fetching; at a 15-minute
+    watcher cadence that is still live."""
+    wanted = [s for s in symbols if s not in ("USD", "USDC", "USDT", "USDG")]
+    if not wanted: return {}
     cp = STATE / "prices.json"
-    cache = {}
+    cache, cached_at = {}, 0
     if cp.exists():
         try:
-            c = json.loads(cp.read_text())
-            if time.time() - c.get("at", 0) < PRICE_TTL:
-                cache = c.get("px", {})
-                if all(s in cache for s in symbols if s in CG):
-                    return {s: cache[s] for s in symbols if s in cache}
-            else:
-                cache = c.get("px", {})
-        except Exception:
-            cache = {}
-    px = {}
-    try:
-        j = _req(f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(ids)}&vs_currencies=usd", retries=2)
-        px = {s: j[CG[s]]["usd"] for s in symbols if s in CG and CG[s] in j and "usd" in j[CG[s]]}
-    except Exception:
-        pass
-    missing = [s for s in symbols if s in CG and s not in px]
-    if missing:
-        # Fallback: our own deployed markets feed (different provider, no shared rate limit).
-        try:
-            feed = _req("https://www.lightningmines.com/api/markets", retries=2)
-            live = {q["symbol"].upper(): q["price"] for q in feed.get("quotes", []) if q.get("price")}
-            for s in missing:
-                if s in live: px[s] = float(live[s])
+            c = json.loads(cp.read_text()); cache = c.get("px", {}) or {}; cached_at = c.get("at", 0)
         except Exception:
             pass
+    if time.time() - cached_at < max_age and all(s in cache for s in wanted):
+        return {s: cache[s] for s in wanted}
+
+    px, src = {}, {}
+    for s in wanted:                                   # 1. Coinbase
+        v = cb_spot(s)
+        if v: px[s], src[s] = v, "coinbase"
+    missing = [s for s in wanted if s not in px]
+    if missing:                                        # 2. CoinGecko batch
+        ids = sorted({CG[s] for s in missing if s in CG})
+        if ids:
+            try:
+                j = _req(f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(ids)}&vs_currencies=usd", retries=1)
+                for s in missing:
+                    if s in CG and CG[s] in j and "usd" in j[CG[s]]:
+                        px[s], src[s] = j[CG[s]]["usd"], "coingecko"
+            except Exception:
+                pass
+    missing = [s for s in wanted if s not in px]
+    if missing:                                        # 3. our own feed
+        try:
+            feed = _req("https://www.lightningmines.com/api/markets", retries=1)
+            live = {q["symbol"].upper(): q["price"] for q in feed.get("quotes", []) if q.get("price")}
+            for s in missing:
+                if s in live: px[s], src[s] = float(live[s]), "lmc-feed"
+        except Exception:
+            pass
+    stale = [s for s in wanted if s not in px and s in cache]
+    for s in stale: px[s], src[s] = cache[s], "CACHE-STALE"   # 4. last resort, named as such
     if px:
-        merged = {**cache, **px}
-        cp.write_text(json.dumps({"at": time.time(), "px": merged}))
-        return {s: merged[s] for s in symbols if s in merged}
-    if cache:
-        return {s: cache[s] for s in symbols if s in cache}   # bounded staleness beats a dead watcher
-    raise RuntimeError("no price source available (CoinGecko + fallback both failed, cache empty)")
+        merged = {**cache, **{k: v for k, v in px.items() if src.get(k) != "CACHE-STALE"}}
+        try: cp.write_text(json.dumps({"at": time.time(), "px": merged, "src": src}))
+        except Exception: pass
+    if stale:
+        print(f"  !! prices STALE from cache for: {', '.join(stale)} — every live source failed")
+    return px
+
+def prices_stale():
+    """Which symbols the last prices() call could only serve from cache. A watcher that cannot get a
+    live price must SAY so rather than act on yesterday's number."""
+    cp = STATE / "prices.json"
+    if not cp.exists(): return []
+    try:
+        return [k for k, v in (json.loads(cp.read_text()).get("src") or {}).items() if v == "CACHE-STALE"]
+    except Exception:
+        return []
 
 def book_value():
     rows = sb_get("live_holdings", "select=symbol,qty")
