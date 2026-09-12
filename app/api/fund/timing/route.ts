@@ -123,9 +123,19 @@ export async function buildTiming(symbol: string) {
     const then = histCloses[histCloses.length - 1 - n]
     return then > 0 ? (livePriceForTape / then - 1) * 100 : null
   }
-  const avgVol20 = completedVol.length >= 5
-    ? completedVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedVol.length)
-    : histVol.length >= 5 ? histVol.slice(-21, -1).reduce((a, b) => a + b, 0) / Math.min(20, histVol.slice(-21, -1).length) : null
+  // VOLUME MUST COME FROM ONE SOURCE ON BOTH SIDES. CoinGecko reports volume in USD; the Coinbase
+  // candles behind cg_history report it in BASE UNITS. Mixing them (CoinGecko's 24h against history's
+  // average) produces a ratio out by the price — for SOL that is ~100x, which would read as a
+  // spectacular volume confirmation that never happened. So: use CoinGecko for both, else history for
+  // both, else declare it unverified. This also stops the grade flickering between C and A as one
+  // source succeeds or fails between reads (2026-09-11: EIGEN went C/84 -> A/97 in forty seconds on
+  // nothing but a lucky fetch).
+  const cgOk = completedVol.length >= 5 && me?.total_volume != null
+  const histAvg = histVol.length >= 6 ? histVol.slice(-21, -1).reduce((a, b) => a + b, 0) / histVol.slice(-21, -1).length : null
+  const histToday = histVol.length ? histVol[histVol.length - 1] : null
+  const avgVol20 = cgOk ? completedVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedVol.length) : histAvg
+  const vol24hUnified = cgOk ? (me?.total_volume ?? null) : histToday
+  const volSource = cgOk ? 'coingecko' : (histAvg != null && histToday != null ? 'cg_history' : null)
   // A failed chart only breaks the RUNNING law when the stored series could not
   // supply the high either. When it could, the chart costs us the volume
   // confirmation and nothing more, so say that instead of barring the entry.
@@ -159,7 +169,7 @@ export async function buildTiming(symbol: string) {
   const input: TimingInput = {
     symbol: sym, price: livePrice, priceStale,
     d1: me?.price_change_percentage_24h_in_currency ?? chg(1), d7: me?.price_change_percentage_7d_in_currency ?? chg(7), d30: me?.price_change_percentage_30d_in_currency ?? chg(30),
-    vol24h: me?.total_volume ?? null, avgVol20, hi20,
+    vol24h: vol24hUnified, avgVol20, hi20,
     tapeError: hi20 === null ? tapeError : null,
     rs7VsBtc: me?.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null,
     armed: ((trigQ.data ?? []) as { symbol: string; kind: string; level: number }[]).filter((t) => t.symbol === sym).map((t) => ({ kind: t.kind, level: Number(t.level) })),
@@ -172,7 +182,7 @@ export async function buildTiming(symbol: string) {
   const result = gradeTiming(input)
   return {
     symbol: sym, cgId, at: nowIso,
-    price: livePrice, price_source: priceSource, price_stale: priceStale, rh_quote: rhQuote, vol24h: me?.total_volume ?? null, avgVol20, volX: me?.total_volume && avgVol20 ? me.total_volume / avgVol20 : null,
+    price: livePrice, price_source: priceSource, price_stale: priceStale, rh_quote: rhQuote, vol24h: vol24hUnified, avgVol20, vol_source: volSource, volX: vol24hUnified && avgVol20 ? vol24hUnified / avgVol20 : null,
     d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (livePrice / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
     tapeError, hi20Source,
     book, cash, slots: input.slots, sleeveCount: input.sleeveCount, weeklyEntries: input.weeklyEntries, blackout, halfSize,
