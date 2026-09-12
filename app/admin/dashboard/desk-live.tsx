@@ -161,6 +161,45 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   // `queue` stays in its stable desk order so the auto-grade effect's key does not churn as grades
   // land; this is a separate view for rendering. Best score first, ungraded next (they are still
   // resolving, not rejected), then '?' which could not be graded, and D/F last — those collapse.
+  // CONVICTION: WHAT WE THINK WILL RUN, AND WHY (Jacob 2026-09-11: "i want it ranked on what we think
+  // is going to run with evidence"). The A-F grade answers a different question — MAY we buy this,
+  // legally and at a sane moment. Ranking by it put names with no reason to move above ones with a
+  // proven buyback. So the board now ranks on evidence of a coming move, and the grade stays as the
+  // gate beside it. Every term below is a fact we hold, not an opinion:
+  //   mechanism  the verify agent's dated verdict — is real money reaching holders, and is it big
+  //   flow       volume expanding while price is flat or down = money arriving BEFORE price
+  //   strength   outperforming BTC over 7d, and actually rising
+  //   room       how far below its 20-day high — a name already extended has less left
+  // HONESTY: this is a reasoned weighting, NOT a backtested edge. Every mechanical rule this desk has
+  // tested came out negative. Treat it as an ordered argument, never as a prediction.
+  const convictionOf = (sym: string) => {
+    const th = theses.find((x) => x.symbol === sym)
+    const txt = (th?.thesis ?? '').toUpperCase()
+    const tm = timing[sym]
+    const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
+    const fl = flowFor(sym)
+    const why: string[] = []
+    let score = 0
+    if (txt.includes('VERIFIED-MATERIAL') || txt.includes('MECHANISM VERIFIED —')) { score += 40; why.push('proven buyback, big enough to matter') }
+    else if (txt.includes('VERIFIED-IMMATERIAL') || txt.includes('NOT YET MATERIAL')) { score += 8; why.push('mechanism real but too small yet') }
+    else if (txt.includes('NO-MECHANISM')) { score -= 30; why.push('pays holders nothing') }
+    else why.push('earnings unverified')
+    const volx = T?.volX ?? null
+    const d7 = T?.d7 ?? null
+    if (volx != null && volx >= 1.5) { score += 18; why.push(`volume ${volx.toFixed(1)}x`) }
+    else if (volx != null && volx >= 1.0 && d7 != null && d7 <= 0) { score += 14; why.push('volume holding while price dips — accumulation') }
+    else if (volx != null && volx < 0.7) { score -= 10; why.push(`volume ${volx.toFixed(2)}x, nobody there`) }
+    const rs = T?.rs7VsBtc ?? null
+    if (rs != null && rs >= 5) { score += 15; why.push(`beating BTC by ${rs.toFixed(0)} pts`) }
+    else if (rs != null && rs < -5) { score -= 8; why.push('lagging BTC') }
+    if (d7 != null && d7 > 0) { score += 10; why.push(`up ${d7.toFixed(1)}% this week`) }
+    const ext = T?.extPct ?? null
+    if (ext != null && ext <= -25) { score -= 8; why.push('deep below its base') }
+    else if (ext != null && ext > -10 && ext <= 0) { score += 8; why.push('near its high, coiled') }
+    if (fl?.flow_score != null && fl.flow_score > 20) { score += 10; why.push(`flow scan +${fl.flow_score.toFixed(0)}`) }
+    return { score, why }
+  }
+
   // LETTER FIRST, THEN SCORE. Score alone put a 92-scoring C above a 90-scoring A, because a capped
   // grade keeps its high score (volume unverifiable costs 8 and caps at C). The letter is the verdict;
   // the score only orders names that share one.
@@ -174,9 +213,10 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     return { tier: 0, letter: LETTER[T.grade] ?? 9, score: T.score }
   }
   const queueRanked = [...queue].sort((a, b) => {
+    const ca = convictionOf(a.symbol).score, cb = convictionOf(b.symbol).score
+    if (cb !== ca) return cb - ca                       // conviction leads
     const ra = gradeRank(a.symbol), rb = gradeRank(b.symbol)
-    return ra.tier - rb.tier || ra.letter - rb.letter || rb.score - ra.score
-      || RANK[a.status] - RANK[b.status] || a.symbol.localeCompare(b.symbol)
+    return ra.tier - rb.tier || ra.letter - rb.letter || rb.score - ra.score || a.symbol.localeCompare(b.symbol)
   })
   // POLE IS THE BEST GRADE, FULL STOP (Jacob 2026-09-11: "pole should be best graded. its for pole
   // position"). I argued for requiring a verified mechanism too; he overruled it, and it is his book.

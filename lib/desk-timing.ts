@@ -88,6 +88,10 @@ export function gradeTiming(i: TimingInput): TimingResult {
     const x = i.vol24h / i.avgVol20
     if (x >= 1.5) add(8, `volume ${x.toFixed(1)}x its 20-day average — move is confirmed`)
     else if (x < 0.7) ded(10, `volume ${x.toFixed(1)}x its 20-day average — no participation`)
+    // The 0.7-1.5 band scores neither way, but SAYING NOTHING reads as missing data (Jacob 2026-09-11:
+    // "aster volume unconfirmed? ... actually all of them but eigen" — the numbers were there, the
+    // grader was simply mute). State it: ordinary volume is a finding, not an absence.
+    else soft.push(`volume ${x.toFixed(2)}x its 20-day average — ordinary, so the breakout's volume leg is NOT confirmed (needs 1.5x); this is measured, not missing`)
   } else {
     // ANY failure to compute the ratio lands here — not just a missing 20-day average. The guard above
     // needs BOTH today's volume and the average, so "have the average, missing today" previously fell
