@@ -153,6 +153,22 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queueKey, secret])
 
+  // RANK BY GRADE, NOT BY STATUS (Jacob 2026-09-11: "shouldnt the ones you gave 100 be at the top").
+  // `queue` stays in its stable desk order so the auto-grade effect's key does not churn as grades
+  // land; this is a separate view for rendering. Best score first, ungraded next (they are still
+  // resolving, not rejected), then '?' which could not be graded, and D/F last — those collapse.
+  const gradeRank = (sym: string) => {
+    const tm = timing[sym]
+    const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
+    if (!T) return { tier: 1, score: 0 }                 // ungraded / still loading
+    if (T.grade === 'D' || T.grade === 'F') return { tier: 3, score: T.score }
+    if (T.grade === '?') return { tier: 2, score: T.score }
+    return { tier: 0, score: T.score }                   // A/B/C ranked by score
+  }
+  const queueRanked = [...queue].sort((a, b) => {
+    const ra = gradeRank(a.symbol), rb = gradeRank(b.symbol)
+    return ra.tier - rb.tier || rb.score - ra.score || RANK[a.status] - RANK[b.status] || a.symbol.localeCompare(b.symbol)
+  })
   const liveSyms = [...new Set([...positions.map((p) => p.symbol), ...queue.map((t) => t.symbol)])]
   const liveKey = liveSyms.join(',')
 
@@ -447,7 +463,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 collapsed, not deleted. A name that has not been checked yet, or that could not be graded
                 for want of a live price ('?'), still shows — hiding those would hide the good ones, which
                 is exactly what happened when a rate limit turned five B-scoring names into Fs. */}
-            {queue.map((t, rank) => {
+            {queueRanked.map((t, rank) => {
               const lv = live[t.symbol]; const r = radarFor(t.symbol); const fl = flowFor(t.symbol)
               const lines = trig(t.symbol, ['bid', 'deep_rung', 'entry', 'dump', 'reclaim'])
               const tm = timing[t.symbol]; const br = buying[t.symbol]
