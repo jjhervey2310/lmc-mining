@@ -172,6 +172,14 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   //   room       how far below its 20-day high — a name already extended has less left
   // HONESTY: this is a reasoned weighting, NOT a backtested edge. Every mechanical rule this desk has
   // tested came out negative. Treat it as an ordered argument, never as a prediction.
+  // flowFor is declared HERE, above convictionOf, and must stay above it: convictionOf reads it,
+  // and the queueRanked sort calls convictionOf further down. A `const` arrow is in the temporal
+  // dead zone until its own line runs, so with this declaration below the sort the ROBINHOOD tab
+  // threw "Cannot access 'flowFor' before initialization" on every render with two or more names
+  // queued — which server-rendered into the crash panel and read as the whole dashboard going down
+  // (2026-09-12). One name never tripped it, because a sort of one element never calls its comparator.
+  const flowFor = (sym: string) => (state.flow ?? []).find((r) => r.symbol === sym) ?? null
+
   const convictionOf = (sym: string) => {
     const th = theses.find((x) => x.symbol === sym)
     const txt = (th?.thesis ?? '').toUpperCase()
@@ -274,7 +282,6 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const stopFor = (sym: string) => trig(sym, ['stop'])[0]?.level ?? null
   const thesisFor = (sym: string) => theses.find((t) => t.symbol === sym) ?? null
   const radarFor = (sym: string) => (state.radar ?? []).find((r) => r.symbol === sym) ?? null
-  const flowFor = (sym: string) => (state.flow ?? []).find((r) => r.symbol === sym) ?? null
   const heldPole = theses.find((t) => t.status === 'POLE' && held.has(t.symbol)) ?? null
   // THE SERVER'S NUMBER IS THE NUMBER. It prices on Robinhood -> Coinbase -> last close, the same
   // chain the grader uses, so the tab and the desk can never disagree. The client's own CoinGecko
