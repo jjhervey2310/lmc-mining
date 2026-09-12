@@ -123,19 +123,20 @@ export async function buildTiming(symbol: string) {
     const then = histCloses[histCloses.length - 1 - n]
     return then > 0 ? (livePriceForTape / then - 1) * 100 : null
   }
-  // VOLUME MUST COME FROM ONE SOURCE ON BOTH SIDES. CoinGecko reports volume in USD; the Coinbase
-  // candles behind cg_history report it in BASE UNITS. Mixing them (CoinGecko's 24h against history's
-  // average) produces a ratio out by the price — for SOL that is ~100x, which would read as a
-  // spectacular volume confirmation that never happened. So: use CoinGecko for both, else history for
-  // both, else declare it unverified. This also stops the grade flickering between C and A as one
-  // source succeeds or fails between reads (2026-09-11: EIGEN went C/84 -> A/97 in forty seconds on
-  // nothing but a lucky fetch).
-  const cgOk = completedVol.length >= 5 && me?.total_volume != null
-  const histAvg = histVol.length >= 6 ? histVol.slice(-21, -1).reduce((a, b) => a + b, 0) / histVol.slice(-21, -1).length : null
-  const histToday = histVol.length ? histVol[histVol.length - 1] : null
-  const avgVol20 = cgOk ? completedVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedVol.length) : histAvg
-  const vol24hUnified = cgOk ? (me?.total_volume ?? null) : histToday
-  const volSource = cgOk ? 'coingecko' : (histAvg != null && histToday != null ? 'cg_history' : null)
+  // ONE DEFINITION, ALWAYS THE SAME SOURCE. Preferring CoinGecko when available and cg_history
+  // otherwise still flickered, because the two measure different things: CoinGecko's rolling 24h in
+  // USD vs Coinbase's daily bar in base units. EIGEN read 1.38x on one and 0.80x on the other in the
+  // same minute. So the ratio is defined once, on cg_history alone: the LAST COMPLETED daily volume
+  // against the 20 completed days before it. That is exactly the quantity the breakout rule names
+  // ("volume >= 1.5x its 20-day average" on a daily close), it is always available, and it cannot
+  // drift between reads. Today's partial bar is deliberately excluded — a half-finished day compared
+  // against full ones reads low and would bar good names for the crime of being checked before noon.
+  const completedHistVol = histVol.slice(0, -1)          // drop today's partial bar
+  const avgVol20 = completedHistVol.length >= 6
+    ? completedHistVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedHistVol.length)
+    : null
+  const vol24hUnified = completedHistVol.length ? completedHistVol[completedHistVol.length - 1] : null
+  const volSource = avgVol20 != null && vol24hUnified != null ? 'cg_history (last completed day)' : null
   // A failed chart only breaks the RUNNING law when the stored series could not
   // supply the high either. When it could, the chart costs us the volume
   // confirmation and nothing more, so say that instead of barring the entry.
