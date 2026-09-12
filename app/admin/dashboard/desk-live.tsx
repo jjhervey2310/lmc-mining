@@ -169,28 +169,17 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     const ra = gradeRank(a.symbol), rb = gradeRank(b.symbol)
     return ra.tier - rb.tier || rb.score - ra.score || RANK[a.status] - RANK[b.status] || a.symbol.localeCompare(b.symbol)
   })
-  // POLE IS DERIVED, NOT DECLARED (Jacob 2026-09-11: "the pole should be the best available to trade").
-  // Best available means BOTH legs: the best live grade AND a thesis someone has actually verified.
-  // Grade alone measures entry timing against the laws — it says nothing about whether value reaches
-  // the holder, so on grade alone a narrative name with no mechanism outranks a verified one that is
-  // merely below its base. A thesis counts as verified when it cites a mechanism (fee switch, buyback,
-  // revenue, burn, fee share) and its gate is not still asking for that verification.
+  // POLE IS THE BEST GRADE, FULL STOP (Jacob 2026-09-11: "pole should be best graded. its for pole
+  // position"). I argued for requiring a verified mechanism too; he overruled it, and it is his book.
+  // Pole position goes to whoever is fastest. The verification state is still SHOWN beside it, so an
+  // unverified name can hold pole but can never look verified while doing so.
   const verified = (sym: string) => {
     const t = theses.find((x) => x.symbol === sym)
     if (!t) return false
-    const txt = `${t.thesis ?? ''}`.toLowerCase()
-    const gate = `${t.gate ?? ''}`.toLowerCase()
-    const hasMechanism = /(fee switch|buyback|revenue|burn|fee[- ]share|accru)/.test(txt)
-    const stillAsking = /(unverified|verify|unproven)/.test(txt + ' ' + gate)
-    return hasMechanism && !stillAsking
+    const txt = `${t.thesis ?? ''}`.toLowerCase(), gate = `${t.gate ?? ''}`.toLowerCase()
+    return /(fee switch|buyback|revenue|burn|fee[- ]share|accru)/.test(txt) && !/(unverified|verify|unproven)/.test(txt + ' ' + gate)
   }
   const poleSym = queueRanked.find((t) => {
-    const tm = timing[t.symbol]
-    const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
-    return T != null && ['A', 'B', 'C'].includes(T.grade) && verified(t.symbol)
-  })?.symbol ?? null
-  // The best-graded name overall, so the page can say WHY it is not pole rather than silently skipping it.
-  const topGraded = queueRanked.find((t) => {
     const tm = timing[t.symbol]
     const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
     return T != null && ['A', 'B', 'C'].includes(T.grade)
@@ -606,14 +595,12 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         )}
         {poleSym && (
           <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-200">
-            ★ POLE is <b>{poleSym}</b> — best live grade among names with a VERIFIED mechanism.
-            {topGraded && topGraded !== poleSym && <> {topGraded} grades higher but its thesis is still unverified, so it is a candidate, not the pole.</>}
+            ★ POLE is <b>{poleSym}</b> — the best live grade in the queue.
+            {!verified(poleSym) && <> Mechanism NOT yet verified: nobody has confirmed value reaches the holder, so this is pole on timing alone.</>}
           </div>
         )}
-        {!poleSym && topGraded && (
-          <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-200">
-            ★ POLE is VACANT — {topGraded} is the best grade but no queued name has a verified mechanism yet. Verify one before it can be pole.
-          </div>
+        {!poleSym && (
+          <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-200">★ POLE is VACANT — nothing in the queue grades C or better right now.</div>
         )}
         {boardPoleSym && held.has(boardPoleSym) && (
           <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-200">Session board still names {boardPoleSym} as pole but it is held — desk to refresh the board.</div>
