@@ -28,6 +28,10 @@ export interface FlowRow { symbol: string; flow_score: number | null; stage: str
 export interface DeskState {
   holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; strategy: Board | null
   theses?: Thesis[] | null; radar?: RadarRow[] | null; flow?: FlowRow[] | null; loop_enabled?: boolean | null; at: string
+  // Priced once on the SERVER, on the same chain as everything else. book is null when any position
+  // could not be priced — unknown, never silently zero.
+  book?: number | null; pos_value?: number | null; cash_usd?: number | null
+  prices?: Record<string, number> | null; price_src?: Record<string, string> | null; unpriced?: string[] | null
 }
 export interface Realized { pnl: number; wins: number; losses: number; n: number }
 export interface Capital {
@@ -232,10 +236,17 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const radarFor = (sym: string) => (state.radar ?? []).find((r) => r.symbol === sym) ?? null
   const flowFor = (sym: string) => (state.flow ?? []).find((r) => r.symbol === sym) ?? null
   const heldPole = theses.find((t) => t.status === 'POLE' && held.has(t.symbol)) ?? null
-  const val = (p: Holding) => Number(p.qty) * (live[p.symbol]?.price ?? 0)
-  const posValue = positions.reduce((s, p) => s + val(p), 0)
-  const allPriced = positions.every((p) => live[p.symbol] != null)
-  const book = posValue + cash
+  // THE SERVER'S NUMBER IS THE NUMBER. It prices on Robinhood -> Coinbase -> last close, the same
+  // chain the grader uses, so the tab and the desk can never disagree. The client's own CoinGecko
+  // prices are kept only for the per-row 24h moves. `?? 0` on a missing price is what used to shrink
+  // the account silently (2026-09-11).
+  const srvPrice = (sym: string) => state.prices?.[sym] ?? live[sym]?.price ?? null
+  const val = (p: Holding) => { const px = srvPrice(p.symbol); return px == null ? 0 : Number(p.qty) * px }
+  const serverBook = state.book ?? null
+  const unpricedSyms = state.unpriced ?? []
+  const allPriced = serverBook != null || positions.every((p) => srvPrice(p.symbol) != null)
+  const posValue = state.pos_value ?? positions.reduce((s, p) => s + val(p), 0)
+  const book = serverBook ?? (posValue + cash)
   const openPos = open ? positions.find((p) => p.symbol === open) ?? null : null
   const synced = positions.length ? [...positions].sort((a, b) => +new Date(b.synced_at) - +new Date(a.synced_at))[0].synced_at : null
 
@@ -342,6 +353,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                   )
                 })()}
                 <div className="text-[10px] text-neutral-500">positions {allPriced ? usd2(posValue) : 'pricing…'} + cash · the headline number is size, not performance</div>
+                {unpricedSyms.length > 0 && <div className="mt-0.5 text-[10px] font-bold text-red-600 dark:text-rose-300">⚠ no price for {unpricedSyms.join(', ')} — the total below excludes them, it is NOT your whole account</div>}
               </div>
               <div className="rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-white/5">
                 <div className="text-[10px] uppercase tracking-wider text-neutral-500">Trading P&L{capital.baseline ? ` since ${new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</div>
