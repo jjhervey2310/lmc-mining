@@ -42,7 +42,7 @@ interface Timing {
   d1: number | null; d7: number | null; d30: number | null; hi20: number | null; extPct: number | null; rs7VsBtc: number | null
   tapeError: string | null; hi20Source: 'cg_history' | 'coingecko' | null
   book: number; cash: number; slots: number; sleeveCount: number; weeklyEntries: number; blackout: string | null; halfSize: boolean
-  grade: 'A' | 'B' | 'C' | 'D' | 'F'; score: number; hard: string[]; soft: string[]; plus: string[]
+  grade: 'A' | 'B' | 'C' | 'D' | 'F' | '?'; score: number; hard: string[]; soft: string[]; plus: string[]
   size: { usd: number; pctBook: number; halfSize: boolean; cappedBy: string | null }
   stop: { price: number; source: string; pct: number }
   buyable: boolean; overridable: boolean; rh_configured: boolean
@@ -124,6 +124,35 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const held = new Set(positions.map((p) => p.symbol))
   const RANK: Record<string, number> = { POLE: 0, WATCH: 1, VERIFYING: 2 }
   const queue = theses.filter((t) => t.status in RANK && !held.has(t.symbol)).sort((a, b) => RANK[a.status] - RANK[b.status] || a.symbol.localeCompare(b.symbol))
+  // AUTO-GRADE THE QUEUE. The C+ filter was inert because a name is only graded when you tap Timing,
+  // so an ungraded list showed everything (Jacob 2026-09-11, with a screenshot of the unfiltered list).
+  // Grading is cheap now that prices come from Coinbase/Robinhood rather than a rate-limited CoinGecko.
+  // Staggered so eighteen names do not arrive as one burst; failures are left ungraded, never hidden.
+  const queueKey = queue.map((t) => t.symbol).join(',')
+  useEffect(() => {
+    const syms = queueKey ? queueKey.split(',') : []
+    if (!syms.length) return
+    let dead = false
+    ;(async () => {
+      for (const sym of syms) {
+        if (dead) return
+        const already = await new Promise<unknown>((res) => setTiming((t) => { res(t[sym]); return t }))
+        if (already !== undefined) continue
+        setTiming((t) => ({ ...t, [sym]: 'loading' }))
+        try {
+          const r = await fetch(`/api/fund/timing?secret=${encodeURIComponent(secret)}&symbol=${sym}`, { cache: 'no-store' })
+          const j = await r.json()
+          if (!dead) setTiming((t) => ({ ...t, [sym]: r.ok ? (j as Timing) : { error: j.error ?? `HTTP ${r.status}` } }))
+        } catch (e) {
+          if (!dead) setTiming((t) => ({ ...t, [sym]: { error: e instanceof Error ? e.message : 'fetch failed' } }))
+        }
+        await new Promise((res) => setTimeout(res, 600))
+      }
+    })()
+    return () => { dead = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueKey, secret])
+
   const liveSyms = [...new Set([...positions.map((p) => p.symbol), ...queue.map((t) => t.symbol)])]
   const liveKey = liveSyms.join(',')
 
@@ -423,7 +452,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
               const lines = trig(t.symbol, ['bid', 'deep_rung', 'entry', 'dump', 'reclaim'])
               const tm = timing[t.symbol]; const br = buying[t.symbol]
               const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
-              const belowC = T != null && (T.grade === 'D' || T.grade === 'F')
+              const belowC = T != null && (T.grade === 'D' || T.grade === 'F')   // '?' and errors stay visible on purpose
               if (belowC && !showBelowC) return null
               return (
                 <div key={t.symbol} className="py-2">
