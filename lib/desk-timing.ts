@@ -47,6 +47,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 export function gradeTiming(i: TimingInput): TimingResult {
   const hard: string[] = [], soft: string[] = [], plus: string[] = []
   let score = 100
+  let capC = false           // a required check could not run: visible, but never an A or B
   let capD = false            // a process bar (no slot, weekly cap, blackout, cash floor) caps the grade at D: override territory, never a clean buy
   const ded = (pts: number, why: string) => { score -= pts; soft.push(`−${pts} ${why}`) }
   const add = (pts: number, why: string) => { score = Math.min(100, score + pts); plus.push(`+${pts} ${why}`) }
@@ -83,7 +84,12 @@ export function gradeTiming(i: TimingInput): TimingResult {
     if (x >= 1.5) add(8, `volume ${x.toFixed(1)}x its 20-day average — move is confirmed`)
     else if (x < 0.7) ded(10, `volume ${x.toFixed(1)}x its 20-day average — no participation`)
   } else if (i.avgVol20 == null) {
-    soft.push(`volume confirmation unchecked — no 20-day average volume${i.tapeError ? ` (${i.tapeError})` : ''}`)
+    // A check that could not run must never score the same as a check that passed. Volume is a
+    // REQUIRED leg of the tested breakout, so an unmeasurable one caps the grade at C: the name stays
+    // visible and overridable, it just cannot present as an A on the strength of a missing input.
+    // (2026-09-11: XRP, ASTER and TON all scored 100 with volume unknown.)
+    ded(8, `volume UNVERIFIED — no 20-day average${i.tapeError ? ` (${i.tapeError})` : ''}; the breakout's volume leg cannot be confirmed`)
+    capC = true
   }
   const entryLines = i.armed.filter((a) => ['bid', 'entry', 'deep_rung', 'reclaim'].includes(a.kind))
   if (entryLines.length) {
@@ -131,6 +137,7 @@ export function gradeTiming(i: TimingInput): TimingResult {
   let grade: Grade = blind && meritHard.length === 0 ? '?'
     : meritHard.length || hard.length ? 'F'
     : score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'F'
+  if (capC && (grade === 'A' || grade === 'B')) grade = 'C'
   if (capD && (grade === 'A' || grade === 'B' || grade === 'C')) grade = 'D'
   return {
     grade, score, hard, soft, plus,
