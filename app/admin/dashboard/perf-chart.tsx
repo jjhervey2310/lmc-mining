@@ -22,13 +22,17 @@ export default function PerfChart({ items, secret }: { items: PerfItem[]; secret
   // keyed by `${days}|${symbol}` so switching the window never needs a synchronous reset inside the effect
   const [data, setData] = useState<Record<string, [number, number][] | null>>({})
   const at = (sym: string) => data[`${days}|${sym}`]
-  const [hidden, setHidden] = useState<Record<string, boolean>>({})
+  // NOTHING LOADS UNTIL YOU CLICK IT (Jacob 2026-09-11: "only load up the charts i click on ... should
+  // not show up on the chart unless i click it"). The chart used to fetch every holding and every queue
+  // name on open — eighteen history calls for lines nobody asked to see. Chips are the control: tap to
+  // load and draw, tap again to drop. The chip row re-orders live as the ranking changes.
+  const [picked, setPicked] = useState<Record<string, boolean>>({})
   const [cursor, setCursor] = useState<number | null>(null)
   const key = items.map((i) => i.symbol).join(',')
 
   useEffect(() => {
     let dead = false
-    const want = items.filter((i) => i.cgId)
+    const want = items.filter((i) => i.cgId && picked[i.symbol])
     ;(async () => {
       for (let k = 0; k < want.length; k++) {
         const it = want[k]
@@ -48,7 +52,7 @@ export default function PerfChart({ items, secret }: { items: PerfItem[]; secret
     })()
     return () => { dead = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, days])
+  }, [key, days, picked])
 
   const w = 900, h = 260
   const pad = { l: 8, r: 8, t: 14, b: 20 }
@@ -60,7 +64,7 @@ export default function PerfChart({ items, secret }: { items: PerfItem[]; secret
   const nowMs = loaded.length ? Math.max(...loaded.map((p) => p[p.length - 1][0])) : 0
   const startMs = nowMs - days * 86400e3
   const tAt = (i: number) => startMs + (i / (n - 1)) * (nowMs - startMs)
-  const series: Series[] = items.map((item, k) => {
+  const series: Series[] = items.filter((i) => picked[i.symbol]).map((item, k) => {
     const pts = at(item.symbol) ?? null
     if (!pts) return { item, color: PALETTE[k % PALETTE.length], pts: [], idx: [] }
     const base = pts[0][1]
@@ -73,7 +77,7 @@ export default function PerfChart({ items, secret }: { items: PerfItem[]; secret
     }
     return { item, color: PALETTE[k % PALETTE.length], pts, idx }
   })
-  const shown = series.filter((s) => s.idx.length && !hidden[s.item.symbol])
+  const shown = series.filter((s) => s.idx.length)   // only loaded names reach here
   const all = shown.flatMap((s) => s.idx)
   const lo = all.length ? Math.min(0, ...all) : -1, hi = all.length ? Math.max(0, ...all) : 1
   const span = hi - lo || 1
@@ -85,18 +89,21 @@ export default function PerfChart({ items, secret }: { items: PerfItem[]; secret
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        {series.map((s) => {
-          const last = s.pts.length ? s.pts[s.pts.length - 1][1] : null
-          const win = s.idx.length ? s.idx[s.idx.length - 1] : null
-          const vsEntry = last != null && s.item.entry ? (last / s.item.entry - 1) * 100 : null
-          const off = hidden[s.item.symbol]
+        {items.map((item) => {
+          // Every name gets a chip; only LOADED ones carry data and a drawn line.
+          const s = series.find((x) => x.item.symbol === item.symbol)
+          const last = s && s.pts.length ? s.pts[s.pts.length - 1][1] : null
+          const win = s && s.idx.length ? s.idx[s.idx.length - 1] : null
+          const vsEntry = last != null && item.entry ? (last / item.entry - 1) * 100 : null
+          const off = !picked[item.symbol]
+          const color = s?.color ?? PALETTE[items.indexOf(item) % PALETTE.length]
           return (
-            <button key={s.item.symbol} onClick={() => setHidden((hh) => ({ ...hh, [s.item.symbol]: !hh[s.item.symbol] }))}
+            <button key={item.symbol} type="button" title={off ? 'tap to load this line' : 'tap to remove'} onClick={() => setPicked((v) => ({ ...v, [item.symbol]: !v[item.symbol] }))}
               className={`flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[11px] transition-all ${off ? 'opacity-35' : ''} border-neutral-200 bg-white hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10`}>
-              <span className="inline-block h-2 w-4 rounded-sm" style={{ background: s.color, opacity: s.item.kind === 'queue' ? 0.55 : 1, borderBottom: s.item.kind === 'queue' ? `2px dashed ${s.color}` : undefined }} />
-              <span className="font-bold text-neutral-700 dark:text-neutral-200">{s.item.symbol}</span>
-              {s.item.kind === 'queue' && <span className="rounded bg-neutral-100 px-1 text-[9px] uppercase tracking-wide text-neutral-500 dark:bg-white/10">{s.item.status ?? 'queue'}</span>}
-              {last != null ? <span className="font-mono text-neutral-600 dark:text-neutral-300">{fmt(last)}</span> : <span className="text-neutral-400">{at(s.item.symbol) === null ? 'n/a' : '…'}</span>}
+              <span className="inline-block h-2 w-4 rounded-sm" style={{ background: color, opacity: item.kind === 'queue' ? 0.55 : 1, borderBottom: item.kind === 'queue' ? `2px dashed ${color}` : undefined }} />
+              <span className="font-bold text-neutral-700 dark:text-neutral-200">{item.symbol}</span>
+              {item.kind === 'queue' && <span className="rounded bg-neutral-100 px-1 text-[9px] uppercase tracking-wide text-neutral-500 dark:bg-white/10">{item.status ?? 'queue'}</span>}
+              {last != null ? <span className="font-mono text-neutral-600 dark:text-neutral-300">{fmt(last)}</span> : <span className="text-neutral-400">{at(item.symbol) === null ? 'n/a' : '…'}</span>}
               {win != null && <span className={`font-mono ${win >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>{win >= 0 ? '+' : ''}{win.toFixed(1)}%</span>}
               {vsEntry != null && <span className={`font-mono text-[10px] ${vsEntry >= 0 ? 'text-emerald-600/80 dark:text-emerald-300/80' : 'text-rose-600/80 dark:text-rose-300/80'}`}>vs entry {vsEntry >= 0 ? '+' : ''}{vsEntry.toFixed(1)}%</span>}
             </button>

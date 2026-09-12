@@ -583,6 +583,10 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 filter that silently drops a name is the same failure as a zero standing in for a
                 fetch that failed. */}
             {(() => {
+              // Jacob 2026-09-11: "we should leave barred off the whole dashboard until they are a C or
+              // above". They are off the board, not merely collapsed. A COUNT stays, because a list that
+              // silently drops a name is the same defect as a zero standing in for a failed fetch — you
+              // should always be able to see that something was withheld, and open it if you want.
               const below = queue.filter((t) => {
                 const tm = timing[t.symbol]
                 const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
@@ -591,8 +595,8 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
               if (!below.length) return null
               return (
                 <button type="button" onClick={() => setShowBelowC((v) => !v)}
-                  className="w-full py-1.5 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
-                  {showBelowC ? '▾ hide' : '▸ show'} {below.length} below C · {below.map((t) => t.symbol).join(' ')}
+                  className="w-full py-1 text-left text-[10px] uppercase tracking-wider text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300">
+                  {showBelowC ? `▾ hide the ${below.length} barred` : `▸ ${below.length} barred / below C — off the board`}
                 </button>
               )
             })()}

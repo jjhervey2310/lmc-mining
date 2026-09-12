@@ -17,7 +17,18 @@ def history365(cid):
     f = H365 / f"{cid}.json"
     if f.exists() and time.time() - f.stat().st_mtime < 20 * 3600:
         return json.loads(f.read_text())
-    j = _req(f"https://api.coingecko.com/api/v3/coins/{cid}/market_chart?vs_currency=usd&days=365&interval=daily", retries=4)
+    # These are the names Coinbase has no pair for (AVNT, PUMP, TAO...), so CoinGecko is the ONLY
+    # source and a 429 here means the name gets no tape at all — which makes the grader bar it as
+    # UNCHECKABLE (2026-09-11: four queue names were unbuyable for want of a row). This is a daily
+    # job with nothing waiting on it, so it waits properly instead of giving up after four quick tries.
+    j = None
+    for attempt in range(6):
+        try:
+            j = _req(f"https://api.coingecko.com/api/v3/coins/{cid}/market_chart?vs_currency=usd&days=365&interval=daily", retries=1)
+            break
+        except Exception:
+            if attempt == 5: raise
+            time.sleep(20 * (attempt + 1))    # 20s, 40s, 60s, 80s, 100s
     out = [{"t": int(t // 1000), "c": v} for t, v in j.get("prices", [])]
     f.write_text(json.dumps(out)); time.sleep(2.5)
     return out
