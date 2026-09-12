@@ -88,12 +88,16 @@ export function gradeTiming(i: TimingInput): TimingResult {
     const x = i.vol24h / i.avgVol20
     if (x >= 1.5) add(8, `volume ${x.toFixed(1)}x its 20-day average — move is confirmed`)
     else if (x < 0.7) ded(10, `volume ${x.toFixed(1)}x its 20-day average — no participation`)
-  } else if (i.avgVol20 == null) {
-    // A check that could not run must never score the same as a check that passed. Volume is a
-    // REQUIRED leg of the tested breakout, so an unmeasurable one caps the grade at C: the name stays
-    // visible and overridable, it just cannot present as an A on the strength of a missing input.
-    // (2026-09-11: XRP, ASTER and TON all scored 100 with volume unknown.)
-    ded(8, `volume UNVERIFIED — no 20-day average${i.tapeError ? ` (${i.tapeError})` : ''}; the breakout's volume leg cannot be confirmed`)
+  } else {
+    // ANY failure to compute the ratio lands here — not just a missing 20-day average. The guard above
+    // needs BOTH today's volume and the average, so "have the average, missing today" previously fell
+    // through both branches and no volume check ran at all: ONDO scored a clean A/100 on it (2026-09-11).
+    // A check that could not run must never score the same as a check that passed. Volume is a REQUIRED
+    // leg of the tested breakout, so an unmeasurable one costs 8 and caps the grade at C — the name
+    // stays visible and overridable, it just cannot present as an A on the strength of a missing input.
+    const which = i.avgVol20 == null && i.vol24h == null ? 'no 24h volume and no 20-day average'
+      : i.avgVol20 == null ? 'no 20-day average' : 'no 24h volume'
+    ded(8, `volume UNVERIFIED — ${which}${i.tapeError ? ` (${i.tapeError})` : ''}; the breakout's volume leg cannot be confirmed`)
     capC = true
   }
   const entryLines = i.armed.filter((a) => ['bid', 'entry', 'deep_rung', 'reclaim'].includes(a.kind))
