@@ -108,7 +108,13 @@ export async function buildTiming(symbol: string) {
   const hi20 = hi20FromDb ?? highOf(completedPx)
   const hi20Source = hi20FromDb !== null ? 'cg_history' : hi20 !== null ? 'coingecko' : null
 
-  const avgVol20 = completedVol.length >= 5 ? completedVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedVol.length) : null
+  // cg_history rows carry [ts, close, volume] since 2026-09-11, so the volume leg survives a CoinGecko
+  // rate limit the same way the 20-day high already does. Without this, an unverifiable volume capped
+  // the grade at C on names that were otherwise clean.
+  const histVol = ((histRow?.prices ?? []) as number[][]).map((r) => r[2]).filter((v) => typeof v === 'number' && v > 0)
+  const avgVol20 = completedVol.length >= 5
+    ? completedVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedVol.length)
+    : histVol.length >= 5 ? histVol.slice(-21, -1).reduce((a, b) => a + b, 0) / Math.min(20, histVol.slice(-21, -1).length) : null
   // A failed chart only breaks the RUNNING law when the stored series could not
   // supply the high either. When it could, the chart costs us the volume
   // confirmation and nothing more, so say that instead of barring the entry.

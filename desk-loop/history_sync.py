@@ -43,7 +43,10 @@ def main():
             except Exception as e:
                 skipped.append(f"{s}({type(e).__name__})"); continue
         if not bars or len(bars) < 5: skipped.append(f"{s}(short)"); continue
-        prices = [[b["t"] * 1000, round(b["c"], 8)] for b in bars if b.get("c") is not None]
+        # [ts_ms, close, volume]. Volume was omitted originally, which left the web grader unable to
+        # confirm the breakout's volume leg whenever CoinGecko rate-limited it (2026-09-11).
+        prices = [[b["t"] * 1000, round(b["c"], 8)] + ([round(b["v"], 4)] if b.get("v") is not None else [])
+                  for b in bars if b.get("c") is not None]
         rows.append({"id": cid, "symbol": s, "days": 365, "prices": prices,
                      "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()})
         if len(rows) % 10 == 0:
