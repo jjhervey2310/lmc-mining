@@ -111,7 +111,18 @@ export async function buildTiming(symbol: string) {
   // cg_history rows carry [ts, close, volume] since 2026-09-11, so the volume leg survives a CoinGecko
   // rate limit the same way the 20-day high already does. Without this, an unverifiable volume capped
   // the grade at C on names that were otherwise clean.
+  const livePriceForTape = livePrice
   const histVol = ((histRow?.prices ?? []) as number[][]).map((r) => r[2]).filter((v) => typeof v === 'number' && v > 0)
+  // DERIVE THE TAPE FROM cg_history WHEN CoinGecko IS MISSING. Critical: d1/d7/d30 feed the CHASE LAWS.
+  // When CoinGecko 429'd, those came back null, the chase checks silently did not fire, and ARB — up
+  // 84% in 30 days and hard-barred — graded A/100 and read as buyable (2026-09-11). A check that cannot
+  // run must never pass. cg_history carries a year of daily closes, so the laws can always be evaluated.
+  const histCloses = ((histRow?.prices ?? []) as number[][]).map((r) => r[1]).filter((v) => typeof v === 'number' && v > 0)
+  const chg = (n: number) => {
+    if (histCloses.length < n + 1 || !livePriceForTape) return null
+    const then = histCloses[histCloses.length - 1 - n]
+    return then > 0 ? (livePriceForTape / then - 1) * 100 : null
+  }
   const avgVol20 = completedVol.length >= 5
     ? completedVol.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, completedVol.length)
     : histVol.length >= 5 ? histVol.slice(-21, -1).reduce((a, b) => a + b, 0) / Math.min(20, histVol.slice(-21, -1).length) : null
@@ -147,7 +158,7 @@ export async function buildTiming(symbol: string) {
 
   const input: TimingInput = {
     symbol: sym, price: livePrice, priceStale,
-    d1: me?.price_change_percentage_24h_in_currency ?? null, d7: me?.price_change_percentage_7d_in_currency ?? null, d30: me?.price_change_percentage_30d_in_currency ?? null,
+    d1: me?.price_change_percentage_24h_in_currency ?? chg(1), d7: me?.price_change_percentage_7d_in_currency ?? chg(7), d30: me?.price_change_percentage_30d_in_currency ?? chg(30),
     vol24h: me?.total_volume ?? null, avgVol20, hi20,
     tapeError: hi20 === null ? tapeError : null,
     rs7VsBtc: me?.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null,

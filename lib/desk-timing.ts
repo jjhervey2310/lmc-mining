@@ -58,6 +58,11 @@ export function gradeTiming(i: TimingInput): TimingResult {
   const ext = i.hi20 ? (i.price / i.hi20 - 1) * 100 : null
   if (ext != null && ext > 15) hard.push(`RUNNING: ${ext.toFixed(0)}% above its 20-day high (no-entry zone past +15%)`)
   if (i.hi20 == null) hard.push(`RUNNING law UNCHECKABLE: no 20-day high${i.tapeError ? ` — ${i.tapeError}` : ' — not enough daily history'}. Extension is unknown, so no entry is cleared.`)
+  // The chase laws are the ones that keep us out of a name that has already run. If the 24h or 30d
+  // change cannot be obtained from EITHER CoinGecko or cg_history, those laws cannot be evaluated and
+  // the name must not clear. 2026-09-11: a rate limit nulled d30 and ARB — up 84% in 30 days and
+  // hard-barred — graded A/100 and read as buyable. A check that cannot run is never a pass.
+  if (i.d1 == null || i.d30 == null) hard.push(`CHASE LAWS UNCHECKABLE: ${i.d1 == null ? '24h' : ''}${i.d1 == null && i.d30 == null ? ' and ' : ''}${i.d30 == null ? '30d' : ''} change unavailable from every source. Cannot confirm the name has not already run.`)
   if (i.halted) hard.push('desk loop halted or paused — no new entries')
   if (i.held) hard.push('already held — adds go through the deposit basket, not the queue')
   // A rate-limited quote falls back to the last daily close so the grade is still readable, but an
@@ -132,8 +137,8 @@ export function gradeTiming(i: TimingInput): TimingResult {
   score = Math.max(0, Math.min(100, Math.round(score)))
   // A stale price means UNGRADEABLE, not failed: report '?' and keep the merit score visible so a
   // data outage is never mistaken for a bad name. The hard bar still stands — '?' is never buyable.
-  const blind = i.priceStale != null || i.hi20 == null
-  const meritHard = hard.filter((h) => !/^stale price|^RUNNING law UNCHECKABLE/.test(h))
+  const blind = i.priceStale != null || i.hi20 == null || i.d1 == null || i.d30 == null
+  const meritHard = hard.filter((h) => !/^stale price|^RUNNING law UNCHECKABLE|^CHASE LAWS UNCHECKABLE/.test(h))
   let grade: Grade = blind && meritHard.length === 0 ? '?'
     : meritHard.length || hard.length ? 'F'
     : score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'F'
