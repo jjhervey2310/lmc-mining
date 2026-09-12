@@ -36,6 +36,7 @@
       "mcp__ec358206-1992-4af3-a8b6-60c4682ea7a1__get_thread",
       "mcp__5f5aa45f-4824-4c46-9a9e-166091f18998__data-store-records_list"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "bypassPermissions"
   }
 }

@@ -12,23 +12,42 @@ export interface LivePriceData {
 // In-memory cache (survives across requests within a warm server instance)
 let cached: { price: number; difficulty: number; timestamp: number } | null = null
 
-// Static network difficulty fallback (updated biweekly — current as of June 2026)
-// Source: blockchain.info/q/getdifficulty
-const STATIC_DIFFICULTY_FALLBACK = 90.67e12
+// Last-resort network difficulty, used only if BOTH live sources fail.
+// Difficulty only ever ratchets in ~2-week steps, and an understated value
+// inflates mined BTC — the exact seller math this site exists to expose. A
+// stale 90.67e12 sat here while the network was at 127.48e12, overstating
+// revenue by 41%. Verified against blockchain.info + mempool.space 2026-08-24.
+const STATIC_DIFFICULTY_FALLBACK = 127.48e12
 
 async function fetchNetworkDifficulty(): Promise<number> {
-  try {
-    const res = await fetch('https://blockchain.info/q/getdifficulty', {
-      next: { revalidate: 7200 }, // 2-hour cache via Next.js
-    })
-    if (!res.ok) throw new Error('Blockchain.info unavailable')
-    const text = await res.text()
-    const difficulty = parseFloat(text)
-    if (isNaN(difficulty) || difficulty <= 0) throw new Error('Invalid difficulty value')
-    return difficulty
-  } catch {
-    return STATIC_DIFFICULTY_FALLBACK
+  // Two independent live sources before the constant is ever considered.
+  const sources: { url: string; parse: (raw: string) => number }[] = [
+    {
+      url: 'https://blockchain.info/q/getdifficulty',
+      parse: (raw) => parseFloat(raw),
+    },
+    {
+      // Note: /v1/difficulty-adjustment does NOT carry currentDifficulty —
+      // it lives on the mining/hashrate endpoint. Verified 2026-08-24.
+      url: 'https://mempool.space/api/v1/mining/hashrate/3d',
+      parse: (raw) => Number(JSON.parse(raw)?.currentDifficulty),
+    },
+  ]
+
+  for (const { url, parse } of sources) {
+    try {
+      const res = await fetch(url, { next: { revalidate: 7200 } })
+      if (!res.ok) continue
+      const difficulty = parse(await res.text())
+      // Guard against a source returning 0, NaN, or an obviously wrong scale.
+      if (!Number.isFinite(difficulty) || difficulty <= 1e12) continue
+      return difficulty
+    } catch {
+      continue
+    }
   }
+
+  return STATIC_DIFFICULTY_FALLBACK
 }
 
 export async function getLivePriceData(): Promise<LivePriceData | { error: string }> {

@@ -161,6 +161,15 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   // `queue` stays in its stable desk order so the auto-grade effect's key does not churn as grades
   // land; this is a separate view for rendering. Best score first, ungraded next (they are still
   // resolving, not rejected), then '?' which could not be graded, and D/F last — those collapse.
+  // These row helpers are declared HERE, above convictionOf, because convictionOf calls flowFor
+  // during render (the queue sort runs it immediately). They used to sit 100 lines lower, which
+  // threw 'Cannot access flowFor before initialization' and blanked the whole tab — TypeScript
+  // cannot catch it because the reference is inside a closure and only fails when that closure runs.
+  const trig = (sym: string, kinds: string[]) => (state.triggers ?? []).filter((t) => t.symbol === sym && kinds.includes(t.kind))
+  const thesisFor = (sym: string) => theses.find((t) => t.symbol === sym) ?? null
+  const radarFor = (sym: string) => (state.radar ?? []).find((r) => r.symbol === sym) ?? null
+  const flowFor = (sym: string) => (state.flow ?? []).find((r) => r.symbol === sym) ?? null
+
   // CONVICTION: WHAT WE THINK WILL RUN, AND WHY (Jacob 2026-09-11: "i want it ranked on what we think
   // is going to run with evidence"). The A-F grade answers a different question — MAY we buy this,
   // legally and at a sane moment. Ranking by it put names with no reason to move above ones with a
@@ -278,10 +287,12 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const oldestSync = positions.length ? Math.max(...positions.map((h) => hoursOld(h.synced_at))) : Infinity
   const boardAge = hoursOld(state.board?.updated_at)
   const stale = oldestSync > 12 || boardAge > 36
-  const trig = (sym: string, kinds: string[]) => (state.triggers ?? []).filter((t) => t.symbol === sym && kinds.includes(t.kind))
   const stopFor = (sym: string) => trig(sym, ['stop'])[0]?.level ?? null
+<<<<<<< Updated upstream
   const thesisFor = (sym: string) => theses.find((t) => t.symbol === sym) ?? null
   const radarFor = (sym: string) => (state.radar ?? []).find((r) => r.symbol === sym) ?? null
+=======
+>>>>>>> Stashed changes
   const heldPole = theses.find((t) => t.status === 'POLE' && held.has(t.symbol)) ?? null
   // THE SERVER'S NUMBER IS THE NUMBER. It prices on Robinhood -> Coinbase -> last close, the same
   // chain the grader uses, so the tab and the desk can never disagree. The client's own CoinGecko
