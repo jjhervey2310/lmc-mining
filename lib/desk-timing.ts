@@ -97,7 +97,12 @@ export function gradeTiming(i: TimingInput): TimingResult {
   const floor = i.bookUsd * 0.10
   const openSlots = i.slots - i.sleeveCount
   if (openSlots <= 0) { ded(25, `no open sleeve slot (${i.sleeveCount}/${i.slots} filled)`); capD = true }
-  if (i.weeklyEntries >= 2) { ded(30, `2 new entries already this week (cap resets Monday)`); capD = true }
+  // WEEKLY CAP REMOVED 2026-09-11 on Jacob's instruction ("there is no two entries per week cap if
+  // there is take it out"). The rulebook contradicted itself: v3/3.1 listed "2 new entries/week" among
+  // the process laws, a later amendment stated "weekly cap REPLACED by open slots", and a third clause
+  // still said it applied. The grader was enforcing the retired half while the replacement (open sleeve
+  // slots) was already live, so entries were being blocked twice by two versions of the same rule.
+  // weeklyEntries is still reported for visibility; it no longer gates anything.
   if (i.blackout) { ded(40, `entry blackout: ${i.blackout}`); capD = true }
   if (i.holdingsCount >= 10) ded(15, `already at the ~10-holding target`)
 
