@@ -1,0 +1,18 @@
+{
+  "wireMagic": "pb3",
+  "pens": [{}, {"bO": 254}],
+  "wsWinStyles": [{}, {"mhModeHint": 2, "juJustifCode": 0}],
+  "wpWinPositions": [{}, {"apPoint": 6, "ahHorPos": 20, "avVerPos": 100}],
+  "events": [
+    {"tStartMs": 0, "dDurationMs": 3600000, "id": 1, "wpWinPosId": 1, "wsWinStyleId": 1},
+    {"tStartMs": 1000, "dDurationMs": 2500, "wWinId": 1,
+     "segs": [{"utf8": "we're going", "acAsrConf": 0},
+              {"utf8": " to look at", "tOffsetMs": 640, "acAsrConf": 0}]},
+    {"tStartMs": 3500, "dDurationMs": 1500, "wWinId": 1, "segs": [{"utf8": "\n"}]},
+    {"tStartMs": 3500, "dDurationMs": 2000, "wWinId": 1,
+     "segs": [{"utf8": "the four hour"}, {"utf8": " chart", "tOffsetMs": 900}]},
+    {"tStartMs": 5500, "wWinId": 1, "segs": [{"utf8": "  invalidation is 61,200  "}]},
+    {"tStartMs": 7000, "dDurationMs": 900, "wWinId": 1, "segs": [{"utf8": ""}]},
+    {"tStartMs": 8000, "dDurationMs": 1200, "wWinId": 1, "segs": [{"utf8": "final line"}]}
+  ]
+}

@@ -1,0 +1,7 @@
+# Local working state: checkpoints, the private transcript cache, compiled bytecode.
+# The cache holds full caption text, which is retained locally only (see docs/ACCESS.md
+# and the retention rule in captions.py) and must never be committed.
+state/
+__pycache__/
+*.pyc
+.env
