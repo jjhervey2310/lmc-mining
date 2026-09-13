@@ -226,10 +226,13 @@ def _rows(table, query, page=1000):
     out, offset = [], 0
     while True:
         chunk = store.get(table, f"{query}&limit={page}&offset={offset}")
-        out.extend(chunk)
-        if len(chunk) < page:
+        if not isinstance(chunk, list) or not chunk:
             return out
-        offset += page
+        out.extend(chunk)
+        # Advance by what came back, not by what was asked for: a server-side max-rows cap
+        # returns a SHORT page that is not the end of the table, and treating it as the end
+        # silently shrinks the denominator a win rate is divided by.
+        offset += len(chunk)
 
 
 def _filter_query(filters):
@@ -347,10 +350,14 @@ def record_call(video_id, t_ms, asset, direction, call_type, video=None, present
 
     # A win or a loss asserts that an entry filled and an exit resolved. Without a stored
     # entry and a stored exit rule that assertion is unverifiable, so it is refused rather
-    # than recorded and later quoted as a track record (brief §3).
+    # than recorded and later quoted as a track record (brief §3). still_available_after
+    # =False says the entry was gone by the time a viewer could act: whatever that trade
+    # did afterwards, nobody could take it, so it is not our win and not our loss (§22.8).
     if outcome in ("win", "loss"):
         blocking = [g for g in gaps if g in ("entry", "receivable_at")] + \
-                   ([] if (invalidation or target) else ["invalidation_or_target"])
+                   ([] if (invalidation or target) else ["invalidation_or_target"]) + \
+                   (["entry_unreachable_after_publication"]
+                    if still_available_after is False else [])
         if blocking:
             raise ValueError(f"outcome={outcome} refused for {row['call_id']}: "
                              f"missing {sorted(set(blocking))} — score it 'unscorable' instead")
@@ -385,8 +392,21 @@ def link_update(prev_call_id, new_call_id):
         if not nxt or nxt == new_call_id:
             break
         tail = nxt
-    if tail == new_call_id:
-        raise ValueError(f"{new_call_id} already precedes {prev_call_id} in this chain")
+    # Walk FORWARD from the new call before linking. Two things are only visible from this
+    # side: a new_call_id that does not exist (the patch below would write a dangling
+    # superseded_by), and a new call that already leads back to the tail — closing the loop
+    # leaves the group with no terminal call at all, and score_summary can then never
+    # resolve it again (§22.9).
+    node, walked = new_call_id, set()
+    while node and node not in walked:
+        walked.add(node)
+        if node == tail:
+            raise ValueError(f"{new_call_id} already precedes {tail} in this chain")
+        nrows = store.get("vr_calls", "select=call_id,superseded_by"
+                                      f"&call_id=eq.{_q(node)}&limit=1")
+        if not nrows:
+            raise KeyError(f"no vr_calls row {node}")
+        node = nrows[0].get("superseded_by")
 
     group = rows[0].get("update_group")
     store.patch("vr_calls", f"call_id=eq.{_q(tail)}", {"superseded_by": new_call_id})

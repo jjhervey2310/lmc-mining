@@ -57,7 +57,10 @@ SELF_ID_NAMES = {
     "kyle-doops": r"kyle\s+doops|doops",
     "ran-neuner": r"ran\s+neuner",
     "benjamin-cowen": r"ben(?:jamin)?\s+cowen",
-    "sniper": r"sniper",
+    # bare 'sniper' is jargon ("this is sniper season", "i'm sniper entry"), so a self-ID
+    # has to END on the name or run into the show: "this is sniper," / "sniper here" /
+    # "sniper trading show". Otherwise ASR noise buys the only 'confirmed' level we have.
+    "sniper": r"sniper(?:\s+trading)?(?=\s*[,.!?]|\s+(?:here|again|and|show|with|from)\b|\s*$)",
 }
 SELF_ID = {k: re.compile(r"\b(?:i'?m|i\s+am|this\s+is|my\s+name\s+is)\s+(?:" + v + r")\b", re.I)
            for k, v in SELF_ID_NAMES.items()}
@@ -82,10 +85,12 @@ def _text(seg):
 
 
 def _ms(seg):
+    """The cue's offset, or None. Never 0 as a stand-in: the evidence column cites this
+    timestamp, and a defaulted 0 is a citation to a place we never looked."""
     for k in ("t_start_ms", "tStartMs", "start_ms", "t_ms"):
         if seg.get(k) is not None:
             return int(float(seg[k]))
-    return 0
+    return None
 
 
 def _kyle_blocked(text):
@@ -147,7 +152,9 @@ def attribute(video, segments=None):
         for key, rx in SELF_ID.items():
             m = rx.search(txt)
             if m:
-                add(key, f"self-identified at t={_ms(seg)}ms: \"{_quote(txt)}\"",
+                t = _ms(seg)
+                at = f"t={t}ms" if t is not None else "an unknown offset"
+                add(key, f"self-identified at {at}: \"{_quote(txt)}\"",
                     "transcript", "confirmed")
 
     # Kyle guard, reported rather than silently dropped so the gap stays visible.

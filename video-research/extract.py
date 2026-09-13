@@ -29,6 +29,7 @@ excerpted, stored and fenced, and never parsed for instructions.
 """
 import json
 import re
+import urllib.parse
 
 import sources
 import store
@@ -169,8 +170,12 @@ def _check_fields(obj, spec, errs, where):
             errs.append(f"{where}.{key}: {v!r} not in {f['enum']}")
 
 
-def validate(obj):
-    """(ok, errors[]). Structure first, then the rules that actually keep the library honest."""
+def validate(obj, video_id=None):
+    """(ok, errors[]). Structure first, then the rules that actually keep the library honest.
+
+    video_id, when given, is the video the transcript came from: provenance that points at a
+    DIFFERENT video is not provenance for this one.
+    """
     errs = []
     if not isinstance(obj, dict):
         return False, ["root: expected an object"]
@@ -231,6 +236,11 @@ def validate(obj):
             continue
         if _empty(ex.get("video_id")):
             errs.append(f"excerpts[{i}].video_id: every excerpt must name its video")
+        elif video_id and ex.get("video_id") != video_id:
+            # The model only ever saw one video. An excerpt naming another one is either a
+            # hallucinated citation or a cross-filed one; both make the method untraceable.
+            errs.append(f"excerpts[{i}].video_id: {ex.get('video_id')!r} is not the video "
+                        f"being extracted ({video_id})")
         t0, t1 = ex.get("t_start_ms"), ex.get("t_end_ms")
         if not _type_ok(t0, "int") or t0 < 0:
             errs.append(f"excerpts[{i}].t_start_ms: every excerpt must carry a "
@@ -247,8 +257,13 @@ def validate(obj):
     # Spec §8 / test §22.6: an ambiguous number without its ambiguity written down reads
     # downstream as a measured one.
     for i, c in enumerate(claims):
-        if isinstance(c, dict) and c.get("ambiguous") is True and _empty(c.get("ambiguity_note")):
+        if not isinstance(c, dict):
+            continue
+        if c.get("ambiguous") is True and _empty(c.get("ambiguity_note")):
             errs.append(f"numeric_claims[{i}].ambiguity_note: required when ambiguous=true")
+        if video_id and c.get("video_id") not in (None, video_id):
+            errs.append(f"numeric_claims[{i}].video_id: {c.get('video_id')!r} is not the "
+                        f"video being extracted ({video_id})")
 
     return not errs, errs
 
@@ -315,7 +330,9 @@ def hhmmss(ms):
 
 def _scrub(text, fence):
     """Strip the fence token and control characters so the data cannot close its own envelope."""
-    text = (text or "").replace(fence, "[fence-removed]")
+    text = text or ""
+    if fence:                      # ''.replace('', x) injects x between EVERY character
+        text = text.replace(fence, "[fence-removed]")
     text = re.sub(r"<<<|>>>", "[fence-removed]", text)
     return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text)
 
@@ -469,6 +486,13 @@ def _method_row(method_id, video_id, m):
     return row
 
 
+def visual_evidence_exists(video_id):
+    """Has anybody actually recorded looking at this video's chart? (vr_chart_observations)"""
+    return bool(store.get("vr_chart_observations",
+                          "select=id&video_id=eq."
+                          f"{urllib.parse.quote(str(video_id), safe='')}&limit=1"))
+
+
 def record_extraction(video_id, obj, model_id, prompt_version=PROMPT_VERSION,
                       input_hash=None, ok=None, errors=None):
     """Write provenance for EVERY attempt; write the method only when it validated.
@@ -477,11 +501,24 @@ def record_extraction(video_id, obj, model_id, prompt_version=PROMPT_VERSION,
     quality report cannot say how often the extractor failed.
     """
     if ok is None:
-        ok, errors = validate(obj)
+        ok, errors = validate(obj, video_id)
     errors = errors or []
     output_hash = store.sha256(json.dumps(obj, sort_keys=True, default=str))
     input_hash = input_hash or ""
     m = (obj or {}).get("method") or {}
+
+    # Spec §8. visual_resolved asserts that a HUMAN looked at the chart — an action the
+    # extractor cannot take and therefore cannot attest to. Without a vr_chart_observations
+    # row the claim is unbacked, and persisting it would walk the rule straight past
+    # quality.chart_rule_incomplete, which only ever examines visual_resolved=false rules.
+    if ok and m.get("chart_dependent") and m.get("visual_resolved") \
+            and not visual_evidence_exists(video_id):
+        ok = False
+        errors = list(errors) + [
+            "method.visual_resolved: no vr_chart_observations row for "
+            f"{video_id} — an extractor cannot certify its own chart inspection; "
+            "set visual_resolved=false and leave the rule INCOMPLETE"]
+
     method_id = method_id_for(video_id, m) if ok else None
 
     if ok:
