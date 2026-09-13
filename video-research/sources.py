@@ -114,9 +114,12 @@ PRESENTERS = [
     {"presenter_key": "ran-neuner", "display_name": "Ran Neuner",
      "affiliation": "Crypto Banter",
      "notes": (
-         "Founder and a primary host, confirmed by the owner 2026-09-13. NEVER match a bare "
-         "'ran' — it is the past tense of 'run' and appears constantly in ordinary market "
-         "talk ('the market ran up'). The surname Neuner is required.")},
+         "ONE OF SEVERAL presenters on Crypto Banter, confirmed by the owner 2026-09-13 — "
+         "which is why channel-level attribution on Banter can never name a speaker. An "
+         "earlier note here called him 'founder/host'; that was not something the owner "
+         "said and is removed rather than left as an unsourced claim in the registry. "
+         "NEVER match a bare 'ran': it is the past tense of 'run' and appears constantly in "
+         "ordinary market talk ('the market ran into resistance'). The surname is required.")},
     {"presenter_key": "kyle-doops", "display_name": "Kyle Doops",
      "affiliation": "Crypto Banter",
      "notes": (
