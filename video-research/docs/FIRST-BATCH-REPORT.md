@@ -211,6 +211,13 @@ on a single-source reading.
 
 - **136 unit tests pass** across `tests/test_inventory.py` (13), `tests/test_captions.py` (41),
   `tests/test_extract.py` (43) and `tests/test_calls.py` (39). All run without credentials.
+- **`tests/test_acceptance.py`: 88 passed, 0 failed, 14 skipped (102 total).** The skips are
+  the store-backed checks, labelled `no Supabase credentials` — never silently passed. It also
+  asserts the meta-properties that make the rest trustworthy: the 16 check keys match the
+  brief exactly and in order; `skipped` and `error` map to `passed=False` and never to a pass;
+  the vacuous note is exactly the mandated string; a check that raises becomes `state=error`
+  rather than crashing the run.
+- `npx tsc --noEmit` clean; `npm run build` completes with no type errors.
 - The four real extracted methods were validated against `extract.validate()` — **all four
   valid**.
 - Five negative controls rejected as required: claiming `PRECISE_AND_TESTABLE` with no stop;
@@ -253,6 +260,29 @@ Every subcommand is safe to re-run and prints the resume command for whatever it
 finish. Dashboard: `/admin/dashboard/video-research`.
 
 ---
+
+## 15. Relationship to the November 1 milestone (§24)
+
+This is an additional research source and is **not** a reason to delay the outstanding
+evidence audit. Nothing here consumed the audit's work, changed a risk limit, or touched the
+paper trader.
+
+What can honestly be committed to by November 1 depends entirely on one thing: **whether the
+caption path runs from a non-gated IP.** From this environment it cannot.
+
+- **If the pipeline is moved to the droplet or the Mac** (§5 remedy 1), the binding constraint
+  becomes throughput, which has not yet been measured on a working IP. The right next step is
+  a measured 100-video batch to establish a real rate before any completion date is offered.
+  Prioritisation is already implemented: Sniper Trading and the Sniper show playlist first,
+  then risk/exit/when-not-to-trade vocabulary, then Cowen, then the rest of Crypto Banter.
+- **If it is not moved**, archive coverage by November 1 is 1 video, and that should be
+  reported as such rather than dressed up.
+
+On the brief's specific November 1 questions, the honest current answers are: archive coverage
+0.01% of an established denominator; 4 methods extracted; 3 rejected as underspecified for
+testing (all for the same missing stop/invalidation); 0 hypotheses tested; 0 killed; 0
+candidates with fresh forward evidence; 0 passing the existing gates. The 90-day forward
+requirement and all approved risk limits are untouched.
 
 ## What this delivery does not claim
 
