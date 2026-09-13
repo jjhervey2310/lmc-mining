@@ -230,12 +230,34 @@ class InventoryTest(unittest.TestCase):
         self.assertFalse(src["all_listings_complete"])
 
     def test_unresolved_sources_are_never_enumerated(self):
-        keys = {s["source_key"] for s in sources.confirmed()}
-        self.assertNotIn("crypto-insider", keys)
-        self.assertNotIn("related-candidates", keys)
-        rep = inventory.coverage_report(["crypto-insider"])
-        self.assertFalse(rep["sources"]["crypto-insider"]["enumerated"])
-        self.assertEqual(rep["sources"]["crypto-insider"]["listings"], {})
+        """Whatever is not CONFIRMED is not crawled — asserted over the registry, not
+        against a hardcoded source_key.
+
+        This test used to name crypto-insider as its example. When that source was resolved
+        and promoted to CONFIRMED the test failed, which was the test being wrong rather
+        than the code: a source legitimately changing status must not break the invariant
+        that guards every other one. It now derives its own subjects, so it keeps working
+        as sources come and go — and it still fails loudly if the registry ever runs out of
+        non-CONFIRMED entries to check.
+        """
+        confirmed = {s["source_key"] for s in sources.confirmed()}
+        not_crawled = [s for s in sources.SOURCES
+                       if s["scope_status"] in ("UNRESOLVED", "RELATED", "EXCLUDED")]
+        self.assertTrue(not_crawled,
+                        "no non-CONFIRMED source left to exercise this invariant")
+        for s in not_crawled:
+            key = s["source_key"]
+            self.assertNotIn(key, confirmed)
+            rep = inventory.coverage_report([key])
+            self.assertFalse(rep["sources"][key]["enumerated"], key)
+            self.assertEqual(rep["sources"][key]["listings"], {}, key)
+
+    def test_a_confirmed_source_IS_enumerated(self):
+        """The other half: promoting a source to CONFIRMED actually opens it for crawling.
+        Without this, the test above would still pass if everything were non-CONFIRMED."""
+        for key in ("crypto-insider", "crypto-banter"):
+            rep = inventory.coverage_report([key])
+            self.assertTrue(rep["sources"][key]["enumerated"], key)
 
 
 if __name__ == "__main__":
