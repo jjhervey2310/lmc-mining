@@ -68,7 +68,8 @@ Last verified against the code on **2026-09-13**.
 | Requirement | Enforced in | Note |
 |---|---|---|
 | **A viewer can never act before publication** | `calls.receivable_time()`, `calls.PrePublicationError` | Upload: `published_at + offset`. Recording time is ignored. |
-| Day-level publication precision carried | `calls.published_precision()`, `DAY_PRECISION_UNCERTAINTY_S = 86400` | The flat listing gives a date, not a timestamp. |
+| Day-level publication precision carried | `calls.published_precision()`, `DAY_PRECISION_UNCERTAINTY_S = 86400` | The flat listing gives a date, not a timestamp. Precision detection is deliberately biased toward `day`: mistaking a real midnight publish for day precision only widens the band, while the reverse would narrow it. |
+| **Evaluation must use the LATE edge, not `receivable_at`** | `calls.conservative_entry_at()` | `receivable_at` answers §11 ("earliest time the call could be received"), so for a day-precision upload it is *midnight* plus the offset — the optimistic edge. If the video actually went out at 14:00, entering at `receivable_at` takes a fill nobody could have taken, and the `PrePublicationError` invariant cannot catch it because midnight *is* `published_at` as stored. Any backtest MUST take its entry from `conservative_entry_at()`. The two coincide when publication is known to the second. |
 | Livestream segment timing is approximate | `LIVE_UNCERTAINTY_S = 300`; unknown start → `STREAM_UNKNOWN_UNCERTAINTY_S = 86400`, basis `stream_start_unknown` | — |
 | Repeated updates ≠ several wins | `calls.group_id_for()`, `vr_calls.update_group`, `superseded_by`, `calls.score_summary()` | Scoring counts distinct `update_group`s. |
 | Unscorable is not a win or a loss | `calls.score_summary()` | Reported as its own bucket. |

@@ -169,6 +169,31 @@ def receivable_time(video, t_ms):
     return at.isoformat(), basis, int(band)
 
 
+def conservative_entry_at(video, t_ms):
+    """The time an EVALUATION must use as the earliest fill. Not the same as receivable_at.
+
+    receivable_at answers §11's question — "earliest time the call could actually be
+    received" — so for a day-precision upload it is midnight plus the offset. That is the
+    honest earliest bound, but it is the OPTIMISTIC edge of the band: if the video actually
+    went out at 14:00, midnight is fourteen hours early, and a backtest that entered at
+    receivable_at would take a fill nobody could have taken. The invariant in
+    receivable_time() cannot catch that, because midnight IS published_at as we stored it.
+
+    So evaluation uses the LATE edge: receivable_at + the uncertainty band. Where publication
+    is known to the second the band is 0 and the two answers coincide; where it is not, we
+    pay the whole day rather than claim a precision we do not have.
+
+    Returns (iso_time, basis, band_seconds), or (None, basis, None) when nothing is anchored.
+    Any backtest of a video-derived call MUST take its entry from here, never from
+    vr_calls.receivable_at (spec §11, §17, acceptance test §22.8).
+    """
+    at, basis, band = receivable_time(video, t_ms)
+    if at is None:
+        return None, basis, None
+    late = _dt(at) + datetime.timedelta(seconds=int(band or 0))
+    return late.isoformat(), basis + "_late_edge", int(band or 0)
+
+
 # --------------------------------------------------------------------------
 # reads
 # --------------------------------------------------------------------------
