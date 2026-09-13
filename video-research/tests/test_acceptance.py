@@ -9,6 +9,7 @@ judge. They are printed SKIPPED with the reason, and the assertion made about th
 quality.py reports them as state='skipped' — never as a pass. An unrun check that prints
 PASS is the exact failure mode this file exists to prevent.
 """
+import argparse
 import pathlib
 import sys
 import tempfile
@@ -260,11 +261,34 @@ def _():
         observed_has={"testable_without_visual.sample": ["m1"]})
 
 
-@case("22.5  a RESOLVED chart rule may be PRECISE_AND_TESTABLE")
+@case("22.5  a RESOLVED chart rule WITH an observation may be PRECISE_AND_TESTABLE")
 def _():
-    expect(one("chart_rule_incomplete", tables={"vr_methods": [
-        {"method_id": "m1", "classification": "PRECISE_AND_TESTABLE",
-         "chart_dependent": True, "visual_resolved": True}]}), "pass", exercised=False)
+    expect(one("chart_rule_incomplete", tables={
+        "vr_methods": [{"method_id": "m1", "classification": "PRECISE_AND_TESTABLE",
+                        "chart_dependent": True, "visual_resolved": True}],
+        "vr_method_excerpts": [{"method_id": "m1", "video_id": "v1", "t_start_ms": 0}],
+        "vr_chart_observations": [{"video_id": "v1"}]}), "pass", exercised=True)
+
+
+@case("22.5  visual_resolved=true with NO chart observation FAILS")
+def _():
+    # The column is a claim that a human looked. Believing the column is how an unresolved
+    # rule gets promoted by one UPDATE.
+    expect(one("chart_rule_incomplete", tables={
+        "vr_methods": [{"method_id": "m1", "classification": "PRECISE_AND_TESTABLE",
+                        "chart_dependent": True, "visual_resolved": True}],
+        "vr_method_excerpts": [{"method_id": "m1", "video_id": "v1", "t_start_ms": 0}]}),
+        "fail", observed_has={"visual_resolved_without_observation.sample": ["m1"]})
+
+
+@case("22.5  a chart observation on ANOTHER video does not resolve this method")
+def _():
+    expect(one("chart_rule_incomplete", tables={
+        "vr_methods": [{"method_id": "m1", "classification": "PRECISE_AND_TESTABLE",
+                        "chart_dependent": True, "visual_resolved": True}],
+        "vr_method_excerpts": [{"method_id": "m1", "video_id": "v1", "t_start_ms": 0}],
+        "vr_chart_observations": [{"video_id": "vOTHER"}]}),
+        "fail", observed_has={"visual_resolved_without_observation.count": 1})
 
 
 @case("22.5  no methods is vacuous")
@@ -388,6 +412,50 @@ def _():
         "pass", observed_has={"without_receivable_at": 1})
 
 
+@case("22.8  a live segment received before the VOD was posted is NOT a violation")
+def _():
+    # calls.receivable_time floors a live segment at live_start_at on purpose. Judging it
+    # against published_at would fail every stream and train the reader to ignore §22.8.
+    expect(one("no_prepublication_entry", tables={
+        "vr_calls": [{"call_id": "c1", "video_id": "v1", "published_at": UTC.format(3),
+                      "receivable_at": UTC.format(2),
+                      "receivable_basis": "live_start_plus_offset"}],
+        "vr_videos": [{"video_id": "v1", "published_at": UTC.format(3),
+                       "live_start_at": UTC.format(1)}]}),
+        "pass", observed_has={"live_anchored": 1})
+
+
+@case("22.8  a live segment received before the STREAM started FAILS")
+def _():
+    expect(one("no_prepublication_entry", tables={
+        "vr_calls": [{"call_id": "c1", "video_id": "v1", "published_at": UTC.format(5),
+                      "receivable_at": UTC.format(1),
+                      "receivable_basis": "live_start_plus_offset"}],
+        "vr_videos": [{"video_id": "v1", "published_at": UTC.format(5),
+                       "live_start_at": UTC.format(2)}]}),
+        "fail", observed_has={"receivable_before_published.count": 1})
+
+
+@case("22.8  a receivable_at with no public time anywhere FAILS, it does not pass")
+def _():
+    # published_at null on the call AND on the video: "not before publication" is then
+    # unfalsifiable, which is a gap, not a clean row.
+    expect(one("no_prepublication_entry", tables={
+        "vr_calls": [{"call_id": "c1", "video_id": "v1", "published_at": None,
+                      "receivable_at": UTC.format(1)}],
+        "vr_videos": [{"video_id": "v1", "published_at": None, "live_start_at": None}]}),
+        "fail", observed_has={"receivable_without_public_time.count": 1})
+
+
+@case("22.8  a call's null published_at falls back to the video's, and is judged")
+def _():
+    expect(one("no_prepublication_entry", tables={
+        "vr_calls": [{"call_id": "c1", "video_id": "v1", "published_at": None,
+                      "receivable_at": UTC.format(1)}],
+        "vr_videos": [{"video_id": "v1", "published_at": UTC.format(2)}]}),
+        "fail", observed_has={"receivable_before_published.count": 1})
+
+
 @case("22.8  no calls is vacuous")
 def _():
     expect(one("no_prepublication_entry"), "vacuous", note_has=quality.VACUOUS_NOTE)
@@ -410,6 +478,15 @@ def _():
         {"call_id": "c1", "update_group": "g1", "superseded_by": None},
         {"call_id": "c2", "update_group": "g1", "superseded_by": None}]}),
         "fail", observed_has={"groups_with_multiple_heads.count": 1})
+
+
+@case("22.9  an update group with NO live call FAILS")
+def _():
+    # calls.score_summary refuses to score such a group; this check must not call it clean.
+    expect(one("updates_not_double_counted", tables={"vr_calls": [
+        {"call_id": "c1", "update_group": "g1", "superseded_by": "c2"},
+        {"call_id": "c2", "update_group": "g1", "superseded_by": "c1"}]}),
+        "fail", observed_has={"groups_with_no_live_call.count": 1})
 
 
 @case("22.9  ungrouped calls pass but are marked NOT exercised")
@@ -693,6 +770,13 @@ def _():
            "pass", exercised=False)
 
 
+@case("22.15  a ratio above 1 FAILS — the denominator does not cover the numerator")
+def _():
+    expect(one("no_unknown_denominator",
+               coverage=cov(pagination_complete=True, ratio=1.0056, ratio_note=None)),
+           "fail", note_has="unknown denominator")
+
+
 @case("22.15  no listing enumerated is vacuous")
 def _():
     expect(one("no_unknown_denominator", coverage={"sources": {}}), "vacuous",
@@ -784,6 +868,29 @@ def _():
     row = one("untrusted_text_inert").row()
     assert set(row) == {"check_key", "passed", "observed", "note", "at"}, sorted(row)
     assert json.loads(json.dumps(row))["observed"]["state"] == "pass"
+
+
+@case("meta   an unknown --check key is refused, never run as an empty green suite")
+def _():
+    for argv in (["run", "--check", "not_a_check"], ["run", "--check", "no_prepub"]):
+        try:
+            quality.main(argv)
+        except SystemExit as e:            # argparse: exit 2, usage error
+            assert e.code == 2, e.code
+        else:
+            raise AssertionError(f"{argv} was accepted; a typo must not select zero checks")
+
+
+@case("meta   zero checks exits 2, not 0 — an unrun suite is not a clean one")
+def _():
+    import cli
+
+    # The belt to argparse's braces: if an empty result set ever reaches the reporters,
+    # neither may render it as a clean board.
+    assert quality._table([]) == "", quality._table([])
+    ns = argparse.Namespace(check=["not_a_check"], no_write=True, json=True)
+    _payload, code = cli.cmd_quality(ns)
+    assert code == 2, f"zero checks exited {code}"
 
 
 @case("meta   report() surfaces vacuous and never invents a pass")

@@ -189,11 +189,12 @@ class Data:
             return rows[-1].get("observed") if rows else None
         if not self.live:
             return None
-        try:
-            rows = _fetch("vr_quality_checks", "check_key,observed,at",
-                          f"check_key=eq.{urllib.parse.quote(check_key)}&order=at.desc", cap=1)
-        except Unreadable:
-            return None
+        # Deliberately NOT swallowed. An unreadable history is indistinguishable from "no
+        # prior run" to the caller, and losing_calls_retained treats the latter as a fresh
+        # no-delete baseline — so swallowing this would turn a failed read into a PASS that
+        # silently forgives every deletion since the last readable row.
+        rows = _fetch("vr_quality_checks", "check_key,observed,at",
+                      f"check_key=eq.{urllib.parse.quote(check_key)}&order=at.desc", cap=1)
         return rows[0].get("observed") if rows else None
 
 
@@ -256,23 +257,25 @@ def dedupe_playlist_channel(d):
     if not members:
         return _vacuous(key, "vr_playlist_members")
     ids = sorted({m["video_id"] for m in members if m.get("video_id")})
+    rows = d.videos(ids)                      # one fetch: the live path chunks by 150 ids
     seen = {}
-    for v in d.videos(ids):
+    for v in rows:
         seen[v["video_id"]] = seen.get(v["video_id"], 0) + 1
     missing = [i for i in ids if not seen.get(i)]
     dupes = sorted(i for i, n in seen.items() if n > 1)
     # The case under test is a video present in BOTH a playlist and a channel listing.
     chan_ids = {s["channel_id"] for s in sources.confirmed() if s.get("channel_id")}
-    both = sorted(v["video_id"] for v in d.videos(ids)
-                  if v.get("channel_id") in chan_ids)
-    links = {(m["playlist_id"], m["video_id"]) for m in members}
-    lost_link = [v for v in both if not any(x == v for _, x in links)]
+    both = sorted(v["video_id"] for v in rows if v.get("channel_id") in chan_ids)
+    links = {(m.get("playlist_id"), m.get("video_id")) for m in members}
     obs = {"playlist_links": len(links), "distinct_video_ids": len(ids),
            "video_rows_found": len(seen), "in_playlist_and_channel": len(both),
            "missing_video_row": _viol(missing), "duplicate_video_rows": _viol(dupes),
-           "playlist_link_lost": _viol(lost_link)}
-    if missing or dupes or lost_link:
-        return _bad(key, obs, "a playlist video is missing, duplicated, or lost its link")
+           # An earlier version also reported "playlist_link_lost", computed from the member
+           # rows themselves — which made it 0 by construction and read as a cleared check.
+           "limits": "a DELETED playlist link leaves no trace in vr_playlist_members, so "
+                     "this check cannot detect one; only re-enumerating the playlist can"}
+    if missing or dupes:
+        return _bad(key, obs, "a playlist video is missing a video row or has more than one")
     if not both:
         return _ok(key, obs, "no video is in both a playlist and a confirmed channel "
                              "listing: the overlap case is not exercised by current data",
@@ -387,12 +390,28 @@ def chart_rule_incomplete(d):
     pending = [m for m in methods
                if _truthy(m.get("chart_dependent")) and not _truthy(m.get("visual_resolved"))]
     bad = [m["method_id"] for m in pending if m.get("classification") == extract.TESTABLE]
+    # visual_resolved asserts that a HUMAN inspected a chart. Reading only the column would
+    # let one UPDATE walk an unresolved rule past this check, because everything downstream
+    # then looks at resolved=true and stops asking. So the claim is checked against the
+    # table it is a claim about.
+    resolved = [m for m in methods
+                if _truthy(m.get("chart_dependent")) and _truthy(m.get("visual_resolved"))]
+    links = _method_videos(d)
+    charts = {c["video_id"] for c in d.rows("vr_chart_observations", "video_id")}
+    unbacked = [m["method_id"] for m in resolved
+                if not (links.get(m["method_id"]) or set()) & charts]
     obs = {"methods": len(methods), "chart_dependent_unresolved": len(pending),
-           "testable_without_visual": _viol(bad)}
-    if bad:
-        return _bad(key, obs, f"{len(bad)} unresolved chart rules claim {extract.TESTABLE}")
-    return _ok(key, obs, f"{len(pending)} unresolved chart rules, none marked testable",
-               exercised=bool(pending))
+           "chart_dependent_resolved": len(resolved),
+           "chart_inspected_videos": len(charts),
+           "testable_without_visual": _viol(bad),
+           "visual_resolved_without_observation": _viol(unbacked)}
+    if bad or unbacked:
+        return _bad(key, obs, f"{len(bad)} unresolved chart rules claim {extract.TESTABLE}; "
+                              f"{len(unbacked)} claim visual_resolved with no "
+                              "vr_chart_observations row")
+    return _ok(key, obs, f"{len(pending)} unresolved chart rules, none marked testable; "
+                         f"{len(resolved)} resolved, each with a chart observation",
+               exercised=bool(pending or resolved))
 
 
 # ==========================================================================
@@ -451,29 +470,66 @@ def presenter_attribution(d):
 # ==========================================================================
 # 22.8  nothing is receivable before it was published
 # ==========================================================================
+LIVE_BASIS = "live_start_plus_offset"
+
+
 def no_prepublication_entry(d):
+    """'Public' is not always 'published_at'.
+
+    calls.receivable_time floors a live segment at live_start_at on purpose — a live viewer
+    receives it before the VOD is posted — so comparing those rows against published_at
+    would report every stream as a violation and train the reader to ignore this check. The
+    anchor is therefore chosen from the basis the ledger itself recorded.
+
+    The other direction matters more: a receivable_at with NO public time anywhere is not a
+    pass, it is unfalsifiable, so it is counted as a violation rather than skipped.
+    """
     key = "no_prepublication_entry"
-    calls = d.rows("vr_calls", "call_id,published_at,receivable_at,receivable_basis")
+    calls = d.rows("vr_calls",
+                   "call_id,video_id,published_at,receivable_at,receivable_basis")
     if not calls:
         return _vacuous(key, "vr_calls")
-    early, unparsed, no_receivable = [], [], 0
+    vids = {v["video_id"]: v for v in d.videos(
+        sorted({c["video_id"] for c in calls if c.get("video_id")}),
+        "video_id,published_at,live_start_at")}
+    early, unparsed, unanchored, no_receivable, live = [], [], [], 0, 0
     for c in calls:
-        pub, rec = _ts(c.get("published_at")), _ts(c.get("receivable_at"))
-        if (c.get("published_at") and pub is None) or (c.get("receivable_at") and rec is None):
+        v = vids.get(c.get("video_id")) or {}
+        rec = _ts(c.get("receivable_at"))
+        if c.get("receivable_at") and rec is None:
             unparsed.append(c.get("call_id"))
             continue
         if rec is None:
             no_receivable += 1
             continue
-        if pub is not None and rec < pub:
-            early.append({"call_id": c.get("call_id"), "published_at": c.get("published_at"),
+        basis = c.get("receivable_basis") or ""
+        if basis.startswith(LIVE_BASIS):
+            live += 1
+            field, raw = "video.live_start_at", v.get("live_start_at")
+        else:
+            field, raw = "published_at", c.get("published_at") or v.get("published_at")
+        anchor = _ts(raw)
+        if raw and anchor is None:
+            unparsed.append(c.get("call_id"))
+            continue
+        if anchor is None:
+            unanchored.append({"call_id": c.get("call_id"), "basis": basis or None,
+                               "anchor_field": field})
+            continue
+        if rec < anchor:
+            early.append({"call_id": c.get("call_id"), "anchor_field": field,
+                          "anchor_at": str(raw), "basis": basis or None,
                           "receivable_at": c.get("receivable_at")})
+    timed = len(calls) - no_receivable
     obs = {"calls": len(calls), "without_receivable_at": no_receivable,
+           "live_anchored": live,
            "unparseable_timestamp": _viol(unparsed),
+           "receivable_without_public_time": _viol(unanchored),
            "receivable_before_published": _viol(early)}
-    if early or unparsed:
-        return _bad(key, obs, "a call is receivable before its video was published")
-    return _ok(key, obs, f"{len(calls) - no_receivable} timed calls, none pre-publication")
+    if early or unparsed or unanchored:
+        return _bad(key, obs, "a call is receivable before its segment was public, or "
+                              "carries no public time to be judged against")
+    return _ok(key, obs, f"{timed} timed calls, none pre-publication", exercised=bool(timed))
 
 
 # ==========================================================================
@@ -489,16 +545,23 @@ def updates_not_double_counted(d):
         g = c.get("update_group")
         if g:
             groups.setdefault(g, []).append(c)
-    multi = []
+    multi, headless = [], []
     for g, cs in sorted(groups.items()):
         head = [c["call_id"] for c in cs if _blank(c.get("superseded_by"))]
         if len(head) > 1:
             multi.append({"update_group": g, "unsuperseded": head[:5], "size": len(cs)})
+        elif not head:
+            # Every member superseded means the chain closed on itself. calls.score_summary
+            # refuses to score such a group; reporting it as "one live call each" here would
+            # be the board disagreeing with the ledger.
+            headless.append({"update_group": g, "size": len(cs),
+                             "calls": [c["call_id"] for c in cs][:5]})
     obs = {"calls": len(calls), "update_groups": len(groups),
            "ungrouped_calls": sum(1 for c in calls if not c.get("update_group")),
-           "groups_with_multiple_heads": _viol(multi)}
-    if multi:
-        return _bad(key, obs, "an update chain has more than one live call")
+           "groups_with_multiple_heads": _viol(multi),
+           "groups_with_no_live_call": _viol(headless)}
+    if multi or headless:
+        return _bad(key, obs, "an update chain has more than one live call, or none at all")
     return _ok(key, obs, f"{len(groups)} update groups, one live call each",
                exercised=bool(groups))
 
@@ -833,6 +896,14 @@ def no_unknown_denominator(d):
         for listing, l in sorted((s.get("listings") or {}).items()):
             listings += 1
             complete = bool(l.get("pagination_complete"))
+            r = l.get("ratio")
+            # A share above 1 is proof the two numbers count different sets: the numerator
+            # is holding rows the denominator never enumerated, so the denominator is not
+            # this numerator's denominator whatever pagination_complete says.
+            if isinstance(r, (int, float)) and not isinstance(r, bool) and r > 1:
+                bad.append({"source": skey, "listing": listing, "ratio": r,
+                            "why": "ratio above 1: rows held exceed items enumerated, so "
+                                   "the denominator does not cover the numerator"})
             if not complete:
                 incomplete += 1
                 if l.get("ratio") is not None:
@@ -930,7 +1001,11 @@ def run_checks(tables=None, coverage=None, probe=None, prior=None, write=True, o
     d = Data(tables, coverage=coverage, probe=probe, prior=prior)
     todo = [(k, f) for k, f in CHECKS if not only or k in only]
     results = [run_one(k, f, d) for k, f in todo]
-    if write and store.configured() and tables is None:
+    # ANY injected fixture disqualifies the run from the archive, not just `tables`: a
+    # coverage= or prior= fixture produces a verdict about invented rows, and one of those
+    # verdicts is the baseline losing_calls_retained reads back on the next real run.
+    fixtured = any(x is not None for x in (tables, coverage, probe, prior))
+    if write and store.configured() and not fixtured:
         with store.Run("quality", f"{len(results)} acceptance checks") as run:
             for r in results:
                 run.processed += 1
@@ -988,7 +1063,7 @@ def report(keys=None):
 
 
 def _table(results):
-    w = max(len(r.key) for r in results)
+    w = max((len(r.key) for r in results), default=1)
     lines = []
     for r in results:
         mark = "" if r.state != "pass" or r.observed.get("case_exercised") else "  (not exercised)"
@@ -999,7 +1074,9 @@ def _table(results):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="video-research acceptance checks (brief §22)")
     ap.add_argument("cmd", choices=["run", "report"], nargs="?", default="run")
-    ap.add_argument("--check", action="append", dest="only")
+    # choices, not a free string: a typo used to select nothing, run nothing, and exit 0.
+    ap.add_argument("--check", action="append", dest="only", choices=CHECK_KEYS,
+                    metavar="KEY")
     ap.add_argument("--no-write", action="store_true")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
@@ -1007,6 +1084,9 @@ def main(argv=None):
         print(json.dumps(report(a.only), indent=1, default=str))
         return 0
     results = run_checks(write=not a.no_write, only=set(a.only) if a.only else None)
+    if not results:
+        print("no checks ran — refusing to exit 0", file=sys.stderr)
+        return 2
     if a.json:
         print(json.dumps([r.row() for r in results], indent=1, default=str))
     else:

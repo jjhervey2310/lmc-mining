@@ -51,18 +51,35 @@ export async function GET(request: Request) {
       last_indexed_at: s.last_indexed_at,
     })),
 
-    listings: data.listings.map((l) => ({
-      ...l,
-      // ratio only where the denominator was established; otherwise null + the words.
-      ratio: l.pagination_complete && l.items_seen && l.stored !== null
-        ? Math.round((l.stored / l.items_seen) * 10000) / 10000
-        : null,
-      ratio_note: l.pagination_complete && l.items_seen
-        ? null
-        : `denominator unknown (${l.stopped_reason ?? 'no run'}): percentage withheld`,
-      coverage_label: coverageLabel(l.stored, l.items_seen, l.pagination_complete),
-    })),
+    listings: data.listings.map((l) => {
+      // ratio only where the denominator was established AND actually covers the numerator.
+      // stored > items_seen means the two counts are over different sets (a playlist walk
+      // contributes rows the channel listing never enumerated), and dividing them would
+      // publish a coverage figure above 100%.
+      const why = !l.pagination_complete || !l.items_seen
+        ? `denominator unknown (${l.stopped_reason ?? 'no run'}): percentage withheld`
+        : l.stored === null
+          ? 'rows held could not be counted: percentage withheld'
+          : l.stored > l.items_seen
+            ? 'rows held exceed items enumerated: the counts cover different sets, percentage withheld'
+            : null
+      return {
+        ...l,
+        ratio: why === null && l.items_seen && l.stored !== null
+          ? Math.round((l.stored / l.items_seen) * 10000) / 10000
+          : null,
+        // A null ratio ALWAYS carries the reason. A null/null pair is a withheld number
+        // with no reason attached, which a consumer reads as "not applicable".
+        ratio_note: why,
+        coverage_label: coverageLabel(l.stored, l.items_seen, l.pagination_complete),
+      }
+    }),
     denominator_established: data.denominatorEstablished,
+
+    // Where a list this payload derives tallies from was capped, every such tally is a
+    // floor over the newest rows. Carried explicitly so a consumer cannot quote
+    // methods_by_presenter or chart_dependent_unresolved as a complete count.
+    truncated: { methods: data.methodsTruncated, stages: data.stagesTruncated },
 
     counts: {
       ...Object.fromEntries(FUNNEL.map((f) => [f.stage, data.counts[f.stage] ?? null])),

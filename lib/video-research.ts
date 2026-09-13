@@ -27,6 +27,12 @@ const LISTING_TYPE: Record<string, string> = {
 
 const CHANNEL_LISTINGS = ['videos', 'streams', 'shorts']
 
+// Row caps. They exist so one board render cannot pull an unbounded table, but a cap
+// that bites silently turns a floor into a headline number, so each one is compared
+// against its exact count and reported.
+const METHOD_CAP = 500
+const STAGE_CAP = 2000
+
 /** The six stages the board reports, in pipeline order (schema §3). */
 export const FUNNEL = [
   { stage: 'DISCOVERED', state: 'done', label: 'Videos discovered' },
@@ -114,6 +120,13 @@ export type VrSnapshot = {
   evidence: VrEvidence[]
   partials: VrPartial[]
   partialCount: number | null
+  /** The method list is capped. When the cap bites, every figure derived from it (the
+   *  per-presenter board, the unresolved-chart tally) is a FLOOR over the newest rows, and
+   *  a floor presented as a total understates exactly the caveats this board exists to
+   *  show. True here means: say so, do not quote the number as complete. */
+  methodsTruncated: boolean
+  /** Same for the stage scan behind partialCount. */
+  stagesTruncated: boolean
   /** Which tables actually answered. A table that read fine and held nothing is a
    *  measurement — 0 — and must not render as a dash; a table that could not be read is
    *  unknown and must not render as 0. The empty arrays above cannot tell them apart. */
@@ -127,6 +140,13 @@ export type VrSnapshot = {
 export function coverageLabel(stored: number | null, seen: number | null, complete: boolean): string {
   if (stored === null) return DASH
   if (!complete || seen === null || seen <= 0) return `${stored.toLocaleString()} held · denominator unknown`
+  // stored counts every vr_videos row for this channel+type, whoever discovered it — a
+  // playlist walk contributes rows the channel listing never enumerated, and a video that
+  // later left the listing stays held. So stored > seen is reachable, and rendering it
+  // would print "104.3% complete": a coverage figure better than complete.
+  if (stored > seen) {
+    return `${stored.toLocaleString()} held / ${seen.toLocaleString()} enumerated · counts cover different sets`
+  }
   return `${(Math.round((stored / seen) * 1000) / 10).toFixed(1)}% (${stored.toLocaleString()}/${seen.toLocaleString()})`
 }
 
@@ -135,6 +155,10 @@ export function coverageLabel(stored: number | null, seen: number | null, comple
 export function shareOfArchive(n: number | null, discovered: number | null, established: boolean): string {
   if (n === null) return DASH
   if (!established || discovered === null || discovered <= 0) return `${n.toLocaleString()} · denominator unknown`
+  // A stage count above the DISCOVERED count means the denominator is not the archive —
+  // stage rows were written for videos that never got a DISCOVERED row. Printing "112% of
+  // archive" would be the board claiming more coverage than there is archive.
+  if (n > discovered) return `${n.toLocaleString()} · exceeds the discovered count · denominator unknown`
   return `${n.toLocaleString()} · ${(Math.round((n / discovered) * 1000) / 10).toFixed(1)}% of archive`
 }
 
@@ -185,7 +209,7 @@ export async function loadVideoResearch(): Promise<VrSnapshot | null> {
       .eq('resolved', false).order('last_seen_at', { ascending: false }).limit(40)),
     q<VrMethod[]>(() => sb.from('vr_methods')
       .select('method_id, presenter_key, classification, status, chart_dependent, visual_resolved, paraphrased_rule, researcher_added, source_confidence, created_at')
-      .order('created_at', { ascending: false }).limit(500)),
+      .order('created_at', { ascending: false }).limit(METHOD_CAP)),
     q<VrPresenter[]>(() => sb.from('vr_presenters').select('presenter_key, display_name, affiliation')),
     q<{ verdict_id: string; method_id: string; registered_at: string; forward_start_at: string | null
         frozen_rule: string; contamination_note: string | null }[]>(
@@ -202,7 +226,7 @@ export async function loadVideoResearch(): Promise<VrSnapshot | null> {
       () => sb.from('vr_video_stages')
         .select('video_id, stage, state, detail, updated_at')
         .in('stage', ['TRANSCRIPT_REVIEWED', 'VISUAL_REVIEW_REQUIRED'])
-        .order('updated_at', { ascending: false }).limit(2000)),
+        .order('updated_at', { ascending: false }).limit(STAGE_CAP)),
   ])
 
   // Funnel counts come from vr_video_stages, not from a status column: a video can be
@@ -347,6 +371,11 @@ export async function loadVideoResearch(): Promise<VrSnapshot | null> {
     // The stage query is capped, so this is a floor when the cap is hit — reported as
     // the length of what we actually read, never extrapolated.
     partialCount: stageRows === null ? null : unresolvedVisual.length,
+    // methodCount is the exact count; methods is the capped list every derived tally is
+    // computed over. If the two disagree, those tallies are floors, not totals.
+    methodsTruncated: (methods?.length ?? 0) >= METHOD_CAP
+      && (methodCount === null || methodCount > (methods?.length ?? 0)),
+    stagesTruncated: (stageRows?.length ?? 0) >= STAGE_CAP,
     read: {
       sources: sources !== null,
       inventory: runRows !== null,

@@ -369,6 +369,11 @@ def _print_coverage(st):
                     f"stored {_n(l['stored']):>7}  ")
             if l.get("ratio") is None:
                 print(head + f"denominator unknown — {l.get('ratio_note')}")
+            elif l["ratio"] > 1:
+                # We hold more rows than the listing enumerated, so the two numbers are not
+                # counting the same set. Printing 104% would read as "better than complete".
+                print(head + "rows held exceed items enumerated — the two counts do not "
+                             "cover the same set, so no percentage is shown")
             else:
                 print(head + f"{l['ratio'] * 100:.1f}%  complete")
         if e.get("items_seen_total") is None:
@@ -507,7 +512,16 @@ def cmd_quality(a):
     payload = {"command": "quality", "at": store.utcnow(), "summary": summary,
                "checks": [r.row() for r in results]}
     # Same convention as quality.py: a suite that could not run must not exit 0, or an unrun
-    # board reads as a green one.
+    # board reads as a green one. Zero checks is the extreme case of that and exits 2.
+    if not results:
+        payload["error"] = "no checks ran"
+        code = 2
+        if a.json:
+            return _emit(payload, True), code
+        _h("QUALITY (brief §22)")
+        print("  no checks ran — nothing was verified. This is NOT a pass.")
+        _resume_block([f"{PROG} quality"])
+        return payload, code
     code = 1 if summary["fail"] or summary["error"] else (2 if summary["skipped"] else 0)
     if a.json:
         return _emit(payload, True), code
@@ -610,7 +624,8 @@ def build_parser():
                    help="coverage, stage counts, blockers, last runs, and what to type next")
 
     q = sub.add_parser("quality", parents=[common], help="run the §22 acceptance checks")
-    q.add_argument("--check", action="append", metavar="KEY",
+    # choices, not a free string: a mistyped key used to select nothing and exit 0 clean.
+    q.add_argument("--check", action="append", metavar="KEY", choices=quality.CHECK_KEYS,
                    help=f"run one check only; one of: {', '.join(quality.CHECK_KEYS)}")
     q.add_argument("--no-write", action="store_true",
                    help="do not record the results in vr_quality_checks")

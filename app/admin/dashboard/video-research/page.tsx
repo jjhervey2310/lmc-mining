@@ -115,7 +115,8 @@ export default async function VideoResearchPage({ searchParams }: { searchParams
 
   const { sources, listings, denominatorEstablished, counts, videosStored, transcriptRows,
           methodCount, excerptCount, runs, inFlight, blockers, blockersResolved,
-          methods, presenters, hypotheses, evidence, partials, partialCount, read } = data
+          methods, presenters, hypotheses, evidence, partials, partialCount, read,
+          methodsTruncated, stagesTruncated } = data
 
   const discovered = counts.DISCOVERED ?? null
   const crawled = sources.filter((s) => s.scope_status === 'CONFIRMED')
@@ -187,9 +188,11 @@ export default async function VideoResearchPage({ searchParams }: { searchParams
         <Tile i={2} accent="purple" label="Methods extracted" value={fmt(methodCount)}
               sub={`${fmt(excerptCount)} cited excerpts`} />
         <Tile i={3} accent="rose" label="Chart rules unresolved"
-              value={read.methods ? String(chartBlocked) : DASH}
+              value={read.methods ? `${methodsTruncated ? '≥' : ''}${chartBlocked}` : DASH}
               tone={chartBlocked ? 'neg' : 'dim'}
-              sub="no frame has been inspected by anything automated" />
+              sub={methodsTruncated
+                ? `floor: only the newest ${methods.length} of ${fmt(methodCount)} methods were read`
+                : 'no frame has been inspected by anything automated'} />
       </div>
 
       {/* ── sources and scope ───────────────────────────────────────────── */}
@@ -326,10 +329,12 @@ export default async function VideoResearchPage({ searchParams }: { searchParams
               {partialCount === null
                 ? 'Stage records could not be read, so this count is unknown.'
                 : <>
-                    <b>{fmt(partialCount)}</b> videos are in exactly this state: the words were
-                    read, the chart the entry depends on was not inspected. That is a partially
-                    complete video, not a learned strategy, and nothing on this board will call
-                    it one until a human records a chart observation.
+                    <b>{stagesTruncated ? '≥' : ''}{fmt(partialCount)}</b> videos are in exactly this
+                    state: the words were read, the chart the entry depends on was not inspected.
+                    That is a partially complete video, not a learned strategy, and nothing on this
+                    board will call it one until a human records a chart observation.
+                    {stagesTruncated && ' The stage scan hit its row cap, so this is a floor: '
+                      + 'some half-finished videos are not counted here.'}
                   </>}
             </div>
             {partials.length > 0 && (
@@ -465,6 +470,13 @@ export default async function VideoResearchPage({ searchParams }: { searchParams
             because that is how a trial count gets quietly reset.
           </div>
 
+          {methodsTruncated && (
+            <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-400/10 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-200">
+              Only the newest {methods.length} of {fmt(methodCount)} methods were read, so every
+              figure in this table is a <b>floor</b>, not a total — including &ldquo;chart
+              unresolved&rdquo;, which understates the gap rather than overstating it.
+            </div>
+          )}
           {board.length === 0 ? (
             <div className="text-[12px] text-neutral-500 dark:text-neutral-400">No methods extracted yet.</div>
           ) : (
