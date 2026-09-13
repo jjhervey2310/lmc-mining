@@ -306,6 +306,14 @@ def _metadata(video_id, info):
     return row, precision
 
 
+# What content_hash covers. Volatile bookkeeping (last_checked_at, retry_count) is out by
+# construction, and the 'player|' label marks the field set — inventory's 'flat|' hash is
+# computed over three fields and the two are not comparable.
+CONTENT_HASH_FIELDS = ("video_id", "channel_id", "title", "description", "published_at",
+                       "live_start_at", "duration_s", "availability", "chapters",
+                       "caption_langs", "caption_source")
+
+
 def _caption_shape(info):
     """(creator_langs, auto_langs) restricted to the languages we actually asked for.
 
@@ -393,7 +401,11 @@ def fetch_one(video_id, pacer=None, keep_raw=False):
     meta["caption_source"] = ({(True, True): "both", (True, False): "creator",
                                (False, True): "auto"}.get((bool(creator_langs), bool(auto_langs)),
                                                           "none"))
-    meta["content_hash"] = store.sha256(json.dumps(meta, sort_keys=True, default=str))
+    # Hashed over a named field set, and deliberately without last_checked_at: hashing the
+    # whole row put a fresh timestamp inside the digest, so it changed on every fetch and
+    # could never answer the one question it exists for — did the metadata change?
+    meta["content_hash"] = store.sha256("player|" + json.dumps(
+        {k: meta.get(k) for k in CONTENT_HASH_FIELDS}, sort_keys=True, default=str))
     res["elapsed_s"] = round(time.monotonic() - t0, 1)
     if fetched:
         # Captions in hand outrank any warning in the log — we got what we came for.
@@ -418,8 +430,14 @@ def fetch_one(video_id, pacer=None, keep_raw=False):
 # persistence
 # --------------------------------------------------------------------------
 def _ensure_video(video_id, meta=None):
-    """Minimal row so the stage/transcript foreign keys hold even for a dead video."""
-    row = dict(meta or {})
+    """Minimal row so the stage/transcript foreign keys hold even for a dead video.
+
+    Unmeasured (None) fields are dropped rather than written, the same rule inventory.py
+    enforces from the other side. It matters most for channel_id: a partly degraded player
+    response would null the column that coverage counts by and that selection joins on,
+    quietly shrinking a numerator with data we never actually measured.
+    """
+    row = {k: v for k, v in (meta or {}).items() if v is not None}
     row.setdefault("video_id", video_id)
     row.setdefault("canonical_url", f"https://www.youtube.com/watch?v={video_id}")
     row.setdefault("last_checked_at", store.utcnow())
@@ -683,8 +701,12 @@ def _eligible(row, force):
     if not force and row.get("vr_transcripts"):
         return False
     for st in row.get("vr_video_stages") or []:
-        if st.get("state") == "unavailable":
-            return False          # no captions / video gone — a retry cannot change it
+        if st.get("state") != "unavailable":
+            continue
+        # A gone video stays gone. 'no captions', though, is a verdict about one look:
+        # YouTube backfills ASR, so --force is entitled to look again.
+        if st.get("stage") == "UNAVAILABLE" or not force:
+            return False
     return True
 
 

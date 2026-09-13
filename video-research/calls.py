@@ -360,7 +360,8 @@ def record_call(video_id, t_ms, asset, direction, call_type, video=None, present
                     if still_available_after is False else [])
         if blocking:
             raise ValueError(f"outcome={outcome} refused for {row['call_id']}: "
-                             f"missing {sorted(set(blocking))} — score it 'unscorable' instead")
+                             f"blocked by {sorted(set(blocking))} — score it 'unscorable' "
+                             "instead")
     store.upsert("vr_calls", [row], "call_id")
     return row
 
