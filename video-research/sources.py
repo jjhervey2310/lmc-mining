@@ -68,24 +68,24 @@ SOURCES = [
         "resolution_note": "externalId read from the channel page on 2026-09-13.",
     },
 
-    # ---- UNRESOLVED: not crawled, owner input required ----------------------
+    # ---- CONFIRMED late, via an authoritative link from the in-scope channel ----
     {
         "source_key": "crypto-insider",
         "kind": "channel",
-        "channel_id": None,
-        "handle": None,
-        "display_name": "Crypto Insider (UNRESOLVED)",
-        "canonical_url": "",
-        "scope_status": "UNRESOLVED",
-        "priority": 900,
+        "channel_id": "UCSbyF4RwCk3AuGhYmykCGOQ",
+        "handle": "@CryptoInsiderOfficial",
+        "display_name": "Crypto Insider",
+        "canonical_url": "https://www.youtube.com/channel/UCSbyF4RwCk3AuGhYmykCGOQ",
+        "scope_status": "CONFIRMED",
+        "priority": 60,
         "resolution_note": (
-            "Not resolved on 2026-09-13 and deliberately NOT guessed. Two near-matches "
-            "exist and neither is authoritative: @cryptoinsider resolves to a channel "
-            "named 'Wide Angle By Waseem' (UCgEVPPnJoW_AmnKhb_D0-mw) whose display name "
-            "does not match the requested source at all, and @CryptoInsiders "
-            "(UCX1PK9XHaCK_Ftz1PAiFeMg) is a different, plural name. Crawling either "
-            "would be a guess presented as a source. ACTION: owner supplies the exact "
-            "channel URL, then flip scope_status to CONFIRMED."),
+            "RESOLVED 2026-09-13 by the owner pointing at the Crypto Banter featured tab, "
+            "which lists it under the channel's own BANTER CHANNELS shelf as "
+            "'Crypto Insider @CryptoInsiderOfficial, 67.7 thousand subscribers'. That is an "
+            "authoritative link FROM the in-scope channel, which is what the brief asked for "
+            "and what the earlier handle guesses lacked: @cryptoinsider is a different "
+            "channel displaying as 'Wide Angle By Waseem', and @CryptoInsiders is a third, "
+            "plural one. externalId read from the resolved channel page."),
     },
 
     # ---- RELATED: listed for scope confirmation, NOT crawled (spec §2) ------
@@ -112,7 +112,11 @@ PRESENTERS = [
      "affiliation": None,
      "notes": "Default for any statement whose speaker is not established by evidence."},
     {"presenter_key": "ran-neuner", "display_name": "Ran Neuner",
-     "affiliation": "Crypto Banter", "notes": "Founder/host."},
+     "affiliation": "Crypto Banter",
+     "notes": (
+         "Founder and a primary host, confirmed by the owner 2026-09-13. NEVER match a bare "
+         "'ran' — it is the past tense of 'run' and appears constantly in ordinary market "
+         "talk ('the market ran up'). The surname Neuner is required.")},
     {"presenter_key": "kyle-doops", "display_name": "Kyle Doops",
      "affiliation": "Crypto Banter",
      "notes": (
@@ -122,8 +126,14 @@ PRESENTERS = [
          "identify his videos. Attribution must come from descriptions, playlist "
          "membership or transcript self-identification, and stays 'uncertain' until it "
          "does. Do not tag by name-match alone.")},
-    {"presenter_key": "sniper", "display_name": "Sniper (Official Sniper Trading)",
-     "affiliation": "Sniper Trading", "notes": "Channel-level attribution."},
+    {"presenter_key": "sniper", "display_name": "Sheldon (\"Sniper\")",
+     "affiliation": "Sniper Trading / Crypto Banter",
+     "notes": (
+         "Given name Sheldon, confirmed by the owner 2026-09-13; he presents BOTH on his own "
+         "Official Sniper Trading channel and on Crypto Banter (The Sniper Crypto Trading "
+         "Show playlist, which is hosted on the Banter channel). 'Sheldon' is a distinctive "
+         "token in this corpus and is therefore a safe match on its own; bare 'sniper' is "
+         "trading jargon and still requires the show name alongside it.")},
     {"presenter_key": "benjamin-cowen", "display_name": "Benjamin Cowen",
      "affiliation": "Into The Cryptoverse",
      "notes": "Single-presenter channel; channel-level attribution is 'probable'."},

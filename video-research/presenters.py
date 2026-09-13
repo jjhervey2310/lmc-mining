@@ -42,8 +42,12 @@ NAME_PATTERNS = {
     # 'ran' is an English verb and appears in ordinary sentences; require the surname.
     "ran-neuner": re.compile(r"\b(?:ran\s+neuner|neuner)\b", re.I),
     "benjamin-cowen": re.compile(r"\b(?:benjamin|ben)\s+cowen\b", re.I),
-    # bare 'sniper' is trading jargon ('sniper entry', 'sniped the bottom'); require the show.
-    "sniper": re.compile(r"\bsniper\b(?=[^.\n]{0,20}\b(?:show|trading|session)\b)", re.I),
+    # Two routes to the same person. 'Sheldon' is his given name (confirmed by the owner
+    # 2026-09-13) and is a distinctive token in this corpus, so it stands alone — unlike
+    # bare 'sniper', which is trading jargon ('sniper entry', 'sniped the bottom') and
+    # still has to run into the show name.
+    "sniper": re.compile(
+        r"\bsheldon\b|\bsniper\b(?=[^.\n]{0,20}\b(?:show|trading|session)\b)", re.I),
 }
 
 # THE GUARD (sources.PRESENTERS, kyle-doops note): across 5,032 enumerated Crypto Banter
@@ -60,7 +64,8 @@ SELF_ID_NAMES = {
     # bare 'sniper' is jargon ("this is sniper season", "i'm sniper entry"), so a self-ID
     # has to END on the name or run into the show: "this is sniper," / "sniper here" /
     # "sniper trading show". Otherwise ASR noise buys the only 'confirmed' level we have.
-    "sniper": r"sniper(?:\s+trading)?(?=\s*[,.!?]|\s+(?:here|again|and|show|with|from)\b|\s*$)",
+    "sniper": (r"sheldon"
+               r"|sniper(?:\s+trading)?(?=\s*[,.!?]|\s+(?:here|again|and|show|with|from)\b|\s*$)"),
 }
 SELF_ID = {k: re.compile(r"\b(?:i'?m|i\s+am|this\s+is|my\s+name\s+is)\s+(?:" + v + r")\b", re.I)
            for k, v in SELF_ID_NAMES.items()}
