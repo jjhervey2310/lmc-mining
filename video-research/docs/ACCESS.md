@@ -166,7 +166,13 @@ why it was supplied.
 
 - Writes the full text to the **local private cache only** (`state/cache/transcripts/`), never
   to the database. `vr_transcripts` gets the hash, segment count, duration and provenance.
+- Records `format = 'authorized_json'`, never `json3`. That column is how you tell later which
+  rows came from YouTube and which came from you.
 - Sets stage `TRANSCRIPT_AVAILABLE = done` with the declared source type in the detail.
+- **Replaces any existing row for the same `(video_id, lang, source_type)`** — that triple is
+  the primary key, so a fetched ASR track and an undeclared import of the same video are the
+  same row and the last write wins. Declaring `creator` sidesteps this: it is a different row
+  and both survive. Re-running the same file is a no-op on content: same text, same hash.
 - **Leaves `caption_langs` / `caption_source` alone.** Those record what YouTube advertises;
   your file is evidence about you, not about YouTube.
 - Does **not** extract anything. Extraction is a separate, reviewed step, and a chart-dependent
@@ -179,6 +185,17 @@ python3 cli.py blockers   # open blockers, occurrence counts, and the remedy tex
 python3 cli.py status     # coverage per listing, stage counts, last runs
 ```
 
-Open blockers recorded as of this writing: `bot_check` (Crypto Banter, the gate above),
-`no_captions` (zero creator captions on any confirmed channel), and `unresolved_source`
-(Crypto Insider).
+`vr_access_blockers.kind` is one of `bot_check`, `rate_limited`, `private`, `members_only`,
+`deleted`, `region_blocked`, `no_captions`, `other` — and `cli.py blockers` prints the remedy
+for each kind alongside the counts. Recorded as of this writing: **`bot_check`** (the gate
+above) and **`no_captions`**.
+
+Crypto Insider is *not* one of these rows — it is not an access failure, it is an unanswered
+question. It lives in `vr_sources` at `scope_status='UNRESOLVED'`, and `cli.py blockers`
+prints it under its own heading, **SOURCES AWAITING OWNER INPUT**, with the exact steps to
+resolve it.
+
+Both `--dry-run` and `python3 tests/test_acceptance.py` run without Supabase credentials.
+Every other command reports "unreadable" and exits 2 rather than printing zeros, because an
+empty archive and an archive we could not read look identical in a count and mean opposite
+things.
