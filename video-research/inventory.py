@@ -52,6 +52,9 @@ ID_RE = re.compile(r"^[A-Za-z0-9_-]{6,24}$")
 BOT_RE = re.compile(r"not a bot|sign in to confirm", re.I)
 RATE_RE = re.compile(r"\b429\b|too many requests", re.I)
 LISTING_PAUSE = float(os.environ.get("VR_LISTING_PAUSE", "5"))
+# A gate recovers in MINUTES (measured 2026-09-13), so the first back-off after a block has
+# to be minutes too. Doubling 5s gives 10s, which is a pause pretending to be a cooldown.
+BLOCK_COOLDOWN = float(os.environ.get("VR_LISTING_COOLDOWN", "300"))
 PAUSE_CAP = float(os.environ.get("VR_PAUSE_CAP", "900"))
 
 
@@ -90,7 +93,9 @@ def _parse(line):
     return {"video_id": vid, "duration_s": _int(_na(dur)), "live_status": _na(live),
             "channel_id": _na(chan),
             "canonical_url": _na(url) or f"https://www.youtube.com/watch?v={vid}",
-            "title": title.strip() or None}
+            # _na, like every other field: 'NA' is yt-dlp saying it has no title, and
+            # storing the sentinel would be inventing one.
+            "title": _na(title)}
 
 
 # --------------------------------------------------------------------------
@@ -116,7 +121,14 @@ def enumerate_listing(source, listing, url, limit=None, outcome=None):
     # stderr to a temp file, not a pipe: a chatty stderr must not deadlock us while we
     # stream stdout, and we need the whole of it to judge pagination_complete.
     errf = tempfile.TemporaryFile("w+")
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=errf, text=True)
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=errf, text=True)
+    except Exception as e:
+        # A yt-dlp that will not start is still a listing that did not complete, and the
+        # reason has to reach the run row rather than the caller's traceback alone.
+        errf.close()
+        out["stopped_reason"], out["error"] = "error", f"cannot run {YTDLP}: {e}"[:900]
+        raise
     seen, drained = 0, False
     try:
         for line in proc.stdout:
@@ -216,7 +228,9 @@ def _persist(entries, source, listing, now):
     if not entries:
         return 0, 0
     known = _existing([e["video_id"] for e in entries])
-    new = [e for e in entries if e["video_id"] not in known]
+    # Counted as a SET: a paginated listing can hand back the same id twice, and new_items
+    # is the number of videos we had never seen, not the number of lines that mentioned one.
+    new = {e["video_id"] for e in entries} - set(known)
     _upsert_videos([_video_row(e, source, listing, known, now) for e in entries])
     if source["kind"] == "playlist":
         store.upsert("vr_playlist_members", [{
@@ -226,10 +240,14 @@ def _persist(entries, source, listing, now):
     # Bulk equivalent of store.set_stage() per video — 5k videos x 2 stages is 10k HTTP
     # calls one at a time, and the upsert key is identical either way.
     detail = "{}:{} (flat_playlist)".format(source["source_key"], listing)
-    store.upsert("vr_video_stages", [{
-        "video_id": e["video_id"], "stage": stage, "state": "done",
-        "detail": detail, "updated_at": now}
-        for e in entries for stage in ("DISCOVERED", "METADATA_ONLY")], "video_id,stage")
+    rows = [{"video_id": e["video_id"], "stage": "DISCOVERED", "state": "done",
+             "detail": detail, "updated_at": now} for e in entries]
+    # METADATA_ONLY only for ids we had never stored. captions.py files the measured
+    # published_at precision in THIS stage's detail and calls.py parses it back out; a flat
+    # listing measures no metadata at all, so re-stamping it would erase a measured fact.
+    rows += [{"video_id": v, "stage": "METADATA_ONLY", "state": "done",
+              "detail": detail, "updated_at": now} for v in sorted(new)]
+    store.upsert("vr_video_stages", rows, "video_id,stage")
     return len(entries), len(new)
 
 
@@ -245,6 +263,13 @@ def run_listing(source, listing, url, limit=None, batch=400):
                 seen, new, buf = seen + s, new + n, []
         s, n = _persist(buf, source, listing, started)
         seen, new = seen + s, new + n
+    except Exception as e:
+        # An unexplained incomplete run is nearly as bad as a fabricated complete one: the
+        # gap has to name its cause, or the next reader cannot tell a dead binary from a gate.
+        outcome["pagination_complete"] = False
+        outcome["stopped_reason"] = outcome.get("stopped_reason") or "error"
+        outcome["error"] = outcome.get("error") or f"{type(e).__name__}: {e}"[:900]
+        raise
     finally:
         if outcome.get("blocker_kind"):
             store.record_blocker(outcome["blocker_kind"], detail=outcome.get("error"),
@@ -327,10 +352,15 @@ def refresh(source_keys=None, limit=None, resume=True):
                     if out.get("blocker_kind"):
                         run.blocked += 1
                 results.append(out)
-                done.add(key)
+                # 'done' is the resume token, so only a listing that actually finished may
+                # enter it. A gated or errored listing left in here is a gap the next run
+                # inherits silently — it would skip the one listing that needs retrying.
+                if not out.get("error") and not out.get("blocker_kind"):
+                    done.add(key)
                 run.save({"done": sorted(list(x) for x in done), "at": store.utcnow()})
                 # Back off hard after a bot check; the recovery is a cooldown, not a retry.
-                pause = min(pause * 2, PAUSE_CAP) if out.get("blocker_kind") else LISTING_PAUSE
+                pause = (min(max(pause * 2, BLOCK_COOLDOWN), PAUSE_CAP)
+                         if out.get("blocker_kind") else LISTING_PAUSE)
                 time.sleep(pause)
     return results
 
