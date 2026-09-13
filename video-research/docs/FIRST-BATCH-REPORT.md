@@ -229,8 +229,14 @@ on a single-source reading.
 
 ## 13. Storage and resource use
 
-- Supabase: 19 new `vr_*` tables, ~8.2k inventory rows. Text is bounded — full transcripts are
-  **not** stored in the database.
+- Supabase: 19 new `vr_*` tables. Text is bounded — full transcripts are **not** stored in the
+  database.
+- Inventory rows loaded at the time of writing: **3,670 of the 8,223 enumerated**, still
+  loading. The stored denominators in `vr_inventory_runs` are already complete and exact
+  (`items_seen` = 8,218 across the nine channel listings, plus the 907-entry playlist, all
+  `pagination_complete = true`), so `coverage_report()` correctly shows stored-vs-seen as a
+  real gap rather than hiding it. Re-run `python3 cli.py inventory` from a machine with
+  credentials to finish the load; it is an upsert and will skip what is already there.
 - Local private cache: 11 MB of working data this session (620 KB enumeration output, the rest
   yt-dlp scratch). One transcript is 27 KB as json3.
 - Extrapolated, all 8,223 transcripts would be roughly 200–350 MB of json3 in the local cache,
