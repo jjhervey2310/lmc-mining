@@ -444,6 +444,19 @@ def _ensure_video(video_id, meta=None):
     store.upsert("vr_videos", [row], "video_id")
 
 
+def _blocker(kind, detail):
+    """Last-resort blocker row for a failure that could not be filed the normal way.
+
+    Never raises. It carries no video_id on purpose: the usual reason the normal write
+    failed is that vr_access_blockers.video_id has nothing to point at. Nothing is hidden by
+    this — the caller still counts the failure in vr_runs and names it in the checkpoint.
+    """
+    try:
+        store.record_blocker(kind, (detail or "")[:400])
+    except Exception:
+        pass
+
+
 def persist(res):
     """Write one fetch result. Returns the durable state word for the run log."""
     vid, status = res["video_id"], res["status"]
@@ -451,8 +464,14 @@ def persist(res):
     if status == "blocked":
         # Transient by measurement: the gate lifts after a cooldown. Nothing about the
         # video is known to have changed, so only the attempt is recorded.
-        store.record_blocker(res.get("blocker") or "bot_check", res.get("detail"), video_id=vid)
-        store.set_stage(vid, "TRANSCRIPT_AVAILABLE", "blocked", res.get("detail"))
+        # Both writes carry an FK to vr_videos and an id the caller named by hand may have
+        # no row there. Raising would cost the caller the cooldown — which IS the response
+        # to a gate — so the block is reported either way.
+        try:
+            store.record_blocker(res.get("blocker") or "bot_check", res.get("detail"), video_id=vid)
+            store.set_stage(vid, "TRANSCRIPT_AVAILABLE", "blocked", res.get("detail"))
+        except Exception as e:  # noqa: BLE001 - the gate verdict outranks its paperwork
+            _blocker("other", f"[{vid}] block not filed: {type(e).__name__}: {e}")
         return "blocked"
 
     if status == "unavailable":
@@ -622,13 +641,23 @@ def import_authorized(path, dry_run=False):
         try:
             imported.append(ingest_authorized_transcript(f, dry_run=dry_run))
         except BadTranscript as e:
-            rejected.append({"path": str(f), "reason": str(e)})
+            rejected.append({"path": str(f), "kind": "invalid", "reason": str(e)})
             if run is None:
                 return
             run.failed += 1
             # No video_id on the blocker row: vr_access_blockers.video_id is a foreign key,
             # and a file we could not parse has no id we are entitled to trust.
-            store.record_blocker("other", f"authorized import rejected: {f.name}: {e}"[:400])
+            _blocker("other", f"authorized import rejected: {f.name}: {e}")
+            return
+        except Exception as e:  # noqa: BLE001 - a store or disk failure is not a bad file
+            # Kept distinct from 'invalid': this file may be perfectly good and we failed.
+            # Calling it rejected-as-malformed would be a verdict we did not earn.
+            rejected.append({"path": str(f), "kind": "error",
+                             "reason": f"{type(e).__name__}: {e}"})
+            if run is None:
+                return
+            run.failed += 1
+            _blocker("other", f"authorized import failed: {f.name}: {type(e).__name__}: {e}")
             return
         if run is not None:
             run.processed += 1
@@ -762,8 +791,19 @@ def ingest_batch(video_ids=None, limit=25, force=False, pacer=None):
                           "state": "skipped", "at": store.utcnow()})
                 continue
 
-            res = fetch_one(vid, pacer=pacer)
-            state = persist(res)
+            try:
+                res = fetch_one(vid, pacer=pacer)
+                state = persist(res)
+            except Exception as e:  # noqa: BLE001 - one video must not end the batch
+                # Corrupt json3, a non-JSON stdout, a store hiccup: all of it is one
+                # video's problem. The batch has already paid rate-limit budget for the
+                # videos behind this one, and they are the ones a crash would throw away.
+                detail = f"{vid}: {type(e).__name__}: {e}"[:400]
+                run.failed += 1
+                _blocker("other", detail)
+                run.save({"last_video_id": vid, "position": i, "of": len(ids),
+                          "state": "crashed", "detail": detail, "at": store.utcnow()})
+                continue
 
             if state == "blocked":
                 run.blocked += 1
