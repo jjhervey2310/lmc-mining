@@ -231,18 +231,20 @@ on a single-source reading.
 
 - Supabase: 19 new `vr_*` tables. Text is bounded — full transcripts are **not** stored in the
   database.
-- Inventory rows were still loading when this was written, so **read the live number, not a
-  number quoted here**: `select count(*) from vr_videos` against the 8,223 enumerated, or
-  `python3 cli.py status`. The stored denominators in `vr_inventory_runs` are already complete
-  and exact (`items_seen` = 8,218 across the nine channel listings, plus the 907-entry
-  playlist, every row `pagination_complete = true`), which is what lets `coverage_report()`
-  show stored-vs-seen as a real gap instead of hiding it — a partially loaded archive reports
-  as partially loaded, per listing.
-- To finish the load: `python3 cli.py inventory` from a machine with credentials. It upserts,
-  skips what is already there, and re-enumerates a listing whose last run completed (so new
-  uploads are picked up) while resuming one that was interrupted. `vr_playlist_members` fills
-  in on the same run — membership rows are FK-guarded on `vr_videos`, so any skipped while
-  their video was absent land on the next pass.
+- **Inventory load complete.** `vr_videos` = 8,223, `vr_video_stages` = 16,451
+  (8,223 × 2, plus the 5 pipeline rows for the one processed video),
+  `vr_playlist_members` = 907. Every one of the nine channel listings reports **100.0%**
+  stored-against-seen, and each of those percentages is legitimate because its
+  `pagination_complete` is true — the denominators were measured, not assumed.
+- The dedupe case is now proven on real data rather than asserted: **9,125 listing rows**
+  (8,218 channel + 907 playlist) resolved to **8,223 unique videos with zero duplicate IDs**.
+  902 playlist entries also appear in Crypto Banter's own tabs and collapse to one record
+  each; the 5 that exist only in the playlist carry `video_type='unknown'`, because no
+  channel listing ever said what they are.
+- To refresh later: `python3 cli.py inventory`. It upserts, re-enumerates a listing whose
+  last run completed (so new uploads are picked up) and resumes one that was interrupted.
+  `vr_playlist_members` rows are FK-guarded on `vr_videos`, so any skipped while their video
+  was absent land on the next pass rather than being lost.
 - Local private cache: 11 MB of working data this session (620 KB enumeration output, the rest
   yt-dlp scratch). One transcript is 27 KB as json3.
 - Extrapolated, all 8,223 transcripts would be roughly 200–350 MB of json3 in the local cache,
