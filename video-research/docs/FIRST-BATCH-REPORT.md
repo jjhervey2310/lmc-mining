@@ -231,12 +231,18 @@ on a single-source reading.
 
 - Supabase: 19 new `vr_*` tables. Text is bounded — full transcripts are **not** stored in the
   database.
-- Inventory rows loaded at the time of writing: **3,670 of the 8,223 enumerated**, still
-  loading. The stored denominators in `vr_inventory_runs` are already complete and exact
-  (`items_seen` = 8,218 across the nine channel listings, plus the 907-entry playlist, all
-  `pagination_complete = true`), so `coverage_report()` correctly shows stored-vs-seen as a
-  real gap rather than hiding it. Re-run `python3 cli.py inventory` from a machine with
-  credentials to finish the load; it is an upsert and will skip what is already there.
+- Inventory rows were still loading when this was written, so **read the live number, not a
+  number quoted here**: `select count(*) from vr_videos` against the 8,223 enumerated, or
+  `python3 cli.py status`. The stored denominators in `vr_inventory_runs` are already complete
+  and exact (`items_seen` = 8,218 across the nine channel listings, plus the 907-entry
+  playlist, every row `pagination_complete = true`), which is what lets `coverage_report()`
+  show stored-vs-seen as a real gap instead of hiding it — a partially loaded archive reports
+  as partially loaded, per listing.
+- To finish the load: `python3 cli.py inventory` from a machine with credentials. It upserts,
+  skips what is already there, and re-enumerates a listing whose last run completed (so new
+  uploads are picked up) while resuming one that was interrupted. `vr_playlist_members` fills
+  in on the same run — membership rows are FK-guarded on `vr_videos`, so any skipped while
+  their video was absent land on the next pass.
 - Local private cache: 11 MB of working data this session (620 KB enumeration output, the rest
   yt-dlp scratch). One transcript is 27 KB as json3.
 - Extrapolated, all 8,223 transcripts would be roughly 200–350 MB of json3 in the local cache,
