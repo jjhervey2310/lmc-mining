@@ -477,6 +477,160 @@ def _has_transcript(video_id):
 
 
 # --------------------------------------------------------------------------
+# authorized transcript import (docs/ACCESS.md)
+# --------------------------------------------------------------------------
+# The supported way to cover what this IP cannot fetch. The brief forbids bypassing the bot
+# gate, so the only alternative to fetching is being given the text. One JSON object per
+# video:
+#   {"video_id": "5TIPLsQVSHI", "lang": "en", "source_type": "creator"|"auto",
+#    "segments": [{"t_start_ms": 0, "t_end_ms": 3200, "text": "..."}, ...]}
+IMPORT_FORMAT = "authorized_json"     # never 'json3': this row did not come from YouTube
+IMPORT_LANG = "en"
+LANG_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,19}$")   # lands in a PK and a filename
+
+
+class BadTranscript(ValueError):
+    """The file is not the documented shape. Nothing is written when this is raised: a
+    half-read import is a fabricated transcript, which is the one thing forbidden outright."""
+
+
+def _authorized_segments(doc):
+    """Validate hard and coerce nothing.
+
+    A float t_start_ms almost always means seconds were converted wrong, and rounding it
+    would move an excerpt to a timestamp the owner never asserted. Refusing the file costs
+    one message; a silently shifted timeline is undetectable downstream.
+    """
+    segs = doc.get("segments")
+    if not isinstance(segs, list) or not segs:
+        raise BadTranscript("segments must be a non-empty list")
+    out = []
+    for i, s in enumerate(segs):
+        if not isinstance(s, dict):
+            raise BadTranscript(f"segments[{i}] is not an object")
+        t, end, text = s.get("t_start_ms"), s.get("t_end_ms"), s.get("text")
+        if isinstance(t, bool) or not isinstance(t, int) or t < 0:
+            raise BadTranscript(f"segments[{i}].t_start_ms must be a non-negative integer of ms")
+        if end is not None and (isinstance(end, bool) or not isinstance(end, int) or end < t):
+            raise BadTranscript(f"segments[{i}].t_end_ms must be an integer >= t_start_ms")
+        if not isinstance(text, str) or not text.strip():
+            raise BadTranscript(f"segments[{i}].text must be a non-empty string")
+        out.append({"t_start_ms": t, "t_end_ms": end, "text": text.strip()})
+    return out
+
+
+def _authorized_doc(path):
+    doc = pathlib.Path(path).read_text(encoding="utf-8", errors="replace")
+    try:
+        doc = json.loads(doc)
+    except json.JSONDecodeError as e:
+        raise BadTranscript(f"not valid JSON: {e}") from e
+    if not isinstance(doc, dict):
+        raise BadTranscript("top level must be one object with video_id and segments")
+    vid, lang = doc.get("video_id"), doc.get("lang") or IMPORT_LANG
+    if not isinstance(vid, str) or not VIDEO_ID_RE.match(vid):
+        raise BadTranscript(f"video_id {vid!r} is not an 11-character YouTube id")
+    if not isinstance(lang, str) or not LANG_RE.match(lang):
+        raise BadTranscript(f"lang {lang!r} is not a plain language tag")
+    declared = doc.get("source_type")
+    # spec §4: 'creator' is a claim about who produced the text, and only the owner is in a
+    # position to make it. Silence is not a claim, so silence means ASR.
+    return {"video_id": vid, "lang": lang, "declared": declared,
+            "source_type": "creator" if declared == "creator" else "auto",
+            "note": doc.get("note") if isinstance(doc.get("note"), str) else None,
+            "segments": _authorized_segments(doc)}
+
+
+def ingest_authorized_transcript(path, dry_run=False):
+    """Ingest one owner-supplied timestamped transcript. Returns the provenance it wrote.
+
+    source_type='creator' is written ONLY when the file declares it. We did not watch the
+    video and nothing in the bytes proves who typed them, so an undeclared file is 'auto'.
+    That is the cheap direction to be wrong in: calling a human transcript ASR only widens
+    uncertainty we already carry, while the reverse launders a machine guess into a source.
+
+    dry_run validates the file and touches neither the cache nor the database, so the owner
+    can check a batch of files before handing any of them over.
+    """
+    d = _authorized_doc(path)
+    segments, vid, lang, stype = d["segments"], d["video_id"], d["lang"], d["source_type"]
+    res = {"path": str(path), "video_id": vid, "lang": lang, "source_type": stype,
+           "declared_source_type": d["declared"], "segments": len(segments),
+           "duration_ms": _span_ms(segments),
+           "text_hash": store.sha256(_normalised_text(segments)),
+           # Reported, not repaired: reordering would silently re-time every excerpt cited
+           # off this file.
+           "out_of_order": sum(1 for a, b in zip(segments, segments[1:])
+                               if b["t_start_ms"] < a["t_start_ms"]),
+           "written": False, "local_ref": None}
+    if dry_run:
+        return res
+
+    local = TRANSCRIPTS / f"{vid}.{lang}.{stype}.json"
+    local.parent.mkdir(parents=True, exist_ok=True)
+    local.write_text(json.dumps({
+        "video_id": vid, "lang": lang, "source_type": stype, "format": IMPORT_FORMAT,
+        "fetched_at": store.utcnow(), "extractor_version": EXTRACTOR_VERSION,
+        "provenance": "authorized_import", "declared_source_type": d["declared"],
+        "source_path": str(pathlib.Path(path).resolve()), "note": d["note"],
+        "segments": segments}), encoding="utf-8")
+    # FK target. The video may never have been enumerated — often that is why it was supplied.
+    _ensure_video(vid)
+    store.upsert("vr_transcripts", [{
+        "video_id": vid, "lang": lang, "source_type": stype,
+        "fetched_at": store.utcnow(), "format": IMPORT_FORMAT,
+        "segment_count": len(segments), "duration_ms": res["duration_ms"],
+        "text_hash": res["text_hash"], "retention": RETENTION,
+        "local_ref": f"{TRANSCRIPTS.name}/{local.name}"}], "video_id,lang,source_type")
+    # caption_langs / caption_source stay untouched: they record what YouTube advertises,
+    # and an imported file is evidence about the owner, not about YouTube.
+    store.set_stage(vid, "TRANSCRIPT_AVAILABLE", "done",
+                    f"authorized import {lang}/{stype}: {len(segments)} segments, "
+                    f"declared={d['declared']!r}, format={IMPORT_FORMAT}")
+    res.update(written=True, local_ref=f"{TRANSCRIPTS.name}/{local.name}")
+    return res
+
+
+def import_authorized(path, dry_run=False):
+    """Ingest one file or a directory tree of them. A bad file is rejected and recorded;
+    the rest of the batch still lands, and nothing partial is ever written."""
+    p = pathlib.Path(path)
+    if not p.exists():
+        raise FileNotFoundError(f"no such path: {p}")
+    files = sorted(p.rglob("*.json")) if p.is_dir() else [p]
+    imported, rejected = [], []
+
+    def one(f, run):
+        try:
+            imported.append(ingest_authorized_transcript(f, dry_run=dry_run))
+        except BadTranscript as e:
+            rejected.append({"path": str(f), "reason": str(e)})
+            if run is None:
+                return
+            run.failed += 1
+            # No video_id on the blocker row: vr_access_blockers.video_id is a foreign key,
+            # and a file we could not parse has no id we are entitled to trust.
+            store.record_blocker("other", f"authorized import rejected: {f.name}: {e}"[:400])
+            return
+        if run is not None:
+            run.processed += 1
+            run.save({"last_path": str(f), "imported": len(imported),
+                      "rejected": len(rejected), "at": store.utcnow()})
+
+    if dry_run:
+        for f in files:
+            one(f, None)
+    else:
+        with store.Run("import-transcripts", f"{len(files)} file(s) from {p}") as run:
+            for f in files:
+                one(f, run)
+    return {"path": str(p), "files": len(files), "dry_run": dry_run,
+            "imported": imported, "rejected": rejected,
+            "creator_declared": sum(1 for r in imported if r["source_type"] == "creator"),
+            "videos": sorted({r["video_id"] for r in imported})}
+
+
+# --------------------------------------------------------------------------
 # selection (spec §7 priority order)
 # --------------------------------------------------------------------------
 # Risk/exit vocabulary ONLY. Spec §7 forbids biasing selection toward titles that imply a
@@ -639,6 +793,10 @@ def main(argv=None):
     b.add_argument("--force", action="store_true")
     b.add_argument("--ids", help="comma-separated video ids, bypassing select_batch")
 
+    i = sub.add_parser("import", help="ingest authorized transcripts (docs/ACCESS.md)")
+    i.add_argument("--path", required=True, help="a .json file or a directory of them")
+    i.add_argument("--dry-run", action="store_true", help="validate only; no cache, no DB")
+
     a = ap.parse_args(argv)
     if a.cmd == "parse":
         segs = parse_json3(a.path)
@@ -654,6 +812,8 @@ def main(argv=None):
     elif a.cmd == "batch":
         ids = [i.strip() for i in a.ids.split(",") if i.strip()] if a.ids else None
         print(json.dumps(ingest_batch(ids, a.limit, a.force), indent=2))
+    elif a.cmd == "import":
+        print(json.dumps(import_authorized(a.path, dry_run=a.dry_run), indent=2, default=str))
     return 0
 
 
