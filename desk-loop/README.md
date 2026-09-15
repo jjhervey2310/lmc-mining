@@ -6,8 +6,9 @@ Runs on a DigitalOcean Ubuntu 24.04 droplet under `/root/lmc-desk`. systemd time
 - `lmc-price-check` every 15 min — live prices vs `desk_triggers`, logs to `desk_alert_log`, pushes via ntfy (free)
 - `lmc-trail` :05/:20/:35/:50 — `trail.py` v3: constitution v4/v4.1 trail + ratchet + third + rotation + reclaim + flush flags (free)
 - `lmc-wake` hourly at :07 — `triage.py`, pure code; escalates to `lmc-wake-deep` only on something mechanical (free)
-- `lmc-wake-deep` 07:07 + on escalation — headless Claude Code reasoning wake (one web search), writes `pa_memory.loop-briefs` (paid, budget-gated)
-- `lmc-breakout` 06:45 — 20d-high + volume + RS breakout scan over `universe.json`, `pa_memory.breakout-signals` (free)
+- `lmc-wake-deep` 00:07 / 06:07 / 12:07 / 18:07 + on escalation — headless Claude Code reasoning wake (one web search), writes `pa_memory.loop-briefs` (paid; hard-capped by `desk_config.loop_budget_usd`)
+- `lmc-history` 05:35 — Coinbase/CoinGecko daily bars into `state/cb` + `cg_history` (free)
+- `lmc-breakout` 05:50 — 20d-high + volume + RS breakout scan over `universe.json` on the LAST COMPLETED daily bar (never today's partial candle), before the 06:07 wake; `pa_memory.breakout-signals` (free)
 - `lmc-flow` 07:20 — `flow_scan.py` (build request #8): DefiLlama fees / revenue / DEX volume / TVL / stablecoin flows per RH name → `public.flow_radar`, `pa_memory.flow-radar`; PRE-EARLY names pushed + added to `desk_theses` as VERIFYING. Daily = held + POLE/WATCH/VERIFYING; Sunday (or `--full`) = whole universe (free)
 - `lmc-news` 07:40 — universe news sweep, top-10 daily / top-40 Sunday (paid, budget-gated)
 - `lmc-heartbeat` 08:00 — flushes the overnight digest (quiet hours 23:00–08:00), heartbeat push, `pa_memory.loop-heartbeat`

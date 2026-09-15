@@ -17,8 +17,11 @@ and the weights renormalise; each part clamped to [-100, +200]) + a revenue-yiel
 fees / market cap, capped at +50). Normalised by cap through the yield term — a $100k fee week means
 something at a $50M cap and nothing at $50B.
 STAGE: PRE-EARLY = score rising for 2+ consecutive weekly scans AND price d30 < +20% (money before the
-candle). RISING = score >= 10 with d30 < +20% (history too short to call PRE-EARLY yet). PRICED = score >= 10
-but price already +20%/30d (money AND price moving — late by this radar's definition). FLAT / FADING / NO-DATA.
+candle). PRE-SWITCH (priority reset 09-15, MORPHO is the live example) = real gross fees (>= $1M/wk) with NO
+token-side revenue (revenue < 2% of fees — the fee switch / buyback is not on): buy the revenue before the
+mechanism prices it in. Price is reported beside it; the laws, not the stage, decide the entry. RISING = score >= 10 with d30 < +20% (history too short to
+call PRE-EARLY yet). PRICED = score >= 10 but price already +20%/30d (money AND price moving — late by this
+radar's definition). FLAT / FADING / NO-DATA.
 Writes public.flow_radar (one row per symbol per scan_date), pa_memory 'flow-radar' (summary for the deep
 wake + chat), pushes PRE-EARLY names (queued to the 08:00 digest in quiet hours) and adds a
 desk_theses VERIFYING row for any PRE-EARLY name the desk has not already classified — never overwrites
@@ -33,6 +36,7 @@ W = {"fees_wow": 0.4, "vol_wow": 0.3, "tvl_delta": 0.2, "stable_delta": 0.1}
 CLAMP = (-100.0, 200.0)
 PRE_EARLY_D30_MAX = 20.0
 MIN_FEES, MIN_VOL, MIN_TVL = 25_000.0, 1_000_000.0, 1_000_000.0    # weekly USD floors for growth % to count
+PRE_SWITCH_FEES, PRE_SWITCH_TAKE = 1_000_000.0, 0.02              # gross fees >= $1M/wk with < 2% reaching the token = switch not on
 STABLE_IDS = {"USDC", "USDT", "USDG", "PAXG", "DAI"}
 # Fees that accrue to a token but are booked under a different DefiLlama object (desk-verified mechanisms).
 EXTRA_CHAIN_FEES = {"ARB": [("Robinhood Chain", 0.10)]}  # 10% of Robinhood Chain fees accrue to the Arbitrum ecosystem (thesis 09-04) — counted at that share
@@ -218,8 +222,12 @@ def scan(symbols, full):
         h = hist.get(s, {})
         rising2 = score is not None and 7 in h and 14 in h and score > h[7] > h[14]
         quiet_price = d30 is not None and d30 < PRE_EARLY_D30_MAX
+        # PRE-SWITCH is about the mechanism, not the tape: real gross fees with nothing reaching the token. Price is
+        # reported beside it (a name that already ran is still PRE-SWITCH; the laws decide the entry, not the stage).
+        pre_switch = bool(fees7 and fees7 >= PRE_SWITCH_FEES and (rev7 or 0) < PRE_SWITCH_TAKE * fees7 and s not in ("BTC", "ETH", "SOL"))
         if score is None: stage = "NO-DATA"
         elif rising2 and quiet_price and score > 0: stage = "PRE-EARLY"
+        elif pre_switch: stage = "PRE-SWITCH"
         elif score >= 10 and quiet_price: stage = "RISING"
         elif score >= 10: stage = "PRICED"          # money AND price already moving — late by this radar's definition
         elif score <= -10: stage = "FADING"
@@ -242,7 +250,7 @@ def main():
     sb_upsert("flow_radar", rows, "symbol,scan_date")
     scored = [r for r in rows if r["flow_score"] is not None]
     scored.sort(key=lambda r: -r["flow_score"])
-    pre = [r for r in rows if r["stage"] == "PRE-EARLY"]
+    pre = [r for r in rows if r["stage"] in ("PRE-EARLY", "PRE-SWITCH")]
     stamp = now_denver().strftime("%Y-%m-%d %H:%M MT")
     def line(r):
         f = lambda v, u="": "—" if v is None else f"{v:+.0f}%{u}"
@@ -250,7 +258,8 @@ def main():
         y = "—" if r["rev_yield"] is None else f"{r['rev_yield']:.1f}%/yr"
         return f"{r['symbol']:<7} score {r['flow_score']:+6.1f}  {r['stage']:<9} fees7d {m:>8} ({f(r['fees_wow'])}) vol {f(r['vol_wow'])} tvl {f(r['tvl_delta'])} stables {f(r['stable_delta'])} rev-yield {y} d30 {f(r['price_d30'])}"
     head = f"FLOW RADAR {stamp} — {'FULL universe' if full else 'daily held+watch'} ({len(rows)} names, {len(scored)} with flow data). Money before price: fees/volume/TVL/stablecoin growth, cap-normalised. NOT picks — laws + mechanism verification govern every entry."
-    body = [head, "PRE-EARLY (score rising 2+ weekly scans, d30 < +20%): " + (", ".join(r["symbol"] for r in pre) or "none (needs two prior weekly scans on record — the first flags can land after two Sundays)")]
+    body = [head, "PRE-EARLY (score rising 2+ weekly scans, d30 < +20%): " + (", ".join(r["symbol"] for r in pre if r["stage"] == "PRE-EARLY") or "none (needs two prior weekly scans on record)"),
+            "PRE-SWITCH (gross fees >= $1M/wk with < 2% reaching the token — revenue before the mechanism; d30 shown, laws decide): " + (", ".join(f"{r['symbol']} (fees ${r['fees_7d']/1e6:.1f}M/wk, revenue ${(r['revenue_7d'] or 0)/1e3:.0f}k, d30 {'—' if r['price_d30'] is None else f'{r[chr(112)+chr(114)+chr(105)+chr(99)+chr(101)+chr(95)+chr(100)+chr(51)+chr(48)]:+.0f}%'})" for r in pre if r["stage"] == "PRE-SWITCH") or "none")]
     body += ["RISING with a quiet price (d30 < +20%) — the hunting ground: " + (", ".join(f"{r['symbol']} {r['flow_score']:+.0f}" for r in scored if r["stage"] == "RISING") or "none")]
     body += ["TOP 12 BY FLOW SCORE (PRICED = money and price both already moving):"] + [line(r) for r in scored[:12]]
     body += ["FADING: " + (", ".join(r["symbol"] for r in scored if r["stage"] == "FADING") or "none")]
@@ -268,10 +277,13 @@ def main():
         new = [r for r in pre if r["symbol"] not in existing]
         if new:
             sb_upsert("desk_theses", [{"symbol": r["symbol"], "status": "VERIFYING",
-                                       "thesis": f"Flow radar PRE-EARLY {r['scan_date']}: flow score {r['flow_score']:+.0f} rising 2+ weeks (fees {r['fees_wow']}% wow, vol {r['vol_wow']}% wow, tvl {r['tvl_delta']}%), price d30 {r['price_d30']}%. Money arriving before the candle. Auto-added by the loop — thesis unverified.",
-                                       "gate": "VERIFY: does the TOKEN capture the revenue (fee switch / buyback / burn)? Unlocks? Laws on a live quote. No zone without a mechanism.",
+                                       "thesis": (f"Flow radar PRE-SWITCH {r['scan_date']}: gross fees ${r['fees_7d']/1e6:.1f}M/wk with ${(r['revenue_7d'] or 0)/1e3:.0f}k reaching the token — the fee switch / buyback is NOT on; price d30 {r['price_d30']}%. Buy the revenue before the mechanism prices it in; the switch flipping is the catalyst. Auto-added by the loop — unverified."
+                                                  if r["stage"] == "PRE-SWITCH" else
+                                                  f"Flow radar PRE-EARLY {r['scan_date']}: flow score {r['flow_score']:+.0f} rising 2+ weeks (fees {r['fees_wow']}% wow, vol {r['vol_wow']}% wow, tvl {r['tvl_delta']}%), price d30 {r['price_d30']}%. Money arriving before the candle. Auto-added by the loop — thesis unverified."),
+                                       "gate": ("VERIFY: is a fee switch / buyback vote live or scheduled? Who decides, when? Unlocks? Laws on a live quote." if r["stage"] == "PRE-SWITCH" else
+                                                "VERIFY: does the TOKEN capture the revenue (fee switch / buyback / burn)? Unlocks? Laws on a live quote. No zone without a mechanism."),
                                        "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()} for r in new], "symbol")
-        ntfy(f"💧 Flow radar: {len(pre)} PRE-EARLY", "\n".join(line(r)[:120] for r in pre)[:900] + "\nMoney before price. Verify the mechanism before any zone.", "high")
+        ntfy(f"💧 Flow radar: {sum(r['stage']=='PRE-EARLY' for r in pre)} PRE-EARLY, {sum(r['stage']=='PRE-SWITCH' for r in pre)} PRE-SWITCH", "\n".join(f"{r['stage']} {line(r)[:110]}" for r in pre)[:900] + "\nMoney before price. Verify the mechanism before any zone.", "high")
     print(out)
 
 if __name__ == "__main__":

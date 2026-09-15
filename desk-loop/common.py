@@ -319,6 +319,13 @@ def sleeve_breaker(holdings=None, px=None):
     elif ratio <= st["hwm"] * (1 - BREAKER_DD):
         st["since"] = now_denver().isoformat()
     f.write_text(json.dumps(st))
+    # Mirror to desk_config so the ROBINHOOD tab's timing grade / tap-buy (Vercel, no box access) honour the breaker.
+    try:
+        want = st.get("since") or ""
+        if (config("sleeve_breaker", "") or "") != want:
+            sb_upsert("desk_config", [{"key": "sleeve_breaker", "value": want, "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "key")
+    except Exception:
+        pass
     return bool(st.get("since")), st
 
 def drawdown_halted():

@@ -12,9 +12,9 @@ not on Vercel and not under `pg_cron`. It is **alert-only**: nothing here places
 | `lmc-price-check` | every :00/:15/:30/:45 | `price_check.py` | free |
 | `lmc-trail` | :05/:20/:35/:50 | `trail.py` | free |
 | `lmc-wake` | hourly :07 | `triage.py` (pure code) | free |
-| `lmc-wake-deep` | 07:07 + on escalation | `wake.sh deep` | **paid**, budget-gated |
-| `lmc-history` | 06:20 | `history_sync.py` | free |
-| `lmc-breakout` | 06:45 | `breakout_scan.py` | free |
+| `lmc-wake-deep` | 00:07 / 06:07 / 12:07 / 18:07 + on escalation | `wake.sh deep` | **paid**, budget-gated |
+| `lmc-history` | 05:35 | `history_sync.py` | free |
+| `lmc-breakout` | 05:50 (last completed bar, before the 06:07 wake) | `breakout_scan.py` | free |
 | `lmc-flow` | 07:20 | `flow_scan.py` | free |
 | `lmc-news` | 07:40 | `news_sweep.py` | **paid**, budget-gated |
 | `lmc-analyst` | 06:50/11:50/16:50/21:50 | `analyst_watch.py` | free |

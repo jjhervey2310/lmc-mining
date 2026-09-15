@@ -9,6 +9,10 @@
 // Jacob per trade, and the override is logged. A / B / C = clear to buy at the ruled size.
 
 export const ANCHOR = new Set(['BTC', 'SOL'])   // v4: ETH out of the anchor
+export type Regime = 'BULL' | 'NEUTRAL' | 'BEAR'
+// A9 §3 / A9.1 §1 (2026-09-06): the sleeve is an R&D budget — 15% of book, 10% per name, $50 flat entries; the
+// 5% uncommitted-cash floor and the caps beat every target; a compliant size under $50 is a SKIP.
+export const SLEEVE_CAP = 0.15, NAME_CAP = 0.10, CASH_FLOOR = 0.05, MIN_ENTRY = 50
 // '?' = COULD NOT GRADE (no live price). It is NOT an F. An F is a judgement about the entry;
 // '?' means the grader was blind. Conflating them made five B-scoring names look like rejects
 // when CoinGecko rate-limited us (Jacob 2026-09-11: "why are they all ranked D or F").
@@ -31,12 +35,18 @@ export interface TimingInput {
   halfSize: boolean                                              // macro modifier active
   held: boolean
   priceStale?: { at: string } | null   // price came from cg_history, not a live quote
+  // A9 (optional so older callers keep working): the tested breakout signal on the last completed close, the BTC
+  // regime that conditions the chase bars, the sleeve breaker, and the exposure the caps are measured against.
+  signal?: boolean | null; signalWhy?: string
+  regime?: Regime; regimeWhy?: string
+  breaker?: string | null                // ISO since-timestamp when the A9 sleeve breaker is tripped
+  sleeveUsd?: number; nameUsd?: number
 }
 
 export interface TimingResult {
   grade: Grade; score: number
   hard: string[]; soft: string[]; plus: string[]
-  size: { usd: number; pctBook: number; halfSize: boolean; cappedBy: string | null }
+  size: { usd: number; pctBook: number; halfSize: boolean; cappedBy: string | null; book: 'SLEEVE-RULE' | 'OWNER-BOOK' }
   stop: { price: number; source: string; pct: number }
   buyable: boolean            // no hard bar and score >= C
   overridable: boolean        // soft bars only
@@ -53,8 +63,12 @@ export function gradeTiming(i: TimingInput): TimingResult {
   const add = (pts: number, why: string) => { score = Math.min(100, score + pts); plus.push(`+${pts} ${why}`) }
 
   // ── HARD BARS (law) ──
-  if (i.d1 != null && i.d1 >= 15) hard.push(`chase law: +${i.d1.toFixed(1)}% in 24h (bar is +15%)`)
-  if (i.d30 != null && i.d30 >= 70) hard.push(`chase law: +${i.d30.toFixed(0)}% in 30d (bar is +70%)`)
+  // A9 §4: the chase bars are REGIME-CONDITIONAL. In BULL the +70%/30d bar is off and a +15% day halves size
+  // instead of barring; in NEUTRAL/BEAR (or when the regime is unknown) both bars stand in full.
+  const bull = i.regime === 'BULL'
+  if (!bull && i.d1 != null && i.d1 >= 15) hard.push(`chase law (${i.regime ?? 'regime unknown'}): +${i.d1.toFixed(1)}% in 24h (bar is +15%)`)
+  if (!bull && i.d30 != null && i.d30 >= 70) hard.push(`chase law (${i.regime ?? 'regime unknown'}): +${i.d30.toFixed(0)}% in 30d (bar is +70%)`)
+  if (i.breaker) hard.push(`A9 SLEEVE BREAKER tripped ${i.breaker.slice(0, 10)} — no new sleeve entries until it clears`)
   const ext = i.hi20 ? (i.price / i.hi20 - 1) * 100 : null
   if (ext != null && ext > 15) hard.push(`RUNNING: ${ext.toFixed(0)}% above its 20-day high (no-entry zone past +15%)`)
   if (i.hi20 == null) hard.push(`RUNNING law UNCHECKABLE: no 20-day high${i.tapeError ? ` — ${i.tapeError}` : ' — not enough daily history'}. Extension is unknown, so no entry is cleared.`)
@@ -68,6 +82,12 @@ export function gradeTiming(i: TimingInput): TimingResult {
   // A rate-limited quote falls back to the last daily close so the grade is still readable, but an
   // order must never be sized or stopped off a stale mark (2026-09-10: CoinGecko 429s blanked the tab).
   if (i.priceStale) hard.push(`stale price — last close from ${i.priceStale.at.slice(0, 16).replace('T', ' ')}Z, no live quote. Refresh before any order.`)
+
+  // ── A9 §3: the tested breakout rule is the ONLY sleeve entry. No signal = OWNER-BOOK, capped at D. ──
+  if (i.signal === true) add(10, `A9 breakout signal on the last completed close (${i.signalWhy ?? ''})`)
+  else if (i.signal === false) { ded(20, `no tested breakout signal (${i.signalWhy ?? ''}) — A9 entry rule; a buy here is OWNER-BOOK`); capD = true }
+  if (bull && i.d1 != null && i.d1 >= 15) ded(10, `+${i.d1.toFixed(1)}% day in BULL — size HALVED instead of barred (A9 §4)`)
+  if (i.regime && i.regime !== 'BULL') ded(5, `regime ${i.regime} (${i.regimeWhy ?? ''}) — both chase bars in force`)
 
   // ── TAPE ──
   if (ext != null) {
@@ -113,9 +133,8 @@ export function gradeTiming(i: TimingInput): TimingResult {
   }
 
   // ── BOOK / PROCESS (soft, overridable) ──
-  const floor = i.bookUsd * 0.10
-  const openSlots = i.slots - i.sleeveCount
-  if (openSlots <= 0) { ded(25, `no open sleeve slot (${i.sleeveCount}/${i.slots} filled)`); capD = true }
+  // A9 replaced the slot formula with caps; slots are reported for visibility but no longer gate (A9 §3, A9.1 §1).
+  const floor = i.bookUsd * CASH_FLOOR
   // WEEKLY CAP REMOVED 2026-09-11 on Jacob's instruction ("there is no two entries per week cap if
   // there is take it out"). The rulebook contradicted itself: v3/3.1 listed "2 new entries/week" among
   // the process laws, a later amendment stated "weekly cap REPLACED by open slots", and a third clause
@@ -125,15 +144,22 @@ export function gradeTiming(i: TimingInput): TimingResult {
   if (i.blackout) { ded(40, `entry blackout: ${i.blackout}`); capD = true }
   if (i.holdingsCount >= 10) ded(15, `already at the ~10-holding target`)
 
-  // ── SIZE (v4.1): 6% of book, $50 minimum at a $500+ book, 10% max, half while the macro modifier runs ──
-  let usd = round2(Math.max(i.bookUsd >= 500 ? 50 : 10, i.bookUsd * 0.06))
-  usd = Math.min(usd, round2(i.bookUsd * 0.10))
+  // ── SIZE — A9 §3 $50 flat; A9.1 §1: the 15% sleeve cap, 10% per-name cap and 5% uncommitted-cash floor take
+  //    precedence; a compliant size under $50 is a SKIP (capped at D); half in the macro window or on a +15% BULL day ──
+  const sleeveUsd = i.sleeveUsd ?? 0, nameUsd = i.nameUsd ?? 0
+  let usd = MIN_ENTRY
   let cappedBy: string | null = null
-  if (i.halfSize) { usd = round2(Math.max(i.bookUsd >= 500 ? 50 : 10, usd / 2)); cappedBy = 'macro half-size (until the FOMC close 09-16)' }
-  const spendable = round2(i.cashUsd - floor)
-  if (usd > spendable) {
-    ded(25, `would breach the 10% cash floor (cash $${i.cashUsd.toFixed(0)}, floor $${floor.toFixed(0)}, room $${Math.max(0, spendable).toFixed(0)})`)
-    if (spendable >= (i.bookUsd >= 500 ? 50 : 10)) { usd = spendable; cappedBy = 'cash floor' } else capD = true
+  const limits: [number, string][] = [
+    [i.bookUsd * SLEEVE_CAP - sleeveUsd, `sleeve cap 15% ($${(i.bookUsd * SLEEVE_CAP).toFixed(0)}, $${sleeveUsd.toFixed(0)} used)`],
+    [i.bookUsd * NAME_CAP - nameUsd, 'per-name cap 10%'],
+    [i.cashUsd - floor, `5% uncommitted-cash floor (cash $${i.cashUsd.toFixed(0)}, floor $${floor.toFixed(0)})`],
+  ]
+  for (const [room, why] of limits) if (room < usd) { usd = round2(Math.max(0, room)); cappedBy = why }
+  if (usd < MIN_ENTRY) { ded(25, `compliant size $${usd.toFixed(0)} is under the $${MIN_ENTRY} minimum (${cappedBy}) — A9.1: SKIP`); capD = true }
+  const halveDay = bull && i.d1 != null && i.d1 >= 15
+  if (i.halfSize || halveDay) {
+    usd = round2(usd / 2); cappedBy = i.halfSize ? 'macro half-size window (until the FOMC close 09-16 16:00 MT)' : 'A9 §4: +15% day in BULL = half size'
+    if (usd < MIN_ENTRY) { ded(10, `half-size $${usd.toFixed(0)} is under the $${MIN_ENTRY} minimum — a $50 entry needs Jacob's per-trade override here`); capD = true }
   }
   if (usd > i.cashUsd) { usd = round2(Math.max(0, i.cashUsd)); cappedBy = 'buying power' }
 
@@ -154,7 +180,7 @@ export function gradeTiming(i: TimingInput): TimingResult {
   if (capD && (grade === 'A' || grade === 'B' || grade === 'C')) grade = 'D'
   return {
     grade, score, hard, soft, plus,
-    size: { usd, pctBook: i.bookUsd ? round2((usd / i.bookUsd) * 100) : 0, halfSize: i.halfSize, cappedBy },
+    size: { usd, pctBook: i.bookUsd ? round2((usd / i.bookUsd) * 100) : 0, halfSize: i.halfSize || halveDay, cappedBy, book: i.signal ? 'SLEEVE-RULE' : 'OWNER-BOOK' },
     stop,
     buyable: hard.length === 0 && (grade === 'A' || grade === 'B' || grade === 'C') && usd > 0,   // D = override only, F = never
     overridable: hard.length === 0 && usd > 0,

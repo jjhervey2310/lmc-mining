@@ -1,7 +1,7 @@
 [Unit]
-Description=LMC deep wake once each morning (event-driven runs happen on top of this)
+Description=LMC deep reasoning wake — 4x/day 00:07 / 06:07 / 12:07 / 18:07 MT (A9.1 cadence; escalations run on demand)
 [Timer]
-OnCalendar=*-*-* 07:07:00
+OnCalendar=*-*-* 00,06,12,18:07:00
 Persistent=true
 [Install]
 WantedBy=timers.target
