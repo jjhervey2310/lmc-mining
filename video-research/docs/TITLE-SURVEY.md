@@ -1,4 +1,4 @@
-# Title survey — The Sniper Crypto Trading Show
+# Title survey — Sniper show, Benjamin Cowen, Crypto Banter
 
 **Run 2026-09-13 from the session container. Costs nothing, needed no transcripts.**
 
@@ -82,3 +82,71 @@ the corpus that an invalidation might be stated aloud.
   needs the transcripts, which need a non-gated IP.
 
 No method record, hypothesis or call was created by this survey. It reads titles only.
+
+
+---
+
+# Extension: all three upload corpora (2026-09-15)
+
+The Sniper survey above was re-run over Benjamin Cowen's and Crypto Banter's upload
+tabs. Both enumerated cleanly this time — no `Incomplete data` retries — returning 2,517
+and 900 titles against stored counts of 2,516 and 900. (Cowen's extra one is a newer
+upload than the stored inventory, not a duplicate.)
+
+## The same terms, across 4,321 titles
+
+| Term | Sniper show | Benjamin Cowen | Crypto Banter |
+|---|---|---|---|
+| `stop loss` / `stop-loss` / `stoploss` | 0 | **0** | **0** |
+| `invalidat*` | 0 | **0** | **0** |
+| `position siz*` | 0 | **0** | **0** |
+| `R:R` | 0 | **0** | **0** |
+| `risk management` | 1 | **8** | 1 |
+| `risk/reward` | 0 | 1 | 0 |
+| `backtest` | 0 | 0 | 2 |
+| `entry` | 6 | 1 | 3 |
+| `exit` | 2 | 3 | 1 |
+| **titles read** | 904 | 2,517 | 900 |
+
+Zero stops and zero invalidations in 4,321 titles, across three independent channels.
+Still a statement about what titles sell, not about what is said on camera — but it is now
+consistent across every source in scope rather than a quirk of one show.
+
+## The finding that reorders the batch
+
+Cowen's risk-management titles are not the same kind of object as Banter's:
+
+| Video | Len | Title |
+|---|---|---|
+| `6CiFVI24CXM` | 19m | Bitcoin Risk Metric: How I Navigate Crypto |
+| `FM8o8OVo4-Q` | 22m | Total Crypto Market Cap Risk Metric \| How I Navigate Crypto |
+| `ReziClqylXA` | 34m | Bitcoin: Entry/Exit Strategies |
+| `_lR7SPZbGSE` | 16m | Bitcoin risk to better time entries and exits |
+| `FznCM6rYki0` | 17m | Bitcoin: Risk management with buying and selling |
+| `0QrCU9V0qEU` | 16m | Managing portfolio risk/reward: a logarithmic weighting of market cap |
+| `hx_neha7BVQ` | 39m | Bitcoin Dynamic DCA: How I Navigate Crypto |
+
+These name a **computed quantity** — a risk metric, a logarithmic regression band, a
+weighting — not a drawn line. That matters more than the word counts, because the single
+largest gap in this project is that **no chart is inspected and nothing here decodes a
+frame**. A rule phrased as "risk metric below 0.3" is testable from price history alone.
+A rule phrased as "price holds the trend line I drew" is not testable at all without the
+picture, and every method extracted so far has been the second kind.
+
+So Cowen is the better first batch than the Sniper show, for a reason unrelated to volume:
+**his rules may be reconstructable without the video.** That is the property that decides
+whether anything in this archive can reach `PRECISE_AND_TESTABLE`.
+
+Crypto Banter's own outliers are worth noting for later — `_tMzs9cD-4g` and `pQ4kH5P_D0I`
+claim backtests, and `-KHDhaB3f1U` teaches trade journaling — but two of the three are
+bot/tool promotions and should be expected to classify `SPONSORED_PROMOTIONAL`.
+
+## Revised priority
+
+1. **Cowen risk-metric set** (7 videos, ~2.6h) — most likely to yield a rule testable
+   without chart reading.
+2. Sniper non-sponsored set (6 videos, ~2.9h) — as listed above.
+3. Everything else — only if 1 or 2 produces a stated invalidation.
+
+Unchanged: this is a title survey. It creates no method record, no hypothesis and no call,
+and it cannot establish what any video actually says. Transcripts remain blocked.
