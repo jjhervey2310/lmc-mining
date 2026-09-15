@@ -22,6 +22,24 @@ if ap.exists():
     except Exception:
         pass
     ap.unlink(missing_ok=True)
+
+# BUILD REQUEST #13: each anchor's distance to its 20-week MA rides EVERY heartbeat, so a quiet night
+# is a reported quiet night. BTC and SOL carry no resting stop — silence was standing in for one, and
+# that is how five nights passed with nothing watching 69% of the book. If the monitor has not run,
+# this says so instead of saying nothing.
+a11 = STATE / "a11_status.json"
+if a11.exists():
+    try:
+        st = json.loads(a11.read_text())
+        age_h = (datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(st["at"]).astimezone(datetime.timezone.utc)).total_seconds() / 3600
+        extra += f"\n\nA11 anchors ({st.get('inputs_ok', '?')}/3 inputs, checked {age_h:.0f}h ago): {st['line']}."
+        if st.get("fired"):
+            extra += f" DE-RISK FIRED: {', '.join(st['fired'])} — order spec in loop-briefs."
+    except Exception as e:
+        extra += f"\n\nA11 anchors: status file unreadable ({e}) — anchors NOT confirmed watched."
+else:
+    extra += "\n\nA11 anchors: no status file — the monitor has not run. Anchors NOT confirmed watched."
+
 ntfy("💓 Desk loop heartbeat", msg + extra, "low", force=True)
 sb_upsert("pa_memory", [{"topic": "loop-heartbeat", "fact": f"{now_denver().isoformat()} — {msg}", "source": "desk-loop", "active": True,
                          "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")
