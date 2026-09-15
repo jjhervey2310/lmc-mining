@@ -1,7 +1,7 @@
 [Unit]
-Description=LMC history sync 06:20 MT daily, ahead of the 06:45 breakout scan
+Description=LMC daily history sync 05:35 MT — must finish before the 05:50 breakout scan and the 06:07 wake
 [Timer]
-OnCalendar=*-*-* 06:20:00
+OnCalendar=*-*-* 05:35:00
 Persistent=true
 [Install]
 WantedBy=timers.target

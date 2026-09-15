@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { resolveIds, cgFetch, lastKnownPrices, coinbaseSpot } from '@/lib/desk-cg'
-import { gradeTiming, ANCHOR, type TimingInput } from '@/lib/desk-timing'
+import { gradeTiming, ANCHOR, type TimingInput, type Regime } from '@/lib/desk-timing'
 import { rhConfigured, bestBidAsk } from '@/lib/robinhood'
 
 // TIMING CHECK for one symbol: up-to-date price + 24h volume + an A–F grade against the house laws
@@ -30,16 +30,18 @@ export async function buildTiming(symbol: string) {
     return new Date(mon.getTime() - DENVER_OFFSET_H * 3600e3).toISOString()
   })()
 
-  const [holdQ, trigQ, tradesQ, cfgQ, histQ, mkt, chart] = await Promise.all([
+  const [holdQ, trigQ, tradesQ, cfgQ, histQ, btcHistQ, mkt, chart] = await Promise.all([
     supabase.from('live_holdings').select('symbol, qty, avg_cost'),
     supabase.from('desk_triggers').select('symbol, kind, level').eq('active', true),
     supabase.from('live_trades').select('symbol, side, traded_at').gte('traded_at', weekStart).eq('side', 'buy'),
-    supabase.from('desk_config').select('key, value').in('key', ['loop_enabled', 'macro_half_size', 'entry_blackout']),
+    supabase.from('desk_config').select('key, value').in('key', ['loop_enabled', 'macro_half_size', 'entry_blackout', 'sleeve_breaker', 'regime']),
     // The droplet already syncs a year of daily closes per id into cg_history, so
     // the 20-day high does not need a CoinGecko call at all for a name in the
     // universe. That matters because the chart call is the one that gets
     // rate-limited, and without a 20-day high the RUNNING law cannot be checked.
     supabase.from('cg_history').select('id, symbol, prices, updated_at').or(`id.eq.${cgId},symbol.eq.${sym}`).limit(1),
+    // A9 §4 regime: BTC's stored year of closes (rising 200-day SMA test). desk_config.regime overrides.
+    supabase.from('cg_history').select('prices').eq('id', 'bitcoin').limit(1),
     cgFetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${cgId},bitcoin&price_change_percentage=24h,7d,30d`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
     // Why the chart failed matters: a rate-limited fetch used to look identical to a
     // coin with no history, and both silently removed the RUNNING extension law from
@@ -91,10 +93,9 @@ export async function buildTiming(symbol: string) {
     : chart.status === 429 ? 'CoinGecko rate-limited the 30-day chart (429)'
     : `CoinGecko chart fetch failed (${chart.status || 'network error'})`
   const prices = ((chartData?.prices ?? []) as [number, number][]).map((p) => p[1])
-  const vols = ((chartData?.total_volumes ?? []) as [number, number][]).map((v) => v[1])
   // The last point of a CoinGecko daily series is today's incomplete bar, and
   // cg_history stores that series verbatim — so both get the same trim.
-  const completedPx = prices.slice(0, -1), completedVol = vols.slice(0, -1)
+  const completedPx = prices.slice(0, -1)
   const highOf = (px: number[]) => px.length >= 5 ? Math.max(...px.slice(-20)) : null
 
   // 20-day high, preferring the stored series: no call, no rate limit. Stale rows
@@ -144,6 +145,7 @@ export async function buildTiming(symbol: string) {
     : chartFailure ? `${chartFailure} — 20-day high served from cg_history, volume unconfirmed`
     : null
 
+  const input_rs7 = () => me?.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null
   const holdings = (holdQ.data ?? []) as { symbol: string; qty: number; avg_cost: number }[]
   const cash = Number(holdings.find((h) => h.symbol === 'USD')?.qty ?? 0)
   const positions = holdings.filter((h) => h.symbol !== 'USD' && Number(h.qty) > 0)
@@ -162,10 +164,37 @@ export async function buildTiming(symbol: string) {
   const stalePriced = missing.filter((p) => fallback[heldIds[p.symbol]]).map((p) => p.symbol)
   const cfg = Object.fromEntries(((cfgQ.data ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value]))
   const nowIso = new Date().toISOString()
-  const blackoutCfg = cfg.entry_blackout ?? '2026-09-14T00:00:00Z/2026-09-17T06:00:00Z|FOMC blackout Sept 13 18:00 MT – Sept 16 close'
-  const [range, label] = blackoutCfg.split('|'); const [b0, b1] = range.split('/')
-  const blackout = b0 && b1 && nowIso >= b0 && nowIso <= b1 ? (label ?? 'entry blackout') : null
-  const halfSize = cfg.macro_half_size != null ? String(cfg.macro_half_size).toLowerCase() === 'true' : nowIso < '2026-09-17T00:00:00Z'
+  // A9.1 §2: the blackout law covers CPI and FOMC. desk_config.entry_blackout = "startISO/endISO|label" windows joined by ';'.
+  const blackoutCfg = cfg.entry_blackout ?? '2026-09-09T12:30:00Z/2026-09-11T15:30:00Z|CPI blackout Sept 9 06:30 MT – Sept 11 09:30 MT;2026-09-14T18:00:00Z/2026-09-16T22:00:00Z|FOMC blackout Sept 14 12:00 MT – Sept 16 16:00 MT'
+  const blackout = blackoutCfg.split(';').map((e) => { const [range, label] = e.split('|'); const [b0, b1] = (range ?? '').split('/'); return b0 && b1 && nowIso >= b0 && nowIso <= b1 ? (label ?? 'entry blackout') : null }).find(Boolean) ?? null
+  const halfSize = cfg.macro_half_size != null ? String(cfg.macro_half_size).toLowerCase() === 'true' : nowIso < '2026-09-16T22:00:00Z'
+  // A9 §3 breakout signal on the LAST COMPLETED close (window = the 20 completed days before it, today excluded).
+  const sigCloses = histCloses.length ? histCloses.slice(0, -1) : completedPx
+  const lastClose = sigCloses.length ? sigCloses[sigCloses.length - 1] : null
+  const sigWin = sigCloses.slice(-21, -1)
+  const sigHi = sigWin.length >= 5 ? Math.max(...sigWin) : null
+  const lo20 = sigWin.length >= 5 ? Math.min(...sigWin) : null
+  const sigRs = input_rs7()
+  const sigParts = {
+    high: lastClose != null && sigHi != null && lastClose > sigHi,
+    vol: vol24hUnified != null && avgVol20 != null && vol24hUnified >= 1.5 * avgVol20,
+    rs: sigRs != null && sigRs > 0,
+    ext: lastClose != null && sigHi != null && lastClose / sigHi - 1 <= 0.15,
+  }
+  const signal: boolean | null = lastClose == null || sigHi == null ? null : (sigParts.high && sigParts.vol && sigParts.rs && sigParts.ext)
+  const signalWhy = lastClose == null || sigHi == null ? 'no completed-close history' : [`close ${sigParts.high ? '>' : '≤'} 20d high`, `vol ${vol24hUnified != null && avgVol20 ? (vol24hUnified / avgVol20).toFixed(1) + 'x' : '?'} ${sigParts.vol ? '≥' : '<'} 1.5x`, `RS ${sigParts.rs ? '>' : '≤'} BTC`].join(', ')
+  // REGIME: desk_config.regime overrides; else BTC's last completed close vs a RISING 200-day SMA with the 50-day above it.
+  const btcCloses = (((btcHistQ.data ?? []) as { prices: number[][] | null }[])[0]?.prices ?? []).map((r) => r[1]).filter((v) => typeof v === 'number' && v > 0).slice(0, -1)
+  const sma = (arr: number[], n: number, back = 0) => arr.length >= n + back ? arr.slice(arr.length - n - back, arr.length - back).reduce((a, b) => a + b, 0) / n : null
+  const s200 = sma(btcCloses, 200), s200prev = sma(btcCloses, 200, 20), s50 = sma(btcCloses, 50)
+  const btcLast = btcCloses.length ? btcCloses[btcCloses.length - 1] : null
+  const ov = String(cfg.regime ?? '').toUpperCase()
+  const regime: Regime = ov === 'BULL' || ov === 'NEUTRAL' || ov === 'BEAR' ? (ov as Regime)
+    : btcLast != null && s200 != null && s200prev != null && s50 != null ? (btcLast > s200 && s200 > s200prev && s50 > s200 ? 'BULL' : btcLast < s200 && s50 < s200 ? 'BEAR' : 'NEUTRAL') : 'NEUTRAL'
+  const regimeWhy = ov ? 'desk_config override' : btcLast != null && s200 != null ? `BTC ${btcLast.toFixed(0)} vs 200d ${s200.toFixed(0)} (${s200prev != null && s200 > s200prev ? 'rising' : 'not rising'}), 50d ${s50?.toFixed(0) ?? '?'}` : 'no BTC history in cg_history — bars applied in full'
+  const sleeveUsd = positions.filter((p) => !ANCHOR.has(p.symbol)).reduce((s, p) => s + Number(p.qty) * (priceOf(p.symbol) ?? 0), 0)
+  const mine = positions.find((p) => p.symbol === sym)
+  const nameUsd = mine ? Number(mine.qty) * (priceOf(sym) ?? livePrice) : 0
 
   const input: TimingInput = {
     symbol: sym, price: livePrice, priceStale,
@@ -179,6 +208,7 @@ export async function buildTiming(symbol: string) {
     weeklyEntries: new Set(((tradesQ.data ?? []) as { symbol: string }[]).map((t) => t.symbol).filter((s) => !ANCHOR.has(s))).size,
     blackout, halted: String(cfg.loop_enabled ?? 'true').toLowerCase() !== 'true',
     halfSize, held: positions.some((p) => p.symbol === sym),
+    signal, signalWhy, regime, regimeWhy, breaker: cfg.sleeve_breaker ? String(cfg.sleeve_breaker) : null, sleeveUsd, nameUsd,
   }
   const result = gradeTiming(input)
   return {
@@ -187,6 +217,7 @@ export async function buildTiming(symbol: string) {
     d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (livePrice / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
     tapeError, hi20Source,
     book, cash, slots: input.slots, sleeveCount: input.sleeveCount, weeklyEntries: input.weeklyEntries, blackout, halfSize,
+    signal, signalWhy, regime, regimeWhy, breaker: input.breaker, sleeveUsd, sleeveCap: book * 0.15, lo20,
     book_health: { unpriced, stale_priced: stalePriced, trustworthy: unpriced.length === 0 },
     ...result,
     rh_configured: rhConfigured(),

@@ -4,7 +4,7 @@
 Signal (same as backtest.py): close > 20d high, volume >= 1.5x 20d avg, 7d RS > BTC, <=15% above the high.
 Writes state/breakouts.json (triage escalates on a fresh one) and pa_memory 'breakout-signals'.
 Free: daily bars cached under state/hist (refreshed once a day, 2.5s spacing to respect the free tier)."""
-import json, time, time, datetime, statistics as st
+import json, time, datetime, statistics as st
 from common import *
 from backtest import universe, id_map, history, LOOKBACK, VOL_MULT, MAX_EXT
 
@@ -56,12 +56,20 @@ def main():
         bars, why = cached_bars(s)
         if not bars:
             unseen.append(f"{s} ({why})"); continue
-        if len(bars) < LOOKBACK + 8: unseen.append(f"{s} (only {len(bars)} bars)"); continue
+        if len(bars) < LOOKBACK + 9: unseen.append(f"{s} (only {len(bars)} bars)"); continue
+        # #9 NOTE (09-07, NEAR missed on 09-04): the rule is a COMPLETED daily close above the PRIOR 20 days.
+        # Coinbase's last daily candle is today's partial bar whenever the sync runs after 00:00 UTC, so the
+        # signal bar is the last bar that closed before today, and its 20-day window ends the day before it.
+        today_utc = datetime.datetime.now(datetime.timezone.utc).date()
         i = len(bars) - 1
+        while i > 0 and datetime.datetime.fromtimestamp(bars[i]["t"], datetime.timezone.utc).date() >= today_utc: i -= 1
         c, v = bars[i]["c"], bars[i]["v"]
         w = bars[i - LOOKBACK:i]
         hi20 = max(b["c"] for b in w); avgv = st.mean(b["v"] for b in w) or 1
-        r7 = c / bars[i - 7]["c"] - 1; btc7 = btc[-1]["c"] / btc[-8]["c"] - 1
+        # BTC's 7-day return on the same completed bar (aligned by timestamp; never its partial bar)
+        bi = next((k for k in range(len(btc) - 1, -1, -1) if btc[k]["t"] <= bars[i]["t"]), None)
+        if bi is None or bi < 7: unseen.append(f"{s} (no BTC bar for {datetime.datetime.fromtimestamp(bars[i]['t'], datetime.timezone.utc).date()})"); continue
+        r7 = c / bars[i - 7]["c"] - 1; btc7 = btc[bi]["c"] / btc[bi - 7]["c"] - 1
         ext = c / hi20 - 1; volx = v / avgv
         row = {"symbol": s, "price": c, "hi20": round(hi20, 6), "ext_pct": round(ext * 100, 1),
                "vol_x": round(volx, 2), "rs7_vs_btc": round((r7 - btc7) * 100, 1)}
