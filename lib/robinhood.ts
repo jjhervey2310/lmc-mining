@@ -99,14 +99,20 @@ const OPEN_STATES = ['open', 'queued', 'confirmed', 'partially_filled', 'new', '
  *  empty `open` list from a key that can see NOTHING is a different fact from an empty list from a
  *  key that can see fifty closed orders, and only the second one means "nothing is armed". The first
  *  run of this shipped without that distinction and deleted a snapshot of seven live orders. */
-export async function listOpenOrders(): Promise<{ orders: OpenOrder[]; seen: number }> {
+export async function listOpenOrders(): Promise<{ orders: OpenOrder[]; closed: OpenOrder[]; seen: number; states: string[] }> {
   const byState = await call<{ results?: OpenOrder[] }>('GET', '/api/v1/crypto/trading/orders/?state=open')
     .catch(() => ({ results: undefined }))
-  if (byState.results?.length) return { orders: byState.results, seen: byState.results.length }
+  if (byState.results?.length) return { orders: byState.results, closed: [], seen: byState.results.length, states: ['open'] }
   // The state filter is not accepted on every account; fall back to the unfiltered page and filter here.
   const all = await call<{ results?: OpenOrder[] }>('GET', '/api/v1/crypto/trading/orders/')
   const rows = all.results ?? []
-  return { orders: rows.filter((o) => OPEN_STATES.includes((o.state ?? '').toLowerCase())), seen: rows.length }
+  const open = rows.filter((o) => OPEN_STATES.includes((o.state ?? '').toLowerCase()))
+  return {
+    orders: open,
+    closed: rows.filter((o) => !OPEN_STATES.includes((o.state ?? '').toLowerCase())),
+    seen: rows.length,
+    states: [...new Set(rows.map((o) => (o.state ?? '?').toLowerCase()))].slice(0, 8),
+  }
 }
 
 /** The price an open order rests at, whichever config it carries. Null when there is no level to

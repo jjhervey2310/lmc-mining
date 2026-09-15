@@ -16,11 +16,13 @@ export const revalidate = 0
 // whatever the desk last wrote. The age is always returned with it, because "no rows" and "we could
 // not ask" are different answers and only one of them means NOT ARMED.
 let lastOrderSync = 0
+let lastSyncNote: string | null = null   // what the last broker call actually saw — the only way to debug this from prod
 async function syncOpenOrders(supabase: SupabaseClient): Promise<void> {
   if (!rhConfigured() || Date.now() - lastOrderSync < 120_000) return
   lastOrderSync = Date.now()
   try {
-    const { orders, seen } = await listOpenOrders()
+    const { orders, closed, seen, states } = await listOpenOrders()
+    lastSyncNote = `${new Date().toISOString()} seen=${seen} open=${orders.length} states=${states.join('/') || 'none'}`
     // A key that can see NOTHING AT ALL is not a broker saying "nothing is armed". Keep the existing
     // snapshot, leave its timestamp alone so the page ages it into "unknown", and write nothing.
     if (!orders.length && seen === 0) return
@@ -31,13 +33,17 @@ async function syncOpenOrders(supabase: SupabaseClient): Promise<void> {
       level: orderLevel(o), qty: orderQty(o), notional: null,
       state: o.state, created_at: o.created_at ?? null, synced_at: new Date().toISOString(),
     })).filter((r) => r.symbol)
-    // Replace the snapshot wholesale: an order that has filled or been cancelled must disappear, or
-    // the tab would go on calling a dead level "armed".
-    const keep = rows.map((r) => r.order_id)
     if (rows.length) await supabase.from('broker_open_orders').upsert(rows, { onConflict: 'order_id' })
-    await supabase.from('broker_open_orders').delete().not('order_id', 'in', `(${keep.map((k) => `"${k}"`).join(',') || '""'})`)
-    await supabase.from('desk_config').upsert({ key: 'open_orders_synced_at', value: new Date().toISOString() }, { onConflict: 'key' })
-  } catch { /* leave the last snapshot and its age in place — a failed sync is never an empty book */ }
+    // REMOVE ONLY WHAT THE BROKER EXPLICITLY REPORTS AS NO LONGER OPEN. The first version cleared
+    // every row the response did not mention, which erased seven live orders the moment one API
+    // call came back thin. An order we were not told about is an order we know nothing about.
+    const goneIds = closed.map((o) => o.id).filter(Boolean)
+    if (goneIds.length) await supabase.from('broker_open_orders').delete().in('order_id', goneIds)
+    if (rows.length) await supabase.from('desk_config').upsert({ key: 'open_orders_synced_at', value: new Date().toISOString() }, { onConflict: 'key' })
+  } catch (e) {
+    // Leave the last snapshot and its age in place — a failed sync is never an empty book.
+    lastSyncNote = `${new Date().toISOString()} sync failed: ${e instanceof Error ? e.message.slice(0, 160) : 'unknown'}`
+  }
 }
 
 export async function GET(req: Request) {
@@ -115,7 +121,8 @@ export async function GET(req: Request) {
     theses: th.data ?? null,
     orders: oo.data ?? null,                                    // null = unreachable, [] = genuinely nothing resting
     orders_synced_at: (ooAt.data as { value?: string } | null)?.value || null,
-    orders_live: rhConfigured(),                                // false = the snapshot is only as fresh as the desk's last write
+    orders_live: rhConfigured(),
+    orders_sync_note: lastSyncNote,                                // false = the snapshot is only as fresh as the desk's last write
     book: unpriced.length ? null : posValue + cashUsd,
     pos_value: unpriced.length ? null : posValue,
     cash_usd: cashUsd,
