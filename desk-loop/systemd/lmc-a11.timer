@@ -1,0 +1,11 @@
+[Unit]
+# Hourly. Deliberately NOT inside wake.sh: wake.sh exits when the AI spend cap trips, and a safety
+# monitor must not stop watching the book because the token budget ran out.
+Description=A11 anchor monitoring — BTC/SOL vs their 20-week MA, hourly
+
+[Timer]
+OnCalendar=*-*-* *:20:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

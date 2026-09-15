@@ -18,16 +18,23 @@ import PerfChart, { type PerfItem } from './perf-chart'
 //   3. Portfolio chart (server-rendered) + realized line.  4. Armed lines.  5. Collapsed panels.
 // Numbers never come from thesis text. Everything re-fetches every 60s from /api/fund/state + CoinGecko.
 
-interface Holding { symbol: string; qty: number; avg_cost: number; synced_at: string }
+interface Holding { symbol: string; qty: number; avg_cost: number; synced_at: string; basis_source?: string | null }
 interface Trigger { symbol: string; kind: string; level: number; band_pct: number | null; spec: string | null }
 interface Alert { at: string; symbol: string; kind: string; level: number | null; price: number | null; sent: boolean | null; queued: boolean | null; note: string | null }
 interface Board { fact: string; updated_at: string }
-export interface Thesis { symbol: string; status: string; thesis: string | null; gate: string | null; updated_at: string | null }
+export interface Thesis {
+  symbol: string; status: string; thesis: string | null; gate: string | null; updated_at: string | null
+  buy_rank?: number | null; entry_level?: number | null; entry_note?: string | null
+}
+/** A RESTING order at the broker (build request #14b). desk_triggers says what the desk meant to arm;
+ *  this says what Robinhood is actually holding. */
+export interface OpenOrder { order_id: string; symbol: string; side: string | null; order_type: string | null; level: number | null; qty: number | null; state: string | null; created_at: string | null; synced_at: string }
 export interface RadarRow { symbol: string; stage: string; score: number; turnover: number; d1: number; d7: number; d30: number; price: number; scan_date: string }
 export interface FlowRow { symbol: string; flow_score: number | null; stage: string | null; fees_wow: number | null; vol_wow: number | null; scan_date: string }
 export interface DeskState {
   holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; strategy: Board | null
   theses?: Thesis[] | null; radar?: RadarRow[] | null; flow?: FlowRow[] | null; loop_enabled?: boolean | null; at: string
+  orders?: OpenOrder[] | null; orders_synced_at?: string | null; orders_live?: boolean
   // Priced once on the SERVER, on the same chain as everything else. book is null when any position
   // could not be priced — unknown, never silently zero.
   book?: number | null; pos_value?: number | null; cash_usd?: number | null
@@ -61,6 +68,14 @@ const fmt = (n: number) =>
   : n > 0 ? `$${n.toPrecision(3)}`
   : '$0'
 const usd2 = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// Buy-board prices (build request #17c): whole dollars above $1,000, cents between, four significant
+// figures below a dollar with trailing zeros trimmed. Its own formatter rather than a change to `fmt`,
+// which prices the holdings table, the queue and every timing panel.
+const bfmt = (n: number) =>
+  n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}`
+  : n >= 1 ? `$${n.toFixed(2)}`
+  : n > 0 ? `$${Number(n.toPrecision(4))}`
+  : '$0'
 const big = (n: number) => n >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}k` : `$${n.toFixed(0)}`
 const denver = (iso: string) =>
   new Date(iso).toLocaleString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -93,6 +108,9 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const [open, setOpen] = useState<string | null>(null)
   const [thesisOpen, setThesisOpen] = useState<Record<string, boolean>>({})
   const [showBelowC, setShowBelowC] = useState(false)
+  const [priceMeta, setPriceMeta] = useState<{ at: string | null; stale: boolean; error: string | null; missing: string[] }>({ at: null, stale: true, error: null, missing: [] })
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  const [showWatch, setShowWatch] = useState(false)
   const [timing, setTiming] = useState<Record<string, Timing | { error: string } | 'loading' | undefined>>({})
   const [buying, setBuying] = useState<Record<string, BuyResult | 'working' | undefined>>({})
 
@@ -126,6 +144,11 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const holdings = state.holdings ?? []
   const positions = holdings.filter((h) => h.symbol !== 'USD' && Number(h.qty) > 0)
   const held = new Set(positions.map((p) => p.symbol))
+  // BUILD REQUEST #15 — basis caveat, shown and never hidden. Robinhood reports direct_cost_basis 0 on
+  // every crypto position in this account (the original units were transferred in from Kraken), so the
+  // entry prices here are DESK-TRACKED unless a row says otherwise. Any figure built on them carries an
+  // asterisk rather than an implied broker confirmation.
+  const deskBasis = positions.filter((p) => (p.basis_source ?? 'desk') !== 'broker').map((p) => p.symbol)
   const RANK: Record<string, number> = { POLE: 0, WATCH: 1, VERIFYING: 2 }
   const queue = theses.filter((t) => t.status in RANK && !held.has(t.symbol)).sort((a, b) => RANK[a.status] - RANK[b.status] || a.symbol.localeCompare(b.symbol))
   // AUTO-GRADE THE QUEUE. The C+ filter was inert because a name is only graded when you tap Timing,
@@ -165,6 +188,19 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   // during render (the queue sort runs it immediately). They used to sit 100 lines lower, which
   // threw 'Cannot access flowFor before initialization' and blanked the whole tab — TypeScript
   // cannot catch it because the reference is inside a closure and only fails when that closure runs.
+  // ── ARMED AT THE BROKER (build request #14b) ──────────────────────────────────────────────────
+  // Three possible answers, and they must stay three: ARMED (an order is resting, here is its id and
+  // level), NOT ARMED (we asked the broker and there is nothing), and UNKNOWN (we could not ask, or
+  // the snapshot is too old to stand behind). Collapsing UNKNOWN into NOT ARMED would be the same
+  // defect as a failed fetch rendering as a zero.
+  const orderRows = state.orders ?? null
+  const ordersAgeH = hoursOld(state.orders_synced_at ?? orderRows?.[0]?.synced_at ?? null)
+  const ordersKnown = orderRows !== null && ordersAgeH <= 6
+  // Buy-side resting orders are no longer rendered anywhere (#18 took the armed column off the board),
+  // but they stay in the payload for the desk's own reconciliation. The stop side IS still shown, on
+  // the holdings table, because a position with no resting stop is a fact he needs on the face.
+  const restingStop = (sym: string) =>(orderRows ?? []).find((o) => o.symbol === sym && (o.side ?? '').toLowerCase() === 'sell' && o.level != null) ?? null
+
   const trig = (sym: string, kinds: string[]) => (state.triggers ?? []).filter((t) => t.symbol === sym && kinds.includes(t.kind))
   const thesisFor = (sym: string) => theses.find((t) => t.symbol === sym) ?? null
   const radarFor = (sym: string) => (state.radar ?? []).find((r) => r.symbol === sym) ?? null
@@ -249,36 +285,46 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     const T = tm && tm !== 'loading' && !('error' in tm) ? tm : null
     return T != null && ['A', 'B', 'C'].includes(T.grade)
   })?.symbol ?? null
-  const liveSyms = [...new Set([...positions.map((p) => p.symbol), ...queue.map((t) => t.symbol)])]
+  // Every name that needs a live number: held, queued, and anything the desk has ranked onto the buy board.
+  const liveSyms = [...new Set([...positions.map((p) => p.symbol), ...queue.map((t) => t.symbol), ...theses.filter((t) => t.buy_rank != null).map((t) => t.symbol)])]
   const liveKey = liveSyms.join(',')
 
-  // 60s: live price + 24h/7d/30d + 24h volume for held and queued symbols (one CoinGecko markets call).
+  // 60s: live price + 24h/7d/30d + 24h volume for held and queued symbols.
+  // BUILD REQUEST #14(a). This used to call CoinGecko straight from the browser, once per open tab,
+  // which is what stopped the feed updating: every tab was its own anonymous client of a rate-limited
+  // endpoint. Now it asks OUR route, which makes one keyed upstream call per 45s and shares it. The
+  // route returns the age of the numbers it is serving, so the stamp below is the age of the DATA and
+  // never of the request — a silent stale price is worse than no price.
   useEffect(() => {
     const syms = liveKey ? liveKey.split(',') : []
-    const ids = [...new Set(syms.map((s) => cg[s.toUpperCase()]).filter(Boolean))]
-    if (!ids.length) return
+    if (!syms.length) return
     let dead = false
     const pull = async () => {
       try {
-        const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids.join(',')}&price_change_percentage=24h,7d,30d&per_page=250`)
-        if (!r.ok) return
-        const rows = (await r.json()) as { id: string; current_price: number; total_volume?: number; price_change_percentage_24h_in_currency?: number; price_change_percentage_7d_in_currency?: number; price_change_percentage_30d_in_currency?: number }[]
+        const r = await fetch(`/api/fund/prices?secret=${encodeURIComponent(secret)}&symbols=${syms.join(',')}`, { cache: 'no-store' })
+        if (!r.ok) { if (!dead) setPriceMeta((m) => ({ ...m, error: `price route HTTP ${r.status}` })); return }
+        const j = (await r.json()) as { at: string | null; stale: boolean; error: string | null; missing?: string[]; prices: Record<string, Live & { src?: string }> }
         if (dead) return
-        const byId = Object.fromEntries(rows.map((x) => [x.id, x]))
+        setPriceMeta({ at: j.at, stale: j.stale, error: j.error, missing: j.missing ?? [] })
         setLive((prev) => {
           const next = { ...prev }
-          for (const s of syms) {
-            const x = byId[cg[s.toUpperCase()]]
-            if (x?.current_price) next[s] = { price: x.current_price, d1: x.price_change_percentage_24h_in_currency ?? null, d7: x.price_change_percentage_7d_in_currency ?? null, d30: x.price_change_percentage_30d_in_currency ?? null, vol: x.total_volume ?? null }
-          }
+          for (const [sym, v] of Object.entries(j.prices ?? {})) if (v?.price) next[sym] = { price: v.price, d1: v.d1 ?? null, d7: v.d7 ?? null, d30: v.d30 ?? null, vol: v.vol ?? null }
           return next
         })
-      } catch { /* keep last good */ }
+      } catch (e) { if (!dead) setPriceMeta((m) => ({ ...m, error: e instanceof Error ? e.message : 'price fetch failed' })) }
     }
     pull()
     const iv = setInterval(pull, 60_000)
     return () => { dead = true; clearInterval(iv) }
-  }, [liveKey, cg])
+  }, [liveKey, secret])
+
+  // Age of the prices on screen, recomputed every 15s so the banner appears without a refresh.
+  useEffect(() => { const iv = setInterval(() => setNowTick(Date.now()), 15_000); return () => clearInterval(iv) }, [])
+  const priceAgeMs = priceMeta.at ? nowTick - new Date(priceMeta.at).getTime() : null
+  const pricesStale = priceMeta.at == null || (priceAgeMs != null && priceAgeMs > 180_000)
+  const priceStamp = priceMeta.at
+    ? new Date(priceMeta.at).toLocaleTimeString('en-US', { timeZone: 'America/Denver', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : null
 
   const cash = Number(holdings.find((h) => h.symbol === 'USD')?.qty ?? 0)
   const board = state.board?.fact ?? ''
@@ -358,10 +404,25 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         </div>
       )}
 
+      {/* PRICE FEED STATE (build request #14a). Loud when the prices on screen are older than three
+          minutes: the failure this fixes was a feed that quietly froze while every number kept
+          looking live. */}
+      {pricesStale && (
+        <div className="rounded-xl border border-rose-500 bg-rose-100 px-3 py-1.5 text-[12px] font-bold text-rose-900 dark:border-rose-400/60 dark:bg-rose-400/15 dark:text-rose-200">
+          ⚠ PRICE FEED {priceMeta.at ? `STALE — last good ${priceStamp} (${Math.round((priceAgeMs ?? 0) / 60000)} min ago)` : 'UNAVAILABLE — no prices loaded yet'}
+          {priceMeta.error ? ` · ${priceMeta.error}` : ''}. Every price below is from that moment, not from now.
+        </div>
+      )}
+      {!pricesStale && priceMeta.missing.length > 0 && (
+        <div className="rounded-xl border border-amber-400 bg-amber-50 px-3 py-1 text-[11px] text-amber-900 dark:border-amber-400/50 dark:bg-amber-400/10 dark:text-amber-200">
+          No price for {priceMeta.missing.join(', ')} — shown as “…”, never as a zero.
+        </div>
+      )}
+
       {/* ── 1. HOLDINGS ── */}
       <Panel accent="rose" title="🔴 Holdings — Robinhood, live"
         right={<span className="flex items-center gap-2 text-[11px] text-neutral-500">
-          {synced ? `synced ${denver(synced)}` : ''} · 60s
+          {synced ? `synced ${denver(synced)}` : ''} · <span className={pricesStale ? 'font-bold text-rose-600 dark:text-rose-300' : ''}>prices as of {priceStamp ?? '—'}</span>
           <button type="button" onClick={toggleLoop} disabled={toggling || state.loop_enabled == null} title="24/7 desk loop"
             className={`rounded-md px-2 py-0.5 text-[10px] font-bold text-white ${state.loop_enabled === false ? 'bg-red-600' : 'bg-green-600'} disabled:opacity-50`}>
             {toggling ? '…' : state.loop_enabled == null ? 'LOOP ?' : state.loop_enabled ? '● LOOP ON' : '■ LOOP PAUSED'}
@@ -373,7 +434,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
           <span className="text-[13px] text-neutral-500">No open positions. Cash ${cash.toFixed(2)}.</span>
         ) : (
           <>
-            <div className="mb-2 grid gap-2 sm:grid-cols-3">
+            <div className="mb-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-white/5">
                 <div className="text-[11px] uppercase tracking-wider text-neutral-500">Cash held</div>
                 <div className="font-mono text-[28px] font-black leading-tight text-neutral-800 dark:text-neutral-100">{usd2(cash)}</div>
@@ -407,8 +468,35 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 <div className="text-[10px] text-neutral-500">positions {allPriced ? usd2(posValue) : 'pricing…'} + cash · the headline number is size, not performance</div>
                 {unpricedSyms.length > 0 && <div className="mt-0.5 text-[10px] font-bold text-red-600 dark:text-rose-300">⚠ no price for {unpricedSyms.join(', ')} — the total below excludes them, it is NOT your whole account</div>}
               </div>
+              {/* BUILD REQUEST #15 (2) — TOTAL RETURN, the figure that should tie out to the Robinhood app:
+                  open P&L on every position (live price − avg_cost) plus realized P&L from tax_events.
+                  It is a DIFFERENT question from the challenge number beside it, and both are shown because
+                  showing one and calling it "P&L" is what made the tab disagree with his phone. */}
               <div className="rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-white/5">
-                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Trading P&L{capital.baseline ? ` since ${new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</div>
+                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Total return <span className="normal-case text-neutral-400">· matches Robinhood app</span></div>
+                {!allPriced ? <div className="text-[12px] text-neutral-500">pricing…</div>
+                : realized === null ? <div className="text-[12px] text-red-600 dark:text-rose-300">tax ledger unreachable — total return unknown, not zero</div>
+                : (() => {
+                    const priced = positions.filter((p) => srvPrice(p.symbol) != null && Number(p.avg_cost) > 0)
+                    const noBasis = positions.filter((p) => !(Number(p.avg_cost) > 0)).map((p) => p.symbol)
+                    const openPnl = priced.reduce((s, p) => s + (Number(p.qty) * (srvPrice(p.symbol) as number) - Number(p.qty) * Number(p.avg_cost)), 0)
+                    const costIn = priced.reduce((s, p) => s + Number(p.qty) * Number(p.avg_cost), 0)
+                    const totalRet = openPnl + realized.pnl
+                    const pct = costIn > 0 ? (totalRet / costIn) * 100 : null
+                    return (
+                      <>
+                        <div className={`font-mono text-[28px] font-black leading-tight ${totalRet >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>
+                          {usd2(totalRet)}{deskBasis.length > 0 ? <span className="text-[16px]">*</span> : null}
+                          {pct != null && <span className="text-[14px]"> ({totalRet >= 0 ? '+' : ''}{pct.toFixed(1)}%)</span>}
+                        </div>
+                        <div className="text-[10px] text-neutral-500">open {usd2(openPnl)} + realized {usd2(realized.pnl)} · vs cost {usd2(costIn)}</div>
+                        {noBasis.length > 0 && <div className="text-[10px] font-bold text-amber-700 dark:text-amber-300">no cost basis for {noBasis.join(', ')} — excluded from this figure</div>}
+                      </>
+                    )
+                  })()}
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-neutral-500">Challenge P&L{capital.baseline ? ` · since ${new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, excludes deposits` : ''}</div>
                 {/* Build request #7: the ONLY headline P&L — deposit-adjusted. value − baseline − net flows since the baseline. */}
                 {!capital.reachable ? <div className="text-[12px] text-red-600 dark:text-rose-300">capital_flows unreachable — unknown, not zero</div>
                 : !capital.baseline ? <div className="text-[12px] text-amber-800 dark:text-amber-200">no baseline row in capital_flows</div>
@@ -427,6 +515,27 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
               </div>
             </div>
 
+            {/* BUILD REQUEST #15 — the reconciliation line. The two P&L figures above answer different
+                questions, so the gap between them is stated outright with the reason for it. */}
+            {allPriced && realized !== null && capital.reachable && capital.baseline && (() => {
+              const priced = positions.filter((p) => srvPrice(p.symbol) != null && Number(p.avg_cost) > 0)
+              const totalRet = priced.reduce((s, p) => s + Number(p.qty) * ((srvPrice(p.symbol) as number) - Number(p.avg_cost)), 0) + realized.pnl
+              const challenge = book - (capital.baseline.usd + capital.net_flows)
+              const gap = totalRet - challenge
+              return (
+                <div className="mb-2 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-[11px] leading-snug text-neutral-600 dark:border-white/10 dark:text-neutral-400">
+                  <b>Reconciliation:</b> total return {usd2(totalRet)} − challenge P&L {usd2(challenge)} = <b className="font-mono">{usd2(gap)}</b>.
+                  {' '}Total return measures every position against what it cost, over the whole life of the account; challenge P&L measures the account against{' '}
+                  {usd2(capital.baseline.usd + capital.net_flows)} of capital put in since {new Date(capital.baseline.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. The gap is the P&L that was already in the book at the baseline, plus anything the two treat differently.
+                  {deskBasis.length > 0 && (
+                    <div className="mt-0.5 text-amber-700 dark:text-amber-300">
+                      * Cost basis for {deskBasis.join(', ')} is <b>desk-tracked, not broker-confirmed</b> — Robinhood reports no cost basis for these units (transferred in). Kraken export pending. Any figure marked * moves if that basis is wrong.
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-[12px] tabular-nums">
                 <thead>
@@ -437,7 +546,10 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 </thead>
                 <tbody>
                   {[...positions].sort((a, b) => val(b) - val(a)).map((p) => {
-                    const lv = live[p.symbol]; const now = lv?.price ?? null
+                    // ONE price for the row and the header (build request #15, last clause): the row used
+                    // to price off the client feed while the tiles priced off the server, so the two could
+                    // tell different stories about the same position.
+                    const lv = live[p.symbol]; const now = srvPrice(p.symbol)
                     const value = now !== null ? Number(p.qty) * now : null
                     const entry = Number(p.avg_cost) > 0 ? Number(p.avg_cost) : null
                     const pnl = value !== null && entry ? value - Number(p.qty) * entry : null
@@ -473,9 +585,24 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                               <span className={`inline-block rounded-md px-1.5 py-px font-mono font-bold ${pnl >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300' : 'bg-rose-50 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300'}`}>{usd2(pnl)} · {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span>
                             ) : <span className="text-neutral-400">—</span>}
                           </td>
+                          {/* The broker's resting sell order is the only thing that proves a stop exists
+                              (build request #14b). A level in desk_triggers with no order behind it is a
+                              level somebody wrote down, and it is labelled as exactly that. */}
                           <td className="pr-2 text-right">
-                            {stop !== null ? <span className="font-mono text-amber-700 dark:text-amber-300">{fmt(Number(stop))}{now !== null && <span className="text-[10px] text-neutral-500"> ({(((Number(stop) - now) / now) * 100).toFixed(1)}%)</span>}</span>
-                              : <span className="rounded bg-rose-600 px-1 py-px text-[10px] font-bold text-white">NO STOP</span>}
+                            {(() => {
+                              const bo = restingStop(p.symbol)
+                              if (bo?.level != null) return (
+                                <span className="font-mono text-amber-700 dark:text-amber-300" title={`order ${bo.order_id}`}>
+                                  {fmt(Number(bo.level))}{now !== null && <span className="text-[10px] text-neutral-500"> ({(((Number(bo.level) - now) / now) * 100).toFixed(1)}%)</span>}
+                                  <span className="ml-1 rounded bg-emerald-600 px-1 py-px text-[9px] font-bold text-white">ARMED</span>
+                                </span>
+                              )
+                              if (!ordersKnown) return <span className="text-[10px] text-neutral-500">broker orders {orderRows === null ? 'unreachable' : `${ordersAgeH.toFixed(0)}h old`} — unknown</span>
+                              if (stop !== null) return (
+                                <span className="font-mono text-neutral-500">{fmt(Number(stop))}<span className="ml-1 rounded bg-amber-500 px-1 py-px text-[9px] font-bold text-white">WRITTEN, NOT ARMED</span></span>
+                              )
+                              return <span className="rounded bg-rose-600 px-1 py-px text-[10px] font-bold text-white">NO STOP</span>
+                            })()}
                           </td>
                           <td className="text-right">
                             {th ? <button type="button" onClick={() => setThesisOpen((o) => ({ ...o, [p.symbol]: !o[p.symbol] }))} className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-600 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-300">{thesisOpen[p.symbol] ? 'hide' : th.status}</button>
@@ -533,7 +660,80 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         )}
       </Panel>
 
-      {/* ── 2. UP NEXT — the queue, with timing grades and the buy button; one chart with everything on it ── */}
+      {/* ── 2. BUY BOARD ────────────────────────────────────────────────────────────────────────────
+          Build request #16, display spec replaced by #18 (Jacob's final): FOUR columns and nothing
+          else — symbol, live, entry, %. Rows in buy_rank order, at most ten, never by updated_at.
+          ENTRY means two different things on purpose: for a name we hold it is OUR COST BASIS, so the
+          % answers "are we up or down on it"; for a name we do not hold it is the written entry level,
+          so the % answers "how far is the price from where we said we would buy". Both are the same
+          question — is this worth money right now — which is why they share a column.
+          The armed/not-armed state stays in the API payload for the desk's reconciliation (#18's own
+          note) but is off the face: order status is in the Robinhood app, and this board is about
+          what to buy, not about plumbing. The entry note moves to the row tooltip. */}
+      {(() => {
+        const board = [...(state.theses ?? [])].filter((t) => t.buy_rank != null).sort((a, b) => (a.buy_rank as number) - (b.buy_rank as number)).slice(0, 10)
+        return (
+          <Panel accent="amber" title="🎯 Buy board"
+            right={<span className="text-[11px] text-neutral-500">desk rank · prices {priceStamp ?? '—'}</span>}>
+            {state.theses === null ? (
+              <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
+            ) : board.length === 0 ? (
+              <span className="text-[13px] text-amber-800 dark:text-amber-200">No name carries a buy_rank — the desk has not ranked the board this session.</span>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[13px] tabular-nums">
+                  <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
+                    <th className="py-1 pr-2">Symbol</th><th className="pr-2 text-right">Live</th>
+                    <th className="pr-2 text-right">Entry</th><th className="text-right">%</th>
+                  </tr></thead>
+                  <tbody>
+                    {board.map((t) => {
+                      const price = srvPrice(t.symbol)
+                      const pos = positions.find((p) => p.symbol === t.symbol) ?? null
+                      const holdingBasis = pos && Number(pos.avg_cost) > 0 ? Number(pos.avg_cost) : null
+                      const isHeld = holdingBasis != null
+                      // Held: live vs our cost. Unheld: how far the price is from the written level,
+                      // signed so that "at or below where we said we would buy" is the positive case.
+                      const entry = isHeld ? holdingBasis : (t.entry_level != null ? Number(t.entry_level) : null)
+                      const pct = price != null && entry != null && entry > 0 && price > 0
+                        ? (isHeld ? ((price - entry) / entry) * 100 : ((entry - price) / price) * 100)
+                        : null
+                      const good = pct != null && pct >= 0
+                      const near = !isHeld && pct != null && Math.abs(pct) <= 3
+                      const tip = [t.entry_note, isHeld ? 'entry = our cost basis' : 'entry = the written level'].filter(Boolean).join(' · ')
+                      return (
+                        <tr key={t.symbol} title={tip} className={`border-t border-neutral-100 dark:border-white/5 ${near ? 'bg-emerald-50 dark:bg-emerald-400/10' : ''}`}>
+                          <td className="py-1.5 pr-2">
+                            <span className="text-[15px] font-black text-neutral-800 dark:text-neutral-100">{t.symbol}</span>
+                            {t.buy_rank === 1 && <span className="ml-1 text-amber-500" title="pole seat">★</span>}
+                          </td>
+                          <td className="pr-2 text-right font-mono font-bold text-neutral-800 dark:text-neutral-100">{price != null ? bfmt(price) : '…'}</td>
+                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{entry != null ? bfmt(entry) : <span className="text-neutral-400">—</span>}</td>
+                          <td className="text-right">
+                            {pct != null
+                              ? <span className={`font-mono font-bold ${good ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span>
+                              : <span className="text-neutral-400">—</span>}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                <div className="mt-1 text-[11px] text-neutral-500">
+                  Held names show our cost basis and whether we are up on it. The rest show the written entry level
+                  and how far the price is from it — green means at or below it. Tap and hold a row for the note.
+                </div>
+              </div>
+            )}
+          </Panel>
+        )
+      })()}
+
+      {/* ── 3. THE FULL WATCH LIST — collapsed under the buy board (build request #16) ────────────── */}
+      <details className="rounded-xl border border-neutral-200 px-1 py-1 dark:border-white/10" open={showWatch} onToggle={(e) => setShowWatch((e.target as HTMLDetailsElement).open)}>
+        <summary className="cursor-pointer px-2 py-1 text-[12px] font-bold uppercase tracking-wider text-neutral-500">
+          Full watch list — {queue.length} name{queue.length === 1 ? '' : 's'} with timing grades and tap-to-buy
+        </summary>
       <Panel accent="amber" title="★ Up next — in line to add"
         right={<span className="text-[11px] text-neutral-500">POLE → WATCH → VERIFYING · numbers live, never from thesis text · holdings excluded</span>}>
         {state.theses === null ? (
@@ -685,8 +885,9 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
           </div>
         )}
       </Panel>
+      </details>
 
-      {/* ── 3. PORTFOLIO CHART (server-rendered) + one realized line ── */}
+      {/* ── 4. PORTFOLIO CHART (server-rendered) + one realized line ── */}
       {chart}
       <div className="px-1 text-[12px] tabular-nums text-neutral-600 dark:text-neutral-400">
         {realized ? (

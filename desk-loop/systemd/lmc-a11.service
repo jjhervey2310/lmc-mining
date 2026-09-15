@@ -1,0 +1,10 @@
+[Unit]
+Description=LMC desk — A11 anchor monitoring (build request #13): BTC/SOL weekly close vs 20-week MA
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/lmc-desk
+ExecStart=/usr/bin/python3 /root/lmc-desk/a11_monitor.py
+StandardOutput=append:/root/lmc-desk/state/a11.log
+StandardError=append:/root/lmc-desk/state/a11.log

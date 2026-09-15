@@ -81,6 +81,54 @@ export async function getOrder(id: string): Promise<Order> {
   return call<Order>('GET', `/api/v1/crypto/trading/orders/${id}/`)
 }
 
+export interface OpenOrder {
+  id: string; state: string; side: string; type: string; symbol: string; created_at?: string
+  limit_order_config?: { asset_quantity?: string; limit_price?: string }
+  stop_limit_order_config?: { asset_quantity?: string; stop_price?: string; limit_price?: string }
+  stop_loss_order_config?: { asset_quantity?: string; stop_price?: string }
+  market_order_config?: { asset_quantity?: string }
+}
+
+const OPEN_STATES = ['open', 'queued', 'confirmed', 'partially_filled', 'new', 'pending']
+
+/** Every RESTING order at the broker (build request #14b). This is the only source that can say a
+ *  level is actually armed: desk_triggers records what the desk MEANT to arm, which is a different
+ *  claim and has disagreed with the broker before.
+ *
+ *  `seen` is how many orders the API returned in total, before filtering. The caller needs it: an
+ *  empty `open` list from a key that can see NOTHING is a different fact from an empty list from a
+ *  key that can see fifty closed orders, and only the second one means "nothing is armed". The first
+ *  run of this shipped without that distinction and deleted a snapshot of seven live orders. */
+export async function listOpenOrders(): Promise<{ orders: OpenOrder[]; closed: OpenOrder[]; seen: number; states: string[] }> {
+  const byState = await call<{ results?: OpenOrder[] }>('GET', '/api/v1/crypto/trading/orders/?state=open')
+    .catch(() => ({ results: undefined }))
+  if (byState.results?.length) return { orders: byState.results, closed: [], seen: byState.results.length, states: ['open'] }
+  // The state filter is not accepted on every account; fall back to the unfiltered page and filter here.
+  const all = await call<{ results?: OpenOrder[] }>('GET', '/api/v1/crypto/trading/orders/')
+  const rows = all.results ?? []
+  const open = rows.filter((o) => OPEN_STATES.includes((o.state ?? '').toLowerCase()))
+  return {
+    orders: open,
+    closed: rows.filter((o) => !OPEN_STATES.includes((o.state ?? '').toLowerCase())),
+    seen: rows.length,
+    states: [...new Set(rows.map((o) => (o.state ?? '?').toLowerCase()))].slice(0, 8),
+  }
+}
+
+/** The price an open order rests at, whichever config it carries. Null when there is no level to
+ *  show (a resting market order) — never 0, which would read as a real price. */
+export function orderLevel(o: OpenOrder): number | null {
+  const raw = o.stop_limit_order_config?.stop_price ?? o.stop_loss_order_config?.stop_price ?? o.limit_order_config?.limit_price
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+export function orderQty(o: OpenOrder): number | null {
+  const raw = o.limit_order_config?.asset_quantity ?? o.stop_limit_order_config?.asset_quantity ?? o.stop_loss_order_config?.asset_quantity ?? o.market_order_config?.asset_quantity
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 /** Poll until the order leaves the open states (max ~12s). Returns the last state seen. */
 export async function awaitFill(id: string, tries = 12): Promise<Order> {
   let o = await getOrder(id)

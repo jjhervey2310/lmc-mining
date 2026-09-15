@@ -1,13 +1,50 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { resolveIds, coinbaseSpot, lastKnownPrices } from '@/lib/desk-cg'
-import { rhConfigured, bestBidAsk } from '@/lib/robinhood'
+import { rhConfigured, bestBidAsk, listOpenOrders, orderLevel, orderQty } from '@/lib/robinhood'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Live desk state for the ROBINHOOD tab's 60s client refresh.
 // Same auth + service-client pattern as the page; read-only; never cached.
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+// ── Build request #14(b): the broker's resting orders ──────────────────────────────────────────
+// `broker_open_orders` is a SNAPSHOT of what is actually armed at Robinhood. It is refreshed here
+// (at most once every two minutes per instance) when the API keys are configured; otherwise it is
+// whatever the desk last wrote. The age is always returned with it, because "no rows" and "we could
+// not ask" are different answers and only one of them means NOT ARMED.
+let lastOrderSync = 0
+let lastSyncNote: string | null = null   // what the last broker call actually saw — the only way to debug this from prod
+async function syncOpenOrders(supabase: SupabaseClient): Promise<void> {
+  if (!rhConfigured() || Date.now() - lastOrderSync < 120_000) return
+  lastOrderSync = Date.now()
+  try {
+    const { orders, closed, seen, states } = await listOpenOrders()
+    lastSyncNote = `${new Date().toISOString()} seen=${seen} open=${orders.length} states=${states.join('/') || 'none'}`
+    // A key that can see NOTHING AT ALL is not a broker saying "nothing is armed". Keep the existing
+    // snapshot, leave its timestamp alone so the page ages it into "unknown", and write nothing.
+    if (!orders.length && seen === 0) return
+    const rows = orders.map((o) => ({
+      order_id: o.id,
+      symbol: (o.symbol ?? '').replace(/-USD$/i, '').toUpperCase(),
+      side: o.side, order_type: o.type,
+      level: orderLevel(o), qty: orderQty(o), notional: null,
+      state: o.state, created_at: o.created_at ?? null, synced_at: new Date().toISOString(),
+    })).filter((r) => r.symbol)
+    if (rows.length) await supabase.from('broker_open_orders').upsert(rows, { onConflict: 'order_id' })
+    // REMOVE ONLY WHAT THE BROKER EXPLICITLY REPORTS AS NO LONGER OPEN. The first version cleared
+    // every row the response did not mention, which erased seven live orders the moment one API
+    // call came back thin. An order we were not told about is an order we know nothing about.
+    const goneIds = closed.map((o) => o.id).filter(Boolean)
+    if (goneIds.length) await supabase.from('broker_open_orders').delete().in('order_id', goneIds)
+    if (rows.length) await supabase.from('desk_config').upsert({ key: 'open_orders_synced_at', value: new Date().toISOString() }, { onConflict: 'key' })
+  } catch (e) {
+    // Leave the last snapshot and its age in place — a failed sync is never an empty book.
+    lastSyncNote = `${new Date().toISOString()} sync failed: ${e instanceof Error ? e.message.slice(0, 160) : 'unknown'}`
+  }
+}
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
@@ -18,15 +55,24 @@ export async function GET(req: Request) {
   const supabase = createServiceClient()
   if (!supabase) return NextResponse.json({ error: 'db unavailable' }, { status: 503 })
 
-  const [h, t, a, b, st, le, th] = await Promise.all([
-    supabase.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol'),
+  // Refresh the broker's resting orders before reading them, so "armed" is the broker's answer and
+  // not a snapshot from some earlier session (build request #14b).
+  await syncOpenOrders(supabase)
+
+  const [h, t, a, b, st, le, th, oo, ooAt] = await Promise.all([
+    supabase.from('live_holdings').select('symbol, qty, avg_cost, synced_at, basis_source').order('symbol'),
     supabase.from('desk_triggers').select('symbol, kind, level, band_pct, spec').eq('active', true).order('symbol'),
     supabase.from('desk_alert_log').select('at, symbol, kind, level, price, sent, queued, note').order('at', { ascending: false }).limit(20),
     supabase.from('pa_memory').select('fact, updated_at').eq('topic', 'dashboard').maybeSingle(),
     supabase.from('pa_memory').select('fact, updated_at').eq('topic', 'house-strategy').maybeSingle(),
     supabase.from('desk_config').select('value, updated_at').eq('key', 'loop_enabled').maybeSingle(),
     // desk_theses (build request #4): thesis + gate under each holding, POLE/WATCH/BARRED for the pole panel.
-    supabase.from('desk_theses').select('symbol, status, thesis, gate, updated_at').order('symbol'),
+    // buy_rank / entry_level / entry_note drive the BUY BOARD (build request #16). The board orders
+    // by buy_rank and never by updated_at — sorting by the edit clock is what made the most recently
+    // touched name look like the top pick (build note, 09-08).
+    supabase.from('desk_theses').select('symbol, status, thesis, gate, updated_at, buy_rank, entry_level, entry_note').order('symbol'),
+    supabase.from('broker_open_orders').select('order_id, symbol, side, order_type, level, qty, state, created_at, synced_at').order('symbol'),
+    supabase.from('desk_config').select('value').eq('key', 'open_orders_synced_at').maybeSingle(),
   ])
   // Latest radar scan (build request #6): stage/score/turnover beside each POLE/WATCH thesis. Numbers never come from thesis text.
   const latestScan = await supabase.from('fund_radar').select('scan_date').order('scan_date', { ascending: false }).limit(1).maybeSingle()
@@ -73,6 +119,10 @@ export async function GET(req: Request) {
     board: b.data ?? null,
     strategy: st.data ?? null,
     theses: th.data ?? null,
+    orders: oo.data ?? null,                                    // null = unreachable, [] = genuinely nothing resting
+    orders_synced_at: (ooAt.data as { value?: string } | null)?.value || null,
+    orders_live: rhConfigured(),
+    orders_sync_note: lastSyncNote,                                // false = the snapshot is only as fresh as the desk's last write
     book: unpriced.length ? null : posValue + cashUsd,
     pos_value: unpriced.length ? null : posValue,
     cash_usd: cashUsd,
