@@ -48,6 +48,17 @@ export async function GET(request: Request) {
 
   const rows = verdicts ?? []
   const answered = rows.filter((v) => v.status === 'green' || v.status === 'red').length
+  // Board rows the catalogue has measured at its newest run. The loop never writes verdicts,
+  // so this is the only place its progress shows up next to the hand-answered count.
+  const newest = await q<{ at: string }[]>(
+    () => sb.from('kr_findings').select('at').order('at', { ascending: false }).limit(1))
+  const newestAt = newest?.[0]?.at ?? null
+  const latest = newestAt
+    ? await q<{ verdict_id: string | null }[]>(
+        () => sb.from('kr_findings').select('verdict_id').eq('at', newestAt))
+    : null
+  const machineTested = new Set(
+    (latest ?? []).map((f) => f.verdict_id).filter((id): id is string => !!id)).size
 
   return NextResponse.json({
     phase: beat?.[0]?.phase ?? null,
@@ -56,6 +67,7 @@ export async function GET(request: Request) {
     host: beat?.[0]?.host ?? null,
     observations,
     answered,
+    machine_tested: machineTested,
     hypotheses: rows.length,
   })
 }

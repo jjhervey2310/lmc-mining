@@ -430,6 +430,14 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
     return c > 0 && c < 1
   }).length
   const notStarted = verdicts.filter((v) => completionOf(v) === 0).length
+  // How many board rows the unattended catalogue has actually measured. The loop writes
+  // to kr_findings and never to the board, by rule, so this number can rise for days while
+  // the one above sits still. Showing both is what keeps the gap visible.
+  const boardIds = new Set(verdicts.map((v) => v.id))
+  const machineTested = new Set(
+    findings.map((f) => f.verdict_id).filter((id): id is string => !!id && boardIds.has(id))).size
+  const machineUnmapped = new Set(
+    findings.filter((f) => !f.verdict_id || !boardIds.has(f.verdict_id)).map((f) => f.test_id)).size
 
   const withFunding = carry
     .filter((c) => c.funding_rate_annualized !== null)
@@ -470,6 +478,18 @@ export default async function LeveragePage({ searchParams }: { searchParams: Pro
         <Panel accent="green" title="🧠 Research readiness">
           <ReadinessBrain tracks={tracks} fullyDone={fullyDone}
                           inProgress={inProgress} notStarted={notStarted} />
+          <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+            <div className="rounded-lg border border-neutral-200 px-3 py-2 dark:border-white/10">
+              <div className="font-bold text-neutral-700 dark:text-neutral-200">{fullyDone} of {verdicts.length} answered by hand</div>
+              <div className="text-neutral-500">the only thing that moves the brain — a person wrote the verdict</div>
+            </div>
+            <div className="rounded-lg border border-neutral-200 px-3 py-2 dark:border-white/10">
+              <div className="font-bold text-neutral-700 dark:text-neutral-200">{machineTested} of {verdicts.length} measured by the catalogue</div>
+              <div className="text-neutral-500">
+                rows the unattended loop has a finding for{machineUnmapped > 0 ? ` · ${machineUnmapped} catalogue test${machineUnmapped === 1 ? '' : 's'} point at no board row` : ''}
+              </div>
+            </div>
+          </div>
           <div className="mt-3 border-t border-neutral-200 pt-2 text-[12px] text-neutral-500 dark:border-white/10">
             This is the honest completion bar for the research, not a confidence
             score: it measures how many hypotheses have an answer, not how many
