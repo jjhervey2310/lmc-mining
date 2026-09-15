@@ -88,6 +88,87 @@ SOURCES = [
             "plural one. externalId read from the resolved channel page."),
     },
 
+    # ---- CONFIRMED: presenter and teaching playlists on the Crypto Banter channel ----
+    # Found 2026-09-15 on the channel's own /playlists tab, at the owner's request.
+    # These matter for attribution, not just volume: playlist membership is the only
+    # evidence in this archive that names a presenter. Titles cannot — see kyle-doops below.
+    {
+        "source_key": "sniper-trading-masterclass",
+        "kind": "playlist",
+        "playlist_id": "PLmOv2_vzOoGcTirwpJoyhGrYRnv1CRyIa",
+        "channel_id": "UCN9Nj4tjXbVTLYWN0EKly_Q",
+        "handle": None,
+        "display_name": "Sniper Trading Masterclass",
+        "canonical_url": "https://www.youtube.com/playlist?list=PLmOv2_vzOoGcTirwpJoyhGrYRnv1CRyIa",
+        "scope_status": "CONFIRMED",
+        "priority": 5,
+        "resolution_note": (
+            "34 entries / 11.0h enumerated 2026-09-15. Course-shaped teaching rather than "
+            "daily commentary, which makes it the best prior in the archive for a stated "
+            "stop or invalidation — the one thing no extracted method has yet contained. "
+            "Ranked first for that reason, not for volume."),
+    },
+    {
+        "source_key": "kyle-doops-trading-show",
+        "kind": "playlist",
+        "playlist_id": "PLmOv2_vzOoGcDGeu-HHfifExgbvmPLO3l",
+        "channel_id": "UCN9Nj4tjXbVTLYWN0EKly_Q",
+        "handle": None,
+        "display_name": "Kyle Doops Trading Show",
+        "canonical_url": "https://www.youtube.com/playlist?list=PLmOv2_vzOoGcDGeu-HHfifExgbvmPLO3l",
+        "scope_status": "CONFIRMED",
+        "priority": 10,
+        "resolution_note": (
+            "RESOLVES THE KYLE DOOPS ATTRIBUTION GAP. 'Doops' appears in 0 of 5,037 Crypto "
+            "Banter titles and most 'Kyle' hits are Kyle Samani, a different person, so no "
+            "title heuristic could ever find his videos. This playlist can. 980 entries / "
+            "568.3h enumerated 2026-09-15; 979 carry channel_id UCN9Nj4tjXbVTLYWN0EKly_Q. "
+            "Membership is evidence that he presents the video, NOT proof that he speaks any "
+            "given sentence in it — a guest or co-host still resolves to 'unknown'."),
+    },
+    {
+        "source_key": "crypto-trading-tutorials",
+        "kind": "playlist",
+        "playlist_id": "PLmOv2_vzOoGeks9AnbpvvTC6Eh3hhX_ol",
+        "channel_id": "UCN9Nj4tjXbVTLYWN0EKly_Q",
+        "handle": None,
+        "display_name": "Crypto Trading Tutorials",
+        "canonical_url": "https://www.youtube.com/playlist?list=PLmOv2_vzOoGeks9AnbpvvTC6Eh3hhX_ol",
+        "scope_status": "CONFIRMED",
+        "priority": 20,
+        "resolution_note": (
+            "70 entries / 21.4h enumerated 2026-09-15. Multi-presenter. Expect a high "
+            "SPONSORED_PROMOTIONAL share: docs/TITLE-SURVEY.md measured that 8 of 10 "
+            "leverage/tutorial titles on this channel name an exchange brand."),
+    },
+    {
+        "source_key": "pro-trader-mindset",
+        "kind": "playlist",
+        "playlist_id": "PLmOv2_vzOoGcrUNmchEZ4NOCghqGHNcjs",
+        "channel_id": "UCN9Nj4tjXbVTLYWN0EKly_Q",
+        "handle": None,
+        "display_name": "The Professional Crypto Trader Mindset",
+        "canonical_url": "https://www.youtube.com/playlist?list=PLmOv2_vzOoGcrUNmchEZ4NOCghqGHNcjs",
+        "scope_status": "CONFIRMED",
+        "priority": 25,
+        "resolution_note": (
+            "18 entries / 8.3h enumerated 2026-09-15. Psychology and survival framing, so "
+            "the likeliest place to find stated reasons to AVOID trading — which the brief "
+            "asks for explicitly and which no method record has captured yet."),
+    },
+    {
+        "source_key": "trading-wisdom",
+        "kind": "playlist",
+        "playlist_id": "PLmOv2_vzOoGcrqRLL0BVnXjRwK_WW1O9v",
+        "channel_id": "UCN9Nj4tjXbVTLYWN0EKly_Q",
+        "handle": None,
+        "display_name": "Trading Wisdom",
+        "canonical_url": "https://www.youtube.com/playlist?list=PLmOv2_vzOoGcrqRLL0BVnXjRwK_WW1O9v",
+        "scope_status": "CONFIRMED",
+        "priority": 25,
+        "resolution_note": "14 entries / 7.6h enumerated 2026-09-15.",
+    },
+
     # ---- RELATED: listed for scope confirmation, NOT crawled (spec §2) ------
     {
         "source_key": "related-candidates",
@@ -123,12 +204,14 @@ PRESENTERS = [
     {"presenter_key": "kyle-doops", "display_name": "Kyle Doops",
      "affiliation": "Crypto Banter",
      "notes": (
-         "ATTRIBUTION GAP as of 2026-09-13: across 5,032 enumerated Crypto Banter titles, "
-         "'Doops' appears 0 times and 'Kyle' appears 5 times, of which the majority refer "
-         "to Kyle Samani (Multicoin Capital), a different person. Titles therefore cannot "
-         "identify his videos. Attribution must come from descriptions, playlist "
-         "membership or transcript self-identification, and stays 'uncertain' until it "
-         "does. Do not tag by name-match alone.")},
+         "ATTRIBUTION GAP — CLOSED 2026-09-15 BY PLAYLIST, NOT BY NAME. Across 5,037 "
+         "enumerated Crypto Banter titles 'Doops' appears 0 times and 'Kyle' appears 5, "
+         "most referring to Kyle Samani (Multicoin Capital), a different person. Titles "
+         "therefore cannot identify his videos and never will. The Kyle Doops Trading Show "
+         "playlist (980 entries) can, and is now a registered source. Membership attributes "
+         "the VIDEO to him; it does not attribute any individual sentence, so a guest or "
+         "co-host inside one of his videos still resolves to 'unknown'. Never tag by "
+         "name-match alone.")},
     {"presenter_key": "sniper", "display_name": "Sheldon (\"Sniper\")",
      "affiliation": "Sniper Trading / Crypto Banter",
      "notes": (
