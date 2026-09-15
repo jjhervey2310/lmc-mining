@@ -80,9 +80,10 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
   checkAdmin(secret)
 
   const supabase = createServiceClient()
-  const [research, holdingsQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, loopQ, notesQ, thesesQ, capQ] = await Promise.all([
+  const [research, holdingsQ, snapsQ, radarQ, flowsQ, trigQ, alertQ, taxQ, loopQ, notesQ, thesesQ, capQ, ordersQ, ordersAtQ] = await Promise.all([
     supabase?.from('fund_research').select('brief_date, content').order('brief_date', { ascending: false }).limit(1).maybeSingle() ?? { data: null },
-    supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at').order('symbol') ?? { data: null, error: true },
+    // basis_source (build request #15): which cost bases the broker confirms and which the desk tracks by hand.
+    supabase?.from('live_holdings').select('symbol, qty, avg_cost, synced_at, basis_source').order('symbol') ?? { data: null, error: true },
     supabase?.from('fund_snapshots').select('snapshot_date, total').order('snapshot_date') ?? { data: null },
     supabase?.from('fund_radar').select('symbol, name, price, market_cap, turnover, d1, d7, d30, stage, score, scan_date')
       .order('scan_date', { ascending: false }).order('score', { ascending: false }).limit(90) ?? { data: null, error: true },
@@ -93,9 +94,13 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     supabase?.from('tax_events').select('event_date, tax_year, asset, event_type, quantity, proceeds_usd, basis_usd, realized_pnl_usd, note').order('event_date', { ascending: false }) ?? { data: null, error: true },
     supabase?.from('desk_config').select('value').eq('key', 'loop_enabled').maybeSingle() ?? { data: null },
     supabase?.from('pa_memory').select('topic, fact, updated_at').in('topic', ['dashboard', 'house-strategy']).eq('active', true) ?? { data: null, error: true },
-    supabase?.from('desk_theses').select('symbol, status, thesis, gate, updated_at').order('symbol') ?? { data: null, error: true },
+    // buy_rank / entry_level / entry_note feed the BUY BOARD (build request #16).
+    supabase?.from('desk_theses').select('symbol, status, thesis, gate, updated_at, buy_rank, entry_level, entry_note').order('symbol') ?? { data: null, error: true },
     // capital_flows (build request #7): baseline + every deposit/withdrawal the desk sees land. The desk appends; the page only reads.
     supabase?.from('capital_flows').select('flow_date, amount_usd, kind, note').order('flow_date') ?? { data: null, error: true },
+    // broker_open_orders (build request #14b): what is ACTUALLY resting at Robinhood, so a written level and an armed one are never confused.
+    supabase?.from('broker_open_orders').select('order_id, symbol, side, order_type, level, qty, state, created_at, synced_at').order('symbol') ?? { data: null, error: true },
+    supabase?.from('desk_config').select('value').eq('key', 'open_orders_synced_at').maybeSingle() ?? { data: null },
   ])
 
   const snaps = (snapsQ.data ?? []) as { snapshot_date: string; total: number }[]
@@ -309,6 +314,8 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
           board: boardNote ? { fact: boardNote.fact, updated_at: boardNote.updated_at } : null,
           strategy: stratNote ? { fact: stratNote.fact, updated_at: stratNote.updated_at } : null,
           theses: (thesesQ.data ?? null) as DeskState['theses'],
+          orders: (ordersQ.data ?? null) as DeskState['orders'],
+          orders_synced_at: ((ordersAtQ.data as { value?: string } | null)?.value) || null,
           radar: (radar ?? null) as DeskState['radar'],
           loop_enabled: loopQ.data ? String((loopQ.data as { value: string }).value).toLowerCase() === 'true' : null,
           at: new Date().toISOString(),

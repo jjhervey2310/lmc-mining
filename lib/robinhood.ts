@@ -81,6 +81,36 @@ export async function getOrder(id: string): Promise<Order> {
   return call<Order>('GET', `/api/v1/crypto/trading/orders/${id}/`)
 }
 
+export interface OpenOrder {
+  id: string; state: string; side: string; type: string; symbol: string; created_at?: string
+  limit_order_config?: { asset_quantity?: string; limit_price?: string }
+  stop_limit_order_config?: { asset_quantity?: string; stop_price?: string; limit_price?: string }
+  stop_loss_order_config?: { asset_quantity?: string; stop_price?: string }
+  market_order_config?: { asset_quantity?: string }
+}
+
+/** Every RESTING order at the broker (build request #14b). This is the only source that can say a
+ *  level is actually armed: desk_triggers records what the desk MEANT to arm, which is a different
+ *  claim and has disagreed with the broker before. */
+export async function listOpenOrders(): Promise<OpenOrder[]> {
+  const j = await call<{ results?: OpenOrder[] }>('GET', '/api/v1/crypto/trading/orders/?state=open')
+  return j.results ?? []
+}
+
+/** The price an open order rests at, whichever config it carries. Null when there is no level to
+ *  show (a resting market order) — never 0, which would read as a real price. */
+export function orderLevel(o: OpenOrder): number | null {
+  const raw = o.stop_limit_order_config?.stop_price ?? o.stop_loss_order_config?.stop_price ?? o.limit_order_config?.limit_price
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+export function orderQty(o: OpenOrder): number | null {
+  const raw = o.limit_order_config?.asset_quantity ?? o.stop_limit_order_config?.asset_quantity ?? o.stop_loss_order_config?.asset_quantity ?? o.market_order_config?.asset_quantity
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 /** Poll until the order leaves the open states (max ~12s). Returns the last state seen. */
 export async function awaitFill(id: string, tries = 12): Promise<Order> {
   let o = await getOrder(id)
