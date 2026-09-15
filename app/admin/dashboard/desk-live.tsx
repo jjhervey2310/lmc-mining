@@ -196,8 +196,10 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const orderRows = state.orders ?? null
   const ordersAgeH = hoursOld(state.orders_synced_at ?? orderRows?.[0]?.synced_at ?? null)
   const ordersKnown = orderRows !== null && ordersAgeH <= 6
-  const restingBuy = (sym: string) => (orderRows ?? []).find((o) => o.symbol === sym && (o.side ?? '').toLowerCase() === 'buy') ?? null
-  const restingStop = (sym: string) => (orderRows ?? []).find((o) => o.symbol === sym && (o.side ?? '').toLowerCase() === 'sell' && o.level != null) ?? null
+  // Buy-side resting orders are no longer rendered anywhere (#18 took the armed column off the board),
+  // but they stay in the payload for the desk's own reconciliation. The stop side IS still shown, on
+  // the holdings table, because a position with no resting stop is a fact he needs on the face.
+  const restingStop = (sym: string) =>(orderRows ?? []).find((o) => o.symbol === sym && (o.side ?? '').toLowerCase() === 'sell' && o.level != null) ?? null
 
   const trig = (sym: string, kinds: string[]) => (state.triggers ?? []).filter((t) => t.symbol === sym && kinds.includes(t.kind))
   const thesisFor = (sym: string) => theses.find((t) => t.symbol === sym) ?? null
@@ -658,75 +660,68 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         )}
       </Panel>
 
-      {/* ── 2. BUY BOARD (build request #16, Jacob's spec) ──────────────────────────────────────────
-          The tab's primary panel. Only names the desk has ranked (buy_rank), in the desk's order, at
-          most ten. Never sorted by updated_at: the edit clock was making whichever name the desk had
-          last touched look like the top pick. buy_rank 1 IS the pole seat — there is no separate
-          pole banner to fall out of step with the list. */}
+      {/* ── 2. BUY BOARD ────────────────────────────────────────────────────────────────────────────
+          Build request #16, display spec replaced by #18 (Jacob's final): FOUR columns and nothing
+          else — symbol, live, entry, %. Rows in buy_rank order, at most ten, never by updated_at.
+          ENTRY means two different things on purpose: for a name we hold it is OUR COST BASIS, so the
+          % answers "are we up or down on it"; for a name we do not hold it is the written entry level,
+          so the % answers "how far is the price from where we said we would buy". Both are the same
+          question — is this worth money right now — which is why they share a column.
+          The armed/not-armed state stays in the API payload for the desk's reconciliation (#18's own
+          note) but is off the face: order status is in the Robinhood app, and this board is about
+          what to buy, not about plumbing. The entry note moves to the row tooltip. */}
       {(() => {
         const board = [...(state.theses ?? [])].filter((t) => t.buy_rank != null).sort((a, b) => (a.buy_rank as number) - (b.buy_rank as number)).slice(0, 10)
         return (
-          <Panel accent="amber" title="🎯 Buy board — ranked by the desk"
-            right={<span className="text-[11px] text-neutral-500">
-              buy_rank order · live prices {priceStamp ?? '—'} · armed = a resting order at the broker
-              {orderRows === null ? ' (snapshot unreachable)' : !ordersKnown ? ` (snapshot ${ordersAgeH.toFixed(0)}h old)` : state.orders_live === false ? ' (desk-synced)' : ''}
-            </span>}>
+          <Panel accent="amber" title="🎯 Buy board"
+            right={<span className="text-[11px] text-neutral-500">desk rank · prices {priceStamp ?? '—'}</span>}>
             {state.theses === null ? (
               <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
             ) : board.length === 0 ? (
               <span className="text-[13px] text-amber-800 dark:text-amber-200">No name carries a buy_rank — the desk has not ranked the board this session.</span>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-[12px] tabular-nums">
+                <table className="w-full text-[13px] tabular-nums">
                   <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
-                    <th className="py-1 pr-2">#</th><th className="pr-2">Symbol</th><th className="pr-2">Status</th>
-                    <th className="pr-2 text-right">Live</th><th className="pr-2 text-right">Entry</th><th className="pr-2 text-right">To entry</th>{/* % only — build request #17(b) */}
-                    <th className="pr-2">Armed?</th><th>Note</th>
+                    <th className="py-1 pr-2">Symbol</th><th className="pr-2 text-right">Live</th>
+                    <th className="pr-2 text-right">Entry</th><th className="text-right">%</th>
                   </tr></thead>
                   <tbody>
                     {board.map((t) => {
                       const price = srvPrice(t.symbol)
-                      const entry = t.entry_level != null ? Number(t.entry_level) : null
-                      const gapPct = price != null && entry != null && price > 0 ? ((entry - price) / price) * 100 : null
-                      const near = gapPct != null && Math.abs(gapPct) <= 3
-                      const bo = restingBuy(t.symbol)
-                      const mismatch = bo?.level != null && entry != null && Math.abs(Number(bo.level) - entry) / entry > 0.01
+                      const pos = positions.find((p) => p.symbol === t.symbol) ?? null
+                      const holdingBasis = pos && Number(pos.avg_cost) > 0 ? Number(pos.avg_cost) : null
+                      const isHeld = holdingBasis != null
+                      // Held: live vs our cost. Unheld: how far the price is from the written level,
+                      // signed so that "at or below where we said we would buy" is the positive case.
+                      const entry = isHeld ? holdingBasis : (t.entry_level != null ? Number(t.entry_level) : null)
+                      const pct = price != null && entry != null && entry > 0 && price > 0
+                        ? (isHeld ? ((price - entry) / entry) * 100 : ((entry - price) / price) * 100)
+                        : null
+                      const good = pct != null && pct >= 0
+                      const near = !isHeld && pct != null && Math.abs(pct) <= 3
+                      const tip = [t.entry_note, isHeld ? 'entry = our cost basis' : 'entry = the written level'].filter(Boolean).join(' · ')
                       return (
-                        <tr key={t.symbol} className={`border-t border-neutral-100 dark:border-white/5 ${near ? 'bg-emerald-50 dark:bg-emerald-400/10' : ''}`}>
-                          <td className="py-1.5 pr-2"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-800 font-mono text-[10px] font-bold text-white dark:bg-white dark:text-black">{t.buy_rank}</span></td>
-                          <td className="pr-2"><span className="text-[15px] font-black text-neutral-800 dark:text-neutral-100">{t.symbol}</span>{t.buy_rank === 1 && <span className="ml-1 text-amber-500" title="pole seat — buy_rank 1">★</span>}</td>
-                          <td className="pr-2"><span className={`rounded px-1.5 py-px text-[9px] font-bold uppercase tracking-wide ${STATUS[t.status] ?? 'bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300'}`}>{t.status}</span></td>
+                        <tr key={t.symbol} title={tip} className={`border-t border-neutral-100 dark:border-white/5 ${near ? 'bg-emerald-50 dark:bg-emerald-400/10' : ''}`}>
+                          <td className="py-1.5 pr-2">
+                            <span className="text-[15px] font-black text-neutral-800 dark:text-neutral-100">{t.symbol}</span>
+                            {t.buy_rank === 1 && <span className="ml-1 text-amber-500" title="pole seat">★</span>}
+                          </td>
                           <td className="pr-2 text-right font-mono font-bold text-neutral-800 dark:text-neutral-100">{price != null ? bfmt(price) : '…'}</td>
-                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{entry != null ? bfmt(entry) : <span className="text-neutral-400">no level</span>}</td>
-                          <td className="pr-2 text-right">
-                            {gapPct != null
-                              ? <span className={`font-mono ${near ? 'font-bold text-emerald-700 dark:text-emerald-300' : 'text-neutral-600 dark:text-neutral-400'}`}>{gapPct >= 0 ? '+' : ''}{gapPct.toFixed(1)}%</span>
+                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{entry != null ? bfmt(entry) : <span className="text-neutral-400">—</span>}</td>
+                          <td className="text-right">
+                            {pct != null
+                              ? <span className={`font-mono font-bold ${good ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span>
                               : <span className="text-neutral-400">—</span>}
                           </td>
-                          <td className="pr-2">
-                            {/* Build request #17(a): the order id is real but it is noise on the face of the
-                                board. Badge and level only; the id stays in the tooltip, where it is there
-                                when you need to cancel something and invisible when you don't. */}
-                            {bo ? (
-                              <span className="font-mono text-[11px] text-emerald-700 dark:text-emerald-300" title={`order ${bo.order_id}`}>
-                                <span className="rounded bg-emerald-600 px-1 py-px text-[9px] font-bold text-white">ARMED</span> {bo.level != null ? bfmt(Number(bo.level)) : ''}
-                                {mismatch && <span className="ml-1 text-amber-700 dark:text-amber-300">≠ written level</span>}
-                              </span>
-                            ) : !ordersKnown ? (
-                              <span className="text-[11px] text-neutral-500">unknown — {orderRows === null ? 'snapshot unreachable' : `snapshot ${ordersAgeH.toFixed(0)}h old`}</span>
-                            ) : (
-                              <span className="rounded bg-neutral-200 px-1 py-px text-[10px] font-bold text-neutral-700 dark:bg-white/10 dark:text-neutral-300">NOT ARMED</span>
-                            )}
-                          </td>
-                          <td className="max-w-[360px] text-[11px] leading-snug text-neutral-600 dark:text-neutral-400">{t.entry_note}</td>
                         </tr>
                       )
                     })}
                   </tbody>
                 </table>
                 <div className="mt-1 text-[11px] text-neutral-500">
-                  Green = within 3% of the written entry. ARMED means a resting order exists at Robinhood for that
-                  name; NOT ARMED means we asked the broker and there is nothing. “Unknown” is never shown as NOT ARMED.
+                  Held names show our cost basis and whether we are up on it. The rest show the written entry level
+                  and how far the price is from it — green means at or below it. Tap and hold a row for the note.
                 </div>
               </div>
             )}
