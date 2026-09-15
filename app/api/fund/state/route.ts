@@ -20,7 +20,10 @@ async function syncOpenOrders(supabase: SupabaseClient): Promise<void> {
   if (!rhConfigured() || Date.now() - lastOrderSync < 120_000) return
   lastOrderSync = Date.now()
   try {
-    const orders = await listOpenOrders()
+    const { orders, seen } = await listOpenOrders()
+    // A key that can see NOTHING AT ALL is not a broker saying "nothing is armed". Keep the existing
+    // snapshot, leave its timestamp alone so the page ages it into "unknown", and write nothing.
+    if (!orders.length && seen === 0) return
     const rows = orders.map((o) => ({
       order_id: o.id,
       symbol: (o.symbol ?? '').replace(/-USD$/i, '').toUpperCase(),

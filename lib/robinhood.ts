@@ -89,12 +89,24 @@ export interface OpenOrder {
   market_order_config?: { asset_quantity?: string }
 }
 
+const OPEN_STATES = ['open', 'queued', 'confirmed', 'partially_filled', 'new', 'pending']
+
 /** Every RESTING order at the broker (build request #14b). This is the only source that can say a
  *  level is actually armed: desk_triggers records what the desk MEANT to arm, which is a different
- *  claim and has disagreed with the broker before. */
-export async function listOpenOrders(): Promise<OpenOrder[]> {
-  const j = await call<{ results?: OpenOrder[] }>('GET', '/api/v1/crypto/trading/orders/?state=open')
-  return j.results ?? []
+ *  claim and has disagreed with the broker before.
+ *
+ *  `seen` is how many orders the API returned in total, before filtering. The caller needs it: an
+ *  empty `open` list from a key that can see NOTHING is a different fact from an empty list from a
+ *  key that can see fifty closed orders, and only the second one means "nothing is armed". The first
+ *  run of this shipped without that distinction and deleted a snapshot of seven live orders. */
+export async function listOpenOrders(): Promise<{ orders: OpenOrder[]; seen: number }> {
+  const byState = await call<{ results?: OpenOrder[] }>('GET', '/api/v1/crypto/trading/orders/?state=open')
+    .catch(() => ({ results: undefined }))
+  if (byState.results?.length) return { orders: byState.results, seen: byState.results.length }
+  // The state filter is not accepted on every account; fall back to the unfiltered page and filter here.
+  const all = await call<{ results?: OpenOrder[] }>('GET', '/api/v1/crypto/trading/orders/')
+  const rows = all.results ?? []
+  return { orders: rows.filter((o) => OPEN_STATES.includes((o.state ?? '').toLowerCase())), seen: rows.length }
 }
 
 /** The price an open order rests at, whichever config it carries. Null when there is no level to
