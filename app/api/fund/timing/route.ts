@@ -93,7 +93,6 @@ export async function buildTiming(symbol: string) {
     : chart.status === 429 ? 'CoinGecko rate-limited the 30-day chart (429)'
     : `CoinGecko chart fetch failed (${chart.status || 'network error'})`
   const prices = ((chartData?.prices ?? []) as [number, number][]).map((p) => p[1])
-  const vols = ((chartData?.total_volumes ?? []) as [number, number][]).map((v) => v[1])
   // The last point of a CoinGecko daily series is today's incomplete bar, and
   // cg_history stores that series verbatim — so both get the same trim.
   const completedPx = prices.slice(0, -1)
