@@ -68,6 +68,14 @@ const fmt = (n: number) =>
   : n > 0 ? `$${n.toPrecision(3)}`
   : '$0'
 const usd2 = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// Buy-board prices (build request #17c): whole dollars above $1,000, cents between, four significant
+// figures below a dollar with trailing zeros trimmed. Its own formatter rather than a change to `fmt`,
+// which prices the holdings table, the queue and every timing panel.
+const bfmt = (n: number) =>
+  n >= 1000 ? `$${Math.round(n).toLocaleString('en-US')}`
+  : n >= 1 ? `$${n.toFixed(2)}`
+  : n > 0 ? `$${Number(n.toPrecision(4))}`
+  : '$0'
 const big = (n: number) => n >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}k` : `$${n.toFixed(0)}`
 const denver = (iso: string) =>
   new Date(iso).toLocaleString('en-US', { timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -669,10 +677,10 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
               <span className="text-[13px] text-amber-800 dark:text-amber-200">No name carries a buy_rank — the desk has not ranked the board this session.</span>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[820px] text-[12px] tabular-nums">
+                <table className="w-full min-w-[720px] text-[12px] tabular-nums">
                   <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
                     <th className="py-1 pr-2">#</th><th className="pr-2">Symbol</th><th className="pr-2">Status</th>
-                    <th className="pr-2 text-right">Live</th><th className="pr-2 text-right">Entry</th><th className="pr-2 text-right">To entry</th>
+                    <th className="pr-2 text-right">Live</th><th className="pr-2 text-right">Entry</th><th className="pr-2 text-right">To entry</th>{/* % only — build request #17(b) */}
                     <th className="pr-2">Armed?</th><th>Note</th>
                   </tr></thead>
                   <tbody>
@@ -680,7 +688,6 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                       const price = srvPrice(t.symbol)
                       const entry = t.entry_level != null ? Number(t.entry_level) : null
                       const gapPct = price != null && entry != null && price > 0 ? ((entry - price) / price) * 100 : null
-                      const gapUsd = price != null && entry != null ? entry - price : null
                       const near = gapPct != null && Math.abs(gapPct) <= 3
                       const bo = restingBuy(t.symbol)
                       const mismatch = bo?.level != null && entry != null && Math.abs(Number(bo.level) - entry) / entry > 0.01
@@ -689,17 +696,20 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                           <td className="py-1.5 pr-2"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-800 font-mono text-[10px] font-bold text-white dark:bg-white dark:text-black">{t.buy_rank}</span></td>
                           <td className="pr-2"><span className="text-[15px] font-black text-neutral-800 dark:text-neutral-100">{t.symbol}</span>{t.buy_rank === 1 && <span className="ml-1 text-amber-500" title="pole seat — buy_rank 1">★</span>}</td>
                           <td className="pr-2"><span className={`rounded px-1.5 py-px text-[9px] font-bold uppercase tracking-wide ${STATUS[t.status] ?? 'bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300'}`}>{t.status}</span></td>
-                          <td className="pr-2 text-right font-mono font-bold text-neutral-800 dark:text-neutral-100">{price != null ? fmt(price) : '…'}</td>
-                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{entry != null ? fmt(entry) : <span className="text-neutral-400">no level</span>}</td>
+                          <td className="pr-2 text-right font-mono font-bold text-neutral-800 dark:text-neutral-100">{price != null ? bfmt(price) : '…'}</td>
+                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{entry != null ? bfmt(entry) : <span className="text-neutral-400">no level</span>}</td>
                           <td className="pr-2 text-right">
-                            {gapPct != null && gapUsd != null
-                              ? <span className={`font-mono ${near ? 'font-bold text-emerald-700 dark:text-emerald-300' : 'text-neutral-600 dark:text-neutral-400'}`}>{gapPct >= 0 ? '+' : ''}{gapPct.toFixed(1)}% · {usd2(gapUsd)}</span>
+                            {gapPct != null
+                              ? <span className={`font-mono ${near ? 'font-bold text-emerald-700 dark:text-emerald-300' : 'text-neutral-600 dark:text-neutral-400'}`}>{gapPct >= 0 ? '+' : ''}{gapPct.toFixed(1)}%</span>
                               : <span className="text-neutral-400">—</span>}
                           </td>
                           <td className="pr-2">
+                            {/* Build request #17(a): the order id is real but it is noise on the face of the
+                                board. Badge and level only; the id stays in the tooltip, where it is there
+                                when you need to cancel something and invisible when you don't. */}
                             {bo ? (
                               <span className="font-mono text-[11px] text-emerald-700 dark:text-emerald-300" title={`order ${bo.order_id}`}>
-                                <span className="rounded bg-emerald-600 px-1 py-px text-[9px] font-bold text-white">ARMED</span> {bo.level != null ? fmt(Number(bo.level)) : ''} · {bo.order_id.slice(0, 8)}
+                                <span className="rounded bg-emerald-600 px-1 py-px text-[9px] font-bold text-white">ARMED</span> {bo.level != null ? bfmt(Number(bo.level)) : ''}
                                 {mismatch && <span className="ml-1 text-amber-700 dark:text-amber-300">≠ written level</span>}
                               </span>
                             ) : !ordersKnown ? (
