@@ -30,6 +30,7 @@ import json
 import sys
 
 import captions
+import frames
 import inventory
 import presenters  # noqa: F401 - imported so cli.py fails loudly if attribution breaks
 import push_text
@@ -621,10 +622,44 @@ def cmd_scan(a):
     return payload, 0
 
 
+def cmd_frames(a):
+    """Plan, and optionally capture, the video moments worth a picture."""
+    vids = [v.strip() for v in (a.videos or "").split(",") if v.strip()] or None
+    by_video, total = frames.plan(vids, a.limit)
+    payload = {"command": "frames", "at": store.utcnow(), "planned": total,
+               "videos": len(by_video), "captured": 0, "results": []}
+    if a.capture:
+        for vid in sorted(by_video):
+            pts = [(vid, p["t_ms"], p["category"]) for p in by_video[vid]]
+            try:
+                res = frames.capture(vid, pts, keep_video=a.keep_video)
+            except Exception as e:  # noqa: BLE001 — one bad video must not sink the batch
+                res = {"video_id": vid, "captured": 0, "planned": len(pts), "error": str(e)[:300]}
+            payload["results"].append(res)
+            payload["captured"] += res.get("captured", 0)
+    if a.json:
+        return _emit(payload, True), 0
+    _h("FRAMES" + ("" if a.capture else "  (plan only — pass --capture to pull them)"))
+    print(f"  planned    {total} frame(s) across {len(by_video)} video(s)")
+    if a.capture:
+        print(f"  captured   {payload['captured']}")
+        for r in payload["results"]:
+            flag = f"  ERROR {r['error']}" if r.get("error") else ""
+            print(f"    {r['video_id']}  {r['captured']}/{r['planned']}{flag}")
+    else:
+        for vid in sorted(by_video)[:15]:
+            print(f"    {vid}  {len(by_video[vid]):>3} frame(s)")
+    _resume_block([f"{PROG} frames --capture"] if total and not a.capture else [],
+                  ["the downloaded video is a working file and is deleted after extraction; "
+                   "what is kept is the stills"])
+    return payload, 0
+
+
 # --------------------------------------------------------------------------
 COMMANDS = {"seed": cmd_seed, "inventory": cmd_inventory, "captions": cmd_captions,
             "import-transcripts": cmd_import, "push-text": cmd_push_text, "scan": cmd_scan,
-            "status": cmd_status, "quality": cmd_quality, "blockers": cmd_blockers}
+            "frames": cmd_frames, "status": cmd_status, "quality": cmd_quality,
+            "blockers": cmd_blockers}
 
 
 def build_parser():
@@ -677,6 +712,14 @@ def build_parser():
     sc.add_argument("--limit", type=int, metavar="N", help="transcripts this batch")
     sc.add_argument("--force", action="store_true", help="re-scan already-scanned videos")
     sc.add_argument("--dry-run", action="store_true", help="report, write nothing")
+
+    fr = sub.add_parser("frames", parents=[common],
+                        help="capture chart frames at the moments the scan flagged")
+    fr.add_argument("--videos", metavar="IDS", help="comma-separated video ids")
+    fr.add_argument("--limit", type=int, metavar="N", help="cap total frames planned")
+    fr.add_argument("--capture", action="store_true", help="actually download and extract")
+    fr.add_argument("--keep-video", action="store_true",
+                    help="keep the downloaded working file (default: delete after extraction)")
 
     sub.add_parser("status", parents=[common],
                    help="coverage, stage counts, blockers, last runs, and what to type next")

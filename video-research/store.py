@@ -135,6 +135,32 @@ def delete(table, query):
                 headers=_headers({"Prefer": "return=minimal"}))
 
 
+def upload(bucket, path, data, content_type="image/jpeg", upsert=True):
+    """Put bytes into a private Storage bucket. Returns the object path.
+
+    Separate from the table helpers because Storage is a different API surface: no
+    on_conflict, no PostgREST filters, and the body is raw bytes rather than JSON.
+    """
+    _require()
+    h = _headers({"Content-Type": content_type})
+    if upsert:
+        h["x-upsert"] = "true"
+    url = f"{SB}/storage/v1/object/{bucket}/{urllib.parse.quote(path)}"
+    r = urllib.request.Request(url, data=data, method="POST", headers=h)
+    with urllib.request.urlopen(r, timeout=120) as resp:
+        resp.read()
+    return path
+
+
+def signed_url(bucket, path, expires_in=3600):
+    """A time-limited read link. The bucket is private, so this is the only way in."""
+    _require()
+    out = _req(f"{SB}/storage/v1/object/sign/{bucket}/{urllib.parse.quote(path)}",
+               "POST", {"expiresIn": int(expires_in)}, _headers())
+    signed = (out or {}).get("signedURL") or (out or {}).get("signedUrl") or ""
+    return f"{SB}/storage/v1{signed}" if signed.startswith("/") else signed
+
+
 def patch(table, query, body):
     _require()
     return _req(f"{SB}/rest/v1/{table}?{query}", "PATCH", body,
