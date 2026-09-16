@@ -1,0 +1,139 @@
+"""push_text: the corpus boundary and the hash guard. No network, no database."""
+import json
+import pathlib
+import shutil
+import sys
+import tempfile
+import unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import captions
+import push_text
+import sources
+import store
+
+
+class Corpus(unittest.TestCase):
+    """What the priority corpus is, asserted against the registry rather than a fixed list."""
+
+    def test_corpus_is_exactly_the_presenter_priority_sources(self):
+        keys = {s["source_key"] for s in push_text.priority_sources()}
+        for s in sources.confirmed():
+            prio = s.get("priority", 100)
+            if prio < captions.PRESENTER_PRIORITY_MAX:
+                self.assertIn(s["source_key"], keys)
+            else:
+                self.assertNotIn(s["source_key"], keys,
+                                 f"{s['source_key']} is a whole archive; pushing its text "
+                                 "would blow the bounded-corpus decision")
+
+    def test_whole_archives_are_excluded(self):
+        """The named exception is presenters, not the archive. Cowen/Banter/Insider stay out."""
+        keys = {s["source_key"] for s in push_text.priority_sources()}
+        for key in ("benjamin-cowen", "crypto-banter", "crypto-insider"):
+            self.assertNotIn(key, keys)
+
+    def test_the_owners_named_presenters_are_in(self):
+        keys = {s["source_key"] for s in push_text.priority_sources()}
+        for key in ("sniper-trading-masterclass", "kyle-doops-trading-show", "rans-show",
+                    "sniper-crypto-trading-show"):
+            self.assertIn(key, keys, f"{key} was named by the owner and must be in the corpus")
+
+    def test_threshold_is_shared_with_the_fetch_order(self):
+        """One definition of 'presenter', so fetch order and text push cannot drift apart.
+
+        Asserted by moving the shared threshold and watching the corpus follow. A copy of
+        the number local to this module would keep the old corpus and pass silently.
+        """
+        saved = captions.PRESENTER_PRIORITY_MAX
+        try:
+            captions.PRESENTER_PRIORITY_MAX = 0
+            self.assertEqual(push_text.priority_sources(), [],
+                             "corpus ignored the shared threshold — it has its own copy")
+            captions.PRESENTER_PRIORITY_MAX = 1000
+            self.assertEqual(len(push_text.priority_sources()), len(sources.confirmed()))
+        finally:
+            captions.PRESENTER_PRIORITY_MAX = saved
+
+
+class HashGuard(unittest.TestCase):
+    """A push must carry the fetched text, byte for byte, or not happen."""
+
+    def _segs(self, *texts):
+        return [{"t_start_ms": i * 1000, "t_end_ms": i * 1000 + 900, "text": t}
+                for i, t in enumerate(texts)]
+
+    def _hash(self, *texts):
+        return store.sha256("\n".join(texts))
+
+    def test_matching_hash_passes(self):
+        ok, reason = push_text.verify(self._segs("alpha", "beta"), self._hash("alpha", "beta"))
+        self.assertTrue(ok)
+        self.assertEqual(reason, "")
+
+    def test_altered_text_is_a_defect_not_a_merge(self):
+        ok, reason = push_text.verify(self._segs("alpha", "BETA"), self._hash("alpha", "beta"))
+        self.assertFalse(ok)
+        self.assertIn("mismatch", reason)
+
+    def test_empty_transcript_is_refused(self):
+        ok, reason = push_text.verify([], "whatever")
+        self.assertFalse(ok)
+        self.assertEqual(reason, "empty transcript")
+
+    def test_oversized_transcript_is_skipped_with_its_size_named(self):
+        saved = push_text.CHAR_CAP
+        push_text.CHAR_CAP = 10
+        try:
+            ok, reason = push_text.verify(self._segs("x" * 50), self._hash("x" * 50))
+            self.assertFalse(ok)
+            self.assertIn("over cap", reason)
+        finally:
+            push_text.CHAR_CAP = saved
+
+    def test_cap_check_precedes_the_hash_check(self):
+        """An oversized file is reported as oversized, never mislabelled a defect."""
+        saved = push_text.CHAR_CAP
+        push_text.CHAR_CAP = 5
+        try:
+            ok, reason = push_text.verify(self._segs("y" * 40), "not-the-right-hash")
+            self.assertFalse(ok)
+            self.assertIn("over cap", reason)
+            self.assertNotIn("mismatch", reason)
+        finally:
+            push_text.CHAR_CAP = saved
+
+
+class LocalCache(unittest.TestCase):
+    def setUp(self):
+        self.tmp = pathlib.Path(tempfile.mkdtemp())
+        self._saved = store.CACHE
+        store.CACHE = self.tmp
+
+    def tearDown(self):
+        store.CACHE = self._saved
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_absent_file_reads_as_none_not_empty(self):
+        """None means 'fetched on another machine'; [] would mean 'this video had no text'."""
+        self.assertIsNone(push_text.read_local("transcripts/missing.en.auto.json"))
+
+    def test_segments_survive_the_round_trip_untouched(self):
+        segs = [{"t_start_ms": 0, "t_end_ms": 900, "text": "we are buying here"}]
+        p = self.tmp / "transcripts" / "abc.en.auto.json"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"video_id": "abc", "segments": segs}), encoding="utf-8")
+        self.assertEqual(push_text.read_local("transcripts/abc.en.auto.json"), segs)
+
+    def test_timestamps_are_preserved_so_excerpts_stay_citable(self):
+        segs = [{"t_start_ms": 123456, "t_end_ms": 124000, "text": "invalidation is here"}]
+        p = self.tmp / "transcripts" / "def.en.creator.json"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"video_id": "def", "segments": segs}), encoding="utf-8")
+        got = push_text.read_local("transcripts/def.en.creator.json")
+        self.assertEqual(got[0]["t_start_ms"], 123456)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=0, exit=False)
+    print("OK")

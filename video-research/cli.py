@@ -32,6 +32,7 @@ import sys
 import captions
 import inventory
 import presenters  # noqa: F401 - imported so cli.py fails loudly if attribution breaks
+import push_text
 import quality
 import sources
 import store
@@ -576,10 +577,36 @@ def cmd_blockers(a):
     return payload, (2 if err else (1 if kinds else 0))
 
 
+def cmd_push_text(a):
+    """Copy priority-corpus transcript text into the owner's own database.
+
+    Exit 1 on any hash mismatch: that means the local cache and the recorded fetch disagree
+    about what was said, which is a defect worth stopping for, not a retryable hiccup.
+    """
+    out = push_text.push(limit=a.limit, force=a.force, dry_run=a.dry_run)
+    payload = {"command": "push-text", "at": store.utcnow(), **out}
+    if a.json:
+        return _emit(payload, True), (1 if out["hash_mismatches"] else 0)
+    _h("PUSH TEXT" + ("  (dry run — nothing written)" if a.dry_run else ""))
+    print(f"  corpus     {out['corpus_size']:,} video(s) across "
+          f"{len(push_text.priority_sources())} priority source(s)")
+    print(f"  eligible   {out['eligible']}   pushed {out['pushed']}   "
+          f"absent locally {out['absent_locally']}")
+    for vid, reason in out["skipped"]:
+        print(f"  skip       {vid}  {reason}")
+    for vid, reason in out["hash_mismatches"]:
+        print(f"  DEFECT     {vid}  {reason}")
+    cmds = [f"{PROG} push-text --limit {a.limit}"] if out["pushed"] >= a.limit else []
+    _resume_block(cmds, ["a DEFECT line means the cache and the database disagree; "
+                         "re-fetch that video rather than reconciling by hand"]
+                  if out["hash_mismatches"] else [])
+    return payload, (1 if out["hash_mismatches"] else 0)
+
+
 # --------------------------------------------------------------------------
 COMMANDS = {"seed": cmd_seed, "inventory": cmd_inventory, "captions": cmd_captions,
-            "import-transcripts": cmd_import, "status": cmd_status, "quality": cmd_quality,
-            "blockers": cmd_blockers}
+            "import-transcripts": cmd_import, "push-text": cmd_push_text,
+            "status": cmd_status, "quality": cmd_quality, "blockers": cmd_blockers}
 
 
 def build_parser():
@@ -619,6 +646,13 @@ def build_parser():
                      help="a .json file or a directory tree of them")
     imp.add_argument("--dry-run", action="store_true",
                      help="validate the files only; writes nothing, needs no credentials")
+
+    pt = sub.add_parser("push-text", parents=[common],
+                        help="copy priority-corpus transcript text into your own database")
+    pt.add_argument("--limit", type=int, default=200, metavar="N",
+                    help="transcripts this batch")
+    pt.add_argument("--force", action="store_true", help="re-push rows already present")
+    pt.add_argument("--dry-run", action="store_true", help="report, write nothing")
 
     sub.add_parser("status", parents=[common],
                    help="coverage, stage counts, blockers, last runs, and what to type next")
