@@ -82,8 +82,22 @@ Sheldon's sizing arithmetic. It is not an entry and must not be used as one.
 
 ### What would change this verdict
 
-- Re-run on EMA rather than SMA. He says "moving average" here and "50-week SMA" earlier in
-  the same video; simple is the reading taken, and the check has not been run.
+- ~~Re-run on EMA rather than SMA.~~ **Run 2026-09-16 — the verdict survives.** Same four
+  crosses, shifted 2–5 weeks, same false positive, same conclusion:
+
+  | | SMA | EMA |
+  |---|---|---|
+  | 2018 bear | 2018-07-08 @ 6,702 | 2018-09-09 @ 6,235 |
+  | **2020 false positive** | 2020-03-01 @ 8,522 | **2020-03-29 @ 5,877** |
+  | 2022 bear | 2022-03-27 @ 46,850 | 2022-05-01 @ 38,473 |
+  | 2026 signal | 2026-01-25 @ 86,562 | 2026-01-25 @ 86,562 |
+  | **2021 dip crossed?** | **NO** (+18.4% clear) | **NO** (+15.8% clear) |
+  | today | BEAR | BEAR |
+
+  EMA is **worse on both counts that matter**: it fires the COVID false positive even nearer
+  the bottom (5,877 against an eventual ~4,000 low), and it is later on the real bears. The
+  load-bearing 2021 result holds under both with double-digit clearance, so the choice of
+  average is not what this rule rests on.
 - Weekly boundaries: ISO weeks over Coinbase UTC daily closes. TradingView's weekly candles
   can differ by a bar, which can move a cross date by a week. It does not move (b), where
   the clearance is 18.4%.

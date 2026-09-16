@@ -68,12 +68,26 @@ def sma(vals, n, i):
     return sum(vals[i - n + 1:i + 1]) / n if i >= n - 1 else None
 
 
-def crossovers(wk, fast=20, slow=50):
+def ema(vals, n):
+    """Exponential average, seeded on the first value. The alternative reading of
+    "moving average" — run as a robustness check rather than argued about."""
+    k, out, cur = 2 / (n + 1), [], None
+    for v in vals:
+        cur = v if cur is None else v * k + cur * (1 - k)
+        out.append(cur)
+    return out
+
+
+def crossovers(wk, fast=20, slow=50, kind="sma"):
     """[(date, 'below'|'above', close)] — every state change, on weekly closes."""
     closes = [c for _d, c in wk]
+    ef, es = (ema(closes, fast), ema(closes, slow)) if kind == "ema" else (None, None)
     out, prev = [], None
     for i, (d, c) in enumerate(wk):
-        a, b = sma(closes, fast, i), sma(closes, slow, i)
+        if kind == "ema":
+            a, b = (ef[i], es[i]) if i >= slow - 1 else (None, None)
+        else:
+            a, b = sma(closes, fast, i), sma(closes, slow, i)
         if a is None or b is None:
             continue
         state = "above" if a > b else "below"
@@ -105,6 +119,11 @@ def main():
         fwd = "  ".join(f"{m}mo {r:+.1f}%" for m in (3, 6, 12)
                         if (r := forward_return(wk, d, m)) is not None)
         print(f"    {d}  BTC {c:>9,.0f}   {fwd}")
+
+    print("\n    same, under EMA (robustness check — the other reading of 'moving average'):")
+    for d, state, c in crossovers(wk, kind="ema"):
+        if state == "below":
+            print(f"    {d}  BTC {c:>9,.0f}")
 
     print("\n(b) THE 2021 INTERIM DIP")
     peak = max(c for d, c in wk if datetime.date(2021, 3, 1) <= d <= datetime.date(2021, 5, 1))
