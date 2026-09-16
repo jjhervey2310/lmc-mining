@@ -52,14 +52,59 @@ TABLE = "vr_transcript_text"
 # --------------------------------------------------------------------------
 # corpus definition — derived from the registry
 # --------------------------------------------------------------------------
-def priority_sources():
-    """CONFIRMED sources whose priority marks them a presenter/teaching corpus.
+# Two ways into the readable corpus, because two different things are being balanced.
+#
+# CURATED sources (a named person's show, a course, a tutorial playlist) go in whole. They
+# are small and every video is on-topic.
+#
+# WHOLE ARCHIVES do not. Benjamin Cowen's channel is 3,133 videos; pushing all of it would
+# blow the bounded-corpus decision this module exists to keep — roughly 125 MB of transcript
+# text in the owner's database, most of it market commentary rather than method.
+#
+# But excluding him outright was also wrong, and it was silent: 498 of his transcripts were
+# fetched and scanned while NONE could ever become readable, and the owner had explicitly
+# named him "one of the best chart readers out there". The bound predates that instruction.
+#
+# So a whole archive is admitted SELECTIVELY: only its videos the scanner already flagged as
+# rule-bearing. That keeps the corpus bounded by evidence rather than by source, and it is
+# the same hit map that decides what is worth reading anyway.
+CURATED_PRIORITY_MAX = int(os.environ.get("VR_CURATED_PRIORITY_MAX", "39"))
+SELECTIVE_PRIORITY_MAX = int(os.environ.get("VR_SELECTIVE_PRIORITY_MAX", "40"))
+# The categories that make a video worth reading closely, rather than merely on-topic.
+SELECTIVE_CATEGORIES = ("stop_invalidation", "position_size", "avoid_trading",
+                        "entry", "exit_target", "leverage")
+# Hard ceiling on how many videos any one whole archive may contribute.
+SELECTIVE_CAP = int(os.environ.get("VR_SELECTIVE_CAP", "600"))
 
-    Uses the same threshold as the fetch order, so "fetched first" and "text pushed" can
-    never drift apart into two different definitions of what matters.
+
+def priority_sources():
+    """CONFIRMED curated sources — a named person's show, a course, a tutorial playlist.
+
+    Whole archives are deliberately NOT here; see selective_sources().
     """
     return [s for s in sources.confirmed()
-            if s.get("priority", 100) < captions.PRESENTER_PRIORITY_MAX]
+            if s.get("priority", 100) <= CURATED_PRIORITY_MAX]
+
+
+def selective_sources():
+    """Whole archives admitted by evidence rather than wholesale."""
+    return [s for s in sources.confirmed()
+            if CURATED_PRIORITY_MAX < s.get("priority", 100) <= SELECTIVE_PRIORITY_MAX]
+
+
+def rule_bearing(video_ids):
+    """The subset the scanner flagged as carrying a rule worth reading."""
+    if not video_ids:
+        return set()
+    out, ids = set(), sorted(video_ids)
+    for i in range(0, len(ids), 200):
+        chunk = ids[i:i + 200]
+        rows = store.get_all(
+            "vr_scan_hits",
+            "select=video_id&category=in.(" + ",".join(SELECTIVE_CATEGORIES) + ")"
+            "&video_id=in.(" + ",".join(chunk) + ")", order="video_id")
+        out.update(r["video_id"] for r in rows)
+    return out
 
 
 def corpus_members(source):
@@ -79,16 +124,23 @@ def corpus_members(source):
 
 
 def corpus_index():
-    """{video_id: corpus_key} across every priority source.
+    """{video_id: corpus_key} across every readable source.
 
     First claim wins, and sources are visited in priority order, so a video in both the
-    Masterclass and the Sniper Show is labelled with the higher-priority one.
+    Masterclass and the Sniper Show is labelled with the higher-priority one. Curated
+    sources contribute every member; a whole archive contributes only its rule-bearing
+    videos, capped, and only ones no curated source already claimed.
     """
     index = {}
     for s in sorted(priority_sources(), key=lambda s: (s.get("priority", 100),
                                                        s["source_key"])):
         for vid, key in corpus_members(s).items():
             index.setdefault(vid, key)
+    for s in sorted(selective_sources(), key=lambda s: (s.get("priority", 100),
+                                                        s["source_key"])):
+        members = {v: k for v, k in corpus_members(s).items() if v not in index}
+        for vid in sorted(rule_bearing(set(members)))[:SELECTIVE_CAP]:
+            index.setdefault(vid, members[vid])
     return index
 
 
