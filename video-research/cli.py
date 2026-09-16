@@ -34,6 +34,7 @@ import inventory
 import presenters  # noqa: F401 - imported so cli.py fails loudly if attribution breaks
 import push_text
 import quality
+import scan
 import sources
 import store
 
@@ -603,9 +604,26 @@ def cmd_push_text(a):
     return payload, (1 if out["hash_mismatches"] else 0)
 
 
+def cmd_scan(a):
+    """Pattern-scan every local transcript. Complete coverage, no cost, no comprehension."""
+    out = scan.run(limit=a.limit, force=a.force, dry_run=a.dry_run)
+    payload = {"command": "scan", "at": store.utcnow(), **out}
+    if a.json:
+        return _emit(payload, True), 0
+    _h("SCAN" + ("  (dry run — nothing written)" if a.dry_run else ""))
+    print(f"  scanned    {out['scanned']}   already done {out['already_done']}")
+    print(f"  hits       {out['hits']:,}")
+    for cat in sorted(out["by_category"], key=lambda c: -out["by_category"][c]):
+        print(f"    {cat:<20} {out['by_category'][cat]:>7,}")
+    _resume_block([f"{PROG} scan"] if out["scanned"] else [],
+                  ["a hit is a timestamped pointer to a moment, not a claim that a rule "
+                   "was stated — reading one is what makes it a method record"])
+    return payload, 0
+
+
 # --------------------------------------------------------------------------
 COMMANDS = {"seed": cmd_seed, "inventory": cmd_inventory, "captions": cmd_captions,
-            "import-transcripts": cmd_import, "push-text": cmd_push_text,
+            "import-transcripts": cmd_import, "push-text": cmd_push_text, "scan": cmd_scan,
             "status": cmd_status, "quality": cmd_quality, "blockers": cmd_blockers}
 
 
@@ -653,6 +671,12 @@ def build_parser():
                     help="transcripts this batch")
     pt.add_argument("--force", action="store_true", help="re-push rows already present")
     pt.add_argument("--dry-run", action="store_true", help="report, write nothing")
+
+    sc = sub.add_parser("scan", parents=[common],
+                        help="pattern-scan every local transcript (free, complete coverage)")
+    sc.add_argument("--limit", type=int, metavar="N", help="transcripts this batch")
+    sc.add_argument("--force", action="store_true", help="re-scan already-scanned videos")
+    sc.add_argument("--dry-run", action="store_true", help="report, write nothing")
 
     sub.add_parser("status", parents=[common],
                    help="coverage, stage counts, blockers, last runs, and what to type next")
