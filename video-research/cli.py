@@ -649,7 +649,19 @@ def cmd_frames(a):
     else:
         for vid in sorted(by_video)[:15]:
             print(f"    {vid}  {len(by_video[vid]):>3} frame(s)")
-    _resume_block([f"{PROG} frames --capture"] if total and not a.capture else [],
+    # Echo back the SAME scope, not a bare --capture: without --videos the next run fans
+    # out across every scanned video, which is a very different (and much larger) job than
+    # the one just planned.
+    resume = ""
+    if total and not a.capture:
+        resume = f"{PROG} frames --capture"
+        if a.every:
+            resume += f" --every {a.every}"
+        if a.limit:
+            resume += f" --limit {a.limit}"
+        if a.videos:
+            resume += f" --videos {a.videos}"
+    _resume_block([resume] if resume else [],
                   ["the downloaded video is a working file and is deleted after extraction; "
                    "what is kept is the stills"])
     return payload, 0
