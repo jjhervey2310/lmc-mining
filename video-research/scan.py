@@ -74,6 +74,22 @@ PATTERNS = {
         r"\bno[\s-]trade\b", r"\bsit (?:on (?:your|my) hands|this one out)\b",
         r"\bwait for confirmation\b", r"\bnot a (?:trade|setup)\b",
     ],
+    # Tone markers. ASR strips delivery entirely: a deadpan joke and a real call read
+    # identically as text. These cannot recover tone, but they do measure how much of what
+    # a presenter says is hedged versus asserted — and a call surrounded by disclaimers is
+    # a different object from one stated flat. Owner's steer 2026-09-16: they joke around,
+    # so treat conviction as something to evidence rather than assume.
+    "hedge": [
+        r"\bnot financial advice\b", r"\bdo your own research\b", r"\bdyor\b",
+        r"\bi could be wrong\b", r"\bmight be wrong\b", r"\bjust my opinion\b",
+        r"\bi'?m joking\b", r"\bjust kidding\b", r"\bobviously (?:a )?joke\b",
+        r"\bdon'?t (?:quote|hold) me\b", r"\bno idea\b",
+    ],
+    "conviction": [
+        r"\bhigh conviction\b", r"\bi'?m confident\b", r"\bthis is the trade\b",
+        r"\bi'?m all in\b", r"\bmy biggest position\b", r"\bwithout a doubt\b",
+        r"\bguarantee[d]?\b",
+    ],
     "regime": [
         r"\bbull market\b", r"\bbear market\b", r"\brange[\s-]bound\b",
         r"\baltseason\b", r"\brisk[\s-]off\b", r"\brisk[\s-]on\b",

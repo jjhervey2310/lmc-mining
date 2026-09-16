@@ -171,6 +171,29 @@ class RescanReplaces(unittest.TestCase):
                       "re-scan appended without clearing — counts will stack")
 
 
+class ToneMarkers(unittest.TestCase):
+    """Tone is not recoverable from ASR. What IS measurable is hedging versus assertion."""
+
+    def _cats(self, text):
+        return {c for c, *_ in scan.scan_segments([seg(text)])}
+
+    def test_disclaimers_are_captured(self):
+        self.assertIn("hedge", self._cats("this is not financial advice by the way"))
+        self.assertIn("hedge", self._cats("honestly I could be wrong here"))
+
+    def test_stated_jokes_are_captured(self):
+        self.assertIn("hedge", self._cats("nah I'm joking, do not do that"))
+
+    def test_conviction_language_is_captured(self):
+        self.assertIn("conviction", self._cats("this is high conviction for me"))
+
+    def test_hedge_and_call_can_coexist_on_one_line(self):
+        """A hedged call is a different object from a flat one — both markers must survive."""
+        cats = self._cats("I'm buying here but I could be wrong")
+        self.assertIn("entry", cats)
+        self.assertIn("hedge", cats)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=0, exit=False)
     print("OK")
