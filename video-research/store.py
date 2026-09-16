@@ -123,6 +123,18 @@ def upsert(table, rows, on_conflict):
     return n
 
 
+def delete(table, query):
+    """Delete rows matching a PostgREST filter.
+
+    Added for re-scans: a table written with insert() rather than upsert() accumulates on
+    every re-run, so a corrected pass sits on top of the pass it was meant to replace
+    instead of taking its place. Callers that re-derive rows must clear the old ones first.
+    """
+    _require()
+    return _req(f"{SB}/rest/v1/{table}?{query}", "DELETE",
+                headers=_headers({"Prefer": "return=minimal"}))
+
+
 def patch(table, query, body):
     _require()
     return _req(f"{SB}/rest/v1/{table}?{query}", "PATCH", body,

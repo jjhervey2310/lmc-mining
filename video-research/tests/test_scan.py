@@ -4,6 +4,7 @@ import sys
 import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import json
 import scan
 
 
@@ -133,6 +134,41 @@ class TrackDeduplication(unittest.TestCase):
         self._write("aaaaaaaaaaa.en.auto.json")
         self._write("bbbbbbbbbbb.en.auto.json")
         self.assertEqual(len(scan.local_transcripts()), 2)
+
+
+class RescanReplaces(unittest.TestCase):
+    """A re-scan must replace a video's hits, never stack a new pass on the old one."""
+
+    def setUp(self):
+        import shutil, tempfile
+        self.tmp = pathlib.Path(tempfile.mkdtemp())
+        self._cache, self._get = scan.store.CACHE, scan.store.get
+        self._ins, self._ups, self._del = (scan.store.insert, scan.store.upsert,
+                                           getattr(scan.store, "delete", None))
+        scan.store.CACHE = self.tmp
+        (self.tmp / "transcripts").mkdir(parents=True)
+        self.deleted, self.inserted = [], []
+        scan.store.get = lambda *a, **k: []
+        scan.store.insert = lambda t, rows: self.inserted.extend(rows)
+        scan.store.upsert = lambda t, rows, c: None
+        scan.store.delete = lambda t, q: self.deleted.append(q)
+
+    def tearDown(self):
+        import shutil
+        scan.store.CACHE, scan.store.get = self._cache, self._get
+        scan.store.insert, scan.store.upsert = self._ins, self._ups
+        if self._del is not None:
+            scan.store.delete = self._del
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_previous_hits_are_deleted_before_new_ones_are_written(self):
+        seg = {"t_start_ms": 0, "t_end_ms": 900, "text": "my stop loss is here"}
+        (self.tmp / "transcripts" / "aaaaaaaaaaa.en.auto.json").write_text(
+            json.dumps({"segments": [seg]}), encoding="utf-8")
+        scan.run(force=True)
+        self.assertTrue(self.inserted, "nothing was written")
+        self.assertIn("video_id=eq.aaaaaaaaaaa", self.deleted,
+                      "re-scan appended without clearing — counts will stack")
 
 
 if __name__ == "__main__":

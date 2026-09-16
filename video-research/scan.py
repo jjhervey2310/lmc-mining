@@ -205,6 +205,13 @@ def run(limit=None, force=False, dry_run=False):
                          "hits": len(hits), "scanned_at": store.utcnow()})
 
     if not dry_run:
+        # Clear this video's previous hits before writing the new ones. vr_scan_hits is
+        # insert-only (a video yields many rows, so there is no natural conflict key), which
+        # means a re-scan appends instead of replacing. Measured: a --force pass after the
+        # track-dedupe fix left 5,379 rows where 1,828 was correct — the corrected numbers
+        # stacked on top of the wrong ones they were meant to replace.
+        for vid in sorted({r["video_id"] for r in run_rows}):
+            store.delete("vr_scan_hits", f"video_id=eq.{vid}")
         for i in range(0, len(hit_rows), 500):
             store.insert("vr_scan_hits", hit_rows[i:i + 500])
         for i in range(0, len(run_rows), 500):
