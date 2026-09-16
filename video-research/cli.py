@@ -625,7 +625,7 @@ def cmd_scan(a):
 def cmd_frames(a):
     """Plan, and optionally capture, the video moments worth a picture."""
     vids = [v.strip() for v in (a.videos or "").split(",") if v.strip()] or None
-    by_video, total = frames.plan(vids, a.limit)
+    by_video, total = frames.plan(vids, a.limit, every_ms=(a.every or 0) * 1000 or None)
     payload = {"command": "frames", "at": store.utcnow(), "planned": total,
                "videos": len(by_video), "captured": 0, "results": []}
     if a.capture:
@@ -717,6 +717,9 @@ def build_parser():
                         help="capture chart frames at the moments the scan flagged")
     fr.add_argument("--videos", metavar="IDS", help="comma-separated video ids")
     fr.add_argument("--limit", type=int, metavar="N", help="cap total frames planned")
+    fr.add_argument("--every", type=int, metavar="SEC",
+                    help="also sample every N seconds — needed for teaching content, which "
+                         "draws without ever saying stop or entry")
     fr.add_argument("--capture", action="store_true", help="actually download and extract")
     fr.add_argument("--keep-video", action="store_true",
                     help="keep the downloaded working file (default: delete after extraction)")
