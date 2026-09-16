@@ -70,7 +70,7 @@ export async function GET(req: Request) {
     // buy_rank / entry_level / entry_note drive the BUY BOARD (build request #16). The board orders
     // by buy_rank and never by updated_at — sorting by the edit clock is what made the most recently
     // touched name look like the top pick (build note, 09-08).
-    supabase.from('desk_theses').select('symbol, status, thesis, gate, updated_at, buy_rank, entry_level, entry_note').order('symbol'),
+    supabase.from('desk_theses').select('symbol, status, thesis, gate, updated_at, buy_rank, entry_level, entry_note, sector').order('symbol'),
     supabase.from('broker_open_orders').select('order_id, symbol, side, order_type, level, qty, state, created_at, synced_at').order('symbol'),
     supabase.from('desk_config').select('value').eq('key', 'open_orders_synced_at').maybeSingle(),
   ])
@@ -112,6 +112,40 @@ export async function GET(req: Request) {
   const unpriced = posSyms.filter((sym) => !priced[sym])
   const posValue = posSyms.reduce((sum, sym) => sum + (priced[sym] ? Number(hold.find((x) => x.symbol === sym)!.qty) * priced[sym].usd : 0), 0)
 
+  // NARRATIVE LEADERBOARD (build request #19). Per sector (desk_theses.sector): MOMENTUM = median d7 /
+  // d30 across the sector's names that have a row in the latest radar scan (the radar universe is the
+  // Robinhood list, so a name the app cannot trade — PUMP, TAO, TON — simply has no row and drops out
+  // of the median); OUR EXPOSURE = dollars and % of book held in the sector, priced on the same server
+  // chain as the book; GAP = a top-3 sector by momentum where we hold nothing; BEST VERIFIED = the
+  // sector's top buy_rank (the desk's explicit act after the mechanism check), else a HELD name, else
+  // "none verified". Ranked by median d7 — a narrative switch shows up on the week before the month.
+  // A GAP is a research instruction, never an auto-buy: entries still need the mechanism, the tested
+  // signal and a written level.
+  const thesesRows = (th.data ?? []) as { symbol: string; status: string; sector?: string | null; buy_rank?: number | null }[]
+  const radarBySym = new Map(((radar.data ?? []) as { symbol: string; d7: number | null; d30: number | null }[]).map((r) => [r.symbol, r]))
+  const bookUsd = unpriced.length ? null : posValue + cashUsd
+  const median = (xs: number[]) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2 }
+  const heldUsd = (sym: string) => { const p = hold.find((x) => x.symbol === sym); return p && priced[sym] ? Number(p.qty) * priced[sym].usd : 0 }
+  const bySector = new Map<string, typeof thesesRows>()
+  for (const t of thesesRows) { if (!t.sector) continue; if (!bySector.has(t.sector)) bySector.set(t.sector, []); bySector.get(t.sector)!.push(t) }
+  const sectors = [...bySector.entries()].map(([sector, names]) => {
+    const scanned = names.filter((t) => radarBySym.has(t.symbol))
+    const d7 = median(scanned.map((t) => Number(radarBySym.get(t.symbol)!.d7)).filter(Number.isFinite))
+    const d30 = median(scanned.map((t) => Number(radarBySym.get(t.symbol)!.d30)).filter(Number.isFinite))
+    const exposureUsd = names.reduce((s, t) => s + heldUsd(t.symbol), 0)
+    const ranked = names.filter((t) => t.buy_rank != null).sort((a, b) => (a.buy_rank as number) - (b.buy_rank as number))
+    return {
+      sector, names: names.map((t) => t.symbol), scanned: scanned.length, d7, d30,
+      exposure_usd: exposureUsd, exposure_pct: bookUsd ? (exposureUsd / bookUsd) * 100 : null,
+      held: names.filter((t) => heldUsd(t.symbol) > 0).map((t) => t.symbol),
+      best_verified: ranked[0]?.symbol ?? names.find((t) => t.status === 'HELD')?.symbol ?? null,
+      gap: false,
+    }
+  }).sort((a, b) => (b.d7 ?? -Infinity) - (a.d7 ?? -Infinity) || (b.d30 ?? -Infinity) - (a.d30 ?? -Infinity))
+  sectors.filter((s) => s.d7 != null).slice(0, 3).forEach((s) => { if (s.exposure_usd === 0) s.gap = true })
+  const sectored = new Set(thesesRows.filter((t) => t.sector).map((t) => t.symbol))
+  const unsectoredUsd = posSyms.filter((sym) => !sectored.has(sym)).reduce((s, sym) => s + heldUsd(sym), 0)
+
   return NextResponse.json({
     holdings: h.data ?? null,
     triggers: t.data ?? null,
@@ -131,6 +165,8 @@ export async function GET(req: Request) {
     unpriced,
     radar: radar.data ?? null,
     flow: flow.data ?? null,
+    sectors,                                                      // #19 narrative leaderboard, sorted by median d7
+    unsectored_usd: unsectoredUsd,                                // held dollars in names with no sector on their thesis row
     loop_enabled: le.data ? String(le.data.value).toLowerCase() === 'true' : null,
     at: new Date().toISOString(),
   }, { headers: { 'Cache-Control': 'no-store' } })
