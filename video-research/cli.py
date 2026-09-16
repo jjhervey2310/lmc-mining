@@ -644,8 +644,14 @@ def cmd_frames(a):
     if a.capture:
         print(f"  captured   {payload['captured']}")
         for r in payload["results"]:
-            flag = f"  ERROR {r['error']}" if r.get("error") else ""
-            print(f"    {r['video_id']}  {r['captured']}/{r['planned']}{flag}")
+            print(f"    {r['video_id']}  {r['captured']}/{r['planned']}")
+            # A silent zero is the worst outcome: it reads as "nothing to capture" when it
+            # actually means the download or the extractor failed. Surface the reason
+            # whenever fewer frames came back than were planned.
+            if r.get("error"):
+                print(f"      ERROR  {r['error']}")
+            elif r["captured"] < r["planned"] and r.get("stderr"):
+                print(f"      why    {r['stderr'].strip().splitlines()[-1][:160]}")
     else:
         for vid in sorted(by_video)[:15]:
             print(f"    {vid}  {len(by_video[vid]):>3} frame(s)")
