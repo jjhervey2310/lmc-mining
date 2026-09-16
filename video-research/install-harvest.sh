@@ -40,6 +40,33 @@ fi
 echo "==> Stopping any running harvester"
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 
+# A launchd bootout does NOT stop a fetcher started by hand in a terminal, and this script
+# MOVES the caption cache and then deletes the repo copy. Racing that delete against a
+# process actively writing transcripts is how a cache gets holes in it — so refuse instead,
+# and say exactly what to stop. Checked by command line, not by PID file, because the
+# terminal runs are ad hoc and never wrote one.
+# Matched on PYTHON processes only. A bare `pgrep -f` on the script names also matches any
+# shell whose command line happens to contain them — including, depending on how it was
+# invoked, this script's own — and a guard that fires when nothing is running is a guard
+# nobody keeps. A real fetcher is always python running one of these modules.
+RUNNING="$(ps -Ao pid=,comm=,args= 2>/dev/null \
+  | awk '$2 ~ /python/ && $0 ~ /(cli\.py[[:space:]]+(captions|scan|push-text|frames))|harvest\.py/ { print }' \
+  || true)"
+if [ -n "$RUNNING" ]; then
+  echo
+  echo "REFUSING TO INSTALL — a fetcher is still running:" >&2
+  echo "$RUNNING" | sed 's/^/    /' >&2
+  echo >&2
+  echo "This script moves the caption cache out of the repo and deletes the repo copy." >&2
+  echo "Doing that under a live writer can lose transcripts." >&2
+  echo >&2
+  echo "Stop it first (Ctrl-C in its terminal, or):" >&2
+  echo "    pkill -f 'cli\.py captions'" >&2
+  echo >&2
+  echo "Then re-run this script. Nothing has been changed." >&2
+  exit 1
+fi
+
 echo "==> Installing code to $DEST"
 mkdir -p "$DEST" "$CACHE" "$HOME/Library/LaunchAgents"
 cp "$SRC"/*.py "$DEST/"
