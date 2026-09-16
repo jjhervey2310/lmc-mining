@@ -59,6 +59,12 @@ async function handle(req: Request) {
     const mc = c.market_cap ?? 0
     if (!mc || c.current_price == null) return []
     const turn = ((c.total_volume ?? 0) / mc) * 100
+    // Upstream volume fields go bad: 09-15 CoinGecko reported ETH 24h volume at
+    // 1.116e19 USD against a 2.96e11 market cap, which scored as a 2.99-billion-
+    // percent turnover and fired a signal. A coin that turns over more than five
+    // times its market cap in a day is a broken feed, not a runner. Drop the row
+    // rather than write it, so the bad number never becomes tomorrow's baseline.
+    if (!Number.isFinite(turn) || turn > 500) return []
     const d1 = c.price_change_percentage_24h_in_currency ?? 0
     const d7 = c.price_change_percentage_7d_in_currency ?? 0
     const d30 = c.price_change_percentage_30d_in_currency ?? 0
