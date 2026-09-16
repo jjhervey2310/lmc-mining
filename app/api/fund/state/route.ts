@@ -158,20 +158,60 @@ export async function GET(req: Request) {
   // sector table, so the two can never disagree. `scanned` is published beside the median: a narrative
   // whose names are mostly absent from the scan has a median built on thin air, and the panel says so
   // rather than printing a confident number. A name with no radar row is never counted as flat.
-  const narratives = ((narr.data ?? []) as { rank: number; pick: string; syms: string[] | null }[]).map((n) => {
+  //
+  // TWO ORDERS, ON PURPOSE (Jacob 2026-09-16: "are they listed as what rotation is likely next etc so
+  // we are really ahead of the game"). `rank` answers "which of these is most REAL" — how much proof
+  // there is that money already reaches the token. It is deliberately slow and it does not move with
+  // the tape. `turning` answers a different question: which one is being bought FIRST, right now.
+  // Neither is a prediction. `turning` is a measurement of what has already started, which is the only
+  // honest form of "early" this desk has — and the breakout record (30 signals, mean −5.0%) is the
+  // standing reminder that acting on it alone loses money.
+  //
+  // rs7 / rs30 = the narrative's median move MINUS BTC's, so a whole-market week cannot masquerade as
+  //   a rotation. In an all-red tape "least down vs BTC" is the signal; raw percentages are not.
+  // breadth = how many of the narrative's scanned names beat BTC over 7d. A median can be dragged by
+  //   one runner; breadth is what separates a rotation from a single name going up.
+  // turnover_x = the group's median turnover against the WHOLE scan's median. Above 1 means money is
+  //   concentrating here relative to everything else being scanned.
+  // Every one of these is null when it cannot be computed. A narrative with no scanned name gets nulls
+  //   and sorts LAST, never a zero that quietly reads as "flat".
+  const btcRadar = radarBySym.get('BTC') as { d7: number | null; d30: number | null } | undefined
+  const btcD7 = Number.isFinite(Number(btcRadar?.d7)) ? Number(btcRadar!.d7) : null
+  const btcD30 = Number.isFinite(Number(btcRadar?.d30)) ? Number(btcRadar!.d30) : null
+  const scanTurnovers = ((radar.data ?? []) as { turnover: number | null }[])
+    .map((r) => Number(r.turnover)).filter(Number.isFinite)
+  const scanTurnoverMed = median(scanTurnovers)
+
+  const narrBase = ((narr.data ?? []) as { rank: number; pick: string; syms: string[] | null }[]).map((n) => {
     const syms = (n.syms ?? []).filter(Boolean)
     const scanned = syms.filter((sym) => radarBySym.has(sym))
     const d7n = median(scanned.map((sym) => Number(radarBySym.get(sym)!.d7)).filter(Number.isFinite))
     const d30n = median(scanned.map((sym) => Number(radarBySym.get(sym)!.d30)).filter(Number.isFinite))
     const exposureUsd = syms.reduce((acc, sym) => acc + heldUsd(sym), 0)
+    const beat = btcD7 == null ? null
+      : scanned.filter((sym) => { const v = Number(radarBySym.get(sym)!.d7); return Number.isFinite(v) && v > btcD7 }).length
+    const tnMed = median(scanned.map((sym) => Number((radarBySym.get(sym) as { turnover?: number | null }).turnover)).filter(Number.isFinite))
     return {
       ...n,
       d7: d7n, d30: d30n, scanned: scanned.length, universe: syms.length,
       held: syms.filter((sym) => heldUsd(sym) > 0),
       exposure_usd: exposureUsd,
       exposure_pct: bookUsd ? (exposureUsd / bookUsd) * 100 : null,
+      rs7: d7n != null && btcD7 != null ? d7n - btcD7 : null,
+      rs30: d30n != null && btcD30 != null ? d30n - btcD30 : null,
+      breadth: beat, breadth_of: scanned.length,
+      turnover_x: tnMed != null && scanTurnoverMed ? tnMed / scanTurnoverMed : null,
     }
   })
+
+  // `turning` = 1..n on rs7 (then breadth share, then rs30). Computed here, never in the browser, so
+  // every client sees the same order off the same scan.
+  const turnOrder = [...narrBase].sort((a, b) =>
+    (b.rs7 ?? -Infinity) - (a.rs7 ?? -Infinity)
+    || ((b.breadth_of ? (b.breadth ?? 0) / b.breadth_of : -1) - (a.breadth_of ? (a.breadth ?? 0) / a.breadth_of : -1))
+    || (b.rs30 ?? -Infinity) - (a.rs30 ?? -Infinity))
+  const turningBy = new Map(turnOrder.map((n, i) => [n.rank, n.rs7 == null ? null : i + 1]))
+  const narratives = narrBase.map((n) => ({ ...n, turning: turningBy.get(n.rank) ?? null }))
 
   const sectored = new Set(thesesRows.filter((t) => t.sector).map((t) => t.symbol))
   const unsectoredUsd = posSyms.filter((sym) => !sectored.has(sym)).reduce((s, sym) => s + heldUsd(sym), 0)
@@ -196,6 +236,7 @@ export async function GET(req: Request) {
     radar: radar.data ?? null,
     flow: flow.data ?? null,
     narratives: narr.data ? narratives : null,                     // null = unreachable, [] = genuinely empty. Never conflated.
+    narratives_benchmark: { btc_d7: btcD7, btc_d30: btcD30, scan_turnover_median: scanTurnoverMed },
     narratives_error: narr.error?.message ?? null,
     sectors,                                                      // #19 sector momentum, sorted by median d7
     unsectored_usd: unsectoredUsd,                                // held dollars in names with no sector on their thesis row

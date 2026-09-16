@@ -41,6 +41,12 @@ export interface Narrative {
   syms: string[] | null; sources: string; updated_at: string
   d7: number | null; d30: number | null; scanned: number; universe: number
   held: string[]; exposure_usd: number; exposure_pct: number | null
+  // The rotation half. `turning` is 1..n on 7d strength RELATIVE TO BTC — which narrative is being
+  // bought first right now — and is a different question from `rank`, which is how much proof there
+  // is that money reaches the token. Neither is a forecast. null = not computable, sorts last.
+  catalyst: string | null; catalyst_on: string | null; catalyst_kind: string | null; unlock_note: string | null
+  rs7: number | null; rs30: number | null; breadth: number | null; breadth_of: number
+  turnover_x: number | null; turning: number | null
 }
 /** A RESTING order at the broker (build request #14b). desk_triggers says what the desk meant to arm;
  *  this says what Robinhood is actually holding. */
@@ -52,6 +58,7 @@ export interface DeskState {
   theses?: Thesis[] | null; radar?: RadarRow[] | null; flow?: FlowRow[] | null; loop_enabled?: boolean | null; at: string
   sectors?: SectorRow[] | null; unsectored_usd?: number | null
   narratives?: Narrative[] | null; narratives_error?: string | null
+  narratives_benchmark?: { btc_d7: number | null; btc_d30: number | null; scan_turnover_median: number | null } | null
   orders?: OpenOrder[] | null; orders_synced_at?: string | null; orders_live?: boolean
   // Priced once on the SERVER, on the same chain as everything else. book is null when any position
   // could not be priced — unknown, never silently zero.
@@ -129,6 +136,9 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
   const [priceMeta, setPriceMeta] = useState<{ at: string | null; stale: boolean; error: string | null; missing: string[] }>({ at: null, stale: true, error: null, missing: [] })
   const [nowTick, setNowTick] = useState(() => Date.now())
   const [showWatch, setShowWatch] = useState(false)
+  // Which question the leaderboard is answering right now. 'proof' = how real is it (the default,
+  // and the one that decides what we own). 'turning' = which one is being bought first today.
+  const [narrOrder, setNarrOrder] = useState<'proof' | 'turning'>('proof')
   const [timing, setTiming] = useState<Record<string, Timing | { error: string } | 'loading' | undefined>>({})
   const [buying, setBuying] = useState<Record<string, BuyResult | 'working' | undefined>>({})
 
@@ -774,7 +784,17 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
 
           A seat we could not verify says UNVERIFIED on its face. It is never allowed to read as one we did. */}
       {(() => {
-        const rows = [...(state.narratives ?? [])].sort((a, b) => a.rank - b.rank)
+        const all = [...(state.narratives ?? [])]
+        const rows = narrOrder === 'proof'
+          ? all.sort((a, b) => a.rank - b.rank)
+          // null `turning` means it could not be computed; it sorts LAST rather than first.
+          : all.sort((a, b) => (a.turning ?? 99) - (b.turning ?? 99))
+        const bench = state.narratives_benchmark ?? null
+        const daysTo = (d: string | null) => {
+          if (!d) return null
+          const ms = new Date(d + 'T00:00:00Z').getTime() - Date.now()
+          return Math.ceil(ms / 86_400_000)
+        }
         const pctCell = (v: number | null) => v == null
           ? <span className="text-neutral-400">—</span>
           : <span className={`font-mono font-bold ${v >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{v >= 0 ? '+' : ''}{v.toFixed(1)}%</span>
@@ -788,7 +808,19 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
           : 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200'
         return (
           <Panel accent="cyan" title="🏁 Narrative leaderboard — 1 to 10"
-            right={<span className="text-[11px] text-neutral-500">a pick in every seat · radar {state.radar?.[0]?.scan_date ?? '—'} · prices {priceStamp ?? '—'}</span>}>
+            right={
+              <span className="flex items-center gap-1 text-[11px] text-neutral-500">
+                <button type="button" onClick={() => setNarrOrder('proof')}
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${narrOrder === 'proof' ? 'bg-cyan-600 text-white dark:bg-cyan-300 dark:text-neutral-900' : 'bg-neutral-100 text-neutral-500 dark:bg-white/10 dark:text-neutral-400'}`}>
+                  Most real
+                </button>
+                <button type="button" onClick={() => setNarrOrder('turning')}
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${narrOrder === 'turning' ? 'bg-cyan-600 text-white dark:bg-cyan-300 dark:text-neutral-900' : 'bg-neutral-100 text-neutral-500 dark:bg-white/10 dark:text-neutral-400'}`}>
+                  Turning first
+                </button>
+                <span className="ml-1">radar {state.radar?.[0]?.scan_date ?? '—'}</span>
+              </span>
+            }>
             {state.narratives === undefined ? (
               // FIRST PAINT. The server component does not query desk_narratives, so on the very first
               // render this field is absent and the 60s client refresh has not landed yet. "Not asked
@@ -812,7 +844,9 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                     return (
                       <div key={n.rank} className="py-2">
                         <div className="flex items-baseline gap-2">
-                          <span className="w-5 shrink-0 text-right text-[15px] font-black tabular-nums text-neutral-400 dark:text-neutral-500">{n.rank}</span>
+                          <span className="w-5 shrink-0 text-right text-[15px] font-black tabular-nums text-neutral-400 dark:text-neutral-500">
+                            {narrOrder === 'proof' ? n.rank : (n.turning ?? '–')}
+                          </span>
                           <span className="flex-1 text-[13px] font-bold leading-snug text-neutral-800 dark:text-neutral-100">{n.narrative}</span>
                           <span className={`shrink-0 rounded px-1 text-[9px] font-bold uppercase tracking-wide ${chip(n.verdict)}`}>{n.verdict}</span>
                         </div>
@@ -828,6 +862,24 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                           {n.verified_on && <span className="text-[10px] text-neutral-400">checked {n.verified_on.slice(5)}</span>}
                         </div>
 
+                        {/* THE ROTATION LINE — is this one being bought first, and is it the whole group
+                            or one name? vs BTC, because in an all-red week a raw percentage says nothing. */}
+                        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 pl-7">
+                          <span className="text-[10px] uppercase tracking-wider text-neutral-500">vs btc 7d</span>
+                          {n.rs7 == null
+                            ? <span className="text-[11px] text-neutral-400">not computable</span>
+                            : <span className={`font-mono text-[12px] font-bold ${n.rs7 >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{n.rs7 >= 0 ? '+' : ''}{n.rs7.toFixed(1)}%</span>}
+                          <span className="text-[11px] text-neutral-400">
+                            breadth {n.breadth == null ? '—' : `${n.breadth}/${n.breadth_of}`} beating BTC
+                          </span>
+                          {n.turnover_x != null && <span className="text-[11px] text-neutral-400">turnover {n.turnover_x.toFixed(1)}x the scan</span>}
+                          <span className="text-[10px] text-neutral-400">
+                            {narrOrder === 'proof'
+                              ? `turning first: ${n.turning ?? '–'} of ${rows.length}`
+                              : `most real: ${n.rank} of ${rows.length}`}
+                          </span>
+                        </div>
+
                         <p className="mt-1 pl-7 text-[12px] leading-relaxed text-neutral-700 dark:text-neutral-300">{n.plain}</p>
                         {n.entry && (
                           <p className="mt-1 pl-7 text-[12px] leading-relaxed">
@@ -835,6 +887,18 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                             <span className="text-neutral-800 dark:text-neutral-100">{n.entry}</span>
                           </p>
                         )}
+                        {n.catalyst && (() => {
+                          const dd = daysTo(n.catalyst_on)
+                          const soon = dd != null && dd >= 0 && dd <= 30
+                          return (
+                            <p className={`mt-1 pl-7 text-[12px] leading-relaxed ${soon ? 'font-medium text-amber-800 dark:text-amber-200' : ''}`}>
+                              <span className="text-[10px] uppercase tracking-wider text-neutral-500">what is coming </span>
+                              {n.catalyst_on && <span className="mr-1 rounded bg-amber-500 px-1 text-[10px] font-black text-white">{n.catalyst_on.slice(5)}{dd != null && dd >= 0 ? ` · ${dd}d` : ''}</span>}
+                              {!n.catalyst_on && n.catalyst_kind && <span className="mr-1 rounded bg-neutral-200 px-1 text-[9px] font-bold uppercase text-neutral-600 dark:bg-white/10 dark:text-neutral-300">{n.catalyst_kind}</span>}
+                              <span className={soon ? '' : 'text-neutral-700 dark:text-neutral-300'}>{n.catalyst}</span>
+                            </p>
+                          )
+                        })()}
                         {thin && <p className="mt-0.5 pl-7 text-[11px] text-amber-700 dark:text-amber-300">Only {n.scanned} of {n.universe} names in this narrative are in today&apos;s scan — the 7d and 30d figures above are thin, not wrong.</p>}
 
                         <details className="mt-1 pl-7">
@@ -844,6 +908,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                             <p><span className="font-bold text-red-600 dark:text-rose-300">Against it:</span> <span className="text-neutral-700 dark:text-neutral-300">{n.against_it}</span></p>
                             <p><span className="font-bold text-neutral-600 dark:text-neutral-400">Why this name:</span> <span className="text-neutral-700 dark:text-neutral-300">{n.pick_why}{n.runner_up && n.runner_up !== 'none' ? ` Runner-up: ${n.runner_up}.` : ''}</span></p>
                             <p><span className="font-bold text-neutral-600 dark:text-neutral-400">What was checked:</span> <span className="text-neutral-700 dark:text-neutral-300">{n.checked}</span></p>
+                            <p><span className="font-bold text-neutral-600 dark:text-neutral-400">Coins due to be released:</span> <span className="text-neutral-700 dark:text-neutral-300">{n.unlock_note || 'not recorded'}</span></p>
                             <p className="text-[11px] text-neutral-500">Names in this narrative: {(n.syms ?? []).join(', ') || '—'}{n.held.length ? ` · we hold ${n.held.join(', ')}` : ''}</p>
                             <p className="text-[11px] text-neutral-500">Sources: {n.sources}</p>
                           </div>
@@ -853,7 +918,9 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                   })}
                 </div>
                 <div className="mt-2 text-[11px] leading-relaxed text-neutral-500">
-                  Ranked on how much proof there is that money is already moving toward the coin, not on how far it has run.
+                  {narrOrder === 'proof'
+                    ? 'MOST REAL: ranked on how much proof there is that money is already moving toward the coin, not on how far it has run. This is the order that decides what we own.'
+                    : `TURNING FIRST: ranked on 7-day strength against BTC${bench?.btc_d7 != null ? ` (BTC ${bench.btc_d7 >= 0 ? '+' : ''}${bench.btc_d7.toFixed(1)}% this week)` : ''}, then on how many names in the group beat it. This measures what has ALREADY started being bought. It is not a forecast, and the desk's own breakout record is 30 signals at −5.0% average, so this order on its own loses money.`}
                   Green means we followed the money and it reaches a holder. Amber means real but conditional, turned down, or
                   too small to matter. Grey means supply only, with nothing earned. Red means we could not confirm it — and a
                   pick we could not confirm never counts as one we did. Every pick is Robinhood-listed. A seat is a candidate,
