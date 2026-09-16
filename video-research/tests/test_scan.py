@@ -99,6 +99,42 @@ class NotComprehension(unittest.TestCase):
         self.assertEqual(scan.scan_segments([]), [])
 
 
+class TrackDeduplication(unittest.TestCase):
+    """One track per video. Scanning en and en-orig doubled every hit total."""
+
+    def setUp(self):
+        import shutil, tempfile
+        self.tmp = pathlib.Path(tempfile.mkdtemp())
+        self._saved = scan.store.CACHE
+        scan.store.CACHE = self.tmp
+        (self.tmp / "transcripts").mkdir(parents=True)
+
+    def tearDown(self):
+        import shutil
+        scan.store.CACHE = self._saved
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _write(self, name):
+        (self.tmp / "transcripts" / name).write_text('{"segments": []}', encoding="utf-8")
+
+    def test_only_one_track_per_video_is_scanned(self):
+        self._write("abc123.en.auto.json")
+        self._write("abc123.en-orig.auto.json")
+        got = scan.local_transcripts()
+        self.assertEqual(len(got), 1, "both language tracks scanned — hits double-count")
+        self.assertEqual(got[0][0], "abc123")
+
+    def test_creator_captions_win_over_asr(self):
+        self._write("vid00000001.en.auto.json")
+        self._write("vid00000001.en.creator.json")
+        self.assertEqual(scan.local_transcripts()[0][2], "creator")
+
+    def test_distinct_videos_are_all_kept(self):
+        self._write("aaaaaaaaaaa.en.auto.json")
+        self._write("bbbbbbbbbbb.en.auto.json")
+        self.assertEqual(len(scan.local_transcripts()), 2)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=0, exit=False)
     print("OK")

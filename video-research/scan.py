@@ -133,17 +133,38 @@ def summarise(hits):
 # --------------------------------------------------------------------------
 # local cache walk
 # --------------------------------------------------------------------------
+# Track preference, best first. A video usually has BOTH an "en" and an "en-orig" track
+# holding the same machine transcription, so scanning every file double-counts every hit —
+# measured on the first real run: a single "100x on Bitcoin" line produced two identical
+# rows at the same timestamp. Video counts were never affected (they count distinct ids),
+# but hit totals were inflated roughly twofold, which is exactly the kind of number that
+# gets quoted later as if it meant something. One track per video, chosen deterministically.
+TRACK_PREFERENCE = (("en", "creator"), ("en-orig", "creator"),
+                    ("en", "auto"), ("en-orig", "auto"))
+
+
 def local_transcripts():
-    """Every cached transcript on this machine: (video_id, lang, source_type, path)."""
+    """One preferred transcript per video: (video_id, lang, source_type, path).
+
+    Creator captions outrank ASR because a human checked them; "en" outranks "en-orig"
+    only to break the remaining tie deterministically, not because it is better.
+    """
     root = store.CACHE / "transcripts"
     if not root.exists():
         return []
-    out = []
+    found = {}
     for p in sorted(root.glob("*.json")):
         parts = p.stem.split(".")
         if len(parts) != 3:
             continue
-        out.append((parts[0], parts[1], parts[2], p))
+        vid, lang, stype = parts
+        found.setdefault(vid, {})[(lang, stype)] = p
+    out = []
+    for vid in sorted(found):
+        for key in TRACK_PREFERENCE:
+            if key in found[vid]:
+                out.append((vid, key[0], key[1], found[vid][key]))
+                break
     return out
 
 
