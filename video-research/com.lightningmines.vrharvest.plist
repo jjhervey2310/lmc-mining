@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.lightningmines.vrharvest</string>
+
+  <!-- caffeinate -i: an idle Mac must not stop a 25-hour fetch. Closing the lid still
+       sleeps a laptop, and that is fine — launchd resumes the job on wake. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string>
+    <string>-i</string>
+    <string>__PY__</string>
+    <string>__VRDIR__/harvest.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__VRDIR__</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- yt-dlp was installed into the user site dir, which is not on launchd's PATH. -->
+    <key>PATH</key>
+    <string>__PYBIN__:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <!-- The caption cache lives outside the repo: launchd agents are blocked by TCC from
+         ~/Desktop, and transcripts have no business in a git working tree either. -->
+    <key>VR_CACHE</key>
+    <string>__CACHE__</string>
+  </dict>
+
+  <!-- Start on login, and restart if the process dies for any reason. The script already
+       loops; this is the backstop for the failure the script itself cannot survive. -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <!-- Bounds the restart rate if it is failing immediately (bad credentials, no network). -->
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
+
+  <!-- Nice: the market collector and the paper trader come first. The brief is explicit
+       that video research must not starve them, and this job runs for days. -->
+  <key>Nice</key>
+  <integer>10</integer>
+  <key>ProcessType</key>
+  <string>Background</string>
+
+  <key>StandardOutPath</key>
+  <string>__LOG__</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG__</string>
+</dict>
+</plist>
