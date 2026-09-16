@@ -74,6 +74,17 @@ export async function GET(req: Request) {
     supabase.from('broker_open_orders').select('order_id, symbol, side, order_type, level, qty, state, created_at, synced_at').order('symbol'),
     supabase.from('desk_config').select('value').eq('key', 'open_orders_synced_at').maybeSingle(),
   ])
+  // NARRATIVE LEADERBOARD, the 1..10 board (Jacob 2026-09-15: "why is the narrative leaderboard not
+  // working and listed 1-10 / you need to have a pick for every spot verified and would be our next
+  // buy if we chose that narrative"). #19 built the sector momentum table below and it works, but it
+  // ranked 12 sectors by median 7d and five of them resolved to "none verified" — a seat with no pick.
+  // desk_narratives is the missing half: exactly ten ranked rows, each carrying ONE Robinhood-listed
+  // pick, the level we would buy it at, and a verdict naming what was checked and on what date.
+  // Ranking is by EVIDENCE that money is already moving toward the coin, not by momentum: in a week
+  // where every sector is red, ranking on median 7d ranks "least down", which is not a reason to buy.
+  const narr = await supabase.from('desk_narratives')
+    .select('rank, narrative, plain, evidence, pick, pick_why, verdict, verified_on, checked, against_it, entry, runner_up, syms, sources, updated_at')
+    .order('rank')
   // Latest radar scan (build request #6): stage/score/turnover beside each POLE/WATCH thesis. Numbers never come from thesis text.
   const latestScan = await supabase.from('fund_radar').select('scan_date').order('scan_date', { ascending: false }).limit(1).maybeSingle()
   const radar = latestScan.data?.scan_date
@@ -143,6 +154,25 @@ export async function GET(req: Request) {
     }
   }).sort((a, b) => (b.d7 ?? -Infinity) - (a.d7 ?? -Infinity) || (b.d30 ?? -Infinity) - (a.d30 ?? -Infinity))
   sectors.filter((s) => s.d7 != null).slice(0, 3).forEach((s) => { if (s.exposure_usd === 0) s.gap = true })
+  // Each narrative's live numbers come from the SAME radar scan and the SAME server price chain as the
+  // sector table, so the two can never disagree. `scanned` is published beside the median: a narrative
+  // whose names are mostly absent from the scan has a median built on thin air, and the panel says so
+  // rather than printing a confident number. A name with no radar row is never counted as flat.
+  const narratives = ((narr.data ?? []) as { rank: number; pick: string; syms: string[] | null }[]).map((n) => {
+    const syms = (n.syms ?? []).filter(Boolean)
+    const scanned = syms.filter((sym) => radarBySym.has(sym))
+    const d7n = median(scanned.map((sym) => Number(radarBySym.get(sym)!.d7)).filter(Number.isFinite))
+    const d30n = median(scanned.map((sym) => Number(radarBySym.get(sym)!.d30)).filter(Number.isFinite))
+    const exposureUsd = syms.reduce((acc, sym) => acc + heldUsd(sym), 0)
+    return {
+      ...n,
+      d7: d7n, d30: d30n, scanned: scanned.length, universe: syms.length,
+      held: syms.filter((sym) => heldUsd(sym) > 0),
+      exposure_usd: exposureUsd,
+      exposure_pct: bookUsd ? (exposureUsd / bookUsd) * 100 : null,
+    }
+  })
+
   const sectored = new Set(thesesRows.filter((t) => t.sector).map((t) => t.symbol))
   const unsectoredUsd = posSyms.filter((sym) => !sectored.has(sym)).reduce((s, sym) => s + heldUsd(sym), 0)
 
@@ -165,7 +195,9 @@ export async function GET(req: Request) {
     unpriced,
     radar: radar.data ?? null,
     flow: flow.data ?? null,
-    sectors,                                                      // #19 narrative leaderboard, sorted by median d7
+    narratives: narr.data ? narratives : null,                     // null = unreachable, [] = genuinely empty. Never conflated.
+    narratives_error: narr.error?.message ?? null,
+    sectors,                                                      // #19 sector momentum, sorted by median d7
     unsectored_usd: unsectoredUsd,                                // held dollars in names with no sector on their thesis row
     loop_enabled: le.data ? String(le.data.value).toLowerCase() === 'true' : null,
     at: new Date().toISOString(),

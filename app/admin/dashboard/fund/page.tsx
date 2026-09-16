@@ -26,12 +26,18 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 interface TaRow { asset: string; price: number; sma20: number; sma50: number; sma200: number; vs: string; hi90: number; lo90: number; support: string; resistance: string; note: string }
+// The Brief shape below is what a FULL research brief could carry. Only `headline`, `verified`,
+// `source` and `implications` have ever actually been written: every row in fund_research carries
+// those four keys and nothing else. The `narratives` reader that used to live here was deleted on
+// 2026-09-15 — it read a key no producer has ever written, so it rendered nothing and said nothing,
+// and Jacob reasonably read that as a broken narrative leaderboard. The real leaderboard is its own
+// table (desk_narratives) served through /api/fund/state and rendered by desk-live. Do not add a
+// reader here for a field nothing writes.
 interface Brief {
   headline: string; verified: string; ta: TaRow[]
   sentiment: { fear_greed: number; fg_label: string; fg_note: string; funding: string; gaps: string }
   flows: { label: string; value: string; note: string }[]
   turnover: { asset: string; volMcap: number; d7: number; d30: number }[]
-  narratives: { title: string; stage: string; assets: string; catalyst: string }[]
   calendar: { date: string; event: string; why: string }[]
   implications: string[]
 }
@@ -156,7 +162,6 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
     ta: arr(rawBrief.ta).map((t) => ({ asset: str(t.asset, '?'), price: num(t.price), sma20: num(t.sma20), sma50: num(t.sma50), sma200: num(t.sma200), vs: str(t.vs), hi90: num(t.hi90), lo90: num(t.lo90), support: str(t.support), resistance: str(t.resistance), note: str(t.note) })),
     flows: arr(rawBrief.flows).map((f) => ({ label: str(f.label, '?'), value: str(f.value), note: str(f.note) })),
     turnover: arr(rawBrief.turnover).map((t) => ({ asset: str(t.asset, '?'), volMcap: num(t.volMcap), d7: num(t.d7), d30: num(t.d30) })),
-    narratives: arr(rawBrief.narratives).map((n) => ({ title: str(n.title, '?'), stage: str(n.stage, 'mid'), assets: str(n.assets), catalyst: str(n.catalyst) })),
     calendar: arr(rawBrief.calendar).map((c) => ({ date: str(c.date, '?'), event: str(c.event, '?'), why: str(c.why) })),
     implications: Array.isArray(rawBrief.implications) ? (rawBrief.implications as unknown[]).filter((x) => x != null).map(String) : [],
     sentiment: (() => { const g = (rawBrief.sentiment ?? {}) as Record<string, unknown>; return { fear_greed: num(g.fear_greed), fg_label: str(g.fg_label, 'n/a'), fg_note: str(g.fg_note, 'not in this brief'), funding: str(g.funding), gaps: str(g.gaps) } })(),
@@ -289,7 +294,6 @@ async function FundPageInner({ searchParams }: { searchParams: Promise<{ secret?
               </div>
             )}
             {brief.flows.length > 0 && <div>{brief.flows.map((f) => <div key={f.label}><span className="font-bold text-cyan-700 dark:text-cyan-200">{f.label}:</span> {f.value} <span className="text-neutral-500">{f.note}</span></div>)}</div>}
-            {brief.narratives.length > 0 && <div>{brief.narratives.map((n) => <div key={n.title}><span className="mr-1 rounded bg-neutral-100 px-1 text-[9px] uppercase dark:bg-white/10">{n.stage}</span>{n.title} <span className="text-neutral-500">· {n.assets} · {n.catalyst}</span></div>)}</div>}
             {brief.calendar.length > 0 && <div>{brief.calendar.map((c) => <div key={c.date + c.event}><span className="font-bold text-rose-600 dark:text-rose-300">{c.date}</span> {c.event} <span className="text-neutral-500">— {c.why}</span></div>)}</div>}
             {brief.implications.length > 0 && <ul className="list-disc pl-4">{brief.implications.filter(Boolean).map((s) => <li key={String(s).slice(0, 40)}>{String(s)}</li>)}</ul>}
           </div>

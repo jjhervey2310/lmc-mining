@@ -28,6 +28,20 @@ export interface Thesis {
 }
 /** One row of the NARRATIVE LEADERBOARD (build request #19), aggregated on the server. */
 export interface SectorRow { sector: string; names: string[]; scanned: number; d7: number | null; d30: number | null; exposure_usd: number; exposure_pct: number | null; held: string[]; best_verified: string | null; gap: boolean }
+/** NARRATIVE LEADERBOARD row — one of exactly ten seats. `rank` is the desk's evidence order (how much
+ *  proof there is that money is already moving toward the coin), NOT momentum. `pick` is the one name
+ *  we would buy if we chose this narrative, `entry` the level, and `verdict` the honesty field: a pick
+ *  we could not verify reads UNVERIFIED on its face and must never look like a verified one.
+ *  d7 / d30 / exposure are computed on the SERVER from the same radar scan and price chain as the
+ *  sector table above, so the two boards can never print different numbers for the same names. */
+export interface Narrative {
+  rank: number; narrative: string; plain: string; evidence: string
+  pick: string; pick_why: string; verdict: string; verified_on: string | null
+  checked: string; against_it: string; entry: string | null; runner_up: string | null
+  syms: string[] | null; sources: string; updated_at: string
+  d7: number | null; d30: number | null; scanned: number; universe: number
+  held: string[]; exposure_usd: number; exposure_pct: number | null
+}
 /** A RESTING order at the broker (build request #14b). desk_triggers says what the desk meant to arm;
  *  this says what Robinhood is actually holding. */
 export interface OpenOrder { order_id: string; symbol: string; side: string | null; order_type: string | null; level: number | null; qty: number | null; state: string | null; created_at: string | null; synced_at: string }
@@ -37,6 +51,7 @@ export interface DeskState {
   holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; strategy: Board | null
   theses?: Thesis[] | null; radar?: RadarRow[] | null; flow?: FlowRow[] | null; loop_enabled?: boolean | null; at: string
   sectors?: SectorRow[] | null; unsectored_usd?: number | null
+  narratives?: Narrative[] | null; narratives_error?: string | null
   orders?: OpenOrder[] | null; orders_synced_at?: string | null; orders_live?: boolean
   // Priced once on the SERVER, on the same chain as everything else. book is null when any position
   // could not be priced — unknown, never silently zero.
@@ -289,7 +304,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     return T != null && ['A', 'B', 'C'].includes(T.grade)
   })?.symbol ?? null
   // Every name that needs a live number: held, queued, and anything the desk has ranked onto the buy board.
-  const liveSyms = [...new Set([...positions.map((p) => p.symbol), ...queue.map((t) => t.symbol), ...theses.filter((t) => t.buy_rank != null).map((t) => t.symbol)])]
+  const liveSyms = [...new Set([...positions.map((p) => p.symbol), ...queue.map((t) => t.symbol), ...theses.filter((t) => t.buy_rank != null).map((t) => t.symbol), ...(state.narratives ?? []).map((n) => n.pick)])]
   const liveKey = liveSyms.join(',')
 
   // 60s: live price + 24h/7d/30d + 24h volume for held and queued symbols.
@@ -732,61 +747,160 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         )
       })()}
 
-      {/* ── 2b. NARRATIVE LEADERBOARD (build request #19) — which sectors lead, where we are thin ──────
-          Momentum is the median 7d / 30d of the sector's Robinhood-listed names in the latest radar
-          scan; exposure is what we hold in it, priced on the server; GAP marks a top-3 sector we hold
-          nothing in. A GAP is a research instruction, never an auto-buy. */}
+      {/* ── 2b. NARRATIVE LEADERBOARD — TEN SEATS, A PICK IN EVERY ONE ────────────────────────────────
+          Jacob 2026-09-15: "why is the narrative leaderboard not working and listed 1-10 / you need to
+          have a pick for every spot verified and would be our next buy if we chose that narrative".
+
+          What was wrong. Build request #19 shipped the sector table (now collapsed at the foot of this
+          panel) and it does work — 12 sectors off desk_theses.sector, ranked by median 7d. But five of
+          those twelve resolved to "none verified", i.e. a seat on the board with no name in it, and
+          "best verified" was really just the top buy_rank rather than anything that had been checked.
+          A second, older reader in the research-brief panel read fund_research.content.narratives, a
+          key no producer has EVER written — every row in that table carries only headline / verified /
+          source / implications — so it rendered nothing and said nothing about it. That reader is gone.
+
+          What this is. desk_narratives: exactly ten rows, each with ONE Robinhood-listed pick, the level
+          we would buy it at, and a VERDICT stating what was actually checked and on what date. Ordered
+          by EVIDENCE that money is already moving toward the coin, not by momentum — in a week where
+          every sector is red, ranking on median 7d ranks "least down", which is not a reason to buy.
+          The 7d / 30d / exposure figures are computed server-side off the SAME radar scan and price
+          chain as the sector table, so the two can never disagree.
+
+          A seat we could not verify says UNVERIFIED on its face. It is never allowed to read as one we did. */}
       {(() => {
-        const rows = state.sectors ?? []
+        const rows = [...(state.narratives ?? [])].sort((a, b) => a.rank - b.rank)
         const pctCell = (v: number | null) => v == null
           ? <span className="text-neutral-400">—</span>
           : <span className={`font-mono font-bold ${v >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{v >= 0 ? '+' : ''}{v.toFixed(1)}%</span>
+        // Verdict colours: green = we followed the money and it reaches a holder; amber = real but
+        // conditional, deliberately throttled, or too small to matter; grey = supply only, nothing
+        // earned; red = we could not confirm it.
+        const chip = (v: string) =>
+          /VERIFIED-MATERIAL/.test(v) ? 'bg-green-100 text-green-800 dark:bg-emerald-400/15 dark:text-emerald-200'
+          : /UNVERIFIED|NO-MECHANISM/.test(v) ? 'bg-red-100 text-red-700 dark:bg-rose-400/15 dark:text-rose-200'
+          : /SUPPLY-ONLY/.test(v) ? 'bg-neutral-200 text-neutral-700 dark:bg-white/10 dark:text-neutral-300'
+          : 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200'
         return (
-          <Panel accent="amber" title="🧭 Narrative leaderboard"
-            right={<span className="text-[11px] text-neutral-500">median of the sector · radar {state.radar?.[0]?.scan_date ?? '—'} · GAP = leading, we hold none</span>}>
-            {state.theses === null ? (
-              <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
+          <Panel accent="cyan" title="🏁 Narrative leaderboard — 1 to 10"
+            right={<span className="text-[11px] text-neutral-500">a pick in every seat · radar {state.radar?.[0]?.scan_date ?? '—'} · prices {priceStamp ?? '—'}</span>}>
+            {state.narratives == null ? (
+              <span className="text-[13px] text-red-600">
+                Narrative table unreachable — the fetch failed. This is not an empty board.
+                {state.narratives_error ? ` (${state.narratives_error})` : ''}
+              </span>
             ) : rows.length === 0 ? (
-              <span className="text-[13px] text-amber-800 dark:text-amber-200">No thesis row carries a sector yet — the desk tags sectors in desk_theses.</span>
+              <span className="text-[13px] text-amber-800 dark:text-amber-200">desk_narratives is empty — ten empty seats, not ten passes.</span>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px] tabular-nums">
-                  <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
-                    <th className="py-1 pr-2">Sector</th><th className="pr-2 text-right">7d</th><th className="pr-2 text-right">30d</th>
-                    <th className="pr-2 text-right">Ours</th><th className="text-left">Best verified</th>
-                  </tr></thead>
-                  <tbody>
-                    {rows.map((r, i) => (
-                      <tr key={r.sector} title={`${r.names.join(', ')} · ${r.scanned}/${r.names.length} in the scan${r.held.length ? ` · held: ${r.held.join(', ')}` : ''}`}
-                        className={`border-t border-neutral-100 dark:border-white/5 ${r.gap ? 'bg-amber-50 dark:bg-amber-400/10' : ''}`}>
-                        <td className="py-1.5 pr-2">
-                          <span className="mr-1 text-[11px] text-neutral-400">{i + 1}</span>
-                          <span className="font-bold text-neutral-800 dark:text-neutral-100">{r.sector}</span>
-                          {r.gap && <span className="ml-1 rounded bg-amber-500 px-1 text-[10px] font-black text-white" title="top-3 momentum, zero exposure — research it, do not auto-buy">GAP</span>}
-                          {r.scanned === 0 && <span className="ml-1 text-[10px] text-neutral-400" title="no name in this sector has a radar row (not Robinhood-listed or not scanned)">no scan</span>}
-                        </td>
-                        <td className="pr-2 text-right">{pctCell(r.d7)}</td>
-                        <td className="pr-2 text-right">{pctCell(r.d30)}</td>
-                        <td className="pr-2 text-right font-mono">
-                          {r.exposure_usd > 0
-                            ? <span className="text-neutral-800 dark:text-neutral-100">{fmt(r.exposure_usd)}<span className="ml-1 text-[11px] text-neutral-500">{r.exposure_pct != null ? `${r.exposure_pct.toFixed(0)}%` : ''}</span></span>
-                            : <span className="text-neutral-400">0</span>}
-                        </td>
-                        <td className="text-left">
-                          {r.best_verified
-                            ? <span className="font-bold text-neutral-800 dark:text-neutral-100">{r.best_verified}</span>
-                            : <span className="text-neutral-400">none verified</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="mt-1 text-[11px] text-neutral-500">
-                  Ranked by the sector&apos;s median 7d move. A GAP means the money is moving somewhere we hold nothing — research
-                  instruction, not a buy: entry still needs the mechanism, the tested signal and a written level.
-                  {state.unsectored_usd ? ` ${fmt(state.unsectored_usd)} held in names with no sector tag.` : ''}
+              <>
+                <div className="divide-y divide-neutral-100 dark:divide-white/5">
+                  {rows.map((n) => {
+                    const price = srvPrice(n.pick)
+                    const held = positions.some((p) => p.symbol === n.pick)
+                    const thin = n.scanned < Math.min(2, n.universe)
+                    return (
+                      <div key={n.rank} className="py-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="w-5 shrink-0 text-right text-[15px] font-black tabular-nums text-neutral-400 dark:text-neutral-500">{n.rank}</span>
+                          <span className="flex-1 text-[13px] font-bold leading-snug text-neutral-800 dark:text-neutral-100">{n.narrative}</span>
+                          <span className={`shrink-0 rounded px-1 text-[9px] font-bold uppercase tracking-wide ${chip(n.verdict)}`}>{n.verdict}</span>
+                        </div>
+
+                        {/* The buy line: the one name, its live price, and where we would buy it. */}
+                        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 pl-7">
+                          <span className="text-[10px] uppercase tracking-wider text-neutral-500">buy</span>
+                          <span className="text-[15px] font-black text-amber-600 dark:text-amber-300">{n.pick}</span>
+                          <span className="font-mono text-[13px] font-bold text-neutral-800 dark:text-neutral-100">{price != null ? bfmt(price) : '…'}</span>
+                          {held && <span className="rounded bg-neutral-100 px-1 text-[9px] uppercase text-neutral-600 dark:bg-white/10 dark:text-neutral-300">held</span>}
+                          <span className="text-[11px] text-neutral-400">7d {n.d7 == null ? '—' : `${n.d7 >= 0 ? '+' : ''}${n.d7.toFixed(1)}%`} · 30d {n.d30 == null ? '—' : `${n.d30 >= 0 ? '+' : ''}${n.d30.toFixed(1)}%`}</span>
+                          <span className="text-[11px] text-neutral-400">ours {n.exposure_usd > 0 ? `${fmt(n.exposure_usd)}${n.exposure_pct != null ? ` (${n.exposure_pct.toFixed(0)}%)` : ''}` : '0'}</span>
+                          {n.verified_on && <span className="text-[10px] text-neutral-400">checked {n.verified_on.slice(5)}</span>}
+                        </div>
+
+                        <p className="mt-1 pl-7 text-[12px] leading-relaxed text-neutral-700 dark:text-neutral-300">{n.plain}</p>
+                        {n.entry && (
+                          <p className="mt-1 pl-7 text-[12px] leading-relaxed">
+                            <span className="text-[10px] uppercase tracking-wider text-neutral-500">where we would buy it </span>
+                            <span className="text-neutral-800 dark:text-neutral-100">{n.entry}</span>
+                          </p>
+                        )}
+                        {thin && <p className="mt-0.5 pl-7 text-[11px] text-amber-700 dark:text-amber-300">Only {n.scanned} of {n.universe} names in this narrative are in today&apos;s scan — the 7d and 30d figures above are thin, not wrong.</p>}
+
+                        <details className="mt-1 pl-7">
+                          <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-neutral-500">The evidence, and the case against</summary>
+                          <div className="mt-1 space-y-1 text-[12px] leading-relaxed">
+                            <p><span className="font-bold text-cyan-700 dark:text-cyan-200">Evidence:</span> <span className="text-neutral-700 dark:text-neutral-300">{n.evidence}</span></p>
+                            <p><span className="font-bold text-red-600 dark:text-rose-300">Against it:</span> <span className="text-neutral-700 dark:text-neutral-300">{n.against_it}</span></p>
+                            <p><span className="font-bold text-neutral-600 dark:text-neutral-400">Why this name:</span> <span className="text-neutral-700 dark:text-neutral-300">{n.pick_why}{n.runner_up && n.runner_up !== 'none' ? ` Runner-up: ${n.runner_up}.` : ''}</span></p>
+                            <p><span className="font-bold text-neutral-600 dark:text-neutral-400">What was checked:</span> <span className="text-neutral-700 dark:text-neutral-300">{n.checked}</span></p>
+                            <p className="text-[11px] text-neutral-500">Names in this narrative: {(n.syms ?? []).join(', ') || '—'}{n.held.length ? ` · we hold ${n.held.join(', ')}` : ''}</p>
+                            <p className="text-[11px] text-neutral-500">Sources: {n.sources}</p>
+                          </div>
+                        </details>
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
+                <div className="mt-2 text-[11px] leading-relaxed text-neutral-500">
+                  Ranked on how much proof there is that money is already moving toward the coin, not on how far it has run.
+                  Green means we followed the money and it reaches a holder. Amber means real but conditional, turned down, or
+                  too small to matter. Grey means supply only, with nothing earned. Red means we could not confirm it — and a
+                  pick we could not confirm never counts as one we did. Every pick is Robinhood-listed. A seat is a candidate,
+                  not an order: the entry still needs the tested signal and the cash to fill it.
+                  {rows.length < 10 ? ` Only ${rows.length} of 10 seats are filled.` : ''}
+                </div>
+
+                {/* #19's sector momentum table, kept and collapsed. It answers a different question —
+                    where is the tape moving and where are we thin — and it shares this panel's radar
+                    scan and price chain, so the numbers always agree. */}
+                <details className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
+                  <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-neutral-500">Sector momentum — where the tape is moving, and where we hold nothing</summary>
+                  {state.theses === null ? (
+                    <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
+                  ) : (state.sectors ?? []).length === 0 ? (
+                    <span className="text-[13px] text-amber-800 dark:text-amber-200">No thesis row carries a sector yet — the desk tags sectors in desk_theses.</span>
+                  ) : (
+                    <div className="mt-1 overflow-x-auto">
+                      <table className="w-full text-[13px] tabular-nums">
+                        <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
+                          <th className="py-1 pr-2">Sector</th><th className="pr-2 text-right">7d</th><th className="pr-2 text-right">30d</th>
+                          <th className="pr-2 text-right">Ours</th><th className="text-left">Top ranked</th>
+                        </tr></thead>
+                        <tbody>
+                          {(state.sectors ?? []).map((r, i) => (
+                            <tr key={r.sector} title={`${r.names.join(', ')} · ${r.scanned}/${r.names.length} in the scan${r.held.length ? ` · held: ${r.held.join(', ')}` : ''}`}
+                              className={`border-t border-neutral-100 dark:border-white/5 ${r.gap ? 'bg-amber-50 dark:bg-amber-400/10' : ''}`}>
+                              <td className="py-1.5 pr-2">
+                                <span className="mr-1 text-[11px] text-neutral-400">{i + 1}</span>
+                                <span className="font-bold text-neutral-800 dark:text-neutral-100">{r.sector}</span>
+                                {r.gap && <span className="ml-1 rounded bg-amber-500 px-1 text-[10px] font-black text-white" title="top-3 momentum, zero exposure — research it, do not auto-buy">GAP</span>}
+                                {r.scanned === 0 && <span className="ml-1 text-[10px] text-neutral-400" title="no name in this sector has a radar row (not Robinhood-listed or not scanned)">no scan</span>}
+                              </td>
+                              <td className="pr-2 text-right">{pctCell(r.d7)}</td>
+                              <td className="pr-2 text-right">{pctCell(r.d30)}</td>
+                              <td className="pr-2 text-right font-mono">
+                                {r.exposure_usd > 0
+                                  ? <span className="text-neutral-800 dark:text-neutral-100">{fmt(r.exposure_usd)}<span className="ml-1 text-[11px] text-neutral-500">{r.exposure_pct != null ? `${r.exposure_pct.toFixed(0)}%` : ''}</span></span>
+                                  : <span className="text-neutral-400">0</span>}
+                              </td>
+                              <td className="text-left">
+                                {r.best_verified
+                                  ? <span className="font-bold text-neutral-800 dark:text-neutral-100">{r.best_verified}</span>
+                                  : <span className="text-neutral-400">nothing ranked</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="mt-1 text-[11px] text-neutral-500">
+                        Ranked by the sector&apos;s median 7d move. A GAP means the money is moving somewhere we hold nothing — research
+                        instruction, not a buy. &quot;Top ranked&quot; is the desk&apos;s own buy_rank, which is a decision, not a verification;
+                        the verified picks are the ten seats above.
+                        {state.unsectored_usd ? ` ${fmt(state.unsectored_usd)} held in names with no sector tag.` : ''}
+                      </div>
+                    </div>
+                  )}
+                </details>
+              </>
             )}
           </Panel>
         )
