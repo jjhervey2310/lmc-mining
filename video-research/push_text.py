@@ -40,6 +40,12 @@ import store
 # decision is visible rather than silent.
 CHAR_CAP = int(os.environ.get("VR_TEXT_CHAR_CAP", "400000"))
 
+# Upload chunk size in BYTES of JSON, not rows. store.upsert chunks at 400 rows, which is
+# right for the small provenance rows it was written for and badly wrong here: a half-hour
+# video carries ~900 segments, so 199 transcripts in one POST is tens of megabytes and the
+# request times out before the server answers. Measured the hard way on the first real run.
+BATCH_BYTES = int(os.environ.get("VR_TEXT_BATCH_BYTES", "1000000"))
+
 TABLE = "vr_transcript_text"
 
 
@@ -139,6 +145,27 @@ def select(limit=200, force=False):
     return out, index
 
 
+def size_chunks(rows, max_bytes=None):
+    """Split rows so each request stays under max_bytes of JSON.
+
+    Row count is the wrong unit for transcript rows — they vary from a few KB to most of a
+    megabyte — so batching by count either wastes round trips or times out. A single row
+    larger than the cap still goes alone rather than being dropped.
+    """
+    cap = max_bytes or BATCH_BYTES
+    out, current, size = [], [], 0
+    for r in rows:
+        n = len(json.dumps(r, separators=(",", ":")))
+        if current and size + n > cap:
+            out.append(current)
+            current, size = [], 0
+        current.append(r)
+        size += n
+    if current:
+        out.append(current)
+    return out
+
+
 def push(limit=200, force=False, dry_run=False):
     rows, index = select(limit, force)
     pushed, skipped, absent, bad = [], [], [], []
@@ -159,7 +186,8 @@ def push(limit=200, force=False, dry_run=False):
                       "corpus": index[r["video_id"]], "pushed_at": store.utcnow()})
         pushed.append(r["video_id"])
     if batch and not dry_run:
-        store.upsert(TABLE, batch, "video_id,lang,source_type")
+        for chunk in size_chunks(batch, BATCH_BYTES):
+            store.upsert(TABLE, chunk, "video_id,lang,source_type")
     return {"eligible": len(rows), "pushed": len(pushed), "skipped": skipped,
             "absent_locally": len(absent), "hash_mismatches": bad,
             "corpus_size": len(index), "dry_run": dry_run}

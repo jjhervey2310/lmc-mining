@@ -134,6 +134,34 @@ class LocalCache(unittest.TestCase):
         self.assertEqual(got[0]["t_start_ms"], 123456)
 
 
+class UploadChunking(unittest.TestCase):
+    """Batch by payload size. 199 transcripts in one request timed out on the first run."""
+
+    def _row(self, segments):
+        return {"video_id": "x" * 11, "lang": "en", "source_type": "auto",
+                "segments": [{"t_start_ms": i, "text": "word " * 20}
+                             for i in range(segments)]}
+
+    def test_large_rows_are_split_across_requests(self):
+        rows = [self._row(400) for _ in range(10)]
+        chunks = push_text.size_chunks(rows, max_bytes=50_000)
+        self.assertGreater(len(chunks), 1, "oversized batch was not split")
+        self.assertEqual(sum(len(c) for c in chunks), len(rows), "rows were lost")
+
+    def test_small_rows_travel_together(self):
+        rows = [self._row(1) for _ in range(10)]
+        self.assertEqual(len(push_text.size_chunks(rows, max_bytes=1_000_000)), 1)
+
+    def test_a_single_oversized_row_is_sent_alone_not_dropped(self):
+        rows = [self._row(500)]
+        chunks = push_text.size_chunks(rows, max_bytes=10)
+        self.assertEqual(sum(len(c) for c in chunks), 1)
+
+    def test_no_empty_chunks(self):
+        for c in push_text.size_chunks([self._row(50) for _ in range(6)], max_bytes=1000):
+            self.assertTrue(c)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=0, exit=False)
     print("OK")
