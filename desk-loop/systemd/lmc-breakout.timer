@@ -1,7 +1,7 @@
 [Unit]
-Description=LMC breakout scan daily 06:45 MT, ahead of the 07:07 deep wake
+Description=LMC daily breakout scan 05:50 MT — after the 05:35 history sync, BEFORE the 06:07 reasoning wake (#9 NOTE)
 [Timer]
-OnCalendar=*-*-* 06:45:00
+OnCalendar=*-*-* 05:50:00
 Persistent=true
 [Install]
 WantedBy=timers.target

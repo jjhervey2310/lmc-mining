@@ -24,8 +24,10 @@ interface Alert { at: string; symbol: string; kind: string; level: number | null
 interface Board { fact: string; updated_at: string }
 export interface Thesis {
   symbol: string; status: string; thesis: string | null; gate: string | null; updated_at: string | null
-  buy_rank?: number | null; entry_level?: number | null; entry_note?: string | null
+  buy_rank?: number | null; entry_level?: number | null; entry_note?: string | null; sector?: string | null
 }
+/** One row of the NARRATIVE LEADERBOARD (build request #19), aggregated on the server. */
+export interface SectorRow { sector: string; names: string[]; scanned: number; d7: number | null; d30: number | null; exposure_usd: number; exposure_pct: number | null; held: string[]; best_verified: string | null; gap: boolean }
 /** A RESTING order at the broker (build request #14b). desk_triggers says what the desk meant to arm;
  *  this says what Robinhood is actually holding. */
 export interface OpenOrder { order_id: string; symbol: string; side: string | null; order_type: string | null; level: number | null; qty: number | null; state: string | null; created_at: string | null; synced_at: string }
@@ -34,6 +36,7 @@ export interface FlowRow { symbol: string; flow_score: number | null; stage: str
 export interface DeskState {
   holdings: Holding[] | null; triggers: Trigger[] | null; alerts: Alert[] | null; board: Board | null; strategy: Board | null
   theses?: Thesis[] | null; radar?: RadarRow[] | null; flow?: FlowRow[] | null; loop_enabled?: boolean | null; at: string
+  sectors?: SectorRow[] | null; unsectored_usd?: number | null
   orders?: OpenOrder[] | null; orders_synced_at?: string | null; orders_live?: boolean
   // Priced once on the SERVER, on the same chain as everything else. book is null when any position
   // could not be priced — unknown, never silently zero.
@@ -722,6 +725,66 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                 <div className="mt-1 text-[11px] text-neutral-500">
                   Held names show our cost basis and whether we are up on it. The rest show the written entry level
                   and how far the price is from it — green means at or below it. Tap and hold a row for the note.
+                </div>
+              </div>
+            )}
+          </Panel>
+        )
+      })()}
+
+      {/* ── 2b. NARRATIVE LEADERBOARD (build request #19) — which sectors lead, where we are thin ──────
+          Momentum is the median 7d / 30d of the sector's Robinhood-listed names in the latest radar
+          scan; exposure is what we hold in it, priced on the server; GAP marks a top-3 sector we hold
+          nothing in. A GAP is a research instruction, never an auto-buy. */}
+      {(() => {
+        const rows = state.sectors ?? []
+        const pctCell = (v: number | null) => v == null
+          ? <span className="text-neutral-400">—</span>
+          : <span className={`font-mono font-bold ${v >= 0 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{v >= 0 ? '+' : ''}{v.toFixed(1)}%</span>
+        return (
+          <Panel accent="amber" title="🧭 Narrative leaderboard"
+            right={<span className="text-[11px] text-neutral-500">median of the sector · radar {state.radar?.[0]?.scan_date ?? '—'} · GAP = leading, we hold none</span>}>
+            {state.theses === null ? (
+              <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
+            ) : rows.length === 0 ? (
+              <span className="text-[13px] text-amber-800 dark:text-amber-200">No thesis row carries a sector yet — the desk tags sectors in desk_theses.</span>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[13px] tabular-nums">
+                  <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
+                    <th className="py-1 pr-2">Sector</th><th className="pr-2 text-right">7d</th><th className="pr-2 text-right">30d</th>
+                    <th className="pr-2 text-right">Ours</th><th className="text-left">Best verified</th>
+                  </tr></thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={r.sector} title={`${r.names.join(', ')} · ${r.scanned}/${r.names.length} in the scan${r.held.length ? ` · held: ${r.held.join(', ')}` : ''}`}
+                        className={`border-t border-neutral-100 dark:border-white/5 ${r.gap ? 'bg-amber-50 dark:bg-amber-400/10' : ''}`}>
+                        <td className="py-1.5 pr-2">
+                          <span className="mr-1 text-[11px] text-neutral-400">{i + 1}</span>
+                          <span className="font-bold text-neutral-800 dark:text-neutral-100">{r.sector}</span>
+                          {r.gap && <span className="ml-1 rounded bg-amber-500 px-1 text-[10px] font-black text-white" title="top-3 momentum, zero exposure — research it, do not auto-buy">GAP</span>}
+                          {r.scanned === 0 && <span className="ml-1 text-[10px] text-neutral-400" title="no name in this sector has a radar row (not Robinhood-listed or not scanned)">no scan</span>}
+                        </td>
+                        <td className="pr-2 text-right">{pctCell(r.d7)}</td>
+                        <td className="pr-2 text-right">{pctCell(r.d30)}</td>
+                        <td className="pr-2 text-right font-mono">
+                          {r.exposure_usd > 0
+                            ? <span className="text-neutral-800 dark:text-neutral-100">{fmt(r.exposure_usd)}<span className="ml-1 text-[11px] text-neutral-500">{r.exposure_pct != null ? `${r.exposure_pct.toFixed(0)}%` : ''}</span></span>
+                            : <span className="text-neutral-400">0</span>}
+                        </td>
+                        <td className="text-left">
+                          {r.best_verified
+                            ? <span className="font-bold text-neutral-800 dark:text-neutral-100">{r.best_verified}</span>
+                            : <span className="text-neutral-400">none verified</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-1 text-[11px] text-neutral-500">
+                  Ranked by the sector&apos;s median 7d move. A GAP means the money is moving somewhere we hold nothing — research
+                  instruction, not a buy: entry still needs the mechanism, the tested signal and a written level.
+                  {state.unsectored_usd ? ` ${fmt(state.unsectored_usd)} held in names with no sector tag.` : ''}
                 </div>
               </div>
             )}
