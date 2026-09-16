@@ -94,13 +94,16 @@ def sample_interval(video_id, duration_ms, every_ms, cap=None):
 
 def pending(video_ids=None, limit=None, every_ms=None):
     """Capture points for videos that have scan hits and no frames yet."""
+    # Must be COMPLETE: a short read here reads as "not captured yet" and re-downloads
+    # the video to re-shoot frames that are already in the bucket.
     have = {(r["video_id"], int(r["t_ms"]))
-            for r in store.get("vr_frames", "select=video_id,t_ms&limit=20000")}
+            for r in store.get_all("vr_frames", "select=video_id,t_ms",
+                                   order="video_id,t_ms")}
     q = ("select=video_id,t_start_ms,category&category=in.("
-         + ",".join(VISUAL_CATEGORIES) + ")&limit=20000")
+         + ",".join(VISUAL_CATEGORIES) + ")")
     if video_ids:
         q += "&video_id=in.(" + ",".join(video_ids) + ")"
-    hits = store.get("vr_scan_hits", q)
+    hits = store.get_all("vr_scan_hits", q, order="video_id,t_start_ms")
     points = choose(hits)
 
     if every_ms:
@@ -108,8 +111,8 @@ def pending(video_ids=None, limit=None, every_ms=None):
         # spoken stop level is still the most valuable moment in any video that has one.
         want = set(video_ids or {p[0] for p in points})
         durations = {}
-        for r in store.get("vr_videos", "select=video_id,duration_s&video_id=in.("
-                           + ",".join(sorted(want)) + ")&limit=5000"):
+        for r in store.get_all("vr_videos", "select=video_id,duration_s&video_id=in.("
+                               + ",".join(sorted(want)) + ")", order="video_id"):
             durations[r["video_id"]] = int(r.get("duration_s") or 0) * 1000
         for vid in sorted(want):
             if not durations.get(vid):

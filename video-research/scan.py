@@ -187,8 +187,9 @@ def local_transcripts():
 def run(limit=None, force=False, dry_run=False):
     done = set()
     if not force:
-        for r in store.get("vr_scan_runs",
-                           "select=video_id,lang,source_type,scanner_version&limit=20000"):
+        for r in store.get_all("vr_scan_runs",
+                               "select=video_id,lang,source_type,scanner_version",
+                               order="video_id,lang,source_type"):
             if r.get("scanner_version") == SCANNER_VERSION:
                 done.add((r["video_id"], r["lang"], r["source_type"]))
 

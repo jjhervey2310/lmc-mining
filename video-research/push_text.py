@@ -66,11 +66,13 @@ def corpus_members(source):
     """Video ids claimed by one priority source, with the source_key that claimed them."""
     key = source["source_key"]
     if source["kind"] == "playlist":
-        rows = store.get("vr_playlist_members",
-                         f"select=video_id&playlist_id=eq.{source['playlist_id']}&limit=5000")
+        rows = store.get_all("vr_playlist_members",
+                             f"select=video_id&playlist_id=eq.{source['playlist_id']}",
+                             order="video_id")
     elif source.get("channel_id"):
-        rows = store.get("vr_videos",
-                         f"select=video_id&channel_id=eq.{source['channel_id']}&limit=5000")
+        rows = store.get_all("vr_videos",
+                             f"select=video_id&channel_id=eq.{source['channel_id']}",
+                             order="video_id")
     else:
         return {}
     return {r["video_id"]: key for r in rows}
@@ -131,11 +133,15 @@ def select(limit=200, force=False):
         return [], index
     have = set()
     if not force:
-        for r in store.get(TABLE, "select=video_id,lang,source_type&limit=10000"):
+        for r in store.get_all(TABLE, "select=video_id,lang,source_type",
+                               order="video_id,lang,source_type"):
             have.add((r["video_id"], r["lang"], r["source_type"]))
     out = []
-    for r in store.get("vr_transcripts",
-                       "select=video_id,lang,source_type,text_hash,local_ref&limit=10000"):
+    # Ordered and paged: this walk decides what becomes readable, and a truncated one
+    # starves whatever sorts late. That is precisely what happened to Kyle Doops.
+    for r in store.get_all("vr_transcripts",
+                           "select=video_id,lang,source_type,text_hash,local_ref",
+                           order="video_id,lang,source_type"):
         key = (r["video_id"], r["lang"], r["source_type"])
         if r["video_id"] not in index or key in have:
             continue

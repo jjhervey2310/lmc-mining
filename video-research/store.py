@@ -94,8 +94,53 @@ def _require():
 
 
 def get(table, query=""):
+    """One request. The server caps how many rows it will return, so this can TRUNCATE.
+
+    Fine for a bounded read (one video, a handful of rows). For anything that has to be
+    complete — a "what have I already done" set, a corpus membership list — use get_all,
+    because a silently short answer here reads as "there is nothing more" and is wrong.
+    """
     _require()
     return _req(f"{SB}/rest/v1/{table}?{query}", headers=_headers())
+
+
+# PostgREST enforces its own maximum rows per response (Supabase ships a default), and it
+# applies that cap SILENTLY — a `limit=10000` in the query string comes back as however
+# many rows the server felt like, with no error and no marker. Measured consequence: the
+# priority corpus push walked a fixed prefix of vr_transcripts forever, so 541 Kyle Doops
+# transcripts were fetched and scanned but only 2 were ever readable. Everything looked
+# healthy; the work was simply invisible past the cap.
+PAGE = int(os.environ.get("VR_PAGE_SIZE", "1000"))
+MAX_PAGES = int(os.environ.get("VR_MAX_PAGES", "500"))
+
+
+def get_all(table, query="", order=None, page=None):
+    """Every matching row, paged until the server runs out.
+
+    `order` matters more than it looks: offset pagination over an unordered result can
+    return the same row twice and skip another, because the server is free to order rows
+    differently per request. Callers pass the table's key.
+
+    Stops on an EMPTY page, never on a short one. A short page is exactly what a server
+    cap below the requested page size produces, and treating that as the end is the bug
+    this function exists to fix.
+    """
+    _require()
+    size = page or PAGE
+    q = query.strip("&")
+    if order:
+        q = f"{q}&order={order}" if q else f"order={order}"
+    out, offset = [], 0
+    for _ in range(MAX_PAGES):
+        rows = _req(f"{SB}/rest/v1/{table}?{q}&limit={size}&offset={offset}",
+                    headers=_headers())
+        if not rows:
+            return out
+        out.extend(rows)
+        offset += len(rows)
+    raise RuntimeError(
+        f"get_all({table}) hit {MAX_PAGES} pages ({len(out):,} rows) without the server "
+        "running out — refusing to loop further. Narrow the query or raise VR_MAX_PAGES.")
 
 
 def insert(table, rows):
