@@ -74,6 +74,25 @@ of transcripts changes it.
 - Re-running at full playlist coverage moves the stop percentages by more than a few points.
 - Reading a sample of Ran's 17% shows his stops are *more* specific than Sniper's, just
   rarer — in which case frequency was the wrong measure.
-- The `stop_invalidation` patterns are catching a Doops verbal tic rather than a rule. The
-  85.7% figure is share-of-videos-with-any-hit, which one habitual phrase could dominate.
-  Not yet checked, and it is the most likely way this table is wrong.
+- ~~The `stop_invalidation` patterns are catching a Doops verbal tic rather than a rule.~~
+  **Checked 2026-09-16 — not falsified, and it sharpened the result.** Doops's 85.7% rests
+  on two independent patterns, not one: `stop loss` in 348 videos (54.5% of his hits) and
+  `invalidat*` in 269 videos (32.9%). A single habit cannot produce that.
+
+  The same check separates the three more usefully than the totals did:
+
+  | | `stop loss` | `invalidat*` | reading |
+  |---|---|---|---|
+  | Sniper | **84.8%** of his stop hits, 353 videos | 1.9%, 34 videos | the **order type** |
+  | Doops | 54.5%, 348 videos | **32.9%, 269 videos** | the **idea being wrong** |
+  | Ran | 31.1%, 25 videos | **48.0%**, 40 videos | thesis-level, and rare |
+
+  Sniper says "stop loss" 2,397 times and "invalidation" in 34 videos: his register is
+  mechanical — where the order sits. Doops reaches for "invalidation" in 269 videos: his
+  register is conceptual — what would prove the trade wrong. Ran's rare stop talk is
+  mostly "invalidation" too, but at thesis rather than trade level.
+
+  **Consequence:** the composition above needs amending. Doops is not only the exit; he is
+  the clearest source in the archive for *invalidation as a concept*, which is the input
+  Sniper's leverage arithmetic consumes. Sniper supplies the formula, Doops supplies the
+  reasoning about what the stop is FOR.
