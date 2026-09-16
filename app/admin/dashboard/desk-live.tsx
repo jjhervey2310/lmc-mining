@@ -154,6 +154,12 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         if (!dead) { setState(j); setDegraded(false) }
       } catch { setDegraded(true) }
     }
+    // PULL ON MOUNT, not only every 60s. The server component builds `initial` from its own queries,
+    // and several fields are served ONLY by this route — narratives, sectors, the server-priced book.
+    // Without this first call those fields stayed absent for a full minute after every page load, so
+    // the narrative leaderboard and the sector table rendered their empty branch on arrival and then
+    // silently filled in. Found on the live page 2026-09-15.
+    pull()
     const iv = setInterval(pull, 60_000)
     return () => { dead = true; clearInterval(iv) }
   }, [secret])
@@ -783,7 +789,13 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         return (
           <Panel accent="cyan" title="🏁 Narrative leaderboard — 1 to 10"
             right={<span className="text-[11px] text-neutral-500">a pick in every seat · radar {state.radar?.[0]?.scan_date ?? '—'} · prices {priceStamp ?? '—'}</span>}>
-            {state.narratives == null ? (
+            {state.narratives === undefined ? (
+              // FIRST PAINT. The server component does not query desk_narratives, so on the very first
+              // render this field is absent and the 60s client refresh has not landed yet. "Not asked
+              // yet" is not "asked and failed" — printing the red error here was the same defect this
+              // whole board exists to kill, caught on the live page 2026-09-15 minutes after shipping.
+              <span className="text-[13px] text-neutral-500">Loading the ten seats…</span>
+            ) : state.narratives === null ? (
               <span className="text-[13px] text-red-600">
                 Narrative table unreachable — the fetch failed. This is not an empty board.
                 {state.narratives_error ? ` (${state.narratives_error})` : ''}
@@ -854,9 +866,11 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
                     scan and price chain, so the numbers always agree. */}
                 <details className="mt-2 border-t border-neutral-100 pt-2 dark:border-white/5">
                   <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-neutral-500">Sector momentum — where the tape is moving, and where we hold nothing</summary>
-                  {state.theses === null ? (
-                    <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
-                  ) : (state.sectors ?? []).length === 0 ? (
+                  {state.sectors === undefined ? (
+                    <span className="text-[13px] text-neutral-500">Loading…</span>
+                  ) : state.theses === null || state.sectors === null ? (
+                    <span className="text-[13px] text-red-600">Sector data unreachable — fetch failed, not empty.</span>
+                  ) : state.sectors.length === 0 ? (
                     <span className="text-[13px] text-amber-800 dark:text-amber-200">No thesis row carries a sector yet — the desk tags sectors in desk_theses.</span>
                   ) : (
                     <div className="mt-1 overflow-x-auto">
