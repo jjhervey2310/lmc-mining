@@ -27,9 +27,14 @@ import sys
 
 import store
 
-SCANNER_VERSION = "scan/1.0"
-SNIPPET_CAP = 160        # triage context only; the local cache stays the full record
-CONTEXT_CHARS = 60       # characters either side of the match inside the snippet
+SCANNER_VERSION = "scan/1.1"
+# Bounded quote, not a transcript — the local cache stays the full record. Raised from 160
+# to 320 with the neighbour-spanning context below, because 160 chars of a single ASR cue
+# is not enough to tell a rule from a passing mention. Measured on Kyle Doops, whose full
+# text was not readable: hits came back as fragments like "on one trade risk 1% you're
+# using 5x" — plainly a sizing rule, and plainly not quotable as evidence of one.
+SNIPPET_CAP = 320
+CONTEXT_CHARS = 130      # characters either side of the match, ACROSS cue boundaries
 
 
 # --------------------------------------------------------------------------
@@ -103,11 +108,23 @@ COMPILED = {cat: [(p, re.compile(p, re.I)) for p in pats] for cat, pats in PATTE
 _NUM = re.compile(r"(\d{1,3})")
 
 
-def _snippet(text, start, end):
-    """Short, centred context. Capped so the table holds triage text, never a transcript."""
+def _snippet(text, start, end, before="", after=""):
+    """Short, centred context. Capped so the table holds triage text, never a transcript.
+
+    `before` and `after` are the neighbouring cues' text. Machine captions cut every 2-3
+    seconds, mid-clause, so a window that stops at the cue boundary routinely ends before
+    the rule does — "risk 1% you're using 5x" is the whole cue, and the sentence that says
+    what it applies to is in the next one. Spanning neighbours is the difference between a
+    pointer and a quotable excerpt, and it costs nothing at scan time.
+    """
     lo = max(0, start - CONTEXT_CHARS)
     hi = min(len(text), end + CONTEXT_CHARS)
-    out = text[lo:hi].strip()
+    core = text[lo:hi]
+    need_l = CONTEXT_CHARS - (start - lo)
+    need_r = CONTEXT_CHARS - (hi - end)
+    left = before[-need_l:] if need_l > 0 and before else ""
+    right = after[:need_r] if need_r > 0 and after else ""
+    out = " ".join(p for p in (left.strip(), core.strip(), right.strip()) if p)
     return out[:SNIPPET_CAP]
 
 
@@ -118,13 +135,17 @@ def scan_segments(segments):
     computed offset, so a citation lands where the words actually are.
     """
     hits = []
-    for seg in segments:
+    for i, seg in enumerate(segments):
         text = seg.get("text") or ""
         if not text:
             continue
         t = seg.get("t_start_ms")
         if t is None:
             continue
+        # Neighbouring cues supply context when this one runs out. The MATCH and the
+        # timestamp still come from this cue only, so a citation never drifts.
+        before = (segments[i - 1].get("text") or "") if i else ""
+        after = (segments[i + 1].get("text") or "") if i + 1 < len(segments) else ""
         for cat, pats in COMPILED.items():
             for raw, rx in pats:
                 for m in rx.finditer(text):
@@ -134,7 +155,8 @@ def scan_segments(segments):
                     elif cat in ("leverage", "position_size"):
                         n = _NUM.search(m.group(0))
                         mag = int(n.group(1)) if n else None
-                    hits.append((cat, raw, int(t), _snippet(text, m.start(), m.end()), mag))
+                    hits.append((cat, raw, int(t),
+                                 _snippet(text, m.start(), m.end(), before, after), mag))
     return hits
 
 

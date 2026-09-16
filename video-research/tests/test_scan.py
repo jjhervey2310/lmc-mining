@@ -194,6 +194,59 @@ class ToneMarkers(unittest.TestCase):
         self.assertIn("hedge", cats)
 
 
+class NeighbourContext(unittest.TestCase):
+    """ASR cuts every 2-3 seconds mid-clause, so a cue-bounded window truncates the rule."""
+
+    def _segs(self, *texts):
+        return [{"t_start_ms": i * 3000, "t_end_ms": i * 3000 + 2900, "text": t}
+                for i, t in enumerate(texts)]
+
+    def test_context_extends_into_the_previous_cue(self):
+        segs = self._segs("the way I size any leverage trade is that",
+                          "on one trade risk 1% you're using 5x")
+        hit = [h for h in scan.scan_segments(segs) if h[0] == "position_size"][0]
+        self.assertIn("the way I size", hit[3], "context stopped at the cue boundary")
+
+    def test_context_extends_into_the_next_cue(self):
+        segs = self._segs("on one trade risk 1%",
+                          "and that keeps you alive through a losing streak")
+        hit = [h for h in scan.scan_segments(segs) if h[0] == "position_size"][0]
+        self.assertIn("losing streak", hit[3])
+
+    def test_the_timestamp_still_comes_from_the_matching_cue_only(self):
+        """Context may span cues; a citation must not drift to a neighbour."""
+        segs = self._segs("nothing here", "risking 2% of the account", "nor here")
+        hit = [h for h in scan.scan_segments(segs) if h[0] == "position_size"][0]
+        self.assertEqual(hit[2], 3000)
+
+    def test_the_first_cue_has_no_previous_neighbour(self):
+        hits = scan.scan_segments(self._segs("risking 2% here", "after"))
+        self.assertTrue(hits)
+
+    def test_the_last_cue_has_no_next_neighbour(self):
+        hits = scan.scan_segments(self._segs("before", "risking 2% here"))
+        self.assertTrue(hits)
+
+    def test_the_cap_still_holds(self):
+        segs = self._segs("x" * 500, "we are buying here", "y" * 500)
+        for h in scan.scan_segments(segs):
+            self.assertLessEqual(len(h[3]), scan.SNIPPET_CAP)
+
+    def test_a_widened_snippet_is_actually_wider_than_one_cue(self):
+        """The whole point: the fragment has to become quotable."""
+        segs = self._segs("here is how I think about it in practice, which is that",
+                          "on one trade risk 1% you're using 5x",
+                          "so your worst case is one percent of the account")
+        hit = [h for h in scan.scan_segments(segs) if h[0] == "position_size"][0]
+        self.assertGreater(len(hit[3]), 60)
+
+
+class ScannerVersionMoved(unittest.TestCase):
+    def test_the_version_changed_so_old_scans_are_redone(self):
+        """run() skips videos already scanned AT THIS VERSION; widening must re-scan."""
+        self.assertNotEqual(scan.SCANNER_VERSION, "scan/1.0")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=0, exit=False)
     print("OK")
