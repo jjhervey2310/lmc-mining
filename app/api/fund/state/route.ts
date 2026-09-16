@@ -83,7 +83,7 @@ export async function GET(req: Request) {
   // Ranking is by EVIDENCE that money is already moving toward the coin, not by momentum: in a week
   // where every sector is red, ranking on median 7d ranks "least down", which is not a reason to buy.
   const narr = await supabase.from('desk_narratives')
-    .select('rank, narrative, plain, evidence, pick, pick_why, verdict, verified_on, checked, against_it, entry, runner_up, syms, sources, updated_at')
+    .select('rank, narrative, plain, evidence, pick, pick_why, verdict, verified_on, checked, against_it, entry, runner_up, syms, sources, updated_at, catalyst, catalyst_on, catalyst_kind, unlock_note')
     .order('rank')
   // Latest radar scan (build request #6): stage/score/turnover beside each POLE/WATCH thesis. Numbers never come from thesis text.
   const latestScan = await supabase.from('fund_radar').select('scan_date').order('scan_date', { ascending: false }).limit(1).maybeSingle()
