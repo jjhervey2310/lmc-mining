@@ -11,7 +11,8 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-import captions  # noqa: E402
+import captions
+import sources  # noqa: E402
 
 FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "sample.json3"
 
@@ -210,10 +211,42 @@ class Selection(unittest.TestCase):
     def test_private_videos_are_never_selected(self):
         self.assertFalse(captions._eligible({"video_id": "d", "availability": "private"}, False))
 
-    def test_tier_order_is_the_spec_order(self):
-        self.assertEqual([t[0] for t in captions._tiers()],
-                         ["1-sniper-playlist", "1-sniper-channel", "2-risk-vocabulary",
-                          "3-dated-calls", "4-benjamin-cowen", "5-crypto-banter"])
+    def test_every_confirmed_playlist_is_crawled_first(self):
+        """Registering a presenter playlist must actually change the crawl order.
+
+        The earlier version of this test pinned a hardcoded list of tier labels, which is
+        why it kept passing while the Kyle Doops and Ran's Show playlists sat unreachable:
+        the assertion mirrored the implementation instead of the requirement. It now checks
+        the properties the ordering exists for, derived from the registry.
+        """
+        labels = [t[0] for t in captions._tiers()]
+        for s in sources.confirmed():
+            if s["kind"] == "playlist":
+                self.assertIn(f"{s.get('priority', 100)}-{s['source_key']}", labels,
+                              f"{s['source_key']} is CONFIRMED but is never fetched")
+
+    def test_presenters_outrank_the_vocabulary_sweeps_and_whole_archives(self):
+        labels = [t[0] for t in captions._tiers()]
+        risk = labels.index("risk-vocabulary")
+        self.assertLess(risk, labels.index("dated-calls"))
+        for s in sources.confirmed():
+            label = f"{s.get('priority', 100)}-{s['source_key']}"
+            if label not in labels:
+                continue
+            if s.get("priority", 100) < captions.PRESENTER_PRIORITY_MAX:
+                self.assertLess(labels.index(label), risk,
+                                f"{s['source_key']} is a presenter source and must be "
+                                "fetched before the title sweeps")
+            elif s["kind"] != "playlist":
+                self.assertGreater(labels.index(label), risk,
+                                   f"{s['source_key']} is a whole archive and must not "
+                                   "outrank the title sweeps")
+
+    def test_tiers_are_ordered_by_registry_priority(self):
+        """Ordering comes from the registry, so priority is the single place to change it."""
+        prios = [int(l.split("-", 1)[0]) for l in (t[0] for t in captions._tiers())
+                 if l.split("-", 1)[0].isdigit()]
+        self.assertEqual(prios, sorted(prios))
 
 
 class FetchOneDecisions(unittest.TestCase):

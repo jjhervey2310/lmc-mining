@@ -704,23 +704,42 @@ def _ilike_or(column, terms):
     return urllib.parse.quote(expr, safe='(),.*"=')
 
 
+# A channel below this priority is a PRESENTER source (a named person's own show) and is
+# fetched before the title-vocabulary sweeps. At or above it, a channel is a whole archive
+# and is fetched after them. Kept as a number rather than a hardcoded key list so that
+# registering a new presenter source changes the crawl order by itself.
+PRESENTER_PRIORITY_MAX = 40
+
+
 def _tiers():
-    """Ordered PostgREST queries. Earlier tiers are read first (spec §7)."""
-    pl = sources.by_key("sniper-crypto-trading-show")["playlist_id"]
-    sniper = sources.by_key("official-sniper-trading")["channel_id"]
-    cowen = sources.by_key("benjamin-cowen")["channel_id"]
-    banter = sources.by_key("crypto-banter")["channel_id"]
+    """Ordered PostgREST queries, derived from the source registry rather than hardcoded.
+
+    Built this way after a real miss: the earlier version named only the Sniper playlist,
+    so registering the Kyle Doops and Ran's Show playlists did NOT change what got fetched
+    first — their 2,100 videos fell through to the generic Crypto Banter tier and would
+    have been reached last. Deriving the tiers from sources.confirmed() means a playlist
+    added to the registry is prioritised by its own `priority`, with no second list to
+    forget to update.
+    """
     order = "order=published_at.desc.nullslast"
-    return [
-        ("1-sniper-playlist",
-         f"{_SELECT},vr_playlist_members!inner(playlist_id)"
-         f"&vr_playlist_members.playlist_id=eq.{pl}&{order}"),
-        ("1-sniper-channel", f"{_SELECT}&channel_id=eq.{sniper}&{order}"),
-        ("2-risk-vocabulary", f"{_SELECT}&{_ilike_or('title', RISK_VOCAB)}&{order}"),
-        ("3-dated-calls", f"{_SELECT}&{_ilike_or('title', DATED_VOCAB)}&{order}"),
-        ("4-benjamin-cowen", f"{_SELECT}&channel_id=eq.{cowen}&{order}"),
-        ("5-crypto-banter", f"{_SELECT}&channel_id=eq.{banter}&{order}"),
-    ]
+    confirmed = sorted(sources.confirmed(), key=lambda s: (s.get("priority", 100),
+                                                           s["source_key"]))
+    tiers, late_channels = [], []
+    for s in confirmed:
+        key, prio = s["source_key"], s.get("priority", 100)
+        if s["kind"] == "playlist":
+            tiers.append((f"{prio}-{key}",
+                          f"{_SELECT},vr_playlist_members!inner(playlist_id)"
+                          f"&vr_playlist_members.playlist_id=eq.{s['playlist_id']}&{order}"))
+        elif s.get("channel_id"):
+            target = tiers if prio < PRESENTER_PRIORITY_MAX else late_channels
+            target.append((f"{prio}-{key}", f"{_SELECT}&channel_id=eq.{s['channel_id']}&{order}"))
+    # Vocabulary sweeps sit between the named presenters and the whole-archive channels:
+    # they surface method and dated-call videos wherever they live, but must not outrank
+    # a source the owner explicitly prioritised.
+    tiers.append(("risk-vocabulary", f"{_SELECT}&{_ilike_or('title', RISK_VOCAB)}&{order}"))
+    tiers.append(("dated-calls", f"{_SELECT}&{_ilike_or('title', DATED_VOCAB)}&{order}"))
+    return tiers + late_channels
 
 
 def _eligible(row, force):

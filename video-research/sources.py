@@ -109,6 +109,24 @@ SOURCES = [
             "Ranked first for that reason, not for volume."),
     },
     {
+        "source_key": "rans-show",
+        "kind": "playlist",
+        "playlist_id": "PLmOv2_vzOoGd_je37xsSrQD4WVpum0UDa",
+        "channel_id": "UCN9Nj4tjXbVTLYWN0EKly_Q",
+        "handle": None,
+        "display_name": "Ran's Show - Crypto Alpha, News & Fundamentals",
+        "canonical_url": "https://www.youtube.com/playlist?list=PLmOv2_vzOoGd_je37xsSrQD4WVpum0UDa",
+        "scope_status": "CONFIRMED",
+        "priority": 10,
+        "resolution_note": (
+            "Registered 2026-09-16 at the owner's request to focus on Ran Neuner. 1,124 "
+            "entries / 832.3h enumerated 2026-09-15, pagination clean. This is the only "
+            "workable Ran Neuner attribution route: he is one of several Banter presenters, "
+            "so channel-level attribution cannot name him, and his surname appears in just "
+            "7 of 5,037 titles. Membership attributes the VIDEO, never an individual "
+            "sentence — guests and co-hosts inside his episodes stay 'unknown'."),
+    },
+    {
         "source_key": "kyle-doops-trading-show",
         "kind": "playlist",
         "playlist_id": "PLmOv2_vzOoGcDGeu-HHfifExgbvmPLO3l",
