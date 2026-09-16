@@ -74,7 +74,25 @@ def choose(hits, spacing_ms=None, max_per_video=None):
     return out
 
 
-def pending(video_ids=None, limit=None):
+def sample_interval(video_id, duration_ms, every_ms, cap=None):
+    """Evenly spaced capture points across a video, independent of what was said.
+
+    Needed because hit-driven selection is blind to teaching content: a lesson explaining
+    what a trendline IS never says "stop" or "entry", so it scored zero visual hits while
+    being the single most informative video read so far. What is on screen is the lesson;
+    the words are commentary on it. Measured on the Sniper TA course — 9 of 16 lessons
+    would have been captured not at all.
+    """
+    limit_n = cap if cap is not None else MAX_PER_VIDEO
+    step = max(int(every_ms), 1000)
+    points, t = [], step          # skip t=0: intros and title cards carry no chart
+    while t < duration_ms and len(points) < limit_n:
+        points.append((video_id, t, "interval"))
+        t += step
+    return points
+
+
+def pending(video_ids=None, limit=None, every_ms=None):
     """Capture points for videos that have scan hits and no frames yet."""
     have = {(r["video_id"], int(r["t_ms"]))
             for r in store.get("vr_frames", "select=video_id,t_ms&limit=20000")}
@@ -83,7 +101,30 @@ def pending(video_ids=None, limit=None):
     if video_ids:
         q += "&video_id=in.(" + ",".join(video_ids) + ")"
     hits = store.get("vr_scan_hits", q)
-    points = [p for p in choose(hits) if (p[0], p[1]) not in have]
+    points = choose(hits)
+
+    if every_ms:
+        # Interval sampling TOPS UP the hit-driven points rather than replacing them: a
+        # spoken stop level is still the most valuable moment in any video that has one.
+        want = set(video_ids or {p[0] for p in points})
+        durations = {}
+        for r in store.get("vr_videos", "select=video_id,duration_s&video_id=in.("
+                           + ",".join(sorted(want)) + ")&limit=5000"):
+            durations[r["video_id"]] = int(r.get("duration_s") or 0) * 1000
+        for vid in sorted(want):
+            if not durations.get(vid):
+                continue
+            taken = sorted(t for v, t, _c in points if v == vid)
+            room = MAX_PER_VIDEO - len(taken)
+            if room <= 0:
+                continue
+            for p in sample_interval(vid, durations[vid], every_ms, cap=room):
+                if all(abs(p[1] - t) >= MIN_SPACING_MS for t in taken):
+                    points.append(p)
+                    taken.append(p[1])
+
+    points = [p for p in points if (p[0], p[1]) not in have]
+    points.sort(key=lambda p: (p[0], p[1]))
     return points[:limit] if limit else points
 
 
@@ -177,8 +218,8 @@ def sweep_work_dir():
     return n
 
 
-def plan(video_ids=None, limit=None, as_json=False):
-    points = pending(video_ids, limit)
+def plan(video_ids=None, limit=None, as_json=False, every_ms=None):
+    points = pending(video_ids, limit, every_ms)
     by_video = {}
     for vid, t, cat in points:
         by_video.setdefault(vid, []).append({"t_ms": t, "category": cat})
@@ -193,13 +234,17 @@ def main(argv=None):
         prog="frames", description="Plan which video moments are worth capturing.")
     ap.add_argument("--videos", help="comma-separated video ids; default every scanned video")
     ap.add_argument("--limit", type=int, help="cap total frames planned")
+    ap.add_argument("--every", type=int, metavar="SEC",
+                    help="also sample every N seconds — needed for teaching content, which "
+                         "draws without ever saying stop or entry")
     ap.add_argument("--json", action="store_true", help="emit the plan for the capture driver")
     a = ap.parse_args(argv)
     vids = [v.strip() for v in (a.videos or "").split(",") if v.strip()] or None
     if a.json:
-        print(json.dumps(plan(vids, a.limit, as_json=True), indent=2))
+        print(json.dumps(plan(vids, a.limit, as_json=True,
+                              every_ms=(a.every or 0) * 1000 or None), indent=2))
         return 0
-    by_video, total = plan(vids, a.limit)
+    by_video, total = plan(vids, a.limit, every_ms=(a.every or 0) * 1000 or None)
     print(f"{total} frame(s) across {len(by_video)} video(s)")
     for vid in sorted(by_video)[:20]:
         cats = ", ".join(sorted({p["category"] for p in by_video[vid]}))

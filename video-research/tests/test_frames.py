@@ -90,6 +90,31 @@ class DiskDiscipline(unittest.TestCase):
         self.assertIsInstance(frames.sweep_work_dir(), int)
 
 
+class IntervalSampling(unittest.TestCase):
+    """Teaching content draws without narrating, so hits alone capture nothing."""
+
+    def test_even_spacing_across_the_video(self):
+        pts = frames.sample_interval("k" * 11, 600_000, 60_000, cap=20)
+        self.assertEqual([p[1] for p in pts][:3], [60_000, 120_000, 180_000])
+
+    def test_nothing_past_the_end(self):
+        pts = frames.sample_interval("l" * 11, 100_000, 60_000, cap=20)
+        self.assertTrue(all(p[1] < 100_000 for p in pts))
+
+    def test_the_cap_is_respected(self):
+        pts = frames.sample_interval("m" * 11, 3_600_000, 30_000, cap=5)
+        self.assertEqual(len(pts), 5)
+
+    def test_it_does_not_start_at_zero(self):
+        """Intros and title cards carry no chart."""
+        pts = frames.sample_interval("n" * 11, 600_000, 60_000)
+        self.assertGreater(pts[0][1], 0)
+
+    def test_points_are_labelled_interval_not_a_fake_category(self):
+        pts = frames.sample_interval("o" * 11, 600_000, 60_000, cap=2)
+        self.assertEqual({p[2] for p in pts}, {"interval"})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=0, exit=False)
     print("OK")
