@@ -76,10 +76,14 @@ one complete caption download). Sustained use then trips the gate; it recovers a
 cooldown and re-trips. At 40s pacing, three consecutive attempts were blocked and the caption
 batch **aborted cleanly on a checkpoint**, which is the designed behaviour.
 
-**Caption provenance — a finding, not a failure.** All three channels carry **zero creator
-captions**. Measured on `c45OAsahluc`: yt-dlp `subtitles` (creator) = 0 languages,
-`automatic_captions` = 157 including `en` and `en-orig`. Every transcript from these sources
-is machine transcription, so every number inside one is a transcription risk. This is why
+**Caption provenance — a finding, not a failure.** ~~All three channels carry **zero creator
+captions**.~~ **Corrected 2026-09-16: 311 of the 1,888 videos fetched do carry creator
+captions.** The original measurement below was taken on one video and generalised to three
+channels. Most transcripts are still machine transcription, so every number inside one
+remains a transcription risk — but "zero" was wrong.
+
+Original: measured on `c45OAsahluc`: yt-dlp `subtitles` (creator) = 0 languages,
+`automatic_captions` = 157 including `en` and `en-orig`. This is why
 numeric claims carry an ambiguity flag rather than a silent correction.
 
 **Remedy, in order of preference:**

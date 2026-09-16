@@ -79,7 +79,26 @@ metadata, but `captions.download` requires OAuth **as the channel owner**. Third
 *content* is not available through the official API at all. No API key was configured and no
 paid call was made.
 
-## Caption provenance — a finding, not a failure
+## Caption provenance — a finding, corrected
+
+> **Superseded 2026-09-16.** The claim below said these channels carry *zero* creator
+> captions. That was measured on a single video, `c45OAsahluc`, and generalised to three
+> channels — a sample of one. With 1,888 videos fetched, **311 of them carry creator
+> captions** (`subtitles`, `en`). The original measurement was accurate about that video
+> and wrong about the archive. It is kept here rather than deleted because a claim that
+> shaped the schema should stay visible after it is falsified.
+>
+> | provenance | videos (of 1,888 fetched) |
+> |---|---|
+> | `creator` / `en` | **311** |
+> | `auto` / `en` | 1,577 |
+> | `auto` / `en-orig` | 1,884 |
+>
+> What did not change: the great majority is still ASR, so the transcription-risk posture
+> below stands. What did change: `scan.py` prefers a creator track when one exists, and
+> 311 videos are better evidence than the rest.
+
+The original claim, as written on 2026-09-14:
 
 All three channels carry **zero creator captions**. Measured on `c45OAsahluc`:
 

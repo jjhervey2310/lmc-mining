@@ -26,6 +26,10 @@ intent.
 | `presenters.py` | Attribution, including the guard that stops "Kyle" becoming Kyle Doops | free |
 | `calls.py` | The historical call ledger, publication timing, and update grouping | free |
 | `quality.py` | The brief's §22 acceptance checks, written to `vr_quality_checks` | free |
+| `scan.py` | Mechanical pattern scan over every local transcript — complete coverage, timestamped pointers, no comprehension | free |
+| `frames.py` + `extract_frames.swift` | Picks the moments worth a picture and pulls stills with AVFoundation (no ffmpeg on this machine) | free |
+| `push_text.py` | Copies the priority corpus into the owner's own database so it can be read | free |
+| `harvest.py` | The unattended supervisor: fetch → scan → push, forever, then the daily sweep. Survives crashes, blocks, sleep and a full disk | free |
 | `cli.py` | The operator surface — everything above is reachable from here | — |
 
 ## Commands
@@ -95,13 +99,46 @@ cleanly after three consecutive blocks so the run ends on a checkpoint rather th
 A blocked video is recorded in `vr_access_blockers`, never silently skipped.
 
 A full-archive transcript pass is a multi-day unattended job from a non-gated IP, not one
-batch. No completion date is offered, because sustainable throughput from a working IP has
-not been measured — and `cli.py captions` reports a rate only when at least one fetch
-succeeded, since no successes means no denominator.
+batch. **Throughput from a working IP is now measured**: 258 videos/hour, averaged over seven
+consecutive full hours on a residential connection (hourly counts 234, 308, 305, 270, 287,
+207, 195). That is the only number in this repo that supports a completion estimate, and it
+is a *runtime* number, not a wall-clock one — see below.
 
 The gate is **not** worked around: no cookies, no impersonation, no account credentials. If
 you are seeing constant blocks, the fix is not a shorter delay — it is a different IP, or
 authorized transcripts. Both are in [`docs/ACCESS.md`](docs/ACCESS.md).
+
+## Runtime is not wall clock — why `harvest.py` exists
+
+At 258 videos/hour the remaining archive is about 25 hours of *runtime*. It has never been
+25 hours of *wall clock*, because every run so far has been a foreground process in a
+terminal, and every one of them has died: a closed window, a machine asleep, an unhandled
+exception at 03:00. One died two hours before the owner woke up, after he had been told the
+night before that it was fine. It was not fine — it had no restart and no supervision, so
+the first anyone knew was in the morning.
+
+`harvest.py` is the fix, and the thing it is measured on is not speed:
+
+- a cycle that raises does not end the run — the next cycle starts anyway;
+- a bot check backs off (120s, doubling to an hour) and keeps going rather than exiting;
+- below a free-disk floor it **pauses rather than exits**, because exiting would need a
+  human to restart it, which is the exact failure being removed;
+- every cycle writes a `vr_runs` row, so "is it still alive" is a database question rather
+  than a question about whether a terminal window is still open;
+- when there is nothing left to fetch it becomes the daily sweep — re-enumerate, pick up
+  new uploads, scan them, sleep.
+
+Install it as a launchd agent (restarts on crash, on login and on wake):
+
+```bash
+video-research/install-harvest.sh        # safe to re-run after any code change
+tail -f ~/.lightningmines/vr-harvest.log
+launchctl bootout gui/$(id -u)/com.lightningmines.vrharvest   # to stop
+```
+
+It installs to `~/.lightningmines/vr` and moves the caption cache to
+`~/.lightningmines/vr-cache`, both outside the repo: macOS TCC blocks background agents from
+reading `~/Desktop`, and transcripts have no business in a git working tree.
 
 ## The rules that shape the schema
 
