@@ -10,10 +10,20 @@ import { getMarketQuotes, isStale, marketClosed } from '@/lib/markets'
 // Gemini Google-blue.
 const LINE: Record<string, string> = { claude: '#fbbf24', gpt: '#34d399', gemini: '#60a5fa' }
 
-// TRADING — the competition page: Claude vs GPT vs Gemini, $1,000 each,
+// AI COMPETITION — the competition page: Claude vs GPT vs Gemini, $1,000 each,
 // every book priced live. Winner keeps the membership.
 
-export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } }
+// This is the terminal's landing tab (Jacob 2026-09-19), so it carries the
+// PWA manifest link — without it the terminal can't be installed on the phone.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ secret?: string }> }): Promise<Metadata> {
+  const { secret = '' } = await searchParams
+  return {
+    robots: { index: false, follow: false, nocache: true },
+    title: "Jacob's Dashboard",
+    manifest: secret ? `/api/admin/manifest?secret=${encodeURIComponent(secret)}` : undefined,
+    appleWebApp: { capable: true, title: "Jacob's Dashboard", statusBarStyle: 'black-translucent' },
+  }
+}
 export const dynamic = 'force-dynamic'
 
 export default async function TradingPage({ searchParams }: { searchParams: Promise<{ secret?: string }> }) {
@@ -79,7 +89,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
           </span>
         )}
       </div>
-      <Panel accent="purple" title="🏆 Trading competition — $1,000 each" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
+      <Panel accent="purple" title="🏆 AI Competition — $1,000 each" right={<span className="text-[11px] text-neutral-500">winner keeps the membership</span>}>
         <CompPanel books={books} start={COMP_START_CASH} secret={secret} daily={daily} />
       </Panel>
       {curve.length > 0 && (
