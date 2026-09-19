@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Studio Background — Lightning Mines</title>
+<style>
+  /* A video background, not a page: no scrollbars, no selection, no cursor. */
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    background: #060606; overflow: hidden;
+  }
+  body { cursor: none; user-select: none; -webkit-user-select: none; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  /* Framing guide (?guide=1) — shown while setting up the shot, never on air. */
+  #guide {
+    position: fixed; inset: 0; pointer-events: none; display: none;
+    font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: #f7931a;
+  }
+  #guide.on { display: block; }
+  #guide .zone {
+    position: absolute; border: 1px dashed rgba(247,147,26,.55); border-radius: 6px;
+  }
+  #guide .label {
+    position: absolute; background: rgba(0,0,0,.65); padding: 2px 6px; border-radius: 3px;
+    letter-spacing: .04em;
+  }
+  #guide .thirds { position: absolute; inset: 0; }
+  #guide .thirds i {
+    position: absolute; background: rgba(247,147,26,.18);
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="guide">
+  <div class="thirds">
+    <i style="left:33.33%;top:0;width:1px;height:100%"></i>
+    <i style="left:66.66%;top:0;width:1px;height:100%"></i>
+    <i style="top:33.33%;left:0;height:1px;width:100%"></i>
+    <i style="top:66.66%;left:0;height:1px;width:100%"></i>
+  </div>
+  <div class="zone" id="guideZone"></div>
+  <div class="label" id="guideLabel"></div>
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────────────
+   Studio background for on-camera video.
+
+   A live, slowly-drifting motion background generated from Lightning Mines'
+   own network data. Built to sit BEHIND a person, which inverts the usual
+   charting rules: nothing here is meant to be read. The series is one hue,
+   heavily recessed, with a darkened pocket where the subject sits so they
+   separate cleanly from the plate.
+
+   Use as an OBS "Browser Source" at 1920x1080 (or open fullscreen on a
+   monitor/TV behind you).
+
+   Query parameters
+     preset=mining|ai|energy   colour + data treatment          (default mining)
+     subject=center|left|right where the darkened pocket sits   (default center)
+     readout=0|1               show the live figures            (default 1)
+     guide=1                   framing overlay — setup only     (default off)
+     speed=0.1..3              drift multiplier                 (default 1)
+
+   BRAND.md rule 1 — every number shown must come from live data. If the feed
+   fails, the visuals continue but the numeric readout is suppressed entirely
+   rather than showing a placeholder. A stream never goes blank, and it never
+   shows a number we can't stand behind.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const params    = new URLSearchParams(location.search)
+const PRESET    = (params.get('preset')  || 'mining').toLowerCase()
+const SUBJECT   = (params.get('subject') || 'center').toLowerCase()
+const SHOW_READ = params.get('readout') !== '0'
+const SPEED     = Math.min(3, Math.max(0.1, parseFloat(params.get('speed') || '1') || 1))
+
+/* One accent hue per channel. Recessive by design — these are rendered at low
+   alpha over near-black, so they read as atmosphere rather than as a chart. */
+const PRESETS = {
+  mining: { accent: '#f7931a', accent2: '#ffb454', symbol: 'HASHPRICE', unit: '/PH/day', prefix: '$', label: 'BITCOIN HASHPRICE' },
+  ai:     { accent: '#22d3ee', accent2: '#67e8f9', symbol: 'HASHRATE',  unit: ' EH/s',   prefix: '',  label: 'NETWORK HASHRATE' },
+  energy: { accent: '#34d399', accent2: '#6ee7b7', symbol: 'DIFFICULTY',unit: 'T',       prefix: '',  label: 'NETWORK DIFFICULTY' },
+}
+const P = PRESETS[PRESET] || PRESETS.mining
+
+const canvas = document.getElementById('c')
+const ctx = canvas.getContext('2d', { alpha: false })
+
+let W = 0, H = 0, DPR = 1
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1)
+  W = window.innerWidth
+  H = window.innerHeight
+  canvas.width  = Math.round(W * DPR)
+  canvas.height = Math.round(H * DPR)
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+  layoutGuide()
+}
+window.addEventListener('resize', resize)
+
+/* ── Subject pocket ────────────────────────────────────────────────────────
+   Where the person stands. The plate is darkened here so their edges — hair
+   especially — separate from the background without a green screen. */
+function subjectCenter() {
+  const x = SUBJECT === 'left' ? W * 0.30 : SUBJECT === 'right' ? W * 0.70 : W * 0.5
+  return { x, y: H * 0.62 }
+}
+
+function layoutGuide() {
+  const g = document.getElementById('guide')
+  if (params.get('guide') !== '1') return
+  g.classList.add('on')
+  const { x } = subjectCenter()
+  const w = Math.min(W * 0.42, H * 0.62)
+  const h = H * 0.78
+  const zone = document.getElementById('guideZone')
+  zone.style.left   = `${x - w / 2}px`
+  zone.style.top    = `${H - h}px`
+  zone.style.width  = `${w}px`
+  zone.style.height = `${h}px`
+  const label = document.getElementById('guideLabel')
+  label.style.left = `${x - w / 2}px`
+  label.style.top  = `${H - h - 20}px`
+  label.textContent = `STAND HERE · eyes on upper third · ${SUBJECT}`
+}
+
+/* ── Data ──────────────────────────────────────────────────────────────────
+   Reuses the terminal's own feed. `live` gates the numeric readout: the
+   ambient visuals run either way, the figures only appear when real. */
+let series = []      // normalised 0..1 values driving the curve
+let live = false
+let latestValue = null
+let latestChangePct = null
+
+function normalise(values) {
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const span = max - min || 1
+  return values.map(v => (v - min) / span)
+}
+
+/* A calm synthetic curve so the plate still has motion if the feed is down.
+   Deliberately unlabelled — see the BRAND.md note above. */
+function fallbackSeries(n = 240) {
+  const out = []
+  for (let i = 0; i < n; i++) {
+    const t = i / n
+    out.push(
+      0.5 +
+      0.22 * Math.sin(t * Math.PI * 4) +
+      0.11 * Math.sin(t * Math.PI * 9.3 + 1.7) +
+      0.05 * Math.sin(t * Math.PI * 21.7 + 0.4)
+    )
+  }
+  return out
+}
+
+async function loadData() {
+  try {
+    const res = await fetch(`/api/chart/ohlc?symbol=${P.symbol}&tf=1D`, { cache: 'no-store' })
+    if (!res.ok) throw new Error(String(res.status))
+    const data = await res.json()
+    const candles = Array.isArray(data?.candles) ? data.candles : []
+    const closes = candles.map(c => c.close).filter(Number.isFinite)
+    if (closes.length < 20) throw new Error('short series')
+
+    series = normalise(closes)
+    latestValue = closes[closes.length - 1]
+    const prev = closes[closes.length - 2]
+    latestChangePct = prev ? ((latestValue - prev) / prev) * 100 : null
+    live = true
+  } catch (err) {
+    console.warn('[studio-background] feed unavailable, running unlabelled:', err)
+    series = fallbackSeries()
+    live = false
+    latestValue = null
+    latestChangePct = null
+  }
+}
+
+/* ── Curve sampling ────────────────────────────────────────────────────────
+   Sampled as a continuous loop so the drift never seams. */
+function sampleSeries(u) {
+  const n = series.length
+  if (!n) return 0.5
+  const x = ((u % 1) + 1) % 1 * n
+  const i = Math.floor(x)
+  const f = x - i
+  const a = series[i % n]
+  const b = series[(i + 1) % n]
+  // Smoothstep between samples keeps the line soft at low sample density.
+  const t = f * f * (3 - 2 * f)
+  return a + (b - a) * t
+}
+
+/* ── Particles ─────────────────────────────────────────────────────────────
+   Sparse, slow drift. Kept few enough to hold 60fps as an OBS source. */
+const particles = []
+function seedParticles() {
+  particles.length = 0
+  const count = Math.round((W * H) / 42000)
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random(), y: Math.random(),
+      r: 0.4 + Math.random() * 1.5,
+      vx: (0.004 + Math.random() * 0.012),
+      a: 0.05 + Math.random() * 0.22,
+      p: Math.random() * Math.PI * 2,
+    })
+  }
+}
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '')
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
+}
+const ACCENT = hexToRgb(P.accent)
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`
+
+/* ── Frame ─────────────────────────────────────────────────────────────── */
+let t0 = null
+let drift = 0
+
+function frame(ts) {
+  if (t0 === null) t0 = ts
+  const dt = Math.min(0.05, (ts - t0) / 1000)
+  t0 = ts
+  drift += dt * 0.012 * SPEED
+
+  // Base plate.
+  ctx.fillStyle = '#060606'
+  ctx.fillRect(0, 0, W, H)
+
+  drawGrid()
+  drawCurve(H * 0.34, 1.0, 0.30)   // upper, faint — depth
+  drawCurve(H * 0.52, 0.72, 0.16)  // parallax echo
+  drawParticles(dt)
+  drawSubjectPocket()
+  drawVignette()
+  if (SHOW_READ && live) drawReadout()
+
+  requestAnimationFrame(frame)
+}
+
+function drawGrid() {
+  const step = Math.max(48, Math.round(H / 14))
+  ctx.lineWidth = 1
+  ctx.strokeStyle = 'rgba(255,255,255,0.022)'
+  ctx.beginPath()
+  for (let y = step; y < H; y += step) {
+    ctx.moveTo(0, y + 0.5)
+    ctx.lineTo(W, y + 0.5)
+  }
+  // Verticals scroll with the drift so the whole plate reads as moving.
+  const offset = (drift * W * 0.6) % step
+  for (let x = -offset; x < W; x += step) {
+    ctx.moveTo(Math.round(x) + 0.5, 0)
+    ctx.lineTo(Math.round(x) + 0.5, H)
+  }
+  ctx.stroke()
+}
+
+/**
+ * One series, one hue, drawn as a soft filled area. `scale` shrinks the
+ * amplitude for the parallax copy; `alpha` keeps every layer recessive.
+ */
+function drawCurve(baseline, scale, alpha) {
+  const amp = H * 0.16 * scale
+  const stepPx = 4
+  const pts = []
+  for (let x = 0; x <= W + stepPx; x += stepPx) {
+    const u = drift + (x / W) * 0.55
+    pts.push([x, baseline - (sampleSeries(u) - 0.5) * 2 * amp])
+  }
+
+  // Fill first, so the stroke sits crisply on top of its own gradient.
+  const grad = ctx.createLinearGradient(0, baseline - amp, 0, H)
+  grad.addColorStop(0, rgba(ACCENT, alpha * 0.30))
+  grad.addColorStop(1, rgba(ACCENT, 0))
+  ctx.beginPath()
+  ctx.moveTo(0, H)
+  for (const [x, y] of pts) ctx.lineTo(x, y)
+  ctx.lineTo(W, H)
+  ctx.closePath()
+  ctx.fillStyle = grad
+  ctx.fill()
+
+  ctx.beginPath()
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)))
+  ctx.strokeStyle = rgba(ACCENT, alpha)
+  ctx.lineWidth = 1.6 * scale
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+  // A soft bloom sells "screen" without a post-processing pass.
+  ctx.shadowColor = rgba(ACCENT, alpha * 0.8)
+  ctx.shadowBlur = 18 * scale
+  ctx.stroke()
+  ctx.shadowBlur = 0
+}
+
+function drawParticles(dt) {
+  for (const p of particles) {
+    p.x += p.vx * dt * SPEED * 0.35
+    if (p.x > 1.05) p.x -= 1.1
+    p.p += dt * 0.6
+    const twinkle = 0.65 + 0.35 * Math.sin(p.p)
+    ctx.beginPath()
+    ctx.arc(p.x * W, p.y * H, p.r, 0, Math.PI * 2)
+    ctx.fillStyle = rgba(ACCENT, p.a * twinkle * 0.5)
+    ctx.fill()
+  }
+}
+
+/** Darkened pocket behind the subject — the no-green-screen separation trick. */
+function drawSubjectPocket() {
+  const { x, y } = subjectCenter()
+  const r = Math.max(W, H) * 0.46
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+  g.addColorStop(0,   'rgba(6,6,6,0.92)')
+  g.addColorStop(0.45,'rgba(6,6,6,0.62)')
+  g.addColorStop(1,   'rgba(6,6,6,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+}
+
+function drawVignette() {
+  const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.78)
+  g.addColorStop(0, 'rgba(0,0,0,0)')
+  g.addColorStop(1, 'rgba(0,0,0,0.72)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+}
+
+/** Live figures, small and dim — authority, not a chart to read. */
+function drawReadout() {
+  const pad = Math.round(Math.min(W, H) * 0.045)
+  const big = Math.round(H * 0.038)
+  const small = Math.round(H * 0.016)
+
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+
+  ctx.font = `600 ${small}px ui-monospace, SFMono-Regular, Menlo, monospace`
+  ctx.fillStyle = 'rgba(255,255,255,0.34)'
+  ctx.fillText(P.label, pad, pad + small)
+
+  const shown = P.prefix + latestValue.toLocaleString('en-US', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  }) + P.unit
+  ctx.font = `700 ${big}px ui-monospace, SFMono-Regular, Menlo, monospace`
+  ctx.fillStyle = rgba(ACCENT, 0.72)
+  ctx.fillText(shown, pad, pad + small + big + 6)
+
+  if (latestChangePct !== null) {
+    const up = latestChangePct >= 0
+    ctx.font = `600 ${small}px ui-monospace, SFMono-Regular, Menlo, monospace`
+    ctx.fillStyle = up ? 'rgba(34,197,94,0.55)' : 'rgba(239,68,68,0.55)'
+    ctx.fillText(`${up ? '▲' : '▼'} ${Math.abs(latestChangePct).toFixed(2)}%  24H`,
+      pad, pad + small + big + small + 14)
+  }
+
+  ctx.font = `500 ${Math.round(small * 0.85)}px ui-monospace, SFMono-Regular, Menlo, monospace`
+  ctx.fillStyle = 'rgba(255,255,255,0.16)'
+  ctx.fillText('LIGHTNINGMINES.COM · LIVE NETWORK DATA', pad, H - pad)
+}
+
+/* Small read-only hook so the state can be asserted from an automated check
+   (top-level `const` in a classic script isn't reachable on `window`). */
+window.__bg = {
+  get live()    { return live },
+  get samples() { return series.length },
+  get value()   { return latestValue },
+  get preset()  { return PRESET },
+}
+
+/* ── Boot ──────────────────────────────────────────────────────────────── */
+resize()
+seedParticles()
+window.addEventListener('resize', seedParticles)
+series = fallbackSeries()          // paint immediately; swap in live data when it lands
+requestAnimationFrame(frame)
+loadData()
+// Refresh hourly — the underlying series is daily, so this is generous.
+setInterval(loadData, 60 * 60 * 1000)
+</script>
+</body>
+</html>
