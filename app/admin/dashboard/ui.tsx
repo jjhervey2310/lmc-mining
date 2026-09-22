@@ -219,15 +219,21 @@ export function Shell({
   active: 'fund' | 'leverage' | 'mining' | 'todo' | 'posts' | 'trading' | 'jobs' | 'lfc' | 'website' | 'videos'
   children: React.ReactNode
 }) {
-  // Two tabs (Jacob 2026-09-19): the AI competition and its to-do list.
-  // ROBINHOOD, LEVERAGE and MINE SIM joined POSTS, JOBS, LFC, WEBSITE and
-  // VIDEOS in the parked set — every page still exists and works by URL,
-  // they are only off the nav. The crons that fed the parked trading pages
-  // (runner-scout, desk-digest) were paused the same day.
+  // ROBINHOOD is back on the nav (2026-09-22). #39 took it off on 09-19 along
+  // with LEVERAGE and MINE SIM, and pointed the dashboard root at the AI
+  // competition, so the real-money book had no link from anywhere and the front
+  // door led elsewhere. Jacob asked where it had gone. The attribution on that
+  // removal was a code comment, not a quoted instruction, so only the tab he
+  // asked about comes back — LEVERAGE, MINE SIM, POSTS, JOBS, LFC, WEBSITE and
+  // VIDEOS stay parked, and the root still forwards to the competition. Every
+  // parked page still exists and works by URL; they are only off the nav.
+  // The crons that fed the parked trading pages (runner-scout, desk-digest)
+  // were paused on 09-19 and are still paused.
   // One timestamp for the header: the clock, the staleness age and its tooltip
   // must all describe the same render, not three separate Date.now() calls.
   const renderedAt = new Date().toISOString()
   const tabs = [
+    { id: 'fund', label: 'ROBINHOOD', href: `/admin/dashboard/fund?secret=${secret}` },
     { id: 'trading', label: 'AI COMPETITION', href: `/admin/dashboard/trading?secret=${secret}` },
     { id: 'todo', label: 'TO-DO — AI COMPETITION', href: `/admin/dashboard/todo?secret=${secret}` },
   ]

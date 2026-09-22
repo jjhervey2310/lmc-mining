@@ -694,76 +694,11 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         )}
       </Panel>
 
-      {/* ── 2. BUY BOARD ────────────────────────────────────────────────────────────────────────────
-          Build request #16, display spec replaced by #18 (Jacob's final): FOUR columns and nothing
-          else — symbol, live, entry, %. Rows in buy_rank order, at most ten, never by updated_at.
-          ENTRY means two different things on purpose: for a name we hold it is OUR COST BASIS, so the
-          % answers "are we up or down on it"; for a name we do not hold it is the written entry level,
-          so the % answers "how far is the price from where we said we would buy". Both are the same
-          question — is this worth money right now — which is why they share a column.
-          The armed/not-armed state stays in the API payload for the desk's reconciliation (#18's own
-          note) but is off the face: order status is in the Robinhood app, and this board is about
-          what to buy, not about plumbing. The entry note moves to the row tooltip. */}
-      {(() => {
-        const board = [...(state.theses ?? [])].filter((t) => t.buy_rank != null).sort((a, b) => (a.buy_rank as number) - (b.buy_rank as number)).slice(0, 10)
-        return (
-          <Panel accent="amber" title="🎯 Buy board"
-            right={<span className="text-[11px] text-neutral-500">desk rank · prices {priceStamp ?? '—'}</span>}>
-            {state.theses === null ? (
-              <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
-            ) : board.length === 0 ? (
-              <span className="text-[13px] text-amber-800 dark:text-amber-200">No name carries a buy_rank — the desk has not ranked the board this session.</span>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px] tabular-nums">
-                  <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
-                    <th className="py-1 pr-2">Symbol</th><th className="pr-2 text-right">Live</th>
-                    <th className="pr-2 text-right">Entry</th><th className="text-right">%</th>
-                  </tr></thead>
-                  <tbody>
-                    {board.map((t) => {
-                      const price = srvPrice(t.symbol)
-                      const pos = positions.find((p) => p.symbol === t.symbol) ?? null
-                      const holdingBasis = pos && Number(pos.avg_cost) > 0 ? Number(pos.avg_cost) : null
-                      const isHeld = holdingBasis != null
-                      // Held: live vs our cost. Unheld: how far the price is from the written level,
-                      // signed so that "at or below where we said we would buy" is the positive case.
-                      const entry = isHeld ? holdingBasis : (t.entry_level != null ? Number(t.entry_level) : null)
-                      const pct = price != null && entry != null && entry > 0 && price > 0
-                        ? (isHeld ? ((price - entry) / entry) * 100 : ((entry - price) / price) * 100)
-                        : null
-                      const good = pct != null && pct >= 0
-                      const near = !isHeld && pct != null && Math.abs(pct) <= 3
-                      const tip = [t.entry_note, isHeld ? 'entry = our cost basis' : 'entry = the written level'].filter(Boolean).join(' · ')
-                      return (
-                        <tr key={t.symbol} title={tip} className={`border-t border-neutral-100 dark:border-white/5 ${near ? 'bg-emerald-50 dark:bg-emerald-400/10' : ''}`}>
-                          <td className="py-1.5 pr-2">
-                            <span className="text-[15px] font-black text-neutral-800 dark:text-neutral-100">{t.symbol}</span>
-                            {t.buy_rank === 1 && <span className="ml-1 text-amber-500" title="pole seat">★</span>}
-                          </td>
-                          <td className="pr-2 text-right font-mono font-bold text-neutral-800 dark:text-neutral-100">{price != null ? bfmt(price) : '…'}</td>
-                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{entry != null ? bfmt(entry) : <span className="text-neutral-400">—</span>}</td>
-                          <td className="text-right">
-                            {pct != null
-                              ? <span className={`font-mono font-bold ${good ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span>
-                              : <span className="text-neutral-400">—</span>}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-                <div className="mt-1 text-[11px] text-neutral-500">
-                  Held names show our cost basis and whether we are up on it. The rest show the written entry level
-                  and how far the price is from it — green means at or below it. Tap and hold a row for the note.
-                </div>
-              </div>
-            )}
-          </Panel>
-        )
-      })()}
-
-      {/* ── 2b. NARRATIVE LEADERBOARD — TEN SEATS, A PICK IN EVERY ONE ────────────────────────────────
+      {/* ── 2. NARRATIVE LEADERBOARD — TEN SEATS, A PICK IN EVERY ONE ────────────────────────────────
+          ORDER (Jacob 2026-09-22): "i want robinhood first clickable tabs and the next picks and
+          thesis and hwy". So the picks, the thesis and the reasoning sit directly under holdings,
+          ABOVE the four-column buy board. The board is the terse version of the same names; this is
+          the one that says WHY. Do not reorder these two again without an instruction.
           Jacob 2026-09-15: "why is the narrative leaderboard not working and listed 1-10 / you need to
           have a pick for every spot verified and would be our next buy if we chose that narrative".
 
@@ -987,7 +922,76 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         )
       })()}
 
-      {/* ── 3. THE FULL WATCH LIST — collapsed under the buy board (build request #16) ────────────── */}
+      {/* ── 3. BUY BOARD ────────────────────────────────────────────────────────────────────────────
+          Build request #16, display spec replaced by #18 (Jacob's final): FOUR columns and nothing
+          else — symbol, live, entry, %. Rows in buy_rank order, at most ten, never by updated_at.
+          ENTRY means two different things on purpose: for a name we hold it is OUR COST BASIS, so the
+          % answers "are we up or down on it"; for a name we do not hold it is the written entry level,
+          so the % answers "how far is the price from where we said we would buy". Both are the same
+          question — is this worth money right now — which is why they share a column.
+          The armed/not-armed state stays in the API payload for the desk's reconciliation (#18's own
+          note) but is off the face: order status is in the Robinhood app, and this board is about
+          what to buy, not about plumbing. The entry note moves to the row tooltip. */}
+      {(() => {
+        const board = [...(state.theses ?? [])].filter((t) => t.buy_rank != null).sort((a, b) => (a.buy_rank as number) - (b.buy_rank as number)).slice(0, 10)
+        return (
+          <Panel accent="amber" title="🎯 Buy board"
+            right={<span className="text-[11px] text-neutral-500">desk rank · prices {priceStamp ?? '—'}</span>}>
+            {state.theses === null ? (
+              <span className="text-[13px] text-red-600">Theses unreachable — fetch failed, not empty.</span>
+            ) : board.length === 0 ? (
+              <span className="text-[13px] text-amber-800 dark:text-amber-200">No name carries a buy_rank — the desk has not ranked the board this session.</span>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[13px] tabular-nums">
+                  <thead><tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
+                    <th className="py-1 pr-2">Symbol</th><th className="pr-2 text-right">Live</th>
+                    <th className="pr-2 text-right">Entry</th><th className="text-right">%</th>
+                  </tr></thead>
+                  <tbody>
+                    {board.map((t) => {
+                      const price = srvPrice(t.symbol)
+                      const pos = positions.find((p) => p.symbol === t.symbol) ?? null
+                      const holdingBasis = pos && Number(pos.avg_cost) > 0 ? Number(pos.avg_cost) : null
+                      const isHeld = holdingBasis != null
+                      // Held: live vs our cost. Unheld: how far the price is from the written level,
+                      // signed so that "at or below where we said we would buy" is the positive case.
+                      const entry = isHeld ? holdingBasis : (t.entry_level != null ? Number(t.entry_level) : null)
+                      const pct = price != null && entry != null && entry > 0 && price > 0
+                        ? (isHeld ? ((price - entry) / entry) * 100 : ((entry - price) / price) * 100)
+                        : null
+                      const good = pct != null && pct >= 0
+                      const near = !isHeld && pct != null && Math.abs(pct) <= 3
+                      const tip = [t.entry_note, isHeld ? 'entry = our cost basis' : 'entry = the written level'].filter(Boolean).join(' · ')
+                      return (
+                        <tr key={t.symbol} title={tip} className={`border-t border-neutral-100 dark:border-white/5 ${near ? 'bg-emerald-50 dark:bg-emerald-400/10' : ''}`}>
+                          <td className="py-1.5 pr-2">
+                            <span className="text-[15px] font-black text-neutral-800 dark:text-neutral-100">{t.symbol}</span>
+                            {t.buy_rank === 1 && <span className="ml-1 text-amber-500" title="pole seat">★</span>}
+                          </td>
+                          <td className="pr-2 text-right font-mono font-bold text-neutral-800 dark:text-neutral-100">{price != null ? bfmt(price) : '…'}</td>
+                          <td className="pr-2 text-right font-mono text-neutral-700 dark:text-neutral-300">{entry != null ? bfmt(entry) : <span className="text-neutral-400">—</span>}</td>
+                          <td className="text-right">
+                            {pct != null
+                              ? <span className={`font-mono font-bold ${good ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-rose-300'}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span>
+                              : <span className="text-neutral-400">—</span>}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                <div className="mt-1 text-[11px] text-neutral-500">
+                  Held names show our cost basis and whether we are up on it. The rest show the written entry level
+                  and how far the price is from it — green means at or below it. Tap and hold a row for the note.
+                </div>
+              </div>
+            )}
+          </Panel>
+        )
+      })()}
+
+      {/* ── 4. THE FULL WATCH LIST — collapsed under the buy board (build request #16) ────────────── */}
       <details className="rounded-xl border border-neutral-200 px-1 py-1 dark:border-white/10" open={showWatch} onToggle={(e) => setShowWatch((e.target as HTMLDetailsElement).open)}>
         <summary className="cursor-pointer px-2 py-1 text-[12px] font-bold uppercase tracking-wider text-neutral-500">
           Full watch list — {queue.length} name{queue.length === 1 ? '' : 's'} with timing grades and tap-to-buy
