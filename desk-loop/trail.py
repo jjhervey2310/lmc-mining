@@ -154,7 +154,7 @@ def main():
     if not loop_enabled():
         print("loop disabled"); return
     holdings = [h for h in sb_get("live_holdings", "select=symbol,qty,avg_cost") if h["symbol"] != "USD" and float(h["qty"] or 0) > 0]
-    trigs = sb_get("desk_triggers", "active=eq.true&select=id,symbol,kind,level,spec,last_alert_at")
+    trigs = sb_get("desk_triggers", "active=eq.true&select=id,symbol,kind,level,spec,last_alert_at,covers_qty")
     by_sym = {}
     for t in trigs: by_sym.setdefault(t["symbol"], []).append(t)
     px = prices([h["symbol"] for h in holdings]) if holdings else {}
@@ -212,21 +212,46 @@ def main():
                 log(sym, t["kind"], lvl, p, f"close {close_day} {close} crossed; spec pushed", True)
                 actions.append(title)
 
-        # (2) STOP PRESENCE — A3 §3 / v4 "stops on 100% of units always", NARROWED BY A11 (2026-09-08).
-        #     common.resting_stop_required() owns the rule: the sleeve and the basket always need a stop row;
-        #     the anchor is exempt by design only while the book is under ANCHOR_STANDING_TRAIL_USD.
-        if not stops and resting_stop_required(sym, book_usd):
-            key = f"nostop:{sym}"
-            if not recent(last_prop.get(key)):
-                why = (f"v4: stops on 100% of units. A11 §3: the book is at or above ${ANCHOR_STANDING_TRAIL_USD:,.0f}, "
-                       "so the standing anchor trail is back — place it now."
-                       if anchor else
-                       "v4 / A11 §4: every non-anchor position carries a resting stop at all times. Place one now.")
-                ntfy(f"⚠ {sym} has NO resting stop", f"Holding {h['qty']} {sym} @ {fmt(p)}. {why}", "high")
-                last_prop[key] = now_iso
-                log(sym, "nostop", None, p, "A11 §3 breach: anchor above the standing-trail threshold, no stop row"
-                                           if anchor else "A11 §4 breach: no stop row on a non-anchor position", True)
-                actions.append(f"NO STOP {sym}")
+        # (2) STOP PRESENCE **AND COVERAGE** — A3 §3 / v4 "stops on 100% of units always", NARROWED BY A11.
+        #     Two separate failures, both of which leave units naked:
+        #       (a) no stop row at all              -> 'nostop'
+        #       (b) a stop row that is too SMALL    -> 'stop_short'
+        #     (b) was invisible until 2026-09-15: the screen tested `not stops`, so a DCA fill — which leaves
+        #     the old row covering the old quantity — kept it quiet precisely when the new units had nothing
+        #     under them. Under A12 (hold and DCA) that is the routine case. common.resting_stop_required()
+        #     owns WHETHER a stop is owed; common.stop_coverage_gap() owns whether the row is big enough.
+        if resting_stop_required(sym, book_usd):
+            if not stops:
+                key = f"nostop:{sym}"
+                if not recent(last_prop.get(key)):
+                    why = (f"v4: stops on 100% of units. A11 §3: the book is at or above ${ANCHOR_STANDING_TRAIL_USD:,.0f}, "
+                           "so the standing anchor trail is back — place it now."
+                           if anchor else
+                           "v4 / A11 §4: every non-anchor position carries a resting stop at all times. Place one now.")
+                    ntfy(f"⚠ {sym} has NO resting stop", f"Holding {h['qty']} {sym} @ {fmt(p)}. {why}", "high")
+                    last_prop[key] = now_iso
+                    log(sym, "nostop", None, p, "A11 §3 breach: anchor above the standing-trail threshold, no stop row"
+                                               if anchor else "A11 §4 breach: no stop row on a non-anchor position", True)
+                    actions.append(f"NO STOP {sym}")
+            else:
+                covered, uncovered, unknown = stop_coverage_gap(h["qty"], stops)
+                if uncovered > 0:
+                    key = f"stopshort:{sym}"
+                    if not recent(last_prop.get(key)):
+                        held_q = float(h["qty"] or 0)
+                        why = ("the stop rows do not record what they cover (covers_qty is empty), so full "
+                               "coverage cannot be proven — reported as uncovered until a row says otherwise"
+                               if unknown else
+                               f"rows cover {covered:g} of {held_q:g} held")
+                        ntfy(f"⚠ {sym} stop covers only PART of the position",
+                             f"{uncovered:g} {sym} (~{fmt(uncovered * p)}) is carrying NO stop. {why}. "
+                             f"v4: stops on 100% of units — cancel the resting stop and replace it sized to "
+                             f"the full {held_q:g}, at the same level.", "high")
+                        last_prop[key] = now_iso
+                        log(sym, "stop_short", None, p,
+                            f"coverage breach: {covered:g} covered of {held_q:g} held"
+                            + (" (covers_qty missing)" if unknown else ""), True)
+                        actions.append(f"STOP SHORT {sym} ({uncovered:g} uncovered)")
 
         # (3) FORMULA — high-water mark is the highest COMPLETED daily close SINCE ENTRY (never an intraday print)
         ref = close if close is not None else p
