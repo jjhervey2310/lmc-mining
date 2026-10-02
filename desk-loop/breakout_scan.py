@@ -7,6 +7,7 @@ Free: daily bars cached under state/hist (refreshed once a day, 2.5s spacing to 
 import json, time, datetime, statistics as st
 from common import *
 from backtest import universe, id_map, history, LOOKBACK, VOL_MULT, MAX_EXT
+from market_time import ret_over
 
 CHASE_DAY, CHASE_30D = 0.15, 0.70
 
@@ -69,10 +70,10 @@ def main():
         c, v = bars[i]["c"], bars[i]["v"]
         w = bars[i - LOOKBACK:i]
         hi20 = max(b["c"] for b in w); avgv = st.mean(b["v"] for b in w) or 1
-        # BTC's 7-day return on the same completed bar (aligned by timestamp; never its partial bar)
-        bi = next((k for k in range(len(btc) - 1, -1, -1) if btc[k]["t"] <= bars[i]["t"]), None)
-        if bi is None or bi < 7: unseen.append(f"{s} (no BTC bar for {datetime.datetime.fromtimestamp(bars[i]['t'], datetime.timezone.utc).date()})"); continue
-        r7 = c / bars[i - 7]["c"] - 1; btc7 = btc[bi]["c"] / btc[bi - 7]["c"] - 1
+        # Both 7-day returns on the same completed bar, both ends joined by timestamp; a coverage gap in
+        # either series means the name is UNSEEN today, not silently scored on a shorter window.
+        r7 = ret_over(bars, bars[i]["t"], 7); btc7 = ret_over(btc, bars[i]["t"], 7)
+        if r7 is None or btc7 is None: unseen.append(f"{s} (7d coverage gap for {datetime.datetime.fromtimestamp(bars[i]['t'], datetime.timezone.utc).date()})"); continue
         ext = c / hi20 - 1; volx = v / avgv
         row = {"symbol": s, "price": c, "hi20": round(hi20, 6), "ext_pct": round(ext * 100, 1),
                "vol_x": round(volx, 2), "rs7_vs_btc": round((r7 - btc7) * 100, 1)}

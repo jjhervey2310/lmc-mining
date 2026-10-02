@@ -1,5 +1,5 @@
 import unittest
-from market_time import DAY, LookAheadError, completed_bars, last_completed_index, align_index, assert_completed
+from market_time import DAY, LookAheadError, completed_bars, last_completed_index, align_index, assert_completed, ret_over
 
 T0 = 1_700_000_000 - (1_700_000_000 % DAY)   # a UTC midnight
 BARS = [{"t": T0 + k * DAY, "c": 100 + k} for k in range(5)]   # opens at day 0..4
@@ -25,6 +25,21 @@ class CompletedBars(unittest.TestCase):
     def test_last_completed_index(self):
         self.assertEqual(last_completed_index(BARS, T0 + 2 * DAY + 1), 1)
         self.assertIsNone(last_completed_index(BARS, T0))
+
+
+class ReturnOver(unittest.TestCase):
+    def test_seven_day_return_uses_calendar_days(self):
+        bars = [{"t": T0 + k * DAY, "c": 100 + k} for k in range(10)]
+        self.assertAlmostEqual(ret_over(bars, T0 + 9 * DAY, 7), 109 / 102 - 1)
+
+    def test_missing_start_day_is_no_evidence(self):
+        bars = [{"t": T0 + k * DAY, "c": 100 + k} for k in range(10) if k != 2]   # day 2 missing
+        self.assertIsNone(ret_over(bars, T0 + 9 * DAY, 7))      # start would be day 2
+        self.assertIsNotNone(ret_over(bars, T0 + 8 * DAY, 7))   # start is day 1, present
+
+    def test_jittered_timestamps_within_half_a_bar_match(self):
+        bars = [{"t": T0 + k * DAY + 37, "c": 100 + k} for k in range(10)]   # CoinGecko-style 00:00:37
+        self.assertAlmostEqual(ret_over(bars, T0 + 9 * DAY + 37, 7), 109 / 102 - 1)
 
 
 class Alignment(unittest.TestCase):

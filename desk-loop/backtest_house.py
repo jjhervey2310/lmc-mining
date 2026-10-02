@@ -149,9 +149,9 @@ def main():
     bt = datetime.date.fromtimestamp(data["BTC"][0]["t"]) if "BTC" in data else None
     if "BTC" in data: lines.append(f"BTC buy-and-hold over the same window: {(data['BTC'][-1]['c']/data['BTC'][0]['c']-1)*100:+.0f}%")
     lines += ["", "OVERFITTING, STATED HONESTLY: (1) survivorship — the universe is what Robinhood lists TODAY, so every name that got delisted or died is missing and the sample is biased toward survivors; (2) many names have <2 years of history (listed 2024-25), so 'Jan 2023' is only true for the majors; (3) the 2-per-week cap is filled first-come by date, which is not how a desk would choose; (4) one parameter grid on one universe — the stop/trail cell that looks best is partly noise; treat differences of a few % expectancy as indistinguishable; (5) daily closes only — intraday stop wicks are approximated by the day's low."]
-    out = "\n".join(lines); print(out)
+    out = stamp(CostModel(COST_SIDE, COST_SIDE, venue="coinbase-daily", tier="legacy blended COST_SIDE per side"), "next bar open after the signal bar; entry bar low checked against the stop") + "\n".join(lines)
+    print(out)
     (STATE / "backtest_house_last.txt").write_text(out)
-    out = stamp(CostModel(COST_SIDE, COST_SIDE, venue="coinbase-daily", tier="legacy blended COST_SIDE per side"), "next bar open after the signal bar; entry bar low checked against the stop") + out
     sb_upsert("pa_memory", [{"topic": "backtest-results", "fact": out, "source": "desk-loop", "active": True,
                              "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")
 

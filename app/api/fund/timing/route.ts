@@ -4,6 +4,7 @@ import { resolveIds, cgFetch, lastKnownPrices, coinbaseSpot } from '@/lib/desk-c
 import { gradeTiming, ANCHOR, type TimingInput, type Regime } from '@/lib/desk-timing'
 import { rhConfigured, bestBidAsk } from '@/lib/robinhood'
 import { denverWeekStartIso } from '@/lib/desk/market-time'
+import { rsCompletedPct } from '@/lib/desk/relative-strength'
 
 // TIMING CHECK for one symbol: up-to-date price + 24h volume + an A–F grade against the house laws
 // and the tape, plus the ruled size and the stop the buy would carry. Read-only; secret-gated.
@@ -169,7 +170,13 @@ export async function buildTiming(symbol: string) {
   const sigWin = sigCloses.slice(-21, -1)
   const sigHi = sigWin.length >= 5 ? Math.max(...sigWin) : null
   const lo20 = sigWin.length >= 5 ? Math.min(...sigWin) : null
-  const sigRs = input_rs7()
+  // RS on the SAME completed-bar clock as the breakout: 7-day return of both series from cg_history
+  // closes, joined by timestamp. CoinGecko's rolling intraday 7d is only a labelled fallback when no
+  // stored history exists — it cannot alter a completed-bar signal.
+  const btcPts = ((((btcHistQ.data ?? []) as { prices: number[][] | null }[])[0]?.prices) ?? []) as number[][]
+  const rsCompleted = rsCompletedPct((histRow?.prices ?? []) as number[][], btcPts)
+  const sigRs = rsCompleted ?? input_rs7()
+  const rsSource = rsCompleted != null ? 'cg_history completed closes' : 'coingecko rolling 7d (no stored history — fallback)'
   const sigParts = {
     high: lastClose != null && sigHi != null && lastClose > sigHi,
     vol: vol24hUnified != null && avgVol20 != null && vol24hUnified >= 1.5 * avgVol20,
@@ -196,7 +203,7 @@ export async function buildTiming(symbol: string) {
     d1: me?.price_change_percentage_24h_in_currency ?? chg(1), d7: me?.price_change_percentage_7d_in_currency ?? chg(7), d30: me?.price_change_percentage_30d_in_currency ?? chg(30),
     vol24h: vol24hUnified, avgVol20, hi20,
     tapeError: hi20 === null ? tapeError : null,
-    rs7VsBtc: me?.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null,
+    rs7VsBtc: sigRs,
     armed: ((trigQ.data ?? []) as { symbol: string; kind: string; level: number }[]).filter((t) => t.symbol === sym).map((t) => ({ kind: t.kind, level: Number(t.level) })),
     cashUsd: cash, bookUsd: book,
     sleeveCount: positions.filter((p) => !ANCHOR.has(p.symbol)).length, slots: Math.min(7, Math.floor(book / 150)), holdingsCount: positions.length,
@@ -209,7 +216,7 @@ export async function buildTiming(symbol: string) {
   return {
     symbol: sym, cgId, at: nowIso,
     price: livePrice, price_source: priceSource, price_stale: priceStale, rh_quote: rhQuote, vol24h: vol24hUnified, avgVol20, vol_source: volSource, volX: vol24hUnified && avgVol20 ? vol24hUnified / avgVol20 : null,
-    d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (livePrice / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
+    d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (livePrice / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc, rsSource,
     tapeError, hi20Source,
     book, cash, slots: input.slots, sleeveCount: input.sleeveCount, weeklyEntries: input.weeklyEntries, blackout, halfSize,
     signal, signalWhy, regime, regimeWhy, breaker: input.breaker, sleeveUsd, sleeveCap: book * 0.15, lo20,

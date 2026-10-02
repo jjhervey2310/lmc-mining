@@ -46,6 +46,20 @@ def align_index(series, t, bar_seconds=DAY, as_of=None):
     return None
 
 
+def ret_over(series, t_end, bars, bar_seconds=DAY):
+    """N-bar return ending at the bar open at/before t_end, start bar found by TIMESTAMP (±half a bar).
+    None when either bar is missing: a coverage gap is no evidence, never a shorter window."""
+    i_end = align_index(series, t_end, bar_seconds)
+    if i_end is None:
+        return None
+    t_start = int(series[i_end]["t"]) - bars * bar_seconds
+    i_start = align_index(series, t_start + bar_seconds // 2, bar_seconds)
+    if i_start is None or abs(int(series[i_start]["t"]) - t_start) > bar_seconds // 2:
+        return None
+    c0 = series[i_start]["c"]
+    return series[i_end]["c"] / c0 - 1 if c0 else None
+
+
 def assert_completed(bar, as_of, bar_seconds=DAY):
     """Guard for the decision point: the bar a signal fires on must have closed before the decision."""
     if int(bar["t"]) + bar_seconds > int(as_of):

@@ -405,7 +405,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     if (override && prompt('Type OVERRIDE to confirm you are overriding the desk rules for this trade:') !== 'OVERRIDE') return
     setBuying((b) => ({ ...b, [sym]: 'working' }))
     try {
-      const r = await fetch('/api/fund/buy', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret }, body: JSON.stringify({ symbol: sym, override }) })
+      const r = await fetch('/api/fund/buy', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret }, body: JSON.stringify({ symbol: sym, override, requestId: crypto.randomUUID() }) })
       const j = (await r.json()) as BuyResult
       setBuying((b) => ({ ...b, [sym]: j }))
       if (j.ok) {

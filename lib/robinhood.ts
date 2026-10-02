@@ -62,9 +62,11 @@ export function quantize(qty: number, increment: string): string {
   return q.toFixed(decimals)
 }
 
-export async function marketBuy(symbol: string, assetQty: string): Promise<Order> {
+/** `clientOrderId` is the broker-side idempotency key: Robinhood rejects a second order with the same id,
+ *  so a retried or double-submitted request cannot become two fills. */
+export async function marketBuy(symbol: string, assetQty: string, clientOrderId: string = randomUUID()): Promise<Order> {
   return call<Order>('POST', '/api/v1/crypto/trading/orders/', {
-    client_order_id: randomUUID(), side: 'buy', type: 'market', symbol: `${symbol}-USD`,
+    client_order_id: clientOrderId, side: 'buy', type: 'market', symbol: `${symbol}-USD`,
     market_order_config: { asset_quantity: assetQty },
   })
 }

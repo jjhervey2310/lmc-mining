@@ -73,7 +73,7 @@ export class RobinhoodBroker implements Broker {
     const inc = pair.asset_increment ?? pair.min_order_size ?? '0.000001'
     const qty = quantize(Number(req.qty), inc)
     if (Number(qty) <= 0 || Number(qty) < Number(pair.min_order_size || 0)) throw new Error(`${qty} ${req.symbol} is under the pair minimum ${pair.min_order_size}`)
-    if (req.side === 'buy' && req.type === 'market') return fromRh(await marketBuy(req.symbol, qty), { ...req, qty })
+    if (req.side === 'buy' && req.type === 'market') return fromRh(await marketBuy(req.symbol, qty, req.clientId), { ...req, qty })
     if (req.side === 'sell' && req.type === 'stop_limit' && req.stopPrice && req.limitPrice) {
       const qInc = pair.quote_increment ?? '0.000001'
       const stop = quantize(Number(req.stopPrice), qInc), limit = quantize(Number(req.limitPrice), qInc)

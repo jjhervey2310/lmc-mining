@@ -17,7 +17,7 @@ Reports per-trade expectancy, win rate, avg win/loss, worst trade, total on $100
 import json, time, sys, statistics as st, datetime
 from pathlib import Path
 from common import _req, STATE, sb_upsert, now_denver
-from market_time import completed_bars
+from market_time import completed_bars, ret_over
 from bt_costs import CostModel, stamp
 
 DAYS       = int(sys.argv[1]) if len(sys.argv) > 1 else 120
@@ -72,10 +72,11 @@ def simulate(sym, bars, btc, mode):
         c = bars[i]["c"]; v = bars[i]["v"]
         window = bars[i - LOOKBACK:i]
         hi20 = max(b["c"] for b in window); avgv = st.mean(b["v"] for b in window) or 1
-        r7 = c / bars[i - 7]["c"] - 1 if i >= 7 else 0
-        # Align BTC by timestamp: a missing day in either series shifts indices and silently misreads RS.
-        bi = next((k for k in range(len(btc) - 1, -1, -1) if btc[k]["t"] <= bars[i]["t"]), None)
-        btc7 = btc[bi]["c"] / btc[bi - 7]["c"] - 1 if bi is not None and bi >= 7 else 0
+        # Both ends of both 7-day returns by timestamp (review finding #4): a missing day in either series
+        # is a coverage gap → no signal on that bar, never a shorter window or a zero.
+        r7 = ret_over(bars, bars[i]["t"], 7); btc7 = ret_over(btc, bars[i]["t"], 7)
+        if r7 is None or btc7 is None:
+            i += 1; continue
         if mode == "breakout":
             sig = c > hi20 and v >= VOL_MULT * avgv and r7 > btc7 and (c / hi20 - 1) <= MAX_EXT
         else:
@@ -144,10 +145,10 @@ def main():
            f" ({len(missing)} skipped: {', '.join(missing[:12])}{'…' if len(missing) > 12 else ''})\n"
            f"rule: 20d-high close + vol>={VOL_MULT}x + RS>BTC(7d) + not >{int(MAX_EXT*100)}% extended | "
            f"exit: trail 12%/18% + half at +25% | slippage {SLIP*100:.1f}% each way\n")
-    out = hdr + "\n" + summarize("BREAKOUT RULE (A4)", allb, btc_ret) + "\n\n" + summarize("EXTENDED ANALOG (+70%/30d, same exits)", alle, btc_ret)
+    out = stamp(CostModel(0.0, 0.0, venue="coingecko-daily", tier="legacy constant SLIP per side", slippage=SLIP), "next completed close after the signal bar") \
+        + hdr + "\n" + summarize("BREAKOUT RULE (A4)", allb, btc_ret) + "\n\n" + summarize("EXTENDED ANALOG (+70%/30d, same exits)", alle, btc_ret)
     print(out)
     (STATE / "backtest_last.txt").write_text(out)
-    out = stamp(CostModel(0.0, 0.0, slippage=SLIP, venue="coingecko-daily", tier="legacy constant SLIP per side"), "next completed close after the signal bar") + out
     sb_upsert("pa_memory", [{"topic": "breakout-backtest", "fact": out, "source": "desk-loop", "active": True,
                              "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")
 

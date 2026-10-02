@@ -53,4 +53,5 @@
 - Tailwind only — no inline styles, no CSS modules
 - Git commits: imperative tense, one line ("Add Bitkern provider entry")
 - Tests: `npm test` (vitest, tests/**/*.test.ts), `npm run test:py` (desk-loop unittest), `npm run typecheck`
+- Agent rules (crypto desk): no AI agent (Claude, ChatGPT, Codex) is ever given ADMIN_SECRET, exchange API keys, or a Supabase service-role key; no model consensus authorises a real-money action — only Jacob, through a separate human approval; every external review is answered item by item in docs/desk/REVIEW-LOG.md and `research_accepted` never means `trade_approved`
 - Market-time rule (crypto desk): signals use COMPLETED bars only, joins by timestamp — lib/desk/market-time.ts and desk-loop/market_time.py, nowhere else. Backtest costs are explicit inputs (lib/desk/costs.ts, desk-loop/bt_costs.py), never a venue default. Fund routes take the admin secret in the x-admin-secret header only.

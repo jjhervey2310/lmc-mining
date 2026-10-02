@@ -107,9 +107,9 @@ def main():
     L += ["", "A4-as-written BY YEAR: " + " | ".join(f"{y}: n={len(v)} exp {st.mean(v)*100:+.1f}% win {sum(1 for r in v if r>0)/len(v)*100:.0f}%" for y, v in sorted(by_year.items()))]
     L.append(f"BTC buy-and-hold same window: {(btc[-1]['c']/btc[0]['c']-1)*100:+.0f}%  |  house rules (build #5A) same window, best cell: -0.91%/trade")
     L += ["", "CAVEATS: same survivorship + short-history limits as backtest-results; 2-per-week filled first-come; daily bars. Variants that differ by <1% expectancy are noise."]
-    out = "\n".join(L); print(out)
+    out = stamp(CostModel(COST_SIDE, COST_SIDE, venue="coinbase-daily", tier="legacy blended COST_SIDE per side"), "next bar open after the signal bar; entry bar low checked against the stop") + "\n".join(L)
+    print(out)
     (STATE / "backtest_breakout_full.txt").write_text(out)
-    out = stamp(CostModel(COST_SIDE, COST_SIDE, venue="coinbase-daily", tier="legacy blended COST_SIDE per side"), "next bar open after the signal bar; entry bar low checked against the stop") + out
     sb_upsert("pa_memory", [{"topic": "backtest-breakout-full", "fact": out, "source": "desk-loop", "active": True,
                              "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")
 
