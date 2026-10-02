@@ -128,6 +128,7 @@ def report(market, start_cash=10_000.0, snapshot_name="?"):
     L = [BANNER, f"snapshot {snapshot_name} data_hash {market.fingerprint()} universe_hash {market.universe_fingerprint()} symbols {len(market.symbols())} start_cash {start_cash:.0f} max_positions 10",
          "rule: legacy 'no take-profit: trail 12/18 only, 2/wk' for ALL cells (engine has no partial sells; half-off variant out of scope)",
          "legacy cell marks realised P&L only and ignores listings (as it did); honest cells mark to market, respect listing windows and all-or-none fills",
+         "delisting: legacy-symmetric treatment for attribution only — a held name exits at its last available close minus one side of cost in EVERY cell (R-J); conservative/haircut treatments are a Phase 4 robustness axis, not part of this table",
          stamp(costs, "legacy: next open + cost, stop intrabar incl. entry bar | honest: identical fill rule inside bt.engine", universe="the frozen snapshot's symbols; listing windows enforced in honest cells only").rstrip(),
          "", f"{'cell':<52} {'trades':>6} {'total':>9} {'avg/trd':>9} {'maxDD':>8} {'win':>6} {'PF':>6} {'exposure':>9} {'avg cash':>9}  no_fill_reasons"]
     ms = {}

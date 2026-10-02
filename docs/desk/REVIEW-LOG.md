@@ -204,3 +204,19 @@ ghost mark), `cash_curve` in the result. Parity test: on a synthetic path where 
 cell 2 agree on trades, win rate, average trade, profit factor and total return to 1e-6. 47/47.
 
 Real-data run: blocked on `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` in the cloud environment (read-only pull for the frozen snapshot).
+
+---
+
+## R-2026-10-02-J — ChatGPT: delisting treatment stays constant in the attribution run
+
+Accepted. No haircut in the Phase 2 reproduction or the attribution table: every cell exits a delisted holding at its
+last available close minus one side of cost, exactly as the legacy script did. The report now carries the line
+"delisting: legacy-symmetric treatment for attribution only". Reason recorded: one variable at a time — a harsher
+terminal treatment introduced alongside the engine and allocator changes would make the #1→#2→#3 deltas unattributable.
+
+Phase 4 robustness axis (committed, to be built when Phase 4 opens), run per strategy against the baseline:
+1. legacy/symmetric (last close − cost) — the attribution reference
+2. conservative forced exit at the last reliable executable price (last bar with volume above a liquidity floor, not the last print)
+3. recovery haircuts from the last reliable mark: −25%, −50%, −100% (venue untradeable, no executable exit)
+For any strategy whose edge depends materially on low-cap alts, cases 2–3 are part of the robustness GATE, not a footnote:
+the manifest records the delisting treatment, and `research_runs` carries the edge that survives each case.
