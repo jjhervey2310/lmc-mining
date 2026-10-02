@@ -49,7 +49,7 @@ nothing calls it.
 | 15 | collector-health | `*/15 * * * *` | `select collector_health()` → `desk_health` | **active** |
 | 16 | features-daily | `40 0 * * *` | `select compute_features_daily()` → `features_daily` | **active** |
 | 18 | universe-sync | `10 0 * * *` | `/api/cron/universe-sync` | live 2026-10-02; ran `*/10` during the backfill, normalised 06:40 UTC |
-| 17 | md-backfill | `*/2 * * * *` | `/api/cron/md-backfill` (40 chunks + 20 heads per run) | live 2026-10-02; 0 errors at 06:40 UTC (daily 108/489 cursors done, 267,699 daily bars, hourly not started); drops to `*/30` once the backlog is gone |
+| 17 | md-backfill | `*/30 * * * *` | `/api/cron/md-backfill` (40 chunks + 20 heads per run) | live 2026-10-02; backlog cleared 18:44 UTC with 0 errors (daily 489/489 cursors, 498,756 bars; hourly 401/401, 3.5M bars); ran `*/2` during the backlog, now forward-fill only |
 | 19 | fund-snapshot | `20 0 * * *` | `/api/cron/fund-snapshot` | live 2026-10-02 (5,383 protocol rows, F&G landed); ran `*/20` during the backfill, normalised 06:40 UTC |
 
 Still to come: `desk-daily` — the daily brief (§13). Emits recommendations; never executes.
