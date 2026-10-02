@@ -73,20 +73,25 @@ Jurisdiction is fixed: **US citizen, resident in Denver, Colorado.** That remove
 - Pionex klines: 500/request, **10,000-candle cap** (≈7 days of 1m, ≈416 days of 1h). Not a historical data source.
 - Pionex's "AI strategy" picks range + grid count from 7/30/180-day backtests. A hypothesis to test, nothing more.
 
-**Venue comparison for a Colorado resident (spot only everywhere):**
+**Venue comparison for a Colorado resident (spot only everywhere; V = verified on official page 2026-10-02, S = secondary source):**
 
-| Venue | Maker / taker | Bots | API | Already integrated here |
-|---|---|---|---|---|
-| Webot US | ~0.1% / 0.5% (unverified) | Grid, DCA, rebalancing (UI) | unknown | no |
-| Robinhood Crypto | ~0.45% spread-equivalent, no explicit fee | none | yes (Ed25519) | **yes — `lib/robinhood.ts`, live** |
-| Kraken US | 0.25% / 0.40% base, lower with volume; Kraken Pro ~0.16/0.26 | none | yes | **data only — `kr_*` lake** |
-| Coinbase Advanced | 0.40% / 0.60% base, tiers down | none | yes | data only (`backtest_audit.py`) |
+| Venue | Maker / taker at $10k–50k/mo | Low-caps (SPX, FARTCOIN, MOG, GIGA, PENGU, POPCAT) | Order types | AI connectivity | Verdict |
+|---|---|---|---|---|---|
+| **Kraken Pro** | **0.22% / 0.38%** (V) | All six listed on USD (S) | Trailing stop, OCO, OTO, stop/TP-limit (V) | Official MCP w/ paper mode, OAuth, keys with separate withdraw perm + IP allow-list (V) | **Primary alt venue + BTC reserve** |
+| Coinbase Advanced | 0.35% / 0.75% (S, post Sept-2026 hike) | SPX, PENGU, POPCAT, WIF, GIGA, MOG; fastest meme listing cadence (S) | Bracket TP/SL, stop-limit; no trailing | Remote MCP (ChatGPT + Claude), OpenAPI 3.1, scoped keys (V) | Secondary broker for listing breadth; route by depth |
+| OKX US | 0.20% / 0.35% (V) | Unverified | Algo orders (US parity U) | Agent Trade Kit w/ demo (S) | Dark horse — verify alt list before funding |
+| Robinhood Crypto | 0.35/0.75 explicit or 0.35–0.85% spread (S) | None of the six | Market, limit, stop-limit; **no WS, no candles, no sandbox** | Trading MCP (S) | Legacy — existing holdings only, no new capital |
+| Binance.US | 0% / 0.02% (V) | None found | Full API | Community only | ~$22M/day volume; BTC/ETH leg at most |
+| Webot (ex-Pionex.US) | 0.05–0.5% (U, conflicting) | None found | Bot API (Pionex parity U) | Pionex AI Kit MCP (V for Pionex) | **No** — ~$11M/day, 0.43% avg spread eats any bot edge |
+| Gemini ActiveTrader | 0.40% / 0.80% (V) | None | Stop-limit; real sandbox | OpenAPI spec | Most expensive at tier; 2026 financial stress |
+| Crypto.com / Bybit / KuCoin / Bitget / Hyperliquid | — | — | — | — | Not available to US retail |
+| On-chain (Jupiter/Solana, Uniswap/Base) | 1–3% round trip on $100M memes incl. MEV + slippage (S) | Everything, incl. BRETT and <$100M caps | Swap only | Jupiter MCP, Birdeye/GeckoTerminal OHLCV | Discovery universe now; ring-fenced sleeve later; no 1099-DA |
 
 **Consequences**
 1. **Bear-market engine = cash rotation + trend exits + spot reverse-grid logic only.** No shorts, no futures grid, no leverage. Leverage research (system D) stays research.
 2. **Grid economics must be re-run at Webot US maker fees (~0.2% round trip).** Steps under ~0.5% are marginal; the optimizer treats fee tier as a first-class input and must be able to return `GRID_NOT_VIABLE`. If Webot's bots lose to a self-run grid on Kraken at 0.16/0.26 (we already have Kraken data), the honest answer is to run our own grid logic through a broker we control, not to use Pionex at all.
-3. **Execution abstraction is mandatory.** `Broker` interface with `robinhood` (exists, live), `kraken` (candidate — data is already flowing), `pionex-bot` (only if Webot US exposes the API), `manual` (recommendation card → you enter the parameters in the Webot app). Day one, the grid engine outputs *parameters you type into Webot*; it needs no API access to be useful.
-4. **Action before writing grid code:** one Webot US support ticket — (a) Colorado supported, (b) actual maker/taker fees, (c) API availability. Those three answers decide whether a Pionex bot layer gets built at all, or whether the grid engine runs on Kraken/Robinhood instead.
+3. **Execution abstraction is mandatory.** `Broker` interface with `kraken` (primary — data lake already Kraken), `coinbase` (secondary, listing breadth), `robinhood` (exists, legacy holdings only), `manual` (recommendation card → you execute by hand). Pionex/Webot bot layer dropped: volume and spread make it uncompetitive. Day one, the grid engine outputs *parameters you type into Webot*; it needs no API access to be useful.
+4. **Action before funding:** open Kraken Pro (if not already), create a trade-only API key with IP allow-list and no withdraw permission; confirm USDC rewards eligibility in Colorado; glance at OKX US's tradable list. The Webot support ticket is no longer needed.
 5. Timezone for all "daily" logic is `America/Denver` (tz-aware, replaces the hard-coded `DENVER_OFFSET_H = -6`). Tax: every realized trade is a US taxable event — `tax_events` stays in the design and every recommendation card shows estimated short-term tax drag.
 
 ## 2. Target architecture
@@ -370,7 +375,7 @@ Pionex Bot API integration is **not** in the first 10 phases. It enters only aft
 ## 16. Decisions needed from you
 
 1. **Approve the build order** or reorder. My recommendation is exactly as listed: data + backtest rigor first, engines second, dashboard third.
-2. **Webot US facts:** confirm Colorado support, real fee tier, API availability (one support ticket). This decides whether grids run via Pionex bots or via our own grid logic on Kraken/Robinhood.
+2. **Venue:** confirm Kraken Pro as primary (alt book + BTC reserve), Coinbase Advanced as secondary. Robinhood goes legacy. Webot dropped.
 3. **Capital scope today:** what is the growth-account starting balance and current BTC owned? Needed to seed `btc_reserve_state` and pick the milestone row. (Numbers only — no account details in chat.)
 4. **Collector ownership:** who runs the `kr_*` collector? If it's a droplet you control, I want its repo path (or a copy in this repo) so it's a maintained dependency rather than a black box.
 5. **DeFiLlama:** free tier confirmed. Re-evaluate after phase 6.
