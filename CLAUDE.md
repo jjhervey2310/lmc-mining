@@ -5,7 +5,7 @@
 - Supabase (project ID: bngwwalucfirmcymqall) — DB + auth
 - Resend — transactional email
 - Stripe — audit bookings ($97 Standard, $297 Deep Dive)
-- Vercel — deployment (project: jacob-hervey-s-projects/lmc-mining)
+- Vercel — deployment (project: jacob-hervey-s-projects/swerves-bot, renamed from lmc-mining 2026-10-02; project ID unchanged, domains untouched)
 - Cloudflare — DNS
 - GitHub repo: jjhervey2310/lmc-mining (PAT embedded in remote URL)
 - Local path: /Users/jacobslaptop/Desktop/lmc-mining
