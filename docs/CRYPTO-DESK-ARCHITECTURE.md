@@ -313,6 +313,25 @@ Execution: APPROVED cards go to the Broker interface. `robinhood` broker reuses 
 
 ---
 
+## 12b. Always-on loop and the automation ladder
+
+**An LLM chat session is not a 24/7 process.** The always-on component is code: a scheduled loop (Supabase pg_cron → Vercel routes for hourly/daily work; the `desk-loop` droplet pattern for sub-hourly watching). The loop computes signals and rules deterministically and **calls an LLM (Claude via API, ChatGPT via API) only for judgment calls** — ambiguous regime transitions, thesis review, catalyst interpretation. The LLM returns a structured decision; code validates it against the risk gate and executes. The LLM never holds exchange keys.
+
+Both AIs connect through the desk, not to the exchange: one broker integration per venue in `lib/brokers/`, one audit log, one kill switch (`desk_config.loop_enabled`), trade-only API keys with IP allow-list.
+
+Automation ladder — each level requires the previous level's evidence:
+
+| Level | Autonomous scope | Entry condition |
+|---|---|---|
+| 0 | None. Cards emitted, human approves every order | Phases 0–9 |
+| 1 | Paper trading, fully autonomous, 60–90 days | Phase 10 |
+| 2 | Live, hard-capped: per-trade ≤ $X, ≤ Y% growth capital per name, protective stop on every entry, daily loss limit halts the loop, exits automated first | Paper hit-rate and drawdown within backtest CI |
+| 3 | Caps raised per milestone table; entries automated | ≥ 90 days live at level 2 with no limit breaches |
+
+Non-negotiable at every level: kill switch, trade-only keys, position limits enforced in code (not in the prompt), full decision log (`agent_decisions`: inputs, model, output, action, outcome). A reserve-BTC sell can never be automated at any level.
+
+**News trading.** Fast headline reaction is treated as a hypothesis expected to fail after fees and latency: by the time a pipeline reads, reasons and orders, the spike is priced. Slow catalysts (CEX listings, unlock schedules, regulatory rulings, protocol upgrades) play out over days and are tracked as catalyst features in `features_daily`. Both are tested in the tournament; neither is assumed.
+
 ## 13. Daily question job
 
 One cron (`/api/cron/desk-daily`, after candles close UTC) answers the 13 daily questions into `desk_daily_brief` and the dashboard: regime per BTC/ETH/alts; material changes; new 5x candidates; volume-before-price names; accelerating fundamentals; grids to continue / stop (trend transition); positions to accumulate / leave alone / deteriorating; sweep due; portfolio heat vs limit; progress to $1M + 5 BTC.
