@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { buildTiming } from '../timing/route'
 import { rhConfigured, tradingPair, bestBidAsk, quantize, marketBuy, awaitFill, stopLimitSell } from '@/lib/robinhood'
+import { clampOrderUsd } from '@/lib/desk/sizing'
 
 // TAP-TO-BUY. A human (Jacob) taps the button; this route grades the moment with the same code as
 // /api/fund/timing, refuses any HARD bar outright (chase laws, RUNNING, halt, already held — the
@@ -15,15 +16,27 @@ import { rhConfigured, tradingPair, bestBidAsk, quantize, marketBuy, awaitFill, 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+// Per-symbol in-flight guard. Serialises double-taps that land on the SAME serverless instance; the
+// broker-side client_order_id (below) is what makes a retry safe across instances. A durable
+// reservation table is Phase 9 work (docs/desk/REVIEW-LOG.md #2).
+const inflight = new Set<string>()
+
 export async function POST(req: Request) {
-  const url = new URL(req.url)
-  const secret = req.headers.get('x-admin-secret') || url.searchParams.get('secret')
+  // Header only: a secret in the query string lands in Vercel logs and browser history.
+  const secret = req.headers.get('x-admin-secret')
   if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!rhConfigured()) return NextResponse.json({ error: 'no_credentials', message: 'Robinhood API credentials (RH_API_KEY, RH_PRIVATE_KEY) are not set in Vercel env — create them in the Robinhood app under API credentials and add them to the project.' }, { status: 503 })
-  let body: { symbol?: string; usd?: number; override?: boolean } = {}
+  let body: { symbol?: string; usd?: number; override?: boolean; requestId?: string } = {}
   try { body = await req.json() } catch { /* empty body */ }
   const symbol = (body.symbol ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')
   if (!symbol) return NextResponse.json({ error: 'symbol required' }, { status: 400 })
+  // Idempotency key: the tab generates one UUID per tap and reuses it on retry; it becomes the broker's
+  // client_order_id. A missing id is tolerated (legacy clients) but then a retry is NOT safe.
+  const requestId = typeof body.requestId === 'string' && UUID.test(body.requestId) ? body.requestId.toLowerCase() : null
+  if (inflight.has(symbol)) return NextResponse.json({ error: 'in_flight', message: `A ${symbol} order is already being placed.` }, { status: 409 })
+  inflight.add(symbol)
+  try {
   const supabase = createServiceClient()
   if (!supabase) return NextResponse.json({ error: 'db unavailable' }, { status: 503 })
 
@@ -31,7 +44,8 @@ export async function POST(req: Request) {
   try { t = await buildTiming(symbol) } catch (e) { return NextResponse.json({ error: `timing check failed: ${e instanceof Error ? e.message : e}` }, { status: 502 }) }
   if (t.hard.length) return NextResponse.json({ error: 'hard_bar', message: `Refused by law: ${t.hard.join('; ')}`, timing: t }, { status: 409 })
   if (!t.buyable && !body.override) return NextResponse.json({ error: 'soft_bar', message: `Grade ${t.grade} — ${t.soft.join('; ')}. Override to proceed.`, timing: t }, { status: 409 })
-  const usd = Math.min(Number(body.usd) > 0 ? Number(body.usd) : t.size.usd, t.cash, Math.max(t.book * 0.10, 10))
+  // Sizing is server-side (lib/desk/sizing.ts): a client value may only shrink the ruled size.
+  const usd = clampOrderUsd({ requestedUsd: body.usd, ruledUsd: t.size.usd, cashUsd: t.cash, bookUsd: t.book })
   if (usd < 1) return NextResponse.json({ error: 'no_cash', message: 'No buying power for a ruled-size entry.', timing: t }, { status: 409 })
 
   try {
@@ -43,7 +57,7 @@ export async function POST(req: Request) {
     const qty = quantize(usd / ask, inc)
     if (Number(qty) <= 0 || Number(qty) < Number(pair.min_order_size || 0)) throw new Error(`$${usd} buys ${qty} ${symbol}, under the pair minimum ${pair.min_order_size}`)
 
-    const placed = await marketBuy(symbol, qty)
+    const placed = await marketBuy(symbol, qty, requestId ?? undefined)
     const filled = await awaitFill(placed.id)
     const fillQty = Number(filled.filled_asset_quantity || (filled.state === 'filled' ? qty : 0))
     const fillPx = Number(filled.average_price || filled.executions?.[0]?.effective_price || ask)
@@ -89,9 +103,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: filled.state === 'filled', state: filled.state, order_id: placed.id, symbol, qty: fillQty, avg_price: fillPx, notional,
       stop: stopOrder ? { order_id: stopOrder.id, state: stopOrder.state, stop: stopStr, limit: limitStr } : null, stop_error: stopError,
-      ledger_errors: log, book: bookTag, timing: { grade: t.grade, score: t.score },
+      ledger_errors: log, book: bookTag, timing: { grade: t.grade, score: t.score }, request_id: requestId,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {
     return NextResponse.json({ error: 'broker', message: e instanceof Error ? e.message : String(e) }, { status: 502 })
+  }
+  } finally {
+    inflight.delete(symbol)
   }
 }

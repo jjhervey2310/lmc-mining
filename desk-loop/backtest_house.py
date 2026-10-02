@@ -6,6 +6,8 @@ Writes pa_memory 'backtest-results'. Sunday retro consumes this; no live-trading
 import json, time, sys, datetime, statistics as st, urllib.request, urllib.error
 from pathlib import Path
 from common import STATE, sb_upsert
+from market_time import completed_bars
+from bt_costs import CostModel, stamp
 
 START = "2023-01-01"
 CB = STATE / "cb"; CB.mkdir(parents=True, exist_ok=True)
@@ -35,7 +37,7 @@ def cb_get(url):
 def candles(sym):
     f = CB / f"{sym}.json"
     if f.exists() and time.time() - f.stat().st_mtime < 20 * 3600:
-        return json.load(open(f))
+        return completed_bars(json.load(open(f)))      # the cache may hold today's partial bar
     out = []
     start = datetime.datetime.fromisoformat(START).replace(tzinfo=datetime.timezone.utc)
     end_all = datetime.datetime.now(datetime.timezone.utc)
@@ -48,12 +50,12 @@ def candles(sym):
         cur = nxt; time.sleep(0.25)
     out = sorted({b["t"]: b for b in out}.values(), key=lambda b: b["t"])
     json.dump(out, open(f, "w"))
-    return out
+    return completed_bars(out)
 
 def signals(sym, bars):
     """Entry candidates per #5A: d1 < +15%, d30 < +70%, d7 > +5% with rising volume proxy."""
     sig = []
-    for i in range(31, len(bars)):
+    for i in range(31, len(bars) - 1):            # a signal on the last bar has no next bar to fill on
         c = bars[i]["c"]; c1 = bars[i-1]["c"]; c7 = bars[i-7]["c"]; c30 = bars[i-30]["c"]
         if not (c1 and c7 and c30): continue
         d1, d7, d30 = c/c1-1, c/c7-1, c/c30-1
@@ -63,12 +65,15 @@ def signals(sym, bars):
     return sig
 
 def simulate_trade(bars, i, stop_pct, trail):
-    entry = bars[i]["c"] * (1 + COST_SIDE)
+    # LOOK-AHEAD FIX (Phase 0): the signal is known at bar i's close, so the fill is bar i+1's OPEN,
+    # and that bar's own low is checked against the stop. Filling at bar i's close was impossible.
+    e = i + 1
+    entry = bars[e]["o"] * (1 + COST_SIDE)
     low20 = min(b["l"] for b in bars[max(0, i-20):i]) if i > 0 else bars[i]["l"]
     stop = max(entry * (1 - stop_pct), low20)          # structure proxy unless it sits below the % cap
-    entry_day_low = bars[i]["l"]
-    hi_close = bars[i]["c"]; ratcheted = False
-    j = i + 1
+    entry_day_low = bars[e]["l"]
+    hi_close = bars[e]["c"]; ratcheted = False
+    j = e
     while j < len(bars):
         b = bars[j]
         # exits are checked on the day's range: gap below stop fills at the open
@@ -144,7 +149,8 @@ def main():
     bt = datetime.date.fromtimestamp(data["BTC"][0]["t"]) if "BTC" in data else None
     if "BTC" in data: lines.append(f"BTC buy-and-hold over the same window: {(data['BTC'][-1]['c']/data['BTC'][0]['c']-1)*100:+.0f}%")
     lines += ["", "OVERFITTING, STATED HONESTLY: (1) survivorship — the universe is what Robinhood lists TODAY, so every name that got delisted or died is missing and the sample is biased toward survivors; (2) many names have <2 years of history (listed 2024-25), so 'Jan 2023' is only true for the majors; (3) the 2-per-week cap is filled first-come by date, which is not how a desk would choose; (4) one parameter grid on one universe — the stop/trail cell that looks best is partly noise; treat differences of a few % expectancy as indistinguishable; (5) daily closes only — intraday stop wicks are approximated by the day's low."]
-    out = "\n".join(lines); print(out)
+    out = stamp(CostModel(COST_SIDE, COST_SIDE, venue="coinbase-daily", tier="legacy blended COST_SIDE per side"), "next bar open after the signal bar; entry bar low checked against the stop") + "\n".join(lines)
+    print(out)
     (STATE / "backtest_house_last.txt").write_text(out)
     sb_upsert("pa_memory", [{"topic": "backtest-results", "fact": out, "source": "desk-loop", "active": True,
                              "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")

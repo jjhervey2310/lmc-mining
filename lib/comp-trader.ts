@@ -84,8 +84,9 @@ export async function computeSignals(): Promise<Signal[]> {
     const live = quotes.find((q) => q.symbol === symbol)?.price
     if (live == null) continue
     try {
-      const closes = await fetchDailyCloses(id)
-      const week = closes[closes.length - 8] ?? closes[0]
+      // CoinGecko's last daily point is today's partial bar; signals use completed closes only.
+      const closes = (await fetchDailyCloses(id)).slice(0, -1)
+      const week = closes[closes.length - 7] ?? closes[0]
       out.push({
         symbol,
         price: live,

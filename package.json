@@ -13,7 +13,10 @@
     "content:dry": "ts-node --project content-engine/tsconfig.json content-engine/run.ts --dry",
     "content:render": "ts-node --project content-engine/tsconfig.json content-engine/render.ts",
     "content:post": "ts-node --project content-engine/tsconfig.json content-engine/post.ts",
-    "content:ideas": "ts-node --project content-engine/tsconfig.json content-engine/ideas.ts"
+    "content:ideas": "ts-node --project content-engine/tsconfig.json content-engine/ideas.ts",
+    "test": "vitest run",
+    "test:py": "python3 -m unittest discover -s desk-loop -p \"test_*.py\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
@@ -40,6 +43,7 @@
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

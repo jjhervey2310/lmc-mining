@@ -3,6 +3,8 @@ import { createServiceClient } from '@/lib/supabase'
 import { resolveIds, cgFetch, lastKnownPrices, coinbaseSpot } from '@/lib/desk-cg'
 import { gradeTiming, ANCHOR, type TimingInput, type Regime } from '@/lib/desk-timing'
 import { rhConfigured, bestBidAsk } from '@/lib/robinhood'
+import { denverWeekStartIso } from '@/lib/desk/market-time'
+import { rsCompletedPct } from '@/lib/desk/relative-strength'
 
 // TIMING CHECK for one symbol: up-to-date price + 24h volume + an A–F grade against the house laws
 // and the tape, plus the ruled size and the stop the buy would carry. Read-only; secret-gated.
@@ -13,8 +15,6 @@ import { rhConfigured, bestBidAsk } from '@/lib/robinhood'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const DENVER_OFFSET_H = -6
-
 export async function buildTiming(symbol: string) {
   const supabase = createServiceClient()
   if (!supabase) throw new Error('db unavailable')
@@ -23,12 +23,7 @@ export async function buildTiming(symbol: string) {
   const cgId = ids[sym]
   if (!cgId) throw new Error(`no CoinGecko id for ${sym}`)
 
-  const weekStart = (() => {
-    const now = new Date(Date.now() + DENVER_OFFSET_H * 3600e3)
-    const dow = (now.getUTCDay() + 6) % 7                    // Monday = 0
-    const mon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dow))
-    return new Date(mon.getTime() - DENVER_OFFSET_H * 3600e3).toISOString()
-  })()
+  const weekStart = denverWeekStartIso()
 
   const [holdQ, trigQ, tradesQ, cfgQ, histQ, btcHistQ, mkt, chart] = await Promise.all([
     supabase.from('live_holdings').select('symbol, qty, avg_cost'),
@@ -165,16 +160,23 @@ export async function buildTiming(symbol: string) {
   const cfg = Object.fromEntries(((cfgQ.data ?? []) as { key: string; value: string }[]).map((r) => [r.key, r.value]))
   const nowIso = new Date().toISOString()
   // A9.1 §2: the blackout law covers CPI and FOMC. desk_config.entry_blackout = "startISO/endISO|label" windows joined by ';'.
-  const blackoutCfg = cfg.entry_blackout ?? '2026-09-09T12:30:00Z/2026-09-11T15:30:00Z|CPI blackout Sept 9 06:30 MT – Sept 11 09:30 MT;2026-09-14T18:00:00Z/2026-09-16T22:00:00Z|FOMC blackout Sept 14 12:00 MT – Sept 16 16:00 MT'
+  // Windows live in desk_config only; no dated defaults in code (the Sept-2026 ones had expired in place).
+  const blackoutCfg = cfg.entry_blackout ?? ''
   const blackout = blackoutCfg.split(';').map((e) => { const [range, label] = e.split('|'); const [b0, b1] = (range ?? '').split('/'); return b0 && b1 && nowIso >= b0 && nowIso <= b1 ? (label ?? 'entry blackout') : null }).find(Boolean) ?? null
-  const halfSize = cfg.macro_half_size != null ? String(cfg.macro_half_size).toLowerCase() === 'true' : nowIso < '2026-09-16T22:00:00Z'
+  const halfSize = cfg.macro_half_size != null ? String(cfg.macro_half_size).toLowerCase() === 'true' : false
   // A9 §3 breakout signal on the LAST COMPLETED close (window = the 20 completed days before it, today excluded).
   const sigCloses = histCloses.length ? histCloses.slice(0, -1) : completedPx
   const lastClose = sigCloses.length ? sigCloses[sigCloses.length - 1] : null
   const sigWin = sigCloses.slice(-21, -1)
   const sigHi = sigWin.length >= 5 ? Math.max(...sigWin) : null
   const lo20 = sigWin.length >= 5 ? Math.min(...sigWin) : null
-  const sigRs = input_rs7()
+  // RS on the SAME completed-bar clock as the breakout: 7-day return of both series from cg_history
+  // closes, joined by timestamp. CoinGecko's rolling intraday 7d is only a labelled fallback when no
+  // stored history exists — it cannot alter a completed-bar signal.
+  const btcPts = ((((btcHistQ.data ?? []) as { prices: number[][] | null }[])[0]?.prices) ?? []) as number[][]
+  const rsCompleted = rsCompletedPct((histRow?.prices ?? []) as number[][], btcPts)
+  const sigRs = rsCompleted ?? input_rs7()
+  const rsSource = rsCompleted != null ? 'cg_history completed closes' : 'coingecko rolling 7d (no stored history — fallback)'
   const sigParts = {
     high: lastClose != null && sigHi != null && lastClose > sigHi,
     vol: vol24hUnified != null && avgVol20 != null && vol24hUnified >= 1.5 * avgVol20,
@@ -201,7 +203,7 @@ export async function buildTiming(symbol: string) {
     d1: me?.price_change_percentage_24h_in_currency ?? chg(1), d7: me?.price_change_percentage_7d_in_currency ?? chg(7), d30: me?.price_change_percentage_30d_in_currency ?? chg(30),
     vol24h: vol24hUnified, avgVol20, hi20,
     tapeError: hi20 === null ? tapeError : null,
-    rs7VsBtc: me?.price_change_percentage_7d_in_currency != null && btc?.price_change_percentage_7d_in_currency != null ? me.price_change_percentage_7d_in_currency - btc.price_change_percentage_7d_in_currency : null,
+    rs7VsBtc: sigRs,
     armed: ((trigQ.data ?? []) as { symbol: string; kind: string; level: number }[]).filter((t) => t.symbol === sym).map((t) => ({ kind: t.kind, level: Number(t.level) })),
     cashUsd: cash, bookUsd: book,
     sleeveCount: positions.filter((p) => !ANCHOR.has(p.symbol)).length, slots: Math.min(7, Math.floor(book / 150)), holdingsCount: positions.length,
@@ -214,7 +216,7 @@ export async function buildTiming(symbol: string) {
   return {
     symbol: sym, cgId, at: nowIso,
     price: livePrice, price_source: priceSource, price_stale: priceStale, rh_quote: rhQuote, vol24h: vol24hUnified, avgVol20, vol_source: volSource, volX: vol24hUnified && avgVol20 ? vol24hUnified / avgVol20 : null,
-    d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (livePrice / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc,
+    d1: input.d1, d7: input.d7, d30: input.d30, hi20, extPct: hi20 ? (livePrice / hi20 - 1) * 100 : null, rs7VsBtc: input.rs7VsBtc, rsSource,
     tapeError, hi20Source,
     book, cash, slots: input.slots, sleeveCount: input.sleeveCount, weeklyEntries: input.weeklyEntries, blackout, halfSize,
     signal, signalWhy, regime, regimeWhy, breaker: input.breaker, sleeveUsd, sleeveCap: book * 0.15, lo20,

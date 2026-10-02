@@ -9,8 +9,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function POST(req: Request) {
-  const url = new URL(req.url)
-  const secret = req.headers.get('x-admin-secret') || url.searchParams.get('secret')
+  const secret = req.headers.get('x-admin-secret')
   if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
