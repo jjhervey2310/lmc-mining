@@ -48,9 +48,9 @@ nothing calls it.
 |---|---|---|---|---|
 | 15 | collector-health | `*/15 * * * *` | `select collector_health()` → `desk_health` | **active** |
 | 16 | features-daily | `40 0 * * *` | `select compute_features_daily()` → `features_daily` | **active** |
-| — | universe-sync | `10 0 * * *` | `/api/cron/universe-sync` | scheduled after PR #43 deploys |
-| — | md-backfill | `*/2 * * * *` | `/api/cron/md-backfill` (40 chunks + 20 heads per run) | scheduled after PR #43 deploys; drops to `*/30` once the backlog is gone |
-| — | fund-snapshot | `20 0 * * *` | `/api/cron/fund-snapshot` | scheduled after PR #43 deploys |
+| 18 | universe-sync | `10 0 * * *` | `/api/cron/universe-sync` | live 2026-10-02; ran `*/10` during the backfill, normalised 06:40 UTC |
+| 17 | md-backfill | `*/2 * * * *` | `/api/cron/md-backfill` (40 chunks + 20 heads per run) | live 2026-10-02; 0 errors at 06:40 UTC (daily 108/489 cursors done, 267,699 daily bars, hourly not started); drops to `*/30` once the backlog is gone |
+| 19 | fund-snapshot | `20 0 * * *` | `/api/cron/fund-snapshot` | live 2026-10-02 (5,383 protocol rows, F&G landed); ran `*/20` during the backfill, normalised 06:40 UTC |
 
 Still to come: `desk-daily` — the daily brief (§13). Emits recommendations; never executes.
 
