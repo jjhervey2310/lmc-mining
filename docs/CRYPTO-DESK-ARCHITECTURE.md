@@ -47,23 +47,30 @@ Discrepancy: CLAUDE.md says 4 pg_cron jobs active; `cron.job` shows all 6 `activ
 
 ## 1. Execution-venue reality check (Pionex / Webot)
 
-This changes the plan materially.
+Jurisdiction is fixed: **US citizen, resident in Denver, Colorado.** That removes every ambiguity below to one answer.
 
-- **"Webot" = Pionex.** Webot US is the rebrand of Pionex.US; Webot EU is Pionew Ireland Ltd, MiCA-authorised by the Central Bank of Ireland (Dec 2025).
-- **Global pionex.com excludes US nationals** in its ToS (nationality, not just residency). As a US citizen in Ireland you are likely excluded today; in Colorado you are definitely excluded.
-- **Webot US:** spot only, 48 states, Colorado appears supported (not verified — support site blocked). Fees reported 0.1% maker / 0.5% taker — **10× global taker**. No futures, no leveraged grid, no margin.
-- **Webot EU:** spot only (MiCA excludes derivatives). Trading showed **"Coming Soon"** on fetch — may not be live.
-- **No public API docs for either Webot.** The Bot API (create/adjust/cancel spot & futures grids, `aiStrategy`, `checkParams`) is documented for pionex.com only. Whether Webot exposes it is unconfirmed.
-- Pionex klines: 1M/5M/15M/30M/60M/4H/8H/12H/1D, 500/request, **10,000-candle cap** (≈7 days of 1m, ≈416 days of 1h). Not a historical data source.
-- Pionex's "AI strategy" picks range + grid count from 7/30/180-day backtests. It's a hypothesis, nothing more.
+- **"Webot" = Pionex.** Webot US is the rebrand of Pionex.US. (Webot EU / Pionew Ireland exists but is irrelevant now.)
+- **Global pionex.com is off the table.** Its ToS excludes US nationals and residents; you are both. Do not onboard there.
+- **Webot US:** spot only, no futures, no leveraged/margin grid, 48 states. Colorado appears supported (support site blocked the fetch — needs one confirmation). Reported fees **0.1% maker / 0.5% taker** — 10× global Pionex taker. Bots are limit-order based so they mostly pay maker, but any market fill (bot start/stop, stop-loss) pays 0.5%.
+- **No public API docs for Webot US.** The Pionex Bot API (create/adjust/cancel grids, `aiStrategy`, `checkParams`) is documented for pionex.com only. Whether Webot US exposes it is unconfirmed.
+- Pionex klines: 500/request, **10,000-candle cap** (≈7 days of 1m, ≈416 days of 1h). Not a historical data source.
+- Pionex's "AI strategy" picks range + grid count from 7/30/180-day backtests. A hypothesis to test, nothing more.
+
+**Venue comparison for a Colorado resident (spot only everywhere):**
+
+| Venue | Maker / taker | Bots | API | Already integrated here |
+|---|---|---|---|---|
+| Webot US | ~0.1% / 0.5% (unverified) | Grid, DCA, rebalancing (UI) | unknown | no |
+| Robinhood Crypto | ~0.45% spread-equivalent, no explicit fee | none | yes (Ed25519) | **yes — `lib/robinhood.ts`, live** |
+| Kraken US | 0.25% / 0.40% base, lower with volume; Kraken Pro ~0.16/0.26 | none | yes | **data only — `kr_*` lake** |
+| Coinbase Advanced | 0.40% / 0.60% base, tiers down | none | yes | data only (`backtest_audit.py`) |
 
 **Consequences**
-1. **Bear-market engine = cash rotation + trend exits + spot reverse-grid logic only.** No shorts, no futures grid, no leverage, in any jurisdiction you'll live in. Leverage research (system D) stays research.
-2. **Grid economics must be re-run at Webot US fees.** At 0.5% taker, a 1% grid step nets ~0% after a round trip. Grid trading may only be viable with maker-only fills (limit orders — which grids are) at 0.1%, i.e. ~0.2% round-trip; steps under ~0.5% are marginal. The grid optimizer treats fee tier as a first-class input and must be able to return "GRID NOT VIABLE AT THIS FEE."
-3. **Execution abstraction is mandatory.** We already have Robinhood live. Build a `Broker` interface with `robinhood` (exists), `pionex-bot` (API, if Webot exposes it), `manual` (recommendation card → you click in the Webot app). Day one, the grid engine outputs *parameters you type into Webot*; it does not need API access to be useful.
-4. **Action before writing grid code:** you confirm with Webot US support (a) Colorado supported, (b) actual maker/taker fees, (c) API availability. Those three answers decide whether the Pionex bot layer gets built at all.
-
----
+1. **Bear-market engine = cash rotation + trend exits + spot reverse-grid logic only.** No shorts, no futures grid, no leverage. Leverage research (system D) stays research.
+2. **Grid economics must be re-run at Webot US maker fees (~0.2% round trip).** Steps under ~0.5% are marginal; the optimizer treats fee tier as a first-class input and must be able to return `GRID_NOT_VIABLE`. If Webot's bots lose to a self-run grid on Kraken at 0.16/0.26 (we already have Kraken data), the honest answer is to run our own grid logic through a broker we control, not to use Pionex at all.
+3. **Execution abstraction is mandatory.** `Broker` interface with `robinhood` (exists, live), `kraken` (candidate — data is already flowing), `pionex-bot` (only if Webot US exposes the API), `manual` (recommendation card → you enter the parameters in the Webot app). Day one, the grid engine outputs *parameters you type into Webot*; it needs no API access to be useful.
+4. **Action before writing grid code:** one Webot US support ticket — (a) Colorado supported, (b) actual maker/taker fees, (c) API availability. Those three answers decide whether a Pionex bot layer gets built at all, or whether the grid engine runs on Kraken/Robinhood instead.
+5. Timezone for all "daily" logic is `America/Denver` (tz-aware, replaces the hard-coded `DENVER_OFFSET_H = -6`). Tax: every realized trade is a US taxable event — `tax_events` stays in the design and every recommendation card shows estimated short-term tax drag.
 
 ## 2. Target architecture
 
@@ -312,7 +319,7 @@ Pionex Bot API integration is **not** in the first 10 phases. It enters only aft
 ## 16. Decisions needed from you
 
 1. **Approve the build order** or reorder. My recommendation is exactly as listed: data + backtest rigor first, engines second, dashboard third.
-2. **Webot US facts:** confirm Colorado support, real fee tier, API availability (one support ticket). This gates the whole grid line.
+2. **Webot US facts:** confirm Colorado support, real fee tier, API availability (one support ticket). This decides whether grids run via Pionex bots or via our own grid logic on Kraken/Robinhood.
 3. **Capital scope today:** what is the growth-account starting balance and current BTC owned? Needed to seed `btc_reserve_state` and pick the milestone row. (Numbers only — no account details in chat.)
 4. **Collector ownership:** who runs the `kr_*` collector? If it's a droplet you control, I want its repo path (or a copy in this repo) so it's a maintained dependency rather than a black box.
 5. **DeFiLlama:** free tier confirmed. Re-evaluate after phase 6.
