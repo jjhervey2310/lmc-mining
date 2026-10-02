@@ -5,7 +5,8 @@ from common import sb_get
 from .data import market_from_rows, DAY
 
 
-def load_md_candles(symbols=None, venue="coinbase", interval_minutes=1440, start=None, page=5000):
+def load_md_candles(symbols=None, venue="coinbase", interval_minutes=1440, start=None, page=1000):
+    # page must not exceed PostgREST db-max-rows (1000): a larger limit is silently capped and the loop would stop early
     """One request per symbol, ordered by bar_time: an index-range scan with no sort. (OFFSET paging over the whole
     table re-sorted 500k rows per page and spilled ~120 GB of temp files before failing with HTTP 500.)"""
     if not symbols:
