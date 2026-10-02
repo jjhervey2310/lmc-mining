@@ -8,6 +8,21 @@ North star: own 5 BTC permanently, build $1M of additional liquid capital, never
 
 ---
 
+## Operating thesis (Jacob, 2026-10-02)
+
+Stated rules, recorded verbatim in intent and converted into testable hypotheses:
+
+1. **Alts are the profit engine.** The growth account trades alts for asymmetric upside. BTC is not traded — it is accumulated.
+2. **Realized alt profit has two exits:** redeploy into the next qualified trade, or park in stablecoins earmarked for BTC.
+3. **BTC is bought only when the Fear & Greed index reads Extreme Fear.** (Hypothesis H-SWEEP-A, see §10.)
+4. **We keep going until $1M + 5 BTC.** No fixed horizon on individual trades; the 5-year target is the clock.
+
+Implications the system enforces:
+- **BTC-earmarked bucket** (`reserve_pending_usd`): stable balance that alt engines cannot draw on. Only the sweep rule moves it into BTC. Prevents the reserve being recycled into the next alt trade.
+- **Stablecoin choice is venue-dependent.** Robinhood lists USDC, not USDT. Kraken US lists both. The design uses "USD-stable" and resolves per broker; never assume USDT.
+- **The exit engine is the critical path.** Alt profit only exists once realized; alts routinely draw down 80-95% and most do not recover. Phases 5 and 6 are built together.
+- **Fear & Greed** (alternative.me, free, daily since 2018-02) becomes a first-class input: stored daily in `fund_snapshots_daily`, used by the sweep policy and as a regime feature. Caveat: it is a composite of volatility, volume, social, dominance, trends — partly price-derived, so it is not independent of the price features.
+
 ## 0. Audit verdict — what exists today
 
 Four separate trading systems live in this repo. None is a grid/Pionex system. Verdict per system:
@@ -252,7 +267,10 @@ Transition from capital creation → preservation is this table, not a mood.
 
 Tables: `btc_reserve_ledger` (buys, source = sweep/deposit, cost basis, sats), `btc_reserve_state` view (owned, target 5, progress %, cost basis, USD value).
 
-Sweep policy is a **parameter** (`sweep_pct` per milestone row) because the right answer is empirical. Backtest: simulate 2021-26 growth-account equity paths (from tournament winners) under 5/10/20/25/50% and dynamic (by portfolio size, by BTC drawdown-from-ATH) sweeps. Metric: P(reach 5 BTC within N years) vs. growth-account terminal value. Monte Carlo on resampled returns, not just the one historical path.
+Sweep policy is a **parameter** because the right answer is empirical. Three candidates are tested head-to-head:
+- **H-SWEEP-A (Jacob's rule):** realized alt profit → BTC-earmarked stable bucket; convert to BTC only on days F&G ≤ 25 (Extreme Fear). Risk to test: long stretches with no trigger (most of 2024-25) while BTC rises; first extreme-fear print is rarely the low (2022 ran for months).
+- **H-SWEEP-B (fixed):** `sweep_pct` of realized profit → BTC immediately, per milestone row.
+- **H-SWEEP-C (hybrid):** floor % always, multiplier rising with fear (e.g. 1× at F&G 50, 2× at 35, 4× at ≤25), plus a time cap — if the bucket has waited > N days, release a tranche regardless. Backtest: simulate 2021-26 growth-account equity paths (from tournament winners) under 5/10/20/25/50% and dynamic (by portfolio size, by BTC drawdown-from-ATH) sweeps. Metric: P(reach 5 BTC within N years) vs. growth-account terminal value. Monte Carlo on resampled returns, not just the one historical path.
 
 Hard rules: reserve BTC is never an input to any sizing or sell logic. Any strategy output that implies selling reserve BTC writes a `HUMAN_REVIEW_REQUIRED` flag and stops.
 
