@@ -41,7 +41,9 @@ its code is in this repo (or a sibling repo) and it runs on a machine that does 
    `collector/` so it is versioned with the tables it writes.
 2. Decide where it should run long-term (the existing droplet is the obvious candidate — same machine as `desk-loop/`).
 
-## Heartbeat / health-check design (non-trading; to implement in Phase 1)
+## Heartbeat / health-check (implemented 2026-10-02: `collector_health()` every 15 min → `desk_health`, shown on the DESK tab; first reading `healthy`, heartbeat 245s, data 330s)
+
+Original design, kept for reference:
 
 Goal: know within 15 minutes when the collector stops, without the collector's cooperation.
 

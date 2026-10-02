@@ -42,11 +42,17 @@ nothing calls it.
 - Deleted on 2026-09-21 and not coming back: daily-content-drop, make-content-warm, heygen-quota-alert, morning-brief,
   job-verify, comp-trader, desk-watcher-15m.
 
-## To be added (Phase 1+, data-only)
+## Added 2026-10-02 (Phase 1, data-only)
 
-- `fund-snapshots-daily` — DeFiLlama free-tier snapshot (§3).
-- `collector-health` — `kr_*` heartbeat watchdog (docs/COLLECTOR-UNKNOWN.md).
-- `desk-daily` — the daily brief (§13). Emits recommendations; never executes.
+| jobid | job | schedule (UTC) | target | status |
+|---|---|---|---|---|
+| 15 | collector-health | `*/15 * * * *` | `select collector_health()` → `desk_health` | **active** |
+| 16 | features-daily | `40 0 * * *` | `select compute_features_daily()` → `features_daily` | **active** |
+| — | universe-sync | `10 0 * * *` | `/api/cron/universe-sync` | scheduled after PR #43 deploys |
+| — | md-backfill | `*/2 * * * *` | `/api/cron/md-backfill` (40 chunks + 20 heads per run) | scheduled after PR #43 deploys; drops to `*/30` once the backlog is gone |
+| — | fund-snapshot | `20 0 * * *` | `/api/cron/fund-snapshot` | scheduled after PR #43 deploys |
+
+Still to come: `desk-daily` — the daily brief (§13). Emits recommendations; never executes.
 
 ## The droplet (`desk-loop/`, systemd, Denver time) — separate machine
 
