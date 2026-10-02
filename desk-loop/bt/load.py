@@ -5,7 +5,7 @@ from common import sb_get
 from .data import market_from_rows, DAY
 
 
-def load_md_candles(symbols=None, venue="coinbase", interval_minutes=1440, start=None, page=1000):
+def load_md_candles(symbols=None, venue="coinbase", interval_minutes=1440, start=None, page=1000, counts=None):
     # page must not exceed PostgREST db-max-rows (1000): a larger limit is silently capped and the loop would stop early
     """One request per symbol, ordered by bar_time: an index-range scan with no sort. (OFFSET paging over the whole
     table re-sorted 500k rows per page and spilled ~120 GB of temp files before failing with HTTP 500.)"""
@@ -16,13 +16,15 @@ def load_md_candles(symbols=None, venue="coinbase", interval_minutes=1440, start
         base = f"venue=eq.{venue}&interval_minutes=eq.{interval_minutes}&symbol=eq.{sym}&select=symbol,bar_time,open,high,low,close,volume&order=bar_time"
         if start:
             base += f"&bar_time=gte.{start}"
-        off = 0
+        off, n = 0, 0
         while True:
             chunk = sb_get("md_candles", f"{base}&limit={page}&offset={off}")
-            rows += chunk
-            if len(chunk) < page:
+            rows += chunk; n += len(chunk)
+            if len(chunk) < page:          # a full page means there may be more: keep going (R-M, silent PostgREST cap)
                 break
             off += page
+        if counts is not None:
+            counts[sym] = n
     return rows
 
 

@@ -301,3 +301,26 @@ class Attribution(unittest.TestCase):
         for t, syms in n.items():
             k = dt.datetime.fromtimestamp(t - 1, dt.timezone.utc).isocalendar()[:2]; wk[k] = wk.get(k, 0) + len(syms)
         self.assertTrue(all(v <= 2 for v in wk.values()))
+
+
+class Loader(unittest.TestCase):
+    """R-M: pagination completeness per symbol — a full page must be followed by another request."""
+    def test_symbol_with_2001_rows_loads_all_pages(self):
+        from bt import load
+        calls = []
+        def fake_get(table, query):
+            calls.append(query)
+            if table == "universe_history":
+                return [{"symbol": "AAA"}]
+            off = int(query.split("offset=")[1]); lim = int(query.split("limit=")[1].split("&")[0])
+            total = 2001
+            return [{"symbol": "AAA", "bar_time": T0 + i * DAY, "open": 1, "high": 1, "low": 1, "close": 1, "volume": 1} for i in range(off, min(off + lim, total))]
+        orig = load.sb_get
+        load.sb_get = fake_get
+        try:
+            counts = {}
+            rows = load.load_md_candles(page=1000, counts=counts)
+        finally:
+            load.sb_get = orig
+        self.assertEqual(len(rows), 2001); self.assertEqual(counts["AAA"], 2001)
+        self.assertEqual(sum(1 for q in calls if "md_candles" in q or "offset=" in q), 3)   # 1000 + 1000 + 1
