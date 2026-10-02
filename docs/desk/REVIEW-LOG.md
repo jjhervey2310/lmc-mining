@@ -118,3 +118,5 @@ P1 intrabar fill moved to the next completed 5m bar after the trigger bar · `mo
 | 7 | intrabar-5m same-bar fill | Already fixed in 1f53022 (next completed bar after the touch bar) | — |
 
 Verification run (below in this log once executed): ordinary insert/update, rejected symbol and thesis_id mutation, DELETE, TRUNCATE, direct revision tampering, under `service_role` and `postgres`.
+
+**R-D verification (desk_selftest(), 2026-10-02 06:1x UTC):** `update_audited:t symbol_change:rejected tid_change:rejected delete:rejected rev_update:rejected rev_delete:rejected svc_rev_insert:rejected svc_sel_delete:rejected` — the last two under `SET LOCAL ROLE service_role`. TRUNCATE rejection is enforced by trigger + revoke but was not exercised in the selftest (no safe way to attempt it inside a function without a savepoint on a DDL-class statement); open item. Concurrency/rollback tests: open item for the Phase 2 test harness.

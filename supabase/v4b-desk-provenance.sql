@@ -57,3 +57,5 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.desk_watchlist_revisions FROM 
 REVOKE UPDATE, DELETE, TRUNCATE ON public.desk_selection_log FROM anon, authenticated, service_role;
 REVOKE DELETE, TRUNCATE ON public.desk_watchlist FROM anon, authenticated, service_role;
 CREATE UNIQUE INDEX IF NOT EXISTS desk_watchlist_revisions_uq ON public.desk_watchlist_revisions (thesis_id, revision);
+-- NOTE 2026-10-02: RENAME/DROP COLUMN on desk_paper_ledger hang through the MCP tool; applied as ADD COLUMN alt_max_drawdown, btc_max_drawdown.
+-- Legacy columns max_drawdown and btc_exit_px remain, unused and deprecated — drop from the SQL editor when convenient.
