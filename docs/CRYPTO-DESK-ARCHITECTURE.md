@@ -1,6 +1,6 @@
 # Crypto Desk Architecture — $1,000,000 + 5 BTC
 
-Status: PROPOSAL (2026-10-02). No trading code changed yet. Approve, amend, or reject before implementation.
+Status: **APPROVED 2026-10-02** (Jacob, PR #41 comment). Phase order approved; Kraken Pro is the canonical execution interface. No trading code changed yet; implementation starts at Phase 0.
 
 North star: own 5 BTC permanently, build $1M of additional liquid capital, never take a catastrophic loss. Every component below is judged against that, not against trade-level P&L.
 
@@ -90,7 +90,9 @@ Jurisdiction is fixed: **US citizen, resident in Denver, Colorado.** That remove
 **Consequences**
 1. **Bear-market engine = cash rotation + trend exits + spot reverse-grid logic only.** No shorts, no futures grid, no leverage. Leverage research (system D) stays research.
 2. **Grid economics must be re-run at Webot US maker fees (~0.2% round trip).** Steps under ~0.5% are marginal; the optimizer treats fee tier as a first-class input and must be able to return `GRID_NOT_VIABLE`. If Webot's bots lose to a self-run grid on Kraken at 0.16/0.26 (we already have Kraken data), the honest answer is to run our own grid logic through a broker we control, not to use Pionex at all.
-3. **Execution abstraction is mandatory.** `Broker` interface with `kraken` (primary — data lake already Kraken), `coinbase` (secondary, listing breadth), `robinhood` (exists, legacy holdings only), `manual` (recommendation card → you execute by hand). Pionex/Webot bot layer dropped: volume and spread make it uncompetitive. Day one, the grid engine outputs *parameters you type into Webot*; it needs no API access to be useful.
+3. **Kraken Pro is the canonical execution interface.** `Broker` interface in `lib/brokers/` with `kraken` as the reference implementation and primary paper + live target; `coinbase` secondary, used only for pairs Kraken lacks or where liquidity is materially better; `robinhood` legacy (existing holdings only, no new strategy work); `manual` for hand execution. Webot/Pionex dropped from the active path. Development and paper trading run through Kraken's official `kraken-cli` MCP (spot/futures paper mode), which Claude, ChatGPT and Codex can all drive.
+   - **Fee tier is read, never assumed.** Kraken's published schedule starts at 0.40% maker / 0.80% taker below $2.5k 30-day volume and improves with volume or assets-on-platform. The backtester, grid optimizer and router take the fee from the live account tier (`account/fees` or equivalent, cached daily into `desk_config.kraken_fee_tier`), and every backtest report states the tier it assumed. No result may quote the $10k tier unless the account is actually there.
+   - API keys: least privilege — query + trade only, **no withdrawal permission**, IP allow-listed, stored in Vercel env (`KRAKEN_API_KEY`, `KRAKEN_API_SECRET`), never in the repo. Day one, the grid engine outputs *parameters you type into Webot*; it needs no API access to be useful.
 4. **Action before funding:** open Kraken Pro (if not already), create a trade-only API key with IP allow-list and no withdraw permission; confirm USDC rewards eligibility in Colorado; glance at OKX US's tradable list. The Webot support ticket is no longer needed.
 5. Timezone for all "daily" logic is `America/Denver` (tz-aware, replaces the hard-coded `DENVER_OFFSET_H = -6`). Tax: every realized trade is a US taxable event — `tax_events` stays in the design and every recommendation card shows estimated short-term tax drag.
 
@@ -374,8 +376,8 @@ Pionex Bot API integration is **not** in the first 10 phases. It enters only aft
 
 ## 16. Decisions needed from you
 
-1. **Approve the build order** or reorder. My recommendation is exactly as listed: data + backtest rigor first, engines second, dashboard third.
-2. **Venue:** confirm Kraken Pro as primary (alt book + BTC reserve), Coinbase Advanced as secondary. Robinhood goes legacy. Webot dropped.
+1. ~~Approve the build order~~ **Approved** as listed (hygiene → data → backtest rigor → regime/engines/scanner → paper). Live money only after the full strategy runs in paper mode with realistic fee/slippage.
+2. ~~Venue~~ **Decided:** Kraken Pro primary (alt book + BTC reserve + paper), Coinbase Advanced secondary, Robinhood legacy, Webot dropped, DeFiLlama free tier for fundamentals.
 3. **Capital scope today:** what is the growth-account starting balance and current BTC owned? Needed to seed `btc_reserve_state` and pick the milestone row. (Numbers only — no account details in chat.)
 4. **Collector ownership:** who runs the `kr_*` collector? If it's a droplet you control, I want its repo path (or a copy in this repo) so it's a maintained dependency rather than a black box.
 5. **DeFiLlama:** free tier confirmed. Re-evaluate after phase 6.
