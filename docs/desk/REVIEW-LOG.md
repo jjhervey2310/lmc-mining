@@ -98,3 +98,6 @@ Core claim: a hand-picked watchlist whose outcomes inform the scanner becomes tr
 | — | Keep the four provisional positions outside calibration and benchmark evidence | Agreed | `evidence_class = 'exploratory'` on all four; `btc_entry_px` recorded (86,359 at 05:20Z) for display only, not evidence |
 
 Not verified by the reviewer and still open: the DB triggers themselves (verified here by `desk_watchlist_revisions` count = 2× rows after the confidence update).
+
+### Codex (automated) on PR #44 — all five accepted
+P1 intrabar fill moved to the next completed 5m bar after the trigger bar · `monitoring_convention` now defaulted, NOT NULL and CHECK-constrained on both tables · fractional exits recorded per fill in `desk_paper_fills` (position-level fields become aggregates; single `btc_exit_px` dropped) · `evidence_class` default is `discretionary` with a CHECK, the four provisional rows explicitly `exploratory` · `alt_max_drawdown` and `btc_max_drawdown` stored separately.
