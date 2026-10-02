@@ -4,6 +4,8 @@ Status: PROPOSAL (2026-10-02). No trading code changed yet. Approve, amend, or r
 
 North star: own 5 BTC permanently, build $1M of additional liquid capital, never take a catastrophic loss. Every component below is judged against that, not against trade-level P&L.
 
+**Strategic emphasis (set 2026-10-02):** the objective is to capture major dips and ride major upside, not to harvest small trades. Priority order of engines: (1) Accumulation / dip engine, (2) Distribution & exit engine ("the down bot"), (3) 5x discovery, (4) regime + router that connects them. Grid trading is a secondary, optional harvester for RANGE regimes and is only built if the tournament shows it beats cash net of fees.
+
 ---
 
 ## 0. Audit verdict — what exists today
@@ -209,6 +211,17 @@ Daily, for every active grid: compute regime; if transition to BREAKOUT/UPTREND 
 
 ---
 
+## 8b. Distribution & exit engine — "the bot for the way down"
+
+Spot-only means this engine cannot make dollars from a fall. It makes money by **not giving back gains** and by **owning more coins after the drawdown than before**. Four components, all backtested separately:
+
+1. **Distribution exit (sell into strength).** Trigger: regime PARABOLIC or DISTRIBUTION with confidence above threshold — e.g. price > 2.5× ATR above SMA50, 30d return in top 5% of history, volume climax, RS vs BTC rolling over, funding/OI blow-off where `kr_funding`/`kr_market_stats` cover the name. Action: tranche sells (25/25/25/25) into strength, remainder on trailing stop. This is the mirror of the accumulation ladder and is the component that decides whether a 5x is kept.
+2. **Trend-break exit (go to cash).** Trigger: BTC regime → DOWNTREND/BREAKDOWN (weekly close < SMA50w, or daily close < SMA200 with falling slope), or asset breaks 20d low on volume. Action: growth account to cash floor per milestone table, keep reserve BTC untouched. Cash is a position; the tournament scores CASH against every alternative.
+3. **Spot reverse grid (accumulate coins on the way down).** For assets we intend to own through the cycle (BTC first, ETH candidate): sell inventory on rallies inside a falling range, buy back lower, ending the drawdown with more coins per dollar. Fee-sensitive — same `GRID_NOT_VIABLE` gate as §8. Never applied to alts we don't want to hold.
+4. **Capitulation re-entry (the dip half).** Trigger: drawdown from ATH > threshold, volume climax, RS vs BTC turning up, **fundamentals intact or accelerating** (`features_daily`), BTC regime CAPITULATION/RECOVERY. Action: ladder back in with the accumulation engine's tranche sizing. **Hard invalidation:** price down + fundamentals decelerating/collapsing = NO_INTEREST ("dying coin, not a dip"). Falling price alone never adds score.
+
+Backtest questions this engine must answer before it drives anything: across 2021-22 and every ≥30% alt drawdown since, did (1)+(2) preserve more capital than hold, net of fees and whipsaw re-entries? Did (4) pick recoveries at better than base rate, excluding coins that never recovered (survivorship — the universe includes the dead ones)?
+
 ## 9. Strategy router + portfolio risk
 
 Router: `(regime, asset_class, venue_fees, portfolio_state) → ranked strategies with EV estimates`. Initial table matches the brief (RANGE→grid if net > cash; ACCUMULATION→build; BREAKOUT→add on confirm; UPTREND→hold; PARABOLIC→harvest; DISTRIBUTION→reduce; DOWNTREND→cash; CAPITULATION→watch for re-entry). It is **data, not code** (a `router_rules` table with version), so the tournament can swap it and backtests can test routing vs. a single-strategy baseline.
@@ -305,14 +318,15 @@ Each phase ends with a measurable gate. Nothing in phase N+1 starts if phase N's
 | **2. Backtest framework** | `desk-loop/bt/` package, DAO with as_of enforcement, `research_runs`, anti-overfit gate; re-run existing breakout rule as first test | Existing breakout rule reproduced; look-ahead unit test fails when as_of violated |
 | **3. Regime engine** | Single implementation, probabilities, validation study | Forward-return distributions differ OOS across retained labels |
 | **4. Tournament baseline** | Buy&hold, DCA, cash, trend, breakout, mean-reversion, grid (fee-aware) across 2021-26, per regime | Ranked table with robustness report; we know what beats what, and where |
-| **5. Grid optimizer + LWR** | Fee-tier-aware optimizer; range→trend stop test; Pionex `aiStrategy` as candidate | Answer: is grid viable at Webot US fees? If no, grid engine parks |
-| **6. 5x study + scanner** | Historical 5× feature study; live scanner with calibrated confidence | Features show lift vs matched controls, or engine parked with the evidence |
-| **7. Accumulation + router + risk gate** | Fitted weights; `router_rules`; milestone table; routing-vs-single-strategy backtest | Routing beats best single strategy OOS, or we use the single strategy |
-| **8. BTC sweep study** | Sweep % simulation + Monte Carlo | Chosen policy with P(5 BTC) curve |
+| **5. Accumulation / dip engine** | Fitted weights; tranche ladder; capitulation re-entry with fundamentals invalidation | Dip entries beat base-rate recovery OOS, dead coins included in universe |
+| **6. Distribution & exit engine** | Sell-into-strength tranches; trend-break to cash; spot reverse grid on BTC; let-winners-run range→trend handoff | Capital preserved vs hold across 2021-22 and every ≥30% alt drawdown since, net of whipsaw |
+| **7. 5x study + scanner** | Historical 5× feature study; live scanner with calibrated confidence | Features show lift vs matched controls, or engine parked with the evidence |
+| **8. Router + risk gate + BTC sweep** | `router_rules`; milestone table; routing-vs-single-strategy backtest; sweep % simulation + Monte Carlo | Routing beats best single strategy OOS; chosen sweep policy with P(5 BTC) curve |
+| **8b. Grid optimizer (optional)** | Fee-tier-aware optimizer; Pionex `aiStrategy` as candidate; Webot vs self-run Kraken grid | Only built if phase 4 shows grid beats cash in RANGE at real fees; else parked |
 | **9. Recommendation cards + dashboard + daily brief** | Tables, cron, `/desk` tab, Broker interface (`manual` + hardened `robinhood`) | First daily brief lands; first card approved by you by hand |
 | **10. Paper trading** | 60–90 days of cards vs. outcomes in `kr_paper_positions`-style ledger | Live hit-rate within backtest confidence interval before any sizing increase |
 
-Pionex Bot API integration is **not** in the first 10 phases. It enters only after you confirm Webot US API access and the phase-5 gate says grids are viable.
+Pionex Bot API integration is **not** in the first 10 phases. It enters only after you confirm Webot US API access and phase 8b says grids are viable.
 
 ---
 
