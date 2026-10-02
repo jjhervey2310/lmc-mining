@@ -220,3 +220,19 @@ Phase 4 robustness axis (committed, to be built when Phase 4 opens), run per str
 3. recovery haircuts from the last reliable mark: −25%, −50%, −100% (venue untradeable, no executable exit)
 For any strategy whose edge depends materially on low-cap alts, cases 2–3 are part of the robustness GATE, not a footnote:
 the manifest records the delisting treatment, and `research_runs` carries the edge that survives each case.
+
+---
+
+## R-2026-10-02-K — ChatGPT: liquidity floor for the conservative delisting exit (Phase 4 axis 2)
+
+Accepted verbatim. Definition recorded for Phase 4 (not built yet; nothing in Phase 2 uses it):
+
+- **Last reliable executable price** = close of the last completed bar before delisting whose **3-day median dollar
+  volume** (close × volume, daily bars) ≥ **max($50,000, 10 × slot_usd)**. Dollar volume, never token volume; a rolling
+  median, never a single print.
+- slot_usd is the engine slot at that bar (equity × gross_cap / max_positions), so the floor scales with what we would
+  actually have to sell: $1k or $5k slot → $50k/day; $10k slot → $100k/day; $50k slot → $500k/day.
+- Robustness surface, not a single assumption: multiples **5× / 10× / 20×** slot_usd, crossed with the recovery
+  haircuts from R-J (−25% / −50% / −100%). The manifest records multiple, absolute floor and haircut; `research_runs`
+  carries the surviving edge per cell.
+- Phase 2 attribution and reproduction remain legacy-symmetric (R-J); this rule is Phase 4 only.
