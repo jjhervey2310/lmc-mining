@@ -68,3 +68,6 @@ Website key/
 _to_delete/
 desk-loop/.env
 __pycache__/
+
+# backtest snapshots and run logs (never commit market data exports)
+desk-loop/state/
