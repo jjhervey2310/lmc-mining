@@ -216,7 +216,7 @@ export function Shell({
   secret, active, children,
 }: {
   secret: string
-  active: 'fund' | 'leverage' | 'mining' | 'todo' | 'posts' | 'trading' | 'jobs' | 'lfc' | 'website' | 'videos'
+  active: 'fund' | 'desk' | 'leverage' | 'mining' | 'todo' | 'posts' | 'trading' | 'jobs' | 'lfc' | 'website' | 'videos'
   children: React.ReactNode
 }) {
   // ROBINHOOD is back on the nav (2026-09-22). #39 took it off on 09-19 along
@@ -234,6 +234,7 @@ export function Shell({
   const renderedAt = new Date().toISOString()
   const tabs = [
     { id: 'fund', label: 'ROBINHOOD', href: `/admin/dashboard/fund?secret=${secret}` },
+    { id: 'desk', label: 'DESK', href: `/admin/dashboard/desk?secret=${secret}` },
     { id: 'trading', label: 'AI COMPETITION', href: `/admin/dashboard/trading?secret=${secret}` },
     { id: 'todo', label: 'TO-DO — AI COMPETITION', href: `/admin/dashboard/todo?secret=${secret}` },
   ]
