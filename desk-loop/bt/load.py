@@ -5,19 +5,23 @@ from common import sb_get
 from .data import market_from_rows, DAY
 
 
-def load_md_candles(symbols=None, venue="coinbase", interval_minutes=1440, start=None, page=1000):
-    rows, off = [], 0
-    base = f"venue=eq.{venue}&interval_minutes=eq.{interval_minutes}&select=symbol,bar_time,open,high,low,close,volume&order=symbol,bar_time"
-    if symbols:
-        base += "&symbol=in.(" + ",".join(symbols) + ")"
-    if start:
-        base += f"&bar_time=gte.{start}"
-    while True:
-        chunk = sb_get("md_candles", f"{base}&limit={page}&offset={off}")
-        rows += chunk
-        if len(chunk) < page:
-            break
-        off += page
+def load_md_candles(symbols=None, venue="coinbase", interval_minutes=1440, start=None, page=5000):
+    """One request per symbol, ordered by bar_time: an index-range scan with no sort. (OFFSET paging over the whole
+    table re-sorted 500k rows per page and spilled ~120 GB of temp files before failing with HTTP 500.)"""
+    if not symbols:
+        symbols = sorted({r["symbol"] for r in sb_get("universe_history", f"venue=eq.{venue}&select=symbol")})
+    rows = []
+    for sym in symbols:
+        base = f"venue=eq.{venue}&interval_minutes=eq.{interval_minutes}&symbol=eq.{sym}&select=symbol,bar_time,open,high,low,close,volume&order=bar_time"
+        if start:
+            base += f"&bar_time=gte.{start}"
+        off = 0
+        while True:
+            chunk = sb_get("md_candles", f"{base}&limit={page}&offset={off}")
+            rows += chunk
+            if len(chunk) < page:
+                break
+            off += page
     return rows
 
 
