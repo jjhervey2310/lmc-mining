@@ -39,10 +39,15 @@ describe('timestamp joins', () => {
 })
 
 describe('denverWeekStartIso', () => {
-  const local = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/Denver', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+  // Compare formatted parts, not a locale string: ICU builds differ on punctuation.
+  const local = (iso: string) => {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso))
+    const get = (t: string) => parts.find((p) => p.type === t)?.value
+    return [get('weekday'), get('hour'), get('minute')]
+  }
   it('is Monday 00:00 Denver in MDT and MST', () => {
-    expect(local(denverWeekStartIso(new Date('2026-07-15T12:00:00Z')))).toBe('Mon, 00:00')
-    expect(local(denverWeekStartIso(new Date('2026-01-14T12:00:00Z')))).toBe('Mon, 00:00')
+    expect(local(denverWeekStartIso(new Date('2026-07-15T12:00:00Z')))).toEqual(['Mon', '00', '00'])
+    expect(local(denverWeekStartIso(new Date('2026-01-14T12:00:00Z')))).toEqual(['Mon', '00', '00'])
   })
   it('the old fixed -6h offset would have been an hour early in winter', () => {
     // 2026-01-12 06:30Z is Sunday 23:30 MST; 07:30Z is Monday 00:30 MST.
