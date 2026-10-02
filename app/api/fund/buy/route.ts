@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 import { buildTiming } from '../timing/route'
 import { rhConfigured, tradingPair, bestBidAsk, quantize, marketBuy, awaitFill, stopLimitSell } from '@/lib/robinhood'
+import { clampOrderUsd } from '@/lib/desk/sizing'
 
 // TAP-TO-BUY. A human (Jacob) taps the button; this route grades the moment with the same code as
 // /api/fund/timing, refuses any HARD bar outright (chase laws, RUNNING, halt, already held — the
@@ -16,8 +17,8 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function POST(req: Request) {
-  const url = new URL(req.url)
-  const secret = req.headers.get('x-admin-secret') || url.searchParams.get('secret')
+  // Header only: a secret in the query string lands in Vercel logs and browser history.
+  const secret = req.headers.get('x-admin-secret')
   if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!rhConfigured()) return NextResponse.json({ error: 'no_credentials', message: 'Robinhood API credentials (RH_API_KEY, RH_PRIVATE_KEY) are not set in Vercel env — create them in the Robinhood app under API credentials and add them to the project.' }, { status: 503 })
   let body: { symbol?: string; usd?: number; override?: boolean } = {}
@@ -31,7 +32,8 @@ export async function POST(req: Request) {
   try { t = await buildTiming(symbol) } catch (e) { return NextResponse.json({ error: `timing check failed: ${e instanceof Error ? e.message : e}` }, { status: 502 }) }
   if (t.hard.length) return NextResponse.json({ error: 'hard_bar', message: `Refused by law: ${t.hard.join('; ')}`, timing: t }, { status: 409 })
   if (!t.buyable && !body.override) return NextResponse.json({ error: 'soft_bar', message: `Grade ${t.grade} — ${t.soft.join('; ')}. Override to proceed.`, timing: t }, { status: 409 })
-  const usd = Math.min(Number(body.usd) > 0 ? Number(body.usd) : t.size.usd, t.cash, Math.max(t.book * 0.10, 10))
+  // Sizing is server-side (lib/desk/sizing.ts): a client value may only shrink the ruled size.
+  const usd = clampOrderUsd({ requestedUsd: body.usd, ruledUsd: t.size.usd, cashUsd: t.cash, bookUsd: t.book })
   if (usd < 1) return NextResponse.json({ error: 'no_cash', message: 'No buying power for a ruled-size entry.', timing: t }, { status: 409 })
 
   try {

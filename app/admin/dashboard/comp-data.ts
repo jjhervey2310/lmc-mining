@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase'
 import { getMarketQuotes, isStale } from '@/lib/markets'
 import type { CompBook } from './comp-panel'
+import { replayCompTrades } from '@/lib/comp-replay'
 
 // Trading-competition books, shared by the TRADING page (and anything else that
 // wants the leaderboard): every contestant priced by the same live feed.
@@ -21,25 +22,8 @@ export async function getCompBooks(): Promise<CompBook[]> {
   const priceOf = (sym: string) => quotes?.find((q) => q.symbol === sym)?.price
 
   const buildBook = (rows: typeof allTradeRows) => {
-    const book: Record<string, { qty: number; cost: number }> = {}
-    let cash = COMP_START_CASH
-    // Profit banked on closed size. Without this, a sold winner's gain vanished
-    // from the panel entirely (only open positions showed P&L).
-    let realized = 0
-    for (const t of rows) {
-      const qty = Number(t.qty), price = Number(t.price)
-      const p = (book[t.symbol] ??= { qty: 0, cost: 0 })
-      if (t.action === 'buy') {
-        p.qty += qty; p.cost += qty * price; cash -= qty * price
-      } else {
-        const avg = p.qty ? p.cost / p.qty : 0
-        // Never let a sell drive the position negative in the replay — an
-        // oversold row is a ledger error, not a short (guarded at insert now).
-        const sold = Math.min(qty, p.qty)
-        realized += sold * (price - avg)
-        p.qty -= sold; p.cost -= sold * avg; cash += qty * price
-      }
-    }
+    // Ledger arithmetic lives in lib/comp-replay.ts (unit-tested); this only prices the result.
+    const { book, cash, realized } = replayCompTrades(rows, COMP_START_CASH)
     const positions = Object.entries(book).filter(([, p]) => p.qty > 1e-12).map(([symbol, p]) => {
       const q = quotes?.find((x) => x.symbol === symbol)
       const live = q?.price ?? null

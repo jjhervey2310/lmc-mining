@@ -148,7 +148,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     if (!confirm(on ? 'PAUSE the 24/7 desk loop? (stops at the broker stay in place)' : 'RESUME the 24/7 desk loop?')) return
     setToggling(true)
     try {
-      const r = await fetch(`/api/fund/loop-toggle?secret=${encodeURIComponent(secret)}`, { method: 'POST' })
+      const r = await fetch('/api/fund/loop-toggle', { method: 'POST', headers: { 'x-admin-secret': secret } })
       if (r.ok) { const j = await r.json(); setState((s) => ({ ...s, loop_enabled: j.loop_enabled })) }
     } finally { setToggling(false) }
   }
@@ -158,7 +158,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     let dead = false
     const pull = async () => {
       try {
-        const r = await fetch(`/api/fund/state?secret=${encodeURIComponent(secret)}`, { cache: 'no-store' })
+        const r = await fetch('/api/fund/state', { cache: 'no-store', headers: { 'x-admin-secret': secret } })
         if (!r.ok) { setDegraded(true); return }
         const j = (await r.json()) as DeskState
         if (!dead) { setState(j); setDegraded(false) }
@@ -201,7 +201,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
         if (already !== undefined) continue
         setTiming((t) => ({ ...t, [sym]: 'loading' }))
         try {
-          const r = await fetch(`/api/fund/timing?secret=${encodeURIComponent(secret)}&symbol=${sym}`, { cache: 'no-store' })
+          const r = await fetch(`/api/fund/timing?symbol=${sym}`, { cache: 'no-store', headers: { 'x-admin-secret': secret } })
           const j = await r.json()
           if (!dead) setTiming((t) => ({ ...t, [sym]: r.ok ? (j as Timing) : { error: j.error ?? `HTTP ${r.status}` } }))
         } catch (e) {
@@ -335,7 +335,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     let dead = false
     const pull = async () => {
       try {
-        const r = await fetch(`/api/fund/prices?secret=${encodeURIComponent(secret)}&symbols=${syms.join(',')}`, { cache: 'no-store' })
+        const r = await fetch(`/api/fund/prices?symbols=${syms.join(',')}`, { cache: 'no-store', headers: { 'x-admin-secret': secret } })
         if (!r.ok) { if (!dead) setPriceMeta((m) => ({ ...m, error: `price route HTTP ${r.status}` })); return }
         const j = (await r.json()) as { at: string | null; stale: boolean; error: string | null; missing?: string[]; prices: Record<string, Live & { src?: string }> }
         if (dead) return
@@ -388,7 +388,7 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     if (timing[sym] && timing[sym] !== 'loading') { setTiming((t) => ({ ...t, [sym]: undefined })); return }
     setTiming((t) => ({ ...t, [sym]: 'loading' }))
     try {
-      const r = await fetch(`/api/fund/timing?secret=${encodeURIComponent(secret)}&symbol=${sym}`, { cache: 'no-store' })
+      const r = await fetch(`/api/fund/timing?symbol=${sym}`, { cache: 'no-store', headers: { 'x-admin-secret': secret } })
       const j = await r.json()
       setTiming((t) => ({ ...t, [sym]: r.ok ? (j as Timing) : { error: j.error ?? `HTTP ${r.status}` } }))
     } catch (e) { setTiming((t) => ({ ...t, [sym]: { error: e instanceof Error ? e.message : 'fetch failed' } })) }
@@ -405,11 +405,11 @@ export default function DeskLive({ initial, secret, cg, chart, realized, capital
     if (override && prompt('Type OVERRIDE to confirm you are overriding the desk rules for this trade:') !== 'OVERRIDE') return
     setBuying((b) => ({ ...b, [sym]: 'working' }))
     try {
-      const r = await fetch(`/api/fund/buy?secret=${encodeURIComponent(secret)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ symbol: sym, override }) })
+      const r = await fetch('/api/fund/buy', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret }, body: JSON.stringify({ symbol: sym, override }) })
       const j = (await r.json()) as BuyResult
       setBuying((b) => ({ ...b, [sym]: j }))
       if (j.ok) {
-        const s = await fetch(`/api/fund/state?secret=${encodeURIComponent(secret)}`, { cache: 'no-store' })
+        const s = await fetch('/api/fund/state', { cache: 'no-store', headers: { 'x-admin-secret': secret } })
         if (s.ok) setState(await s.json())
       }
     } catch (e) { setBuying((b) => ({ ...b, [sym]: { error: 'network', message: e instanceof Error ? e.message : 'request failed' } })) }

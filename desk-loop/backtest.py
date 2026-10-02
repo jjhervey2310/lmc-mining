@@ -6,7 +6,8 @@ RULE UNDER TEST (A4-compatible):
   signal day t:  close_t > max(close[t-20 .. t-1])           (20-day range breakout)
              and vol_t   >= VOL_MULT * mean(vol[t-20 .. t-1])  (volume expansion ON the candle)
              and 7-day return > BTC's 7-day return             (relative strength)
-  entry  : close_t (we only have daily bars; assume fill at the close, 0.5% slippage each way)
+  entry  : close_{t+1} — the signal is known at close_t, so the earliest fill in a close-only series is the
+           NEXT completed close (Phase 0 look-ahead fix; the old version filled at close_t), 0.5% slippage each way
   exit   : trailing stop off the high-water mark — 12% majors, 18% others (A4 §5)
            plus HALF OFF at +25% from fill, remainder keeps trailing (A4 §6)
   filter : skip if close_t is > MAX_EXT above the 20-day high (that's RUNNING — A4 §2 no-entry)
@@ -16,6 +17,8 @@ Reports per-trade expectancy, win rate, avg win/loss, worst trade, total on $100
 import json, time, sys, statistics as st, datetime
 from pathlib import Path
 from common import _req, STATE, sb_upsert, now_denver
+from market_time import completed_bars
+from bt_costs import CostModel, stamp
 
 DAYS       = int(sys.argv[1]) if len(sys.argv) > 1 else 120
 LOOKBACK   = 20
@@ -51,7 +54,7 @@ def id_map(symbols):
 def history(cid, days):
     f = HIST / f"{cid}.json"
     if f.exists() and time.time() - f.stat().st_mtime < 20 * 3600:
-        return json.load(open(f))
+        return completed_bars(json.load(open(f)))   # cache may hold today's partial point
     j = _req(f"https://api.coingecko.com/api/v3/coins/{cid}/market_chart?vs_currency=usd&days={days}&interval=daily", retries=4)
     px = [(int(t // 1000), v) for t, v in j.get("prices", [])]
     vol = [v for _, v in j.get("total_volumes", [])]
@@ -59,7 +62,7 @@ def history(cid, days):
     out = [{"t": px[i][0], "c": px[i][1], "v": vol[i]} for i in range(n)]
     json.dump(out, open(f, "w"))
     time.sleep(2.5)   # stay under the free-tier limit
-    return out
+    return completed_bars(out)   # CoinGecko's last daily point is today's partial bar
 
 def simulate(sym, bars, btc, mode):
     """mode 'breakout' = the rule under test; 'extended' = +70%/30d analog. Returns list of trade dicts."""
@@ -70,7 +73,9 @@ def simulate(sym, bars, btc, mode):
         window = bars[i - LOOKBACK:i]
         hi20 = max(b["c"] for b in window); avgv = st.mean(b["v"] for b in window) or 1
         r7 = c / bars[i - 7]["c"] - 1 if i >= 7 else 0
-        btc7 = btc[i]["c"] / btc[i - 7]["c"] - 1 if i >= 7 and i < len(btc) else 0
+        # Align BTC by timestamp: a missing day in either series shifts indices and silently misreads RS.
+        bi = next((k for k in range(len(btc) - 1, -1, -1) if btc[k]["t"] <= bars[i]["t"]), None)
+        btc7 = btc[bi]["c"] / btc[bi - 7]["c"] - 1 if bi is not None and bi >= 7 else 0
         if mode == "breakout":
             sig = c > hi20 and v >= VOL_MULT * avgv and r7 > btc7 and (c / hi20 - 1) <= MAX_EXT
         else:
@@ -78,8 +83,9 @@ def simulate(sym, bars, btc, mode):
             sig = r30 >= 0.70 and (i == LOOKBACK + 30 or bars[i - 1]["c"] / bars[i - 31]["c"] - 1 < 0.70)
         if not sig:
             i += 1; continue
-        entry = c * (1 + SLIP); high = c; units = 1.0; half_done = False; pnl_banked = 0.0
-        j = i + 1; exit_px = None; reason = "eod"
+        if i + 1 >= len(bars): break                 # no next bar to fill on
+        entry = bars[i + 1]["c"] * (1 + SLIP); high = bars[i + 1]["c"]; units = 1.0; half_done = False; pnl_banked = 0.0
+        j = i + 2; exit_px = None; reason = "eod"
         while j < len(bars):
             p = bars[j]["c"]; high = max(high, p)
             if not half_done and p >= entry * (1 + HALF_AT):
@@ -141,6 +147,7 @@ def main():
     out = hdr + "\n" + summarize("BREAKOUT RULE (A4)", allb, btc_ret) + "\n\n" + summarize("EXTENDED ANALOG (+70%/30d, same exits)", alle, btc_ret)
     print(out)
     (STATE / "backtest_last.txt").write_text(out)
+    out = stamp(CostModel(0.0, 0.0, slippage=SLIP, venue="coingecko-daily", tier="legacy constant SLIP per side"), "next completed close after the signal bar") + out
     sb_upsert("pa_memory", [{"topic": "breakout-backtest", "fact": out, "source": "desk-loop", "active": True,
                              "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")
 

@@ -18,6 +18,9 @@ def regime():
     if ov in ("BULL", "NEUTRAL", "BEAR"): return ov, "desk_config override"
     try:
         bars = json.loads((STATE / "cb" / "BTC.json").read_text())
+        # Completed bars only: the cache's last candle is today's partial bar after 00:00 UTC.
+        today = datetime.datetime.now(datetime.timezone.utc).date()
+        bars = [b for b in bars if datetime.datetime.fromtimestamp(b["t"], datetime.timezone.utc).date() < today]
         closes = [b["c"] for b in bars][-201:]
         if len(closes) >= 200:
             c = closes[-1]; s200 = sum(closes[-200:]) / 200; s50 = sum(closes[-50:]) / 50

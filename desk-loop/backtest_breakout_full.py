@@ -6,13 +6,14 @@ for a like-for-like comparison; then the cap relaxed to 4/week."""
 import json, datetime, statistics as st
 from common import STATE, sb_upsert
 from backtest_house import candles, universe, COST_SIDE, SIZE, MATERIALITY
+from bt_costs import CostModel, stamp
 
 LOOKBACK, VOL_MULT, MAX_EXT = 20, 1.5, 0.15
 MAJORS = {"BTC", "ETH", "SOL"}
 
 def signals(bars, btc):
     out = []
-    for i in range(LOOKBACK + 8, len(bars)):
+    for i in range(LOOKBACK + 8, len(bars) - 1):   # needs a next bar to fill on
         c, v = bars[i]["c"], bars[i]["v"]
         w = bars[i - LOOKBACK:i]
         hi20 = max(b["c"] for b in w); avgv = st.mean(b["v"] for b in w) or 1
@@ -25,12 +26,14 @@ def signals(bars, btc):
 
 def trade(sym, bars, i, trail_major, trail_other, take_frac, take_at, pyramid):
     trail = trail_major if sym in MAJORS else trail_other
-    entry = bars[i]["c"] * (1 + COST_SIDE)
+    # LOOK-AHEAD FIX (Phase 0): fill at the next bar's open, not the signal bar's close.
+    e = i + 1
+    entry = bars[e]["o"] * (1 + COST_SIDE)
     low20 = min(b["l"] for b in bars[i - LOOKBACK:i])
     stop = max(low20, entry * (1 - trail))           # structural stop, never wider than the trail
-    units = 1.0; high = bars[i]["c"]; banked = 0.0; took = False; added = False
+    units = 1.0; high = bars[e]["c"]; banked = 0.0; took = False; added = False
     cost_basis = entry
-    j = i + 1
+    j = e
     while j < len(bars):
         b = bars[j]
         if b["l"] <= stop:
@@ -106,6 +109,7 @@ def main():
     L += ["", "CAVEATS: same survivorship + short-history limits as backtest-results; 2-per-week filled first-come; daily bars. Variants that differ by <1% expectancy are noise."]
     out = "\n".join(L); print(out)
     (STATE / "backtest_breakout_full.txt").write_text(out)
+    out = stamp(CostModel(COST_SIDE, COST_SIDE, venue="coinbase-daily", tier="legacy blended COST_SIDE per side"), "next bar open after the signal bar; entry bar low checked against the stop") + out
     sb_upsert("pa_memory", [{"topic": "backtest-breakout-full", "fact": out, "source": "desk-loop", "active": True,
                              "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}], "topic")
 
