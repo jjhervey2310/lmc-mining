@@ -1,6 +1,9 @@
-"""Event-driven daily engine. Decision at bar i's close (as_of = t_i + bar); fill at bar i+1's OPEN with taker
-costs; stops/targets evaluated on each later bar's range (gap through a level fills at that bar's open,
-stop checked before target on the same bar); equity marked at each close. Positions are in USD notional."""
+"""Event-driven daily engine (v2 after review R-F).
+Chronology per bar opening at t:  (1) fill yesterday's decisions at this OPEN — sells first, then buys as a batch
+with a deterministic allocation (priority desc, symbol asc), all-or-none, never partial; (2) stops/targets on this
+bar's range INCLUDING the entry bar (stop before target; gap through a level fills at the open); (3) mark equity
+at the close, stamped t + bar; (4) decide with as_of(t + bar). `end_t` bounds information: a bar is processed only
+if t + bar <= end_t, so a fit window can never see its test window's first bar. Every non-fill is an event."""
 import dataclasses
 from bt_costs import CostModel
 
@@ -9,9 +12,10 @@ from bt_costs import CostModel
 class Order:
     symbol: str
     side: str            # 'buy' | 'sell' (sell = close the position)
-    usd: float = 0.0     # notional for buys; ignored for sells
+    usd: float = 0.0     # notional for buys (all-or-none)
     stop: float = None
     target: float = None
+    priority: float = 0.0  # higher fills first when capital/slots are scarce; ties by symbol
     tag: str = ""
 
 
@@ -35,7 +39,7 @@ class Trade:
     entry_px: float
     exit_px: float
     units: float
-    ret: float       # net fractional return on the notional
+    ret: float
     pnl: float
     reason: str
     tag: str = ""
@@ -51,58 +55,68 @@ class Portfolio:
 
 
 def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10):
-    """strategy(view, portfolio) -> list[Order]. Returns dict(equity=[(t, equity)], trades=[Trade], manifest-ish info)."""
     bar = market.bar_seconds
-    times = sorted({b.t for s in market.symbols() for b in market.bars[s]})
+    times = sorted({t for s in market.symbols() for t in market._ts[s]})
     if start_t is not None:
         times = [t for t in times if t >= start_t]
     if end_t is not None:
-        times = [t for t in times if t <= end_t]
-    pf, trades, equity = Portfolio(start_cash), [], []
-    pending = []                                  # orders decided at the previous close, to fill at this bar's open
+        times = [t for t in times if t + bar <= end_t]      # information boundary, not a label filter (R-F #1)
+    pf, trades, equity, events = Portfolio(start_cash), [], [], []
+    pending = []
     side_cost = costs.per_side(taker=True)
     for t in times:
-        # 1) fills for yesterday's decisions, at this bar's open
-        for o in pending:
-            b = market.next_bar(o.symbol, t)
-            if b is None or b.t != t:
-                continue                          # no bar for this symbol today: order lapses (no_fill)
-            if o.side == "buy" and o.symbol not in pf.positions and len(pf.positions) < max_positions:
-                usd = min(o.usd, pf.cash)
-                if usd <= 0:
-                    continue
-                px = b.o * (1 + side_cost)
-                pf.cash -= usd
-                pf.positions[o.symbol] = Position(o.symbol, usd / px, px, t, o.stop, o.target, b.o, o.tag)
-            elif o.side == "sell" and o.symbol in pf.positions:
+        # (1) sells first, then buys as a batch against post-sell cash and slots
+        sells = [o for o in pending if o.side == "sell"]
+        buys = sorted((o for o in pending if o.side == "buy"), key=lambda o: (-o.priority, o.symbol))
+        for o in sells:
+            b = market.bar_opening_at(o.symbol, t)
+            if b is None:
+                events.append((t, o.symbol, "no_fill", "no bar", o.tag)); continue
+            if o.symbol in pf.positions:
                 _close(pf, trades, o.symbol, b.o * (1 - side_cost), t, "signal")
+        for o in buys:
+            b = market.bar_opening_at(o.symbol, t)
+            if b is None:
+                events.append((t, o.symbol, "no_fill", "no bar", o.tag)); continue
+            if o.symbol in pf.positions:
+                events.append((t, o.symbol, "no_fill", "already held", o.tag)); continue
+            if len(pf.positions) >= max_positions:
+                events.append((t, o.symbol, "no_fill", "slots", o.tag)); continue
+            if o.usd <= 0 or o.usd > pf.cash + 1e-9:
+                events.append((t, o.symbol, "no_fill", f"cash {pf.cash:.2f} < {o.usd:.2f}", o.tag)); continue
+            px = b.o * (1 + side_cost)
+            pf.cash -= o.usd
+            pf.positions[o.symbol] = Position(o.symbol, o.usd / px, px, t, o.stop, o.target, b.o, o.tag)
+            events.append((t, o.symbol, "fill", f"{o.usd:.2f}", o.tag))
         pending = []
-        # 2) stops / targets on this bar's range (stop first; gap through → fill at open)
+        # (2) stops / targets on this bar's range, entry bar included (R-F #2)
         for s in list(pf.positions):
             p = pf.positions[s]
-            b = market.next_bar(s, t)
-            if b is None or b.t != t or p.entry_t == t:
+            b = market.bar_opening_at(s, t)
+            if b is None:
                 continue
             if p.stop is not None and b.l <= p.stop:
-                _close(pf, trades, s, min(p.stop, b.o) * (1 - side_cost), t, "stop")
-                continue
+                _close(pf, trades, s, min(p.stop, b.o) * (1 - side_cost), t, "stop"); continue
             if p.target is not None and b.h >= p.target:
-                _close(pf, trades, s, max(p.target, b.o) * (1 - side_cost), t, "target")
-                continue
+                _close(pf, trades, s, max(p.target, b.o) * (1 - side_cost), t, "target"); continue
             p.high = max(p.high, b.h)
-        # 3) mark and decide at the close
-        prices = {s: market.next_bar(s, t).c for s in pf.positions if market.next_bar(s, t) and market.next_bar(s, t).t == t}
-        equity.append((t, pf.equity({**{s: p.entry_px for s, p in pf.positions.items()}, **prices})))
-        view = market.as_of(t + bar)
-        pending = list(strategy(view, pf) or [])
-    # close everything at the last close for a clean mark
+        # (3) mark at the close, stamped with the close time (R-F #7)
+        prices = {}
+        for s in pf.positions:
+            b = market.bar_opening_at(s, t)
+            if b is not None:
+                prices[s] = b.c
+        equity.append((t + bar, pf.equity(prices)))
+        # (4) decide on the completed bar
+        pending = list(strategy(market.as_of(t + bar), pf) or [])
     if times:
         t = times[-1]
         for s in list(pf.positions):
-            b = market.next_bar(s, t)
-            _close(pf, trades, s, (b.c if b and b.t == t else pf.positions[s].entry_px) * (1 - side_cost), t, "eod")
-        equity[-1] = (t, pf.cash)
-    return {"equity": equity, "trades": trades, "final_cash": pf.cash, "start_cash": start_cash}
+            b = market.bar_opening_at(s, t)
+            _close(pf, trades, s, (b.c if b else pf.positions[s].entry_px) * (1 - side_cost), t, "eod")
+        equity[-1] = (t + bar, pf.cash)
+    return {"equity": equity, "trades": trades, "events": events, "final_cash": pf.cash, "start_cash": start_cash,
+            "no_fills": sum(1 for e in events if e[2] == "no_fill")}
 
 
 def _close(pf, trades, s, px, t, reason):

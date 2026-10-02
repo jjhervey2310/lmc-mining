@@ -128,3 +128,22 @@ Adopted verbatim as `docs/desk/TEST-PLAN.md` T1 and T2. Attempted T1 through the
 explicit `BEGIN … ROLLBACK` blocks (three attempts), fingerprints before/after identical (rows untouched). Execution moves
 to the Phase 2 harness via psql. The point that the service_role test proves the REVOKE and only the owner test proves
 the trigger is recorded in T1.
+
+---
+
+## R-2026-10-02-F — ChatGPT review of the backtest engine (PR #46 @ eb1cc85)
+
+All ten accepted; #1, #2, #3, #5 were Phase 2 blockers and are fixed in the same PR.
+
+| # | Claim | Action |
+|---|---|---|
+| 1 BLOCKER | `end_t` filtered bar labels, letting a fit window decide on the bar that opens at the fold boundary | `end_t` now bounds information: a bar is processed only if `t + bar <= end_t`. Test: a 50× spike in the bar opening exactly at the boundary cannot change the fit run |
+| 2 HIGH | stops skipped on the entry bar | Stops/targets live from the fill; stop before target; gap below the stop at the open → entry at open+cost then stop at the open. Test: entry 100, low 80, stop 90, close 120 → stopped same bar |
+| 3 HIGH | list-order capital/slot bias; buys processed before same-open sells | Sells first, then buys as a batch sorted by (priority desc, symbol asc). Test: reversed order → identical holdings and cash |
+| 4 HIGH | silent partial fills | All-or-none; every refusal is an event (`no_fill`, reason cash/slots/no bar/already held); `no_fills` count in the result |
+| 5 HIGH | `view._m` exposed the whole market | `AsOfView` is built with no Market reference (`__slots__`, materialised visibility cuts); plus a hygiene test that greps `strategies.py` for raw-market access. Claim softened in docs: enforced by interface + test, not by the language |
+| 6 HIGH | ghost assets in the default universe | `listings` required (synthetic tests opt in with `infer_listings=True`); universe requires a bar completed in the immediately preceding interval. Test: stale DEAD excluded before its delisting date |
+| 7 MEDIUM | equity stamped with the open time | Stamped `t + bar` (the close). Test added |
+| 8 MEDIUM | fingerprint missed H/L/O/V | Hash over canonical OHLCV rows + listings. Test: a changed high changes the hash |
+| 9 MEDIUM | missing fill bar silently lapsed | Recorded as `no_fill: no bar` event |
+| 10 LOW | `next_bar` public | Renamed `bar_opening_at`, documented engine-only; covered by the hygiene test |

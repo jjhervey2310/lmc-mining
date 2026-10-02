@@ -19,7 +19,7 @@ def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, 
     """For each fold: run every param set on the fit window, pick the best by `select`, run it on the test window.
     Returns per-fold picks and the concatenated out-of-sample trades/metrics. Trial count is recorded (multiple testing)."""
     times = sorted({b.t for s in market.symbols() for b in market.bars[s]})
-    fs = folds(times[0], times[-1], fit_days, test_days)
+    fs = folds(times[0], times[-1] + market.bar_seconds, fit_days, test_days)
     picks, oos_equity, oos_trades, trials = [], [], [], 0
     for (a, fe, ts, te) in fs:
         best = None

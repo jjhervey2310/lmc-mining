@@ -22,6 +22,10 @@ def market(n=400):
     return Market({"BTC": walk(1, n), "AAA": walk(2, n), "BBB": walk(3, n), "DEAD": walk(4, 150)}, {"BTC": (T0, None), "AAA": (T0, None), "BBB": (T0, None), "DEAD": (T0, T0 + 150 * DAY)})
 
 
+def mk(bars, listings=None):
+    return Market(bars, listings, infer_listings=listings is None)
+
+
 class AsOf(unittest.TestCase):
     def test_view_hides_incomplete_and_future_bars(self):
         m = market(); v = m.as_of(T0 + 10 * DAY + 3600)       # an hour into day 10
@@ -41,8 +45,77 @@ class AsOf(unittest.TestCase):
         run(market(50), spy, COSTS)
         self.assertEqual(seen["max_t"], T0 + 49 * DAY)         # never a bar at/after the last decision close
 
+    def test_view_holds_no_market_reference(self):
+        v = market().as_of(T0 + 10 * DAY)
+        self.assertFalse(hasattr(v, "_m"))
+        self.assertEqual(set(v.__slots__), {"t", "_bars", "_universe", "_bar_seconds"})
+
+    def test_stale_asset_is_not_in_universe(self):
+        m = market()
+        self.assertNotIn("DEAD", m.as_of(T0 + 149 * DAY + 3 * DAY).universe())   # last bar long gone even before delisting
+
+
+class Boundary(unittest.TestCase):
+    def test_end_t_bounds_information_not_labels(self):
+        """A spike in the bar opening exactly at the fold boundary must not change the fit run (R-F #1)."""
+        fe = T0 + 100 * DAY
+        def mkt(spike):
+            bars = walk(5, 200)
+            if spike:
+                b = bars[100]; bars[100] = Bar(b.t, b.o, b.h * 50, b.l, b.c * 50, b.v)   # the bar that OPENS at fe
+            return mk({"AAA": bars, "BTC": walk(1, 200)})
+        s = strategies.sma_trend(["AAA"], 1000, 5, 20)
+        a = run(mkt(False), strategies.sma_trend(["AAA"], 1000, 5, 20), COSTS, end_t=fe)
+        b = run(mkt(True), strategies.sma_trend(["AAA"], 1000, 5, 20), COSTS, end_t=fe)
+        self.assertEqual(a["final_cash"], b["final_cash"])
+        self.assertTrue(all(t <= fe for t, _ in a["equity"]))
+
+    def test_equity_is_stamped_at_the_close(self):
+        r = run(market(10), strategies.cash(), COSTS)
+        self.assertEqual(r["equity"][0][0], T0 + DAY)
+
 
 class Fills(unittest.TestCase):
+    def test_stop_is_live_on_the_entry_bar(self):
+        bars = [Bar(T0, 100, 101, 99, 100, 1), Bar(T0 + DAY, 100, 125, 80, 120, 1), Bar(T0 + 2 * DAY, 120, 121, 119, 120, 1)]
+        m = mk({"X": bars})
+        s = lambda view, pf: [Order("X", "buy", 1000, stop=90, target=130)] if view.t == T0 + DAY else []
+        tr = run(m, s, COSTS)["trades"][0]
+        self.assertEqual((tr.entry_t, tr.exit_t, tr.reason), (T0 + DAY, T0 + DAY, "stop"))
+        self.assertAlmostEqual(tr.exit_px, 90 * (1 - COSTS.per_side()), places=9)
+
+    def test_order_sequence_does_not_change_holdings(self):
+        """Identical same-day buys in normal and reversed order → identical portfolio (R-F #3/#4)."""
+        syms = ["AAA", "BBB", "BTC"]
+        def strat(order):
+            fired = {"n": 0}
+            def s(view, pf):
+                fired["n"] += 1
+                return [Order(x, "buy", 4000) for x in order] if fired["n"] == 1 else []
+            return s
+        a = run(market(30), strat(syms), COSTS, start_cash=10_000)
+        b = run(market(30), strat(list(reversed(syms))), COSTS, start_cash=10_000)
+        self.assertEqual([tr.symbol for tr in sorted(a["trades"], key=lambda x: x.symbol)], [tr.symbol for tr in sorted(b["trades"], key=lambda x: x.symbol)])
+        self.assertAlmostEqual(a["final_cash"], b["final_cash"], places=9)
+        self.assertEqual(a["no_fills"], 1)                         # 3 × 4000 > 10 000: one all-or-none refusal, recorded
+        self.assertTrue(any(e[2] == "no_fill" and e[3].startswith("cash") for e in a["events"]))
+
+    def test_no_partial_fills(self):
+        s = lambda view, pf: [Order("AAA", "buy", 50_000)] if view.t == T0 + DAY else []
+        r = run(market(10), s, COSTS, start_cash=10_000)
+        self.assertEqual(r["trades"], []); self.assertEqual(r["no_fills"], 1)
+
+    def test_sells_release_cash_before_same_open_buys(self):
+        state = {"n": 0}
+        def s(view, pf):
+            state["n"] += 1
+            if state["n"] == 1: return [Order("AAA", "buy", 9000)]
+            if state["n"] == 2: return [Order("AAA", "sell"), Order("BBB", "buy", 8000)]
+            return []
+        r = run(market(10), s, COSTS, start_cash=10_000)
+        self.assertEqual({tr.symbol for tr in r["trades"]}, {"AAA", "BBB"})
+
+
     def test_buy_fills_next_open_with_costs_and_sell_closes(self):
         m = market(30); fired = {"n": 0}
         def s(view, pf):
@@ -58,16 +131,23 @@ class Fills(unittest.TestCase):
 
     def test_stop_before_target_and_gap_fills_at_open(self):
         bars = [Bar(T0, 100, 101, 99, 100, 1), Bar(T0 + DAY, 100, 101, 99, 100, 1), Bar(T0 + 2 * DAY, 80, 130, 70, 120, 1)]
-        m = Market({"X": bars}, {"X": (T0, None)})
+        m = mk({"X": bars})
         s = lambda view, pf: [Order("X", "buy", 1000, stop=90, target=125)] if view.t == T0 + DAY else []
         r = run(m, s, COSTS); tr = r["trades"][0]
         self.assertEqual(tr.reason, "stop")
-        self.assertAlmostEqual(tr.exit_px, 80 * (1 - COSTS.per_side()), places=9)   # gapped through 90: fills at the open
+        self.assertAlmostEqual(tr.exit_px, 80 * (1 - COSTS.per_side()), places=9)   # entry bar: gapped through 90 at the open → stopped at the open
 
     def test_costs_reduce_pnl(self):
         m = market(60); s = strategies.buy_and_hold(["AAA"], 1000)
         free = CostModel(0.0, 0.0, "test", "free")
         self.assertLess(run(m, s, COSTS)["final_cash"], run(m, strategies.buy_and_hold(["AAA"], 1000), free)["final_cash"])
+
+
+class StrategyHygiene(unittest.TestCase):
+    def test_tournament_strategies_do_not_touch_the_market(self):
+        import re, inspect
+        src = inspect.getsource(strategies)
+        self.assertIsNone(re.search(r"\b(market|_m\b|bar_opening_at|_ts|_bars\b)", src), "strategies.py must only use the AsOfView interface")
 
 
 class Research(unittest.TestCase):
@@ -96,6 +176,10 @@ class Research(unittest.TestCase):
         b = research.manifest("x", {"k": 1}, m, COSTS, "rule", [], {}, {}, None, {"verdict": "inconclusive"})
         self.assertEqual((a["config_hash"], a["data_hash"], a["universe_hash"]), (b["config_hash"], b["data_hash"], b["universe_hash"]))
         self.assertNotEqual(a["config_hash"], research.manifest("x", {"k": 2}, m, COSTS, "rule", [], {}, {}, None, {})["config_hash"])
+
+    def test_fingerprint_sees_highs_lows_and_volume(self):
+        b1 = walk(9, 20); b2 = list(b1); x = b2[5]; b2[5] = Bar(x.t, x.o, x.h * 1.5, x.l, x.c, x.v)
+        self.assertNotEqual(mk({"A": b1}).fingerprint(), mk({"A": b2}).fingerprint())
 
     def test_monte_carlo_shape(self):
         mc = research.monte_carlo(run(market(300), strategies.buy_and_hold(["AAA", "BBB"], 1000), COSTS), n=50, block=10)
