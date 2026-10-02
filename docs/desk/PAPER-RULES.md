@@ -17,7 +17,7 @@ If the 5-minute feed is missing when a fill is due, the fill is **not** substitu
 
 ## Entry
 - Exact trigger (level and/or condition) and an **entry expiry** stated in the thesis. Trigger never fires → `no_entry`, graded separately from the claim.
-- Fill = per convention above, after the decision timestamp (`decided_at`). Never the bar that revealed the trigger.
+- Fill = per convention above, and never the bar that revealed the trigger. Formally (R-D): `eligible_at = max(signal_data_available_at, decision_completed_at) + execution_latency`, with `execution_latency` **frozen at 60 s** for v2; the fill is the first completed 5-minute close **strictly after** `eligible_at`, plus costs. A daily signal available at 00:00:30 UTC with the decision done at 00:06 cannot take the 00:05 bar. This is a bar-price execution proxy, not proof of fillability; forward paper trading moves to the next observable bid/ask and depth after eligibility when the Kraken feed is wired. No assumed "thin first bar" delay: any such delay is frozen beforehand and compared against predetermined alternatives, never picked for historical return; any liquidity gate has a fixed timeout and an explicit `no_fill` outcome.
 - Costs until the live Kraken tier is read: **0.40% maker / 0.80% taker** + **0.10% slippage** per side.
 
 ## Exit
@@ -45,5 +45,7 @@ Two separate columns, never conflated:
 - `discretionary` — the database default for every new position: v2-compliant hand-written theses. Development data for the scanner, never its validation.
 - `scanner` — frozen rules on untouched periods/assets. The only class that can validate the scanner.
 
-## Provenance (unchanged from v1)
-Trigger-written immutable revisions (`desk_watchlist_revisions`); deletes refused; `desk_selection_log` per pass; `used_in_scanner_dev` flag; `fee_model` and `rule_version` on every position.
+## Provenance (hardened per R-D)
+- Every thesis has an immutable `thesis_id` (UUID) and a per-row `revision` counter incremented atomically by a BEFORE UPDATE trigger; `thesis_id` and `symbol` cannot change (a different asset is a new thesis; a ticker correction is a new linked thesis). Revisions and paper positions reference `thesis_id`; `UNIQUE (thesis_id, revision)`.
+- `desk_watchlist_revisions` and `desk_selection_log` are append-only: UPDATE/DELETE/TRUNCATE rejected by triggers **and** revoked from `anon`, `authenticated`, `service_role`; revision rows can only be written by the SECURITY DEFINER audit function (fixed `search_path = public, pg_temp`, schema-qualified). TRUNCATE is rejected on the watchlist too. Owners/admins remain the trusted boundary.
+- `desk_selection_log` per pass; `used_in_scanner_dev` flag; `fee_model`, `rule_version`, `monitoring_convention` on every position.

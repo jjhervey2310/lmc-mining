@@ -101,3 +101,20 @@ Not verified by the reviewer and still open: the DB triggers themselves (verifie
 
 ### Codex (automated) on PR #44 — all five accepted
 P1 intrabar fill moved to the next completed 5m bar after the trigger bar · `monitoring_convention` now defaulted, NOT NULL and CHECK-constrained on both tables · fractional exits recorded per fill in `desk_paper_fills` (position-level fields become aggregates; single `btc_exit_px` dropped) · `evidence_class` default is `discretionary` with a CHECK, the four provisional rows explicitly `exploratory` · `alt_max_drawdown` and `btc_max_drawdown` stored separately.
+
+
+---
+
+## R-2026-10-02-D — ChatGPT review of PR #44 @ 6af1d3f (trigger hardening, fill rule)
+
+| # | Claim | Verdict | Action |
+|---|---|---|---|
+| 1 | Revision table itself unprotected | Correct | UPDATE/DELETE/TRUNCATE reject triggers on revisions and selection log; INSERT/UPDATE/DELETE/TRUNCATE revoked on revisions and UPDATE/DELETE/TRUNCATE on selection log from anon/authenticated/service_role; inserts only via the audit function |
+| 2 | TRUNCATE bypasses BEFORE DELETE | Correct | BEFORE TRUNCATE FOR EACH STATEMENT reject triggers on watchlist, revisions, selection log; TRUNCATE revoked |
+| 3 | No immutable thesis identity | Correct | `thesis_id` UUID (unique) on watchlist, revisions, paper ledger; BEFORE UPDATE guard rejects changes to `thesis_id` or `symbol` |
+| 4 | `max(revision)+1` unconstrained | Correct | per-row `revision` counter set by the guard trigger (`OLD.revision + 1`, serialised by the row lock); `UNIQUE (thesis_id, revision)` |
+| 5 | SECURITY DEFINER without fixed search_path | Correct | all desk trigger functions `SET search_path = public, pg_temp`, schema-qualified |
+| 6 | Latency-based fill rule, not a midnight delay | Agreed | `eligible_at = max(signal_available, decision_completed) + 60 s`, first 5m close strictly after; frozen; no liquidity assumption |
+| 7 | intrabar-5m same-bar fill | Already fixed in 1f53022 (next completed bar after the touch bar) | — |
+
+Verification run (below in this log once executed): ordinary insert/update, rejected symbol and thesis_id mutation, DELETE, TRUNCATE, direct revision tampering, under `service_role` and `postgres`.
