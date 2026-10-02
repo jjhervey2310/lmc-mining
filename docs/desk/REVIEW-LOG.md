@@ -248,3 +248,13 @@ reproduction is reviewed and accepted (the printed run_id is an identifier only)
 snapshot data_hash, universe_hash, symbol count, delisted count, date span, fee model, fit/test windows, in-sample
 metrics, OOS metrics, gate checks, trial count, no-fill breakdown, four-row attribution table. The repo/Vercel rename is
 operationally separate from the verdict.
+
+---
+
+## R-2026-10-02-N — Phase 2 reproduction executed (PR #46 @ 3264acc)
+
+Result in `docs/desk/PHASE2-REPRODUCTION.md` and `docs/desk/ATTRIBUTION-2026-10-02.txt`. Two invalid runs recorded and
+excluded (truncated snapshot; stale listing proxies). Verified snapshot: 444,684 rows = DB count, 419 symbols, 88 delisted,
+2020-03-08 → 2026-10-01, data_hash `8df7990c93dcc632`, universe_hash `64e00348d99bb713`. Framework reproduces the legacy
+script within 2% (619 vs 607 trades, PF 0.83 vs 0.82). House breakout rule: rejected (OOS −84%, PF 0.81, 4/7 gate checks
+fail). Allocator impact is exposure (4% → 38%), not edge. Nothing written to `research_runs`. Awaiting independent verdict.
