@@ -7,10 +7,11 @@ Answers reviews R-2026-10-02-B and R-2026-10-02-C. Rules are versioned; a positi
 - Paper only. Nothing touches a broker.
 
 ## Monitoring convention — ONE per thesis, fixed at creation, never changed by data availability
+Stored on both the thesis and the position (`monitoring_convention`, default `daily-close`, NOT NULL, CHECK-constrained to the two values below).
 | Convention | Decision clock | Trigger test | Fill | Ambiguity |
 |---|---|---|---|---|
 | `daily-close` (default) | completed UTC daily close | stop/target/invalidation tested on **closes only**; intrabar touches do not count | the **next completed 5-minute bar close** after the triggering daily close, plus costs | none possible (one close per day) |
-| `intrabar-5m` (only for names with continuous 5m coverage at creation) | each completed 5m bar | level **touched** by the bar's high/low | that bar's close, plus costs | bar touches stop and target → **stop first** |
+| `intrabar-5m` (only for names with continuous 5m coverage at creation) | each completed 5m bar | level **touched** by the bar's high/low | the **next** completed 5m bar's close after the triggering bar, plus costs (the triggering bar's own close is only known once it has closed — not executable) | bar touches stop and target → **stop first** |
 
 If the 5-minute feed is missing when a fill is due, the fill is **not** substituted with a daily open or close: the position is marked `fill_unavailable` and the outcome is `unresolved` for that leg. Missing data never silently changes the convention or the event.
 
@@ -28,7 +29,7 @@ If the 5-minute feed is missing when a fill is due, the fill is **not** substitu
 1. **Claim** — did the falsifiable prediction happen by the deadline? yes / no / unresolvable.
 2. **Path** — target before stop within the horizon? yes / no / no_entry / expired.
 3. **Trade** — net return after costs from the recorded fill; max drawdown while open.
-4. **Benchmark-relative** (R-C) — same dollars into **BTC at the alt's executable entry timestamp**, liquidated in the same fractions at the alt's actual paper exit timestamps, with BTC's execution costs under the same fee methodology. Record `btc_entry_px`, `btc_exit_px`, `alt_net_return`, `btc_net_return`, `excess_return_pp = alt − BTC`, and both drawdowns. No entry → `not_applicable`. This measures **asset selection conditional on the chosen timing**; it does not validate the timing and is not risk-adjusted alpha. The alt's percentage stops/targets are **never** applied to BTC.
+4. **Benchmark-relative** (R-C) — same dollars into **BTC at the alt's executable entry timestamp**, liquidated in the same fractions at the alt's actual paper exit timestamps, with BTC's execution costs under the same fee methodology. Every exit fraction is a row in `desk_paper_fills` (timestamp, fraction, alt fill, BTC fill at that same timestamp, kind); position-level `btc_entry_px`, `alt_net_return`, `btc_net_return`, `excess_return_pp = alt − BTC`, `alt_max_drawdown`, `btc_max_drawdown` are aggregates computed from those rows, never typed by hand. No entry → `not_applicable`. This measures **asset selection conditional on the chosen timing**; it does not validate the timing and is not risk-adjusted alpha. The alt's percentage stops/targets are **never** applied to BTC.
    Book level: the whole $1,000 ledger (idle cash included) vs BTC buy-and-hold vs cash on fixed evaluation dates (1st of each month).
 No hindsight entries, no revised stops: an edit is a new revision graded on its own.
 
@@ -40,8 +41,8 @@ Two separate columns, never conflated:
 - A reference-class rate for a *path* event (e.g. "touch +30% before −15% by the deadline, conditional on entry") says nothing about whether a written fundamental claim is true.
 
 ## Evidence classes
-- `exploratory` — the four positions opened 2026-10-02 05:20Z (`v0-provisional`, last-close fill, no benchmark at entry). Visible, graded for the record, **excluded from probability calibration and benchmark evidence**.
-- `discretionary` — v2-compliant hand-written theses. Development data for the scanner, never its validation.
+- `exploratory` — only the four positions opened 2026-10-02 05:20Z (`v0-provisional`, last-close fill, no benchmark at entry), set explicitly. Visible, graded for the record, **excluded from probability calibration and benchmark evidence**.
+- `discretionary` — the database default for every new position: v2-compliant hand-written theses. Development data for the scanner, never its validation.
 - `scanner` — frozen rules on untouched periods/assets. The only class that can validate the scanner.
 
 ## Provenance (unchanged from v1)
