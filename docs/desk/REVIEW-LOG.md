@@ -236,3 +236,15 @@ Accepted verbatim. Definition recorded for Phase 4 (not built yet; nothing in Ph
   haircuts from R-J (−25% / −50% / −100%). The manifest records multiple, absolute floor and haircut; `research_runs`
   carries the surviving edge per cell.
 - Phase 2 attribution and reproduction remain legacy-symmetric (R-J); this rule is Phase 4 only.
+
+---
+
+## R-2026-10-02-L — ChatGPT: Phase 2 evidence chain and the no-store rule
+
+Accepted. Research reads use the publishable key under explicit SELECT policies (`md_candles`, `universe_history`);
+the service-role key stays out of every agent path. Jacob runs `export → frozen snapshot → bt_run breakout_legacy →
+bt_attrib` in Terminal himself. The reproduction run uses `--no-store`: no `research_runs` row is written until the
+reproduction is reviewed and accepted (the printed run_id is an identifier only). `PHASE2-REPRODUCTION.md` records:
+snapshot data_hash, universe_hash, symbol count, delisted count, date span, fee model, fit/test windows, in-sample
+metrics, OOS metrics, gate checks, trial count, no-fill breakdown, four-row attribution table. The repo/Vercel rename is
+operationally separate from the verdict.
