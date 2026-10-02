@@ -283,6 +283,35 @@ def resting_stop_required(sym, book_usd=None):
             return True                              # fail loud, not silent
     return float(book_usd) >= ANCHOR_STANDING_TRAIL_USD
 
+STOP_COVERAGE_TOLERANCE = 0.01   # dust: fees, staking rewards and rounding move qty a hair. 1% is noise, not a gap.
+
+def stop_coverage_gap(held_qty, stop_rows):
+    """Do the resting stop rows actually cover every unit held? (A3 §3 / v4: "stops on 100% of units, always".)
+
+    resting_stop_required() answers WHETHER a stop is owed. This answers whether the stop that exists is
+    big enough, which is a different question and the one the screen used to miss: after a DCA fill the
+    old stop row is still sitting there covering the OLD quantity, so a presence-only test ("is there a
+    stop row?") stays quiet at exactly the moment the new units are naked. A12 accumulation makes that
+    the normal case, not an edge case.
+
+    Returns (covered_qty, uncovered_qty, unknown):
+      unknown       -> a stop row does not record what it covers (covers_qty NULL). Coverage cannot be
+                       PROVEN, so it is reported as a breach rather than assumed good — the same fail-loud
+                       posture resting_stop_required() takes when the book cannot be valued.
+      uncovered_qty -> units held beyond what the rows cover; 0.0 when fully covered.
+    """
+    held = float(held_qty or 0)
+    if held <= 0 or not stop_rows:
+        return 0.0, 0.0, False
+    unknown = any(r.get("covers_qty") in (None, "") for r in stop_rows)
+    covered = sum(float(r.get("covers_qty") or 0) for r in stop_rows)
+    if unknown:
+        return covered, max(held - covered, 0.0), True
+    gap = held - covered
+    if gap <= held * STOP_COVERAGE_TOLERANCE:
+        return covered, 0.0, False
+    return covered, gap, False
+
 def sleeve_breaker(holdings=None, px=None):
     """A9 (2026-09-06): the circuit breaker is SLEEVE-ONLY. Ratio = sleeve market value / sleeve cost basis
     (adds and proportional exits leave it unchanged, so it tracks P&L, not flows). Trips at 20% below the

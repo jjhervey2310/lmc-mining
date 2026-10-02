@@ -28,6 +28,8 @@ not on Vercel and not under `pg_cron`. It is **alert-only**: nothing here places
 | Rulebook beats formula — a `ratchet`/`stall` row's spec is pushed verbatim, never re-derived | `trail.py` main, step (1) | `DEDUPE_H = 6` |
 | Ratchet/stall lines are **daily-close** based, never an intraday print | `trail.py` `last_completed_close()` | — |
 | **Stop presence** — the law screen that writes `kind='nostop'` | `trail.py` main, step (2) → `common.resting_stop_required()` | `ANCHOR_SYMS`, `ANCHOR_STANDING_TRAIL_USD = 5000.0` |
+| **Stop coverage** — the law screen that writes `kind='stop_short'` | `trail.py` main, step (2) → `common.stop_coverage_gap()` | `STOP_COVERAGE_TOLERANCE = 0.01`, `desk_triggers.covers_qty` |
+| A3 §3 / v4: "stops on 100% of units, always" — **coverage**, not just presence | `common.stop_coverage_gap()`; a stop row with `covers_qty` NULL is reported as a breach, never assumed good | `covers_qty` must be updated whenever a stop is placed, extended or replaced |
 | A11: anchor exempt from a resting stop while book < $5,000 | `common.resting_stop_required()` | same — **one place, both values** |
 | A11 §4: every non-anchor position needs a stop row, always | `common.resting_stop_required()` returns `True` for non-anchors | — |
 | A9: anchor 30% catastrophe trail off the highest completed close since entry, up only | `trail.py` main, step (3) | `ANCHOR_TRAIL = 0.30` |
@@ -55,7 +57,7 @@ not on Vercel and not under `pg_cron`. It is **alert-only**: nothing here places
 ## `desk_alert_log.kind` — who writes what
 
 `price_check.py` writes the trigger's own kind (`stop`, `bid`, `rung`, `deep_rung`, `ratchet`, `trail_high`, `target`, `breakout`).
-`trail.py` writes `ratchet`, `stall`, `nostop`, `proposal`, `take_third`, `rotate`, `breaker`, `reclaim`, `reclaim_signal`, `flush`.
+`trail.py` writes `ratchet`, `stall`, `nostop`, `stop_short`, `proposal`, `take_third`, `rotate`, `breaker`, `reclaim`, `reclaim_signal`, `flush`.
 `heartbeat.py` writes the daily `pa_memory.loop-heartbeat` row.
 
 ## NOT in code — human-only, do not assume the loop is watching
