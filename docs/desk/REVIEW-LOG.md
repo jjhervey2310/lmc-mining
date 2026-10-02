@@ -84,3 +84,39 @@ Core claim: a hand-picked watchlist whose outcomes inform the scanner becomes tr
 | 5 | Deterministic ledger | Fixed (rules) + labelled exception | Shared $1,000 book, 10%/name, 50% gross; fill = next completed 5m close after `decided_at`; Kraken base tier 0.40/0.80 + 0.1% slippage; ambiguous candle = stop first; horizon from creation; `rule_version` per position. The four positions opened 05:20Z used the *last* close at decision → tagged `v0-provisional`, never scanner evidence |
 | — | Base rate must match the prediction; no invented confidence | Fixed | All `confidence` values set to NULL, shown as "unknown (no reference class yet)" until Phase 4 defines reference classes |
 | — | Full required-fields schema | Partially adopted | `claim`, `decided_at`, `expires_at`, `fee_model`, `rule_version` added now; stable asset IDs / contract / candidate-universe hash come with `universe_history` + `token_map` as the Coinbase universe backfills |
+
+---
+
+## R-2026-10-02-C — ChatGPT review of PAPER-RULES v1 / R-B
+
+| # | Claim | Verdict | Action |
+|---|---|---|---|
+| 1 | Add benchmark-relative performance (same dollars in BTC at the alt's entry, liquidated at the alt's exits, same fee methodology), separate from claim/path/trade; book-level vs BTC B&H and cash | **Correct** | PAPER-RULES v2 §Grading #4; columns `btc_entry_px, btc_exit_px, alt_net_return, btc_net_return, excess_return_pp, max_drawdown` added; alt % stops are never applied to BTC |
+| 2 | Reference class = reproducible sampling rule with the listed minimum definition; store `reference_class_rate` separately from `thesis_probability`; adjustments are subjective and labelled | **Correct** | Columns added (`reference_class_rate`, `reference_class_ref`, `thesis_probability`, `probability_adjustment_note`); definition table in v2 §Probability |
+| 3 | No arbitrary sample-count gate; account for dependence; unknown when the denominator is not reproducible | **Correct** | v2 §Probability; the "Phase 4" wording in R-B is withdrawn as the determining factor |
+| 4 | v1 contradiction: close-based exits + intrabar touches, daily or 5m depending on availability; a close trigger needs a subsequent executable fill | **Correct** | v2 defines two conventions (`daily-close`, `intrabar-5m`), one per thesis fixed at creation; missing 5m data → `fill_unavailable`, never a silent switch; daily-close fills at the next completed 5m close |
+| — | Keep the four provisional positions outside calibration and benchmark evidence | Agreed | `evidence_class = 'exploratory'` on all four; `btc_entry_px` recorded (86,359 at 05:20Z) for display only, not evidence |
+
+Not verified by the reviewer and still open: the DB triggers themselves (verified here by `desk_watchlist_revisions` count = 2× rows after the confidence update).
+
+### Codex (automated) on PR #44 — all five accepted
+P1 intrabar fill moved to the next completed 5m bar after the trigger bar · `monitoring_convention` now defaulted, NOT NULL and CHECK-constrained on both tables · fractional exits recorded per fill in `desk_paper_fills` (position-level fields become aggregates; single `btc_exit_px` dropped) · `evidence_class` default is `discretionary` with a CHECK, the four provisional rows explicitly `exploratory` · `alt_max_drawdown` and `btc_max_drawdown` stored separately.
+
+
+---
+
+## R-2026-10-02-D — ChatGPT review of PR #44 @ 6af1d3f (trigger hardening, fill rule)
+
+| # | Claim | Verdict | Action |
+|---|---|---|---|
+| 1 | Revision table itself unprotected | Correct | UPDATE/DELETE/TRUNCATE reject triggers on revisions and selection log; INSERT/UPDATE/DELETE/TRUNCATE revoked on revisions and UPDATE/DELETE/TRUNCATE on selection log from anon/authenticated/service_role; inserts only via the audit function |
+| 2 | TRUNCATE bypasses BEFORE DELETE | Correct | BEFORE TRUNCATE FOR EACH STATEMENT reject triggers on watchlist, revisions, selection log; TRUNCATE revoked |
+| 3 | No immutable thesis identity | Correct | `thesis_id` UUID (unique) on watchlist, revisions, paper ledger; BEFORE UPDATE guard rejects changes to `thesis_id` or `symbol` |
+| 4 | `max(revision)+1` unconstrained | Correct | per-row `revision` counter set by the guard trigger (`OLD.revision + 1`, serialised by the row lock); `UNIQUE (thesis_id, revision)` |
+| 5 | SECURITY DEFINER without fixed search_path | Correct | all desk trigger functions `SET search_path = public, pg_temp`, schema-qualified |
+| 6 | Latency-based fill rule, not a midnight delay | Agreed | `eligible_at = max(signal_available, decision_completed) + 60 s`, first 5m close strictly after; frozen; no liquidity assumption |
+| 7 | intrabar-5m same-bar fill | Already fixed in 1f53022 (next completed bar after the touch bar) | — |
+
+Verification run (below in this log once executed): ordinary insert/update, rejected symbol and thesis_id mutation, DELETE, TRUNCATE, direct revision tampering, under `service_role` and `postgres`.
+
+**R-D verification (desk_selftest(), 2026-10-02 06:1x UTC):** `update_audited:t symbol_change:rejected tid_change:rejected delete:rejected rev_update:rejected rev_delete:rejected svc_rev_insert:rejected svc_sel_delete:rejected` — the last two under `SET LOCAL ROLE service_role`. TRUNCATE rejection is enforced by trigger + revoke but was not exercised in the selftest (no safe way to attempt it inside a function without a savepoint on a DDL-class statement); open item. Concurrency/rollback tests: open item for the Phase 2 test harness.
