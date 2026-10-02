@@ -68,9 +68,15 @@ async function refreshHead(sb: SupabaseClient, c: Cursor, now: number): Promise<
   return n
 }
 
+// Coinbase's public limit is ~10 req/s per IP and it 429s on bursts (23% of the first runs' chunks were
+// rate-limited). Small groups with a pause between them keep a 40-chunk run inside the limit.
+const PACE_MS = 400
 const inGroups = async <T, R>(items: T[], size: number, fn: (t: T) => Promise<R>): Promise<R[]> => {
   const out: R[] = []
-  for (let i = 0; i < items.length; i += size) out.push(...(await Promise.all(items.slice(i, i + size).map(fn))))
+  for (let i = 0; i < items.length; i += size) {
+    if (i > 0) await new Promise((r) => setTimeout(r, PACE_MS))
+    out.push(...(await Promise.all(items.slice(i, i + size).map(fn))))
+  }
   return out
 }
 
@@ -83,13 +89,13 @@ export async function runBackfillBatch(sb: SupabaseClient, opts: { chunks?: numb
   const { data: todo, error } = await sb.from('md_backfill_cursor').select('*').eq('done', false)
     .order('interval_minutes', { ascending: false }).order('priority').order('updated_at').limit(chunks)
   if (error) throw new Error(`cursor select: ${error.message}`)
-  const steps = await inGroups((todo ?? []) as Cursor[], 5, (c) => stepCursor(sb, c, now))
+  const steps = await inGroups((todo ?? []) as Cursor[], 3, (c) => stepCursor(sb, c, now))
 
   // Heads: finished cursors whose newest bar is older than one interval.
   const { data: stale } = await sb.from('md_backfill_cursor').select('*').eq('done', true).is('error', null)
     .or(`head_synced_at.is.null,head_synced_at.lt.${new Date(now - 60 * 60_000).toISOString()}`)
     .order('interval_minutes', { ascending: false }).order('head_synced_at', { ascending: true, nullsFirst: true }).limit(heads)
-  const headCounts = await inGroups((stale ?? []) as Cursor[], 5, (c) => refreshHead(sb, c, now))
+  const headCounts = await inGroups((stale ?? []) as Cursor[], 3, (c) => refreshHead(sb, c, now))
 
   const { count } = await sb.from('md_backfill_cursor').select('*', { count: 'exact', head: true }).eq('done', false)
   return {
