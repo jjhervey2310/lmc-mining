@@ -146,7 +146,7 @@ _Previous update: 2026-07-15 (afternoon) — pipeline code-complete; Postiz sign
 Positioning: _"The only mining voice honest enough to tell you when NOT to buy."_ Publishes real math
 from live network data. Revenue = affiliate (Abundant Mines hosting) + paid audits ($97 / $297).
 
-- **Repo:** github.com/jjhervey2310/lmc-mining · **Local:** ~/Desktop/lmc-mining
+- **Repo:** github.com/jjhervey2310/swerves-bot · **Local:** ~/Desktop/lmc-mining
 - **Stack:** Next.js 14 (App Router), TypeScript, Tailwind v4, Supabase, Resend, Stripe, Vercel, Cloudflare
 - **Voice/rules source of truth:** `BRAND.md` · **Owner:** Jacob Hervey (jjhervey1@gmail.com)
 
