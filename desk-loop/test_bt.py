@@ -176,10 +176,10 @@ class FailClosed(unittest.TestCase):
         from bt import load
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "snap.json")
-            json.dump({"rows": self.rows()}, open(p, "w"))
+            with open(p, "w") as f: json.dump({"rows": self.rows()}, f)
             with self.assertRaises(ValueError):
                 load.load_snapshot(p)
-            json.dump({"rows": self.rows(), "listings": {"AAA": [T0, None]}}, open(p, "w"))
+            with open(p, "w") as f: json.dump({"rows": self.rows(), "listings": {"AAA": [T0, None]}}, f)
             self.assertEqual(load.load_snapshot(p).listings["AAA"], (T0, None))
 
     def test_no_fill_reasons_and_sizing_in_manifest(self):
@@ -230,3 +230,74 @@ class Research(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Attribution(unittest.TestCase):
+    """R-I: trailing stop, fixed-dollar diagnostic sizing, legacy strategy parity on synthetic bars."""
+    def test_trail_ratchets_on_closing_highs_only(self):
+        bars = [Bar(T0, 100, 101, 99, 100, 1), Bar(T0 + DAY, 100, 112, 99, 110, 1), Bar(T0 + 2 * DAY, 110, 125, 108, 120, 1),
+                Bar(T0 + 3 * DAY, 120, 121, 104, 105, 1), Bar(T0 + 4 * DAY, 105, 106, 100, 101, 1)]
+        m = mk({"X": bars})
+        s = lambda view, pf: [Order("X", "buy", stop=50, trail=0.10)] if view.t == T0 + DAY else []
+        r = run(m, s, COSTS); tr = r["trades"][0]
+        # entry day1 open 100(+cost); seed high = day1 close 110 (no ratchet on the entry bar); day2 close 120 → stop 108; day3 low 104 → stopped at 108
+        self.assertEqual(tr.reason, "stop"); self.assertEqual(tr.exit_t, T0 + 3 * DAY)
+        self.assertAlmostEqual(tr.exit_px, 108 * (1 - COSTS.per_side()), places=9)
+
+    def test_fixed_usd_does_not_scale_with_equity(self):
+        s = lambda view, pf: [Order("AAA", "buy")] if view.t in (T0 + DAY, T0 + 5 * DAY) else ([Order("AAA", "sell")] if view.t == T0 + 3 * DAY else [])
+        r = run(market(10), s, COSTS, start_cash=10_000, fixed_usd=100.0)
+        self.assertEqual([e[3] for e in r["events"] if e[2] == "fill"], ["100.00", "100.00"])
+        self.assertEqual(r["sizing"]["rule"], "fixed-usd DIAGNOSTIC")
+        self.assertEqual(len(r["cash_curve"]), len(r["equity"]))
+
+    @staticmethod
+    def vol_market(n=500):
+        def walk(seed, n, drift):
+            rnd = random.Random(seed); px = 100.0; out = []
+            for i in range(n):
+                o = px; c = o * (1 + rnd.gauss(drift, 0.04)); h = max(o, c) * (1 + abs(rnd.gauss(0, 0.01))); l = min(o, c) * (1 - abs(rnd.gauss(0, 0.01)))
+                v = rnd.lognormvariate(0, 0.8) * (3 if rnd.random() < 0.08 else 1)
+                out.append(Bar(T0 + i * DAY, o, h, l, c, v)); px = c
+            return out
+        return Market({"BTC": walk(1, n, 0.0005), "AAA": walk(2, n, 0.002), "BBB": walk(3, n, 0.001), "CCC": walk(5, n, 0.0), "DEAD": walk(4, 200, 0.002)},
+                      {"BTC": (T0, None), "AAA": (T0, None), "BBB": (T0, None), "CCC": (T0, None), "DEAD": (T0, T0 + 200 * DAY)})
+
+    def test_legacy_port_and_honest_engine_agree_when_capital_is_unconstrained(self):
+        """Cell 1 (verbatim legacy) and cell 2 (honest engine, same $100) must match trade-for-trade on a path where
+        listings and cash never bind — otherwise the port, not the data, would explain a #1 vs #2 gap."""
+        import bt_attrib
+        _, ms = bt_attrib.report(self.vol_market(), 10_000, "synthetic-vol")
+        c1, c2, c3 = [ms[k] for k in sorted(ms)][:3]
+        self.assertGreater(c1["trades"], 5)
+        for k in ("trades", "win_rate"):
+            self.assertEqual(c1[k], c2[k])
+        for k in ("avg_trade_return", "profit_factor", "total_return"):
+            self.assertAlmostEqual(c1[k], c2[k], places=6)
+        self.assertEqual(c2["trades"], c3["trades"])                       # same signals; only the size differs
+        self.assertGreater(c3["exposure_pct"], c2["exposure_pct"])         # slot sizing deploys more than $100 of $10k
+
+    def test_delisted_holding_closes_at_last_close(self):
+        bars = [Bar(T0 + i * DAY, 100, 101, 99, 100, 1) for i in range(5)]
+        m = mk({"X": bars, "Y": [Bar(T0 + i * DAY, 1, 1, 1, 1, 1) for i in range(8)]}, {"X": (T0, T0 + 5 * DAY), "Y": (T0, None)})
+        s = lambda view, pf: [Order("X", "buy")] if view.t == T0 + DAY else []
+        r = run(m, s, COSTS); tr = r["trades"][0]
+        self.assertEqual(tr.reason, "delisted"); self.assertEqual(tr.exit_t, T0 + 5 * DAY)
+        self.assertAlmostEqual(tr.exit_px, 100 * (1 - COSTS.per_side()), places=9)
+
+    def test_legacy_strategy_caps_two_entries_per_week_and_attrib_report_runs(self):
+        import bt_attrib
+        text, ms = bt_attrib.report(market(200), 10_000, "synthetic")
+        self.assertTrue(text.startswith(bt_attrib.BANNER) and text.rstrip().endswith(bt_attrib.BANNER))
+        self.assertEqual(len(ms), 4)
+        for m in ms.values():
+            self.assertIn("exposure_pct", m); self.assertIn("avg_cash_pct", m)
+        n = {}
+        s = strategies.breakout_legacy(per_week=2)
+        sym_all = lambda view, pf: n.setdefault(view.t, [o.symbol for o in s(view, pf)])
+        run(market(200), sym_all, COSTS)
+        import datetime as dt
+        wk = {}
+        for t, syms in n.items():
+            k = dt.datetime.fromtimestamp(t - 1, dt.timezone.utc).isocalendar()[:2]; wk[k] = wk.get(k, 0) + len(syms)
+        self.assertTrue(all(v <= 2 for v in wk.values()))

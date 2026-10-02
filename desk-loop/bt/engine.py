@@ -20,6 +20,7 @@ class Order:
     target: float = None
     priority: float = 0.0  # higher fills first when capital/slots are scarce; ties by symbol
     tag: str = ""
+    trail: float = None  # trailing stop fraction off the highest CLOSE since entry (ratchets up only; legacy house rule)
 
 
 @dataclasses.dataclass
@@ -32,6 +33,8 @@ class Position:
     target: float = None
     high: float = 0.0
     tag: str = ""
+    trail: float = None
+    hc: float = 0.0      # highest close since entry (entry bar close at fill), drives `trail`
 
 
 @dataclasses.dataclass
@@ -57,19 +60,21 @@ class Portfolio:
         return self.cash + sum(p.units * prices.get(s, p.entry_px) for s, p in self.positions.items())
 
 
-def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10, gross_cap=1.0):
+def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10, gross_cap=1.0, fixed_usd=None):
+    """fixed_usd: DIAGNOSTIC ONLY (sizing attribution, review R-I). Every fill is exactly fixed_usd regardless of
+    equity — the legacy house convention. Never a research configuration; results so sized are not evidence."""
     bar = market.bar_seconds
     times = sorted({t for s in market.symbols() for t in market._ts[s]})
     if start_t is not None:
         times = [t for t in times if t >= start_t]
     if end_t is not None:
         times = [t for t in times if t + bar <= end_t]      # information boundary, not a label filter (R-F #1)
-    pf, trades, equity, events = Portfolio(start_cash), [], [], []
+    pf, trades, equity, events, cash_curve = Portfolio(start_cash), [], [], [], []
     pending = []
     side_cost = costs.per_side(taker=True)
     for t in times:
         # (1) sells first, then buys as a batch against post-sell cash and slots
-        slot_usd = (equity[-1][1] if equity else start_cash) * gross_cap / max_positions   # sized off the last close mark
+        slot_usd = fixed_usd if fixed_usd else (equity[-1][1] if equity else start_cash) * gross_cap / max_positions   # sized off the last close mark
         sells = [o for o in pending if o.side == "sell"]
         buys = sorted((o for o in pending if o.side == "buy"), key=lambda o: (-o.priority, o.symbol))
         for o in sells:
@@ -90,7 +95,10 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
                 events.append((t, o.symbol, "no_fill", f"cash {pf.cash:.2f} < slot {slot_usd:.2f}", o.tag)); continue
             px = b.o * (1 + side_cost)
             pf.cash -= slot_usd
-            pf.positions[o.symbol] = Position(o.symbol, slot_usd / px, px, t, o.stop, o.target, b.o, o.tag)
+            stop = o.stop
+            if o.trail:
+                stop = max(stop if stop is not None else 0.0, px * (1 - o.trail))   # structural stop, never wider than the trail
+            pf.positions[o.symbol] = Position(o.symbol, slot_usd / px, px, t, stop, o.target, b.o, o.tag, o.trail, b.c)
             events.append((t, o.symbol, "fill", f"{slot_usd:.2f}", o.tag))
         pending = []
         # (2) stops / targets on this bar's range, entry bar included (R-F #2)
@@ -98,19 +106,24 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
             p = pf.positions[s]
             b = market.bar_opening_at(s, t)
             if b is None:
+                d = market.listings.get(s, (None, None))[1]
+                if d is not None and t >= d:                 # delisted while held: out at the last available close (legacy did the same)
+                    _close(pf, trades, s, market.bars[s][-1].c * (1 - side_cost), t, "delisted")
                 continue
             if p.stop is not None and b.l <= p.stop:
                 _close(pf, trades, s, min(p.stop, b.o) * (1 - side_cost), t, "stop"); continue
             if p.target is not None and b.h >= p.target:
                 _close(pf, trades, s, max(p.target, b.o) * (1 - side_cost), t, "target"); continue
             p.high = max(p.high, b.h)
+            if p.trail and b.c > p.hc:                     # ratchet on a new closing high only; the entry bar's close is the seed
+                p.hc = b.c; p.stop = max(p.stop, b.c * (1 - p.trail))
         # (3) mark at the close, stamped with the close time (R-F #7)
         prices = {}
         for s in pf.positions:
             b = market.bar_opening_at(s, t)
             if b is not None:
                 prices[s] = b.c
-        equity.append((t + bar, pf.equity(prices)))
+        equity.append((t + bar, pf.equity(prices))); cash_curve.append((t + bar, pf.cash))
         # (4) decide on the completed bar
         pending = list(strategy(market.as_of(t + bar), pf) or [])
     if times:
@@ -118,8 +131,9 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
         for s in list(pf.positions):
             b = market.bar_opening_at(s, t)
             _close(pf, trades, s, (b.c if b else pf.positions[s].entry_px) * (1 - side_cost), t, "eod")
-        equity[-1] = (t + bar, pf.cash)
-    return {"equity": equity, "trades": trades, "events": events, "final_cash": pf.cash, "start_cash": start_cash, "sizing": {"rule": "slot", "gross_cap": gross_cap, "max_positions": max_positions},
+        equity[-1] = (t + bar, pf.cash); cash_curve[-1] = (t + bar, pf.cash)
+    return {"equity": equity, "trades": trades, "events": events, "final_cash": pf.cash, "start_cash": start_cash, "cash_curve": cash_curve,
+            "sizing": {"rule": "fixed-usd DIAGNOSTIC", "fixed_usd": fixed_usd} if fixed_usd else {"rule": "slot", "gross_cap": gross_cap, "max_positions": max_positions},
             "no_fills": sum(1 for e in events if e[2] == "no_fill"),
             "no_fill_reasons": _reason_counts(events)}
 

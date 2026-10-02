@@ -35,11 +35,13 @@ def load_universe(venue="coinbase"):
 
 
 def snapshot(rows, listings, path):
-    json.dump({"rows": rows, "listings": listings}, open(path, "w"))
+    with open(path, "w") as f:
+        json.dump({"rows": rows, "listings": listings}, f)
 
 
 def load_snapshot(path, bar_seconds=DAY):
-    j = json.load(open(path))
+    with open(path) as f:
+        j = json.load(f)
     if not j.get("listings"):
         raise ValueError(f"{path}: snapshot has no listings (universe_history) — refusing to infer a universe from bars")
     listings = {k: tuple(v) for k, v in j["listings"].items()}

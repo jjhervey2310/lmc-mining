@@ -178,3 +178,29 @@ run as an overlay against this baseline, not a change to the engine default.
 Phase 2 gate as agreed: fail-closed loader (done, 42/42) → reproduce the house breakout rule on the frozen real dataset with the
 `no_fill` breakdown reported → PASS/FAIL. The reproduction is blocked until `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` exist in the
 cloud environment (read-only data pull; never pasted in chat).
+
+---
+
+## R-2026-10-02-I — ChatGPT: sizing-attribution protocol (one-off, before interpreting any changed edge)
+
+Accepted as specified. Tool: `desk-loop/bt_attrib.py`, banner `NOT RESEARCH EVIDENCE — sizing attribution only`,
+never imports `bt.store`, writes a text report only.
+
+| Requirement | Action |
+|---|---|
+| Four cells on one frozen snapshot: legacy logic + legacy $ / honest engine + legacy $ / honest + slot 1.00 / honest + slot 0.95 (sensitivity) | Implemented. Legacy signals/trade/run ported verbatim from `backtest_breakout_full.py`; `run(fixed_usd=100)` is a diagnostic-only engine mode that never scales with equity |
+| Same fees, dataset, universe, signal, stop rules, windows; only sizing differs | Costs fixed at the legacy 0.95%/side; same snapshot symbols; `strategies.breakout_legacy` = the legacy rule on the AsOfView (20d close-high, 1.5× volume, 7d RS > BTC, ≤15% ext, stop = max(20d low, entry×(1−trail)), trail 12/18 on closing highs, 2 entries per ISO week) |
+| Freeze the dollar amount to the old house value | `SIZE = 100.0`, `COST_SIDE = 0.0095` copied from `backtest_house.py` |
+| Output `trades | total | avg trade | max DD | win | PF | no_fill_reasons | exposure % | avg cash %` | All nine columns; exposure from a per-bar cash curve the engine now emits |
+| Label clearly, never write `research_runs` | Banner at top and bottom of every report; no store import |
+
+Deviation, stated: the legacy "half off at +25%" variant cannot be reproduced identically in the engine (no partial sells),
+so ALL four cells run the legacy "no take-profit: trail 12/18 only, 2/wk" variant. Legacy counted taken trades toward the
+weekly cap; the honest strategy counts proposals (differs only when a fill is refused, which the `no_fill` column shows).
+
+Engine additions this review forced: `Order.trail` (ratchets on closing highs only, entry close is the seed), delisted
+holdings close at the last available close with reason `delisted` (legacy did the same; the engine previously carried a
+ghost mark), `cash_curve` in the result. Parity test: on a synthetic path where cash and listings never bind, cell 1 and
+cell 2 agree on trades, win rate, average trade, profit factor and total return to 1e-6. 47/47.
+
+Real-data run: blocked on `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` in the cloud environment (read-only pull for the frozen snapshot).
