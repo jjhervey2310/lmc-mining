@@ -84,3 +84,17 @@ Core claim: a hand-picked watchlist whose outcomes inform the scanner becomes tr
 | 5 | Deterministic ledger | Fixed (rules) + labelled exception | Shared $1,000 book, 10%/name, 50% gross; fill = next completed 5m close after `decided_at`; Kraken base tier 0.40/0.80 + 0.1% slippage; ambiguous candle = stop first; horizon from creation; `rule_version` per position. The four positions opened 05:20Z used the *last* close at decision → tagged `v0-provisional`, never scanner evidence |
 | — | Base rate must match the prediction; no invented confidence | Fixed | All `confidence` values set to NULL, shown as "unknown (no reference class yet)" until Phase 4 defines reference classes |
 | — | Full required-fields schema | Partially adopted | `claim`, `decided_at`, `expires_at`, `fee_model`, `rule_version` added now; stable asset IDs / contract / candidate-universe hash come with `universe_history` + `token_map` as the Coinbase universe backfills |
+
+---
+
+## R-2026-10-02-C — ChatGPT review of PAPER-RULES v1 / R-B
+
+| # | Claim | Verdict | Action |
+|---|---|---|---|
+| 1 | Add benchmark-relative performance (same dollars in BTC at the alt's entry, liquidated at the alt's exits, same fee methodology), separate from claim/path/trade; book-level vs BTC B&H and cash | **Correct** | PAPER-RULES v2 §Grading #4; columns `btc_entry_px, btc_exit_px, alt_net_return, btc_net_return, excess_return_pp, max_drawdown` added; alt % stops are never applied to BTC |
+| 2 | Reference class = reproducible sampling rule with the listed minimum definition; store `reference_class_rate` separately from `thesis_probability`; adjustments are subjective and labelled | **Correct** | Columns added (`reference_class_rate`, `reference_class_ref`, `thesis_probability`, `probability_adjustment_note`); definition table in v2 §Probability |
+| 3 | No arbitrary sample-count gate; account for dependence; unknown when the denominator is not reproducible | **Correct** | v2 §Probability; the "Phase 4" wording in R-B is withdrawn as the determining factor |
+| 4 | v1 contradiction: close-based exits + intrabar touches, daily or 5m depending on availability; a close trigger needs a subsequent executable fill | **Correct** | v2 defines two conventions (`daily-close`, `intrabar-5m`), one per thesis fixed at creation; missing 5m data → `fill_unavailable`, never a silent switch; daily-close fills at the next completed 5m close |
+| — | Keep the four provisional positions outside calibration and benchmark evidence | Agreed | `evidence_class = 'exploratory'` on all four; `btc_entry_px` recorded (86,359 at 05:20Z) for display only, not evidence |
+
+Not verified by the reviewer and still open: the DB triggers themselves (verified here by `desk_watchlist_revisions` count = 2× rows after the confidence update).

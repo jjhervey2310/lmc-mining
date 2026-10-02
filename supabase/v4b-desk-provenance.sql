@@ -24,3 +24,7 @@ END
 $fn$;
 CREATE OR REPLACE TRIGGER desk_watchlist_audit_trg AFTER INSERT OR UPDATE ON desk_watchlist FOR EACH ROW EXECUTE FUNCTION desk_watchlist_audit();
 CREATE OR REPLACE TRIGGER desk_watchlist_no_delete_trg BEFORE DELETE ON desk_watchlist FOR EACH ROW EXECUTE FUNCTION desk_watchlist_no_delete();
+
+-- R-2026-10-02-C: benchmark dimension, reference class vs forecast, one monitoring convention per thesis.
+ALTER TABLE desk_watchlist ADD COLUMN IF NOT EXISTS reference_class_rate NUMERIC, ADD COLUMN IF NOT EXISTS reference_class_ref TEXT, ADD COLUMN IF NOT EXISTS thesis_probability NUMERIC, ADD COLUMN IF NOT EXISTS probability_adjustment_note TEXT, ADD COLUMN IF NOT EXISTS monitoring_convention TEXT;
+ALTER TABLE desk_paper_ledger ADD COLUMN IF NOT EXISTS monitoring_convention TEXT, ADD COLUMN IF NOT EXISTS btc_entry_px NUMERIC, ADD COLUMN IF NOT EXISTS btc_exit_px NUMERIC, ADD COLUMN IF NOT EXISTS alt_net_return NUMERIC, ADD COLUMN IF NOT EXISTS btc_net_return NUMERIC, ADD COLUMN IF NOT EXISTS excess_return_pp NUMERIC, ADD COLUMN IF NOT EXISTS max_drawdown NUMERIC, ADD COLUMN IF NOT EXISTS evidence_class TEXT NOT NULL DEFAULT 'exploratory';
