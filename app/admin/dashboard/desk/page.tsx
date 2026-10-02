@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase'
 import { Shell, Panel, checkAdmin } from '../ui'
+import PaperLive from './paper-live'
 
 // DESK — status of the crypto desk's data foundation (Phase 1). Everything here is read from one SQL
 // function (desk_status) so the page cannot drift from the database. Live data is a prerequisite for
 // every later engine; this tab exists so a stalled feed is seen the day it stalls, not weeks later.
 
-export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true }, title: 'Desk — data status' }
+export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true }, title: "Swerve's Bot — desk" }
 export const dynamic = 'force-dynamic'
 
 type Status = {
@@ -22,7 +23,7 @@ type Status = {
   token_map: { rows: number; with_gecko: number }
   cron: { job: string; schedule: string; active: boolean; last_run: string | null }[]
   watchlist: { symbol: string; stage: string; thesis: string; entry_plan: string | null; invalidation: string; target: string | null; horizon_days: number | null; confidence: number | null; base_rate_note: string | null; source: string; written_at: string; updated_at: string }[]
-  paper: { open: number; closed: number; wins: number; avg_pnl_pct: number | null; rows: { id: number; symbol: string; opened_at: string; entry_px: number; stop_px: number | null; target_px: number | null; size_usd: number; status: string; exit_px: number | null; exit_reason: string | null; pnl_pct: number | null; notes: string | null }[] }
+  paper: { open: number; closed: number; wins: number; avg_pnl_pct: number | null; rows: { id: number; symbol: string; opened_at: string; entry_px: number; stop_px: number | null; target_px: number | null; size_usd: number; status: string; exit_px: number | null; exit_reason: string | null; pnl_pct: number | null; notes: string | null; expires_at?: string | null; rule_version?: string }[] }
 }
 const STAGE: Record<string, string> = { BREAKOUT: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300', STRONG: 'bg-sky-500/15 text-sky-700 dark:text-sky-300', EARLY: 'bg-violet-500/15 text-violet-700 dark:text-violet-300', WATCH: 'bg-amber-500/15 text-amber-700 dark:text-amber-300', AVOID: 'bg-rose-500/15 text-rose-700 dark:text-rose-300' }
 
@@ -44,6 +45,7 @@ export default async function DeskPage({ searchParams }: { searchParams: Promise
 
   return (
     <Shell secret={secret} active="desk">
+      <h1 className="mb-3 text-lg font-bold tracking-tight">Swerve&apos;s Bot <span className="text-sm font-normal text-neutral-500">— desk · Phase 1 data foundation · nothing here places orders</span></h1>
       {error && <div className="mb-3 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">desk_status failed: {error.message} — apply supabase/v4-desk-data.sql.</div>}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <Panel title="kr_* collector" accent={collectorOk == null ? 'amber' : collectorOk ? 'green' : 'rose'} right={dot(collectorOk)}>
@@ -117,13 +119,13 @@ export default async function DeskPage({ searchParams }: { searchParams: Promise
         </Panel>
       </div>
       <div className="mt-3 grid gap-3 xl:grid-cols-[3fr_2fr]">
-        <Panel title="Watchlist & theses" accent="green" right={<span className="text-xs text-neutral-500">{s?.watchlist?.length ?? 0} active · discretionary until the scanner scores them</span>}>
+        <Panel title="Discretionary hypotheses" accent="green" right={<span className="text-xs text-neutral-500">{s?.watchlist?.length ?? 0} active · hand-written, immutable revisions, graded later · NOT scanner evidence</span>}>
           {(s?.watchlist ?? []).map((w) => (
             <div key={w.symbol} className="border-t border-neutral-200/60 py-2 first:border-t-0 dark:border-white/5">
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="text-base font-bold">{w.symbol}</span>
                 <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold tracking-wide ${STAGE[w.stage] ?? 'bg-neutral-500/15'}`}>{w.stage}</span>
-                {w.confidence != null && <span className="text-xs text-neutral-500">confidence {w.confidence}/100</span>}
+                <span className="text-xs text-neutral-500">probability: {w.confidence != null ? `${w.confidence}/100` : 'unknown (no reference class yet)'}</span>
                 {w.horizon_days != null && <span className="text-xs text-neutral-500">· {w.horizon_days}d horizon</span>}
                 <span className="ml-auto text-xs text-neutral-500">{w.source} · {w.updated_at.slice(0, 10)}</span>
               </div>
@@ -139,12 +141,13 @@ export default async function DeskPage({ searchParams }: { searchParams: Promise
           {!s?.watchlist?.length && <p className="text-sm text-neutral-500">No theses yet.</p>}
         </Panel>
         <Panel title="Shadow paper ledger" accent="amber" right={<span className="text-xs text-neutral-500">{s?.paper ? `${s.paper.open} open · ${s.paper.closed} closed · ${s.paper.closed ? Math.round((100 * s.paper.wins) / s.paper.closed) : 0}% win · avg ${s.paper.avg_pnl_pct ?? '—'}%` : ''}</span>}>
-          <table className="w-full text-xs"><thead><tr className="text-left text-neutral-500"><th>sym</th><th>opened</th><th className="text-right">entry</th><th className="text-right">stop</th><th className="text-right">target</th><th>status</th><th className="text-right">pnl</th></tr></thead>
-            <tbody>{(s?.paper?.rows ?? []).map((p) => (
-              <tr key={p.id} className="border-t border-neutral-200/60 dark:border-white/5"><td className="font-bold">{p.symbol}</td><td>{p.opened_at.slice(0, 10)}</td><td className="text-right font-mono">{p.entry_px}</td><td className="text-right font-mono">{p.stop_px ?? '—'}</td><td className="text-right font-mono">{p.target_px ?? '—'}</td><td>{p.status}{p.exit_reason ? ` · ${p.exit_reason}` : ''}</td><td className={`text-right font-mono ${p.pnl_pct == null ? '' : p.pnl_pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{p.pnl_pct == null ? '—' : `${p.pnl_pct}%`}</td></tr>
-            ))}</tbody></table>
-          {!s?.paper?.rows?.length && <p className="text-sm text-neutral-500">No paper positions yet. Every thesis above becomes one.</p>}
-          <p className="mt-2 text-xs text-neutral-500">$100 notional each, no broker, no real money. Graded on exit against the thesis written at entry.</p>
+          <PaperLive rows={s?.paper?.rows ?? []} secret={secret} />
+          <p className="mt-2 text-xs text-neutral-500">Shared $1,000 paper book, no broker, no real money. Rules frozen in docs/desk/PAPER-RULES.md; graded on exit against the thesis revision written at entry.</p>
+        </Panel>
+      </div>
+      <div className="mt-3">
+        <Panel title="Scanner validation evidence" accent="purple" right={<span className="text-xs text-neutral-500">none yet — arrives with Phase 4/7; never promoted from the hypotheses above</span>}>
+          <p className="text-sm text-neutral-500">Out-of-sample results of frozen rules on untouched periods and assets will appear here. Hypotheses that influenced scanner development are flagged <code>used_in_scanner_dev</code> and excluded from this evidence.</p>
         </Panel>
       </div>
       <p className="mt-3 text-xs text-neutral-500">Rendered {s?.at ? new Date(s.at).toISOString() : '—'} · docs/CRYPTO-DESK-ARCHITECTURE.md §3 · Phase 1</p>

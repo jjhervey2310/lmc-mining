@@ -68,3 +68,19 @@ per snapshot, and freezes snapshots per run.
 - Phase 9: durable order reservation + reconciliation; human approval binding; fake-broker concurrency test.
 - Phase 2: evidence manifest per run; "changing CostModel changes P&L" test.
 - Phase 1: collector provenance fields; snapshot freezing.
+
+---
+
+## R-2026-10-02-B — ChatGPT review of the discretionary watchlist / shadow ledger
+
+Core claim: a hand-picked watchlist whose outcomes inform the scanner becomes training data; a shadow ledger does not make it independent. **Correct.** Response:
+
+| # | Claim | Verdict | Action |
+|---|---|---|---|
+| 1 | Separate discretionary research from scanner validation | Fixed | `desk_watchlist.source` ('discretionary' / 'scanner') + `used_in_scanner_dev` flag; DESK tab now shows two labelled panels, *Discretionary hypotheses* and *Scanner validation evidence*; promotion is never automatic (docs/desk/PAPER-RULES.md) |
+| 2 | Freeze theses before outcomes arrive | Fixed | `desk_watchlist_revisions` written by trigger on every insert/update; deletes refused by trigger; originals and revisions graded separately |
+| 3 | Record the selection denominator | Fixed | `desk_selection_log`: pool considered (27 Kraken-lake names), selected (4), rejected with reasons (23), criteria, holdings note — first pass logged |
+| 4 | Separate thesis accuracy from trade profitability | Fixed (rules) | Three scores — claim / path / trade — defined in PAPER-RULES.md; grading tooling arrives with the daily job |
+| 5 | Deterministic ledger | Fixed (rules) + labelled exception | Shared $1,000 book, 10%/name, 50% gross; fill = next completed 5m close after `decided_at`; Kraken base tier 0.40/0.80 + 0.1% slippage; ambiguous candle = stop first; horizon from creation; `rule_version` per position. The four positions opened 05:20Z used the *last* close at decision → tagged `v0-provisional`, never scanner evidence |
+| — | Base rate must match the prediction; no invented confidence | Fixed | All `confidence` values set to NULL, shown as "unknown (no reference class yet)" until Phase 4 defines reference classes |
+| — | Full required-fields schema | Partially adopted | `claim`, `decided_at`, `expires_at`, `fee_model`, `rule_version` added now; stable asset IDs / contract / candidate-universe hash come with `universe_history` + `token_map` as the Coinbase universe backfills |
