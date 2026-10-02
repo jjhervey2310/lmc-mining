@@ -1,5 +1,7 @@
 """Baseline strategies for the tournament. Each is a callable (view, portfolio) -> [Order]. They see only the
-AsOfView, so none can read a bar that had not closed at decision time."""
+AsOfView, so none can read a bar that had not closed at decision time. They never size: every buy is one engine
+slot (review R-G), so Phase 4 compares entry/exit logic under identical capital rules; sizing overlays
+(inverse-vol, ATR risk, confidence, Kelly caps) are a separate later study."""
 from .engine import Order
 
 
@@ -7,13 +9,14 @@ def _sma(xs, n):
     return sum(xs[-n:]) / n if len(xs) >= n else None
 
 
-def buy_and_hold(symbols, weight_usd):
+def buy_and_hold(symbols):
+    """At inception fill up to max_positions names (engine ranks by (priority, symbol)); then hold."""
     done = set()
     def s(view, pf):
         out = []
         for sym in symbols:
             if sym not in done and sym in view.universe():
-                done.add(sym); out.append(Order(sym, "buy", weight_usd, tag="bh"))
+                done.add(sym); out.append(Order(sym, "buy", tag="bh"))
         return out
     return s
 
@@ -22,18 +25,19 @@ def cash():
     return lambda view, pf: []
 
 
-def dca(symbols, usd_per_buy, every_days=30):
-    last = {}
+def dca(symbols, every_days=30):
+    """On each DCA date, move toward the equal-slot target with available cash: request a slot for every name not
+    held (all-or-none at the engine). No nominal-dollar contributions — those drift against equity-scaled peers."""
+    state = {"last": 0}
     def s(view, pf):
-        out = []
-        for sym in symbols:
-            if sym in view.universe() and view.t - last.get(sym, 0) >= every_days * 86400:
-                last[sym] = view.t; out.append(Order(sym, "buy", usd_per_buy, tag="dca"))
-        return out
+        if view.t - state["last"] < every_days * 86400:
+            return []
+        state["last"] = view.t
+        return [Order(sym, "buy", tag="dca") for sym in symbols if sym in view.universe() and sym not in pf.positions]
     return s
 
 
-def sma_trend(symbols, usd, fast=50, slow=200):
+def sma_trend(symbols, fast=50, slow=200):
     def s(view, pf):
         out = []
         for sym in symbols:
@@ -43,14 +47,14 @@ def sma_trend(symbols, usd, fast=50, slow=200):
                 continue
             long = c[-1] > sl and f > sl
             if long and sym not in pf.positions:
-                out.append(Order(sym, "buy", usd, tag="trend"))
+                out.append(Order(sym, "buy", tag="trend"))
             elif not long and sym in pf.positions:
                 out.append(Order(sym, "sell", tag="trend"))
         return out
     return s
 
 
-def breakout20(usd, lookback=20, vol_mult=1.5, max_ext=0.15, stop_pct=0.12, btc="BTC"):
+def breakout20(lookback=20, vol_mult=1.5, max_ext=0.15, stop_pct=0.12, btc="BTC"):
     """The house breakout rule, on completed bars: close > prior 20d high, volume >= 1.5x prior 20d avg,
     7d RS > BTC, extension <= 15%. Fixed % stop; exit otherwise on close below the 20d low."""
     def s(view, pf):
@@ -71,12 +75,12 @@ def breakout20(usd, lookback=20, vol_mult=1.5, max_ext=0.15, stop_pct=0.12, btc=
                     out.append(Order(sym, "sell", tag="brk"))
                 continue
             if c > hi and v >= vol_mult * avgv and r7 > btc7 and c / hi - 1 <= max_ext:
-                out.append(Order(sym, "buy", usd, stop=c * (1 - stop_pct), tag="brk"))
+                out.append(Order(sym, "buy", stop=c * (1 - stop_pct), priority=v / avgv, tag="brk"))   # rank by volume expansion
         return out
     return s
 
 
-def momentum_top(n, usd, lookback=90, rebalance_days=30):
+def momentum_top(n, lookback=90, rebalance_days=30):
     state = {"last": 0}
     def s(view, pf):
         if view.t - state["last"] < rebalance_days * 86400:
@@ -89,12 +93,13 @@ def momentum_top(n, usd, lookback=90, rebalance_days=30):
                 scores.append((c[-1] / c[-lookback - 1] - 1, sym))
         top = {sym for _, sym in sorted(scores, reverse=True)[:n]}
         out = [Order(sym, "sell", tag="mom") for sym in pf.positions if sym not in top]
-        out += [Order(sym, "buy", usd, tag="mom") for sym in top if sym not in pf.positions]
+        rank = {sym: sc for sc, sym in scores}
+        out += [Order(sym, "buy", priority=rank[sym], tag="mom") for sym in top if sym not in pf.positions]
         return out
     return s
 
 
-def mean_reversion(symbols, usd, n=20, dip=0.10, stop_pct=0.15):
+def mean_reversion(symbols, n=20, dip=0.10, stop_pct=0.15):
     def s(view, pf):
         out = []
         for sym in symbols:
@@ -106,7 +111,7 @@ def mean_reversion(symbols, usd, n=20, dip=0.10, stop_pct=0.15):
                 if c[-1] >= m:
                     out.append(Order(sym, "sell", tag="mr"))
             elif c[-1] <= m * (1 - dip):
-                out.append(Order(sym, "buy", usd, stop=c[-1] * (1 - stop_pct), target=m, tag="mr"))
+                out.append(Order(sym, "buy", stop=c[-1] * (1 - stop_pct), target=m, priority=m / c[-1] - 1, tag="mr"))   # deeper dip first
         return out
     return s
 

@@ -147,3 +147,19 @@ All ten accepted; #1, #2, #3, #5 were Phase 2 blockers and are fixed in the same
 | 8 MEDIUM | fingerprint missed H/L/O/V | Hash over canonical OHLCV rows + listings. Test: a changed high changes the hash |
 | 9 MEDIUM | missing fill bar silently lapsed | Recorded as `no_fill: no bar` event |
 | 10 LOW | `next_bar` public | Renamed `bar_opening_at`, documented engine-only; covered by the hygiene test |
+
+---
+
+## R-2026-10-02-G — ChatGPT: slot allocator (PR #46)
+
+Accepted verbatim. Strategies no longer size in dollars; the engine owns sizing.
+
+| Requirement | Action |
+|---|---|
+| Equity-scaled equal slots, not fixed dollars | `slot_usd = equity_at_last_close × gross_cap / max_positions` (`run(..., max_positions=10, gross_cap=1.0)`; CLI `--max-positions`, `--gross-cap`). Result carries `sizing` |
+| Keep all-or-none, `no_fill` events, starvation visible | Unchanged; a slot that does not fit cash is a `no_fill: cash` event, never a partial |
+| Strategies rank simultaneous signals | `Order.priority` set by every house strategy (volume ratio, momentum score, dip depth); ties broken by symbol |
+| $10k vs $100k regression | Test: identical price path, `sma_trend` from 10k and 100k → normalised equity curves equal to 1e-9; each fill = 10% of last-close equity |
+
+Note for Phase 4: the slot is a baseline, not a claim. Volatility-scaled or conviction-weighted sizing is a Phase 4 study
+run as an overlay against this baseline, not a change to the engine default.

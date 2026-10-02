@@ -1,4 +1,7 @@
-"""Event-driven daily engine (v2 after review R-F).
+"""Event-driven daily engine (v3: slot allocator, review R-G).
+SIZING lives here, not in strategies: every buy is ONE SLOT = current_equity * gross_cap / max_positions, all-or-none.
+Strategies only say WHICH names (and a priority for ranking when signals exceed free slots); Order.usd is ignored.
+Capital starvation is therefore a strategy property (how it ranks), never an allocator artefact.
 Chronology per bar opening at t:  (1) fill yesterday's decisions at this OPEN — sells first, then buys as a batch
 with a deterministic allocation (priority desc, symbol asc), all-or-none, never partial; (2) stops/targets on this
 bar's range INCLUDING the entry bar (stop before target; gap through a level fills at the open); (3) mark equity
@@ -12,7 +15,7 @@ from bt_costs import CostModel
 class Order:
     symbol: str
     side: str            # 'buy' | 'sell' (sell = close the position)
-    usd: float = 0.0     # notional for buys (all-or-none)
+    usd: float = 0.0     # IGNORED since v3 — sizing is the engine's slot allocator
     stop: float = None
     target: float = None
     priority: float = 0.0  # higher fills first when capital/slots are scarce; ties by symbol
@@ -54,7 +57,7 @@ class Portfolio:
         return self.cash + sum(p.units * prices.get(s, p.entry_px) for s, p in self.positions.items())
 
 
-def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10):
+def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10, gross_cap=1.0):
     bar = market.bar_seconds
     times = sorted({t for s in market.symbols() for t in market._ts[s]})
     if start_t is not None:
@@ -66,6 +69,7 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
     side_cost = costs.per_side(taker=True)
     for t in times:
         # (1) sells first, then buys as a batch against post-sell cash and slots
+        slot_usd = (equity[-1][1] if equity else start_cash) * gross_cap / max_positions   # sized off the last close mark
         sells = [o for o in pending if o.side == "sell"]
         buys = sorted((o for o in pending if o.side == "buy"), key=lambda o: (-o.priority, o.symbol))
         for o in sells:
@@ -82,12 +86,12 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
                 events.append((t, o.symbol, "no_fill", "already held", o.tag)); continue
             if len(pf.positions) >= max_positions:
                 events.append((t, o.symbol, "no_fill", "slots", o.tag)); continue
-            if o.usd <= 0 or o.usd > pf.cash + 1e-9:
-                events.append((t, o.symbol, "no_fill", f"cash {pf.cash:.2f} < {o.usd:.2f}", o.tag)); continue
+            if slot_usd <= 0 or slot_usd > pf.cash + 1e-9:
+                events.append((t, o.symbol, "no_fill", f"cash {pf.cash:.2f} < slot {slot_usd:.2f}", o.tag)); continue
             px = b.o * (1 + side_cost)
-            pf.cash -= o.usd
-            pf.positions[o.symbol] = Position(o.symbol, o.usd / px, px, t, o.stop, o.target, b.o, o.tag)
-            events.append((t, o.symbol, "fill", f"{o.usd:.2f}", o.tag))
+            pf.cash -= slot_usd
+            pf.positions[o.symbol] = Position(o.symbol, slot_usd / px, px, t, o.stop, o.target, b.o, o.tag)
+            events.append((t, o.symbol, "fill", f"{slot_usd:.2f}", o.tag))
         pending = []
         # (2) stops / targets on this bar's range, entry bar included (R-F #2)
         for s in list(pf.positions):
@@ -115,7 +119,7 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
             b = market.bar_opening_at(s, t)
             _close(pf, trades, s, (b.c if b else pf.positions[s].entry_px) * (1 - side_cost), t, "eod")
         equity[-1] = (t + bar, pf.cash)
-    return {"equity": equity, "trades": trades, "events": events, "final_cash": pf.cash, "start_cash": start_cash,
+    return {"equity": equity, "trades": trades, "events": events, "final_cash": pf.cash, "start_cash": start_cash, "sizing": {"rule": "slot", "gross_cap": gross_cap, "max_positions": max_positions},
             "no_fills": sum(1 for e in events if e[2] == "no_fill")}
 
 

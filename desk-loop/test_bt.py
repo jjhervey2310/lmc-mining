@@ -64,9 +64,9 @@ class Boundary(unittest.TestCase):
             if spike:
                 b = bars[100]; bars[100] = Bar(b.t, b.o, b.h * 50, b.l, b.c * 50, b.v)   # the bar that OPENS at fe
             return mk({"AAA": bars, "BTC": walk(1, 200)})
-        s = strategies.sma_trend(["AAA"], 1000, 5, 20)
-        a = run(mkt(False), strategies.sma_trend(["AAA"], 1000, 5, 20), COSTS, end_t=fe)
-        b = run(mkt(True), strategies.sma_trend(["AAA"], 1000, 5, 20), COSTS, end_t=fe)
+        s = strategies.sma_trend(["AAA"], 5, 20)
+        a = run(mkt(False), strategies.sma_trend(["AAA"], 5, 20), COSTS, end_t=fe)
+        b = run(mkt(True), strategies.sma_trend(["AAA"], 5, 20), COSTS, end_t=fe)
         self.assertEqual(a["final_cash"], b["final_cash"])
         self.assertTrue(all(t <= fe for t, _ in a["equity"]))
 
@@ -79,7 +79,7 @@ class Fills(unittest.TestCase):
     def test_stop_is_live_on_the_entry_bar(self):
         bars = [Bar(T0, 100, 101, 99, 100, 1), Bar(T0 + DAY, 100, 125, 80, 120, 1), Bar(T0 + 2 * DAY, 120, 121, 119, 120, 1)]
         m = mk({"X": bars})
-        s = lambda view, pf: [Order("X", "buy", 1000, stop=90, target=130)] if view.t == T0 + DAY else []
+        s = lambda view, pf: [Order("X", "buy", stop=90, target=130)] if view.t == T0 + DAY else []
         tr = run(m, s, COSTS)["trades"][0]
         self.assertEqual((tr.entry_t, tr.exit_t, tr.reason), (T0 + DAY, T0 + DAY, "stop"))
         self.assertAlmostEqual(tr.exit_px, 90 * (1 - COSTS.per_side()), places=9)
@@ -91,28 +91,39 @@ class Fills(unittest.TestCase):
             fired = {"n": 0}
             def s(view, pf):
                 fired["n"] += 1
-                return [Order(x, "buy", 4000) for x in order] if fired["n"] == 1 else []
+                return [Order(x, "buy") for x in order] if fired["n"] == 1 else []
             return s
-        a = run(market(30), strat(syms), COSTS, start_cash=10_000)
-        b = run(market(30), strat(list(reversed(syms))), COSTS, start_cash=10_000)
+        a = run(market(30), strat(syms), COSTS, start_cash=10_000, max_positions=2)
+        b = run(market(30), strat(list(reversed(syms))), COSTS, start_cash=10_000, max_positions=2)
         self.assertEqual([tr.symbol for tr in sorted(a["trades"], key=lambda x: x.symbol)], [tr.symbol for tr in sorted(b["trades"], key=lambda x: x.symbol)])
         self.assertAlmostEqual(a["final_cash"], b["final_cash"], places=9)
-        self.assertEqual(a["no_fills"], 1)                         # 3 × 4000 > 10 000: one all-or-none refusal, recorded
-        self.assertTrue(any(e[2] == "no_fill" and e[3].startswith("cash") for e in a["events"]))
+        self.assertEqual(a["no_fills"], 1)                         # 3 signals, 2 slots: one deterministic refusal, recorded
+        self.assertEqual([e[1] for e in a["events"] if e[2] == "no_fill"], ["BTC"])   # (priority 0, symbol asc) → BTC loses
 
-    def test_no_partial_fills(self):
-        s = lambda view, pf: [Order("AAA", "buy", 50_000)] if view.t == T0 + DAY else []
-        r = run(market(10), s, COSTS, start_cash=10_000)
-        self.assertEqual(r["trades"], []); self.assertEqual(r["no_fills"], 1)
+    def test_slot_size_scales_with_equity_and_is_all_or_none(self):
+        """R-G: same strategy from $10k and $100k → identical normalised equity curves."""
+        a = run(market(120), strategies.sma_trend(["AAA", "BBB"], 5, 20), COSTS, start_cash=10_000)
+        b = run(market(120), strategies.sma_trend(["AAA", "BBB"], 5, 20), COSTS, start_cash=100_000)
+        na = [e / a["start_cash"] for _, e in a["equity"]]; nb = [e / b["start_cash"] for _, e in b["equity"]]
+        self.assertEqual(len(na), len(nb))
+        self.assertTrue(all(abs(x - y) < 1e-9 for x, y in zip(na, nb)))
+        fills = [e for e in a["events"] if e[2] == "fill"]
+        self.assertTrue(fills and all(abs(float(e[3]) - 0.1 * eq) < 0.011 for e in fills for eq in [next(v for t, v in a["equity"] if t == e[0])]))
+
+    def test_capital_starvation_is_visible_and_ranked(self):
+        s = lambda view, pf: [Order(x, "buy", priority=p) for x, p in (("AAA", 1), ("BBB", 3), ("BTC", 2))] if view.t == T0 + DAY else []
+        r = run(market(10), s, COSTS, max_positions=2)
+        self.assertEqual([e[1] for e in r["events"] if e[2] == "fill"], ["BBB", "BTC"])
+        self.assertEqual([e[1] for e in r["events"] if e[2] == "no_fill"], ["AAA"])
 
     def test_sells_release_cash_before_same_open_buys(self):
         state = {"n": 0}
         def s(view, pf):
             state["n"] += 1
-            if state["n"] == 1: return [Order("AAA", "buy", 9000)]
-            if state["n"] == 2: return [Order("AAA", "sell"), Order("BBB", "buy", 8000)]
+            if state["n"] == 1: return [Order("AAA", "buy")]
+            if state["n"] == 2: return [Order("AAA", "sell"), Order("BBB", "buy")]
             return []
-        r = run(market(10), s, COSTS, start_cash=10_000)
+        r = run(market(10), s, COSTS, start_cash=10_000, max_positions=1, gross_cap=0.9)   # one slot (90% of equity): BBB fills only if AAA's sell frees the slot and its cash first
         self.assertEqual({tr.symbol for tr in r["trades"]}, {"AAA", "BBB"})
 
 
@@ -120,7 +131,7 @@ class Fills(unittest.TestCase):
         m = market(30); fired = {"n": 0}
         def s(view, pf):
             fired["n"] += 1
-            if fired["n"] == 1: return [Order("AAA", "buy", 1000, tag="t")]
+            if fired["n"] == 1: return [Order("AAA", "buy", tag="t")]
             if fired["n"] == 3: return [Order("AAA", "sell")]
             return []
         r = run(m, s, COSTS)
@@ -132,15 +143,15 @@ class Fills(unittest.TestCase):
     def test_stop_before_target_and_gap_fills_at_open(self):
         bars = [Bar(T0, 100, 101, 99, 100, 1), Bar(T0 + DAY, 100, 101, 99, 100, 1), Bar(T0 + 2 * DAY, 80, 130, 70, 120, 1)]
         m = mk({"X": bars})
-        s = lambda view, pf: [Order("X", "buy", 1000, stop=90, target=125)] if view.t == T0 + DAY else []
+        s = lambda view, pf: [Order("X", "buy", stop=90, target=125)] if view.t == T0 + DAY else []
         r = run(m, s, COSTS); tr = r["trades"][0]
         self.assertEqual(tr.reason, "stop")
         self.assertAlmostEqual(tr.exit_px, 80 * (1 - COSTS.per_side()), places=9)   # entry bar: gapped through 90 at the open → stopped at the open
 
     def test_costs_reduce_pnl(self):
-        m = market(60); s = strategies.buy_and_hold(["AAA"], 1000)
+        m = market(60); s = strategies.buy_and_hold(["AAA"])
         free = CostModel(0.0, 0.0, "test", "free")
-        self.assertLess(run(m, s, COSTS)["final_cash"], run(m, strategies.buy_and_hold(["AAA"], 1000), free)["final_cash"])
+        self.assertLess(run(m, s, COSTS)["final_cash"], run(m, strategies.buy_and_hold(["AAA"]), free)["final_cash"])
 
 
 class StrategyHygiene(unittest.TestCase):
@@ -159,7 +170,7 @@ class Research(unittest.TestCase):
 
     def test_walk_forward_counts_trials_and_reports_oos(self):
         m = market(400)
-        wf = research.walk_forward(m, lambda **kw: strategies.sma_trend(["AAA", "BBB"], 1000, **kw), [{"fast": 20, "slow": 50}, {"fast": 10, "slow": 40}], COSTS, 180, 60)
+        wf = research.walk_forward(m, lambda **kw: strategies.sma_trend(["AAA", "BBB"], **kw), [{"fast": 20, "slow": 50}, {"fast": 10, "slow": 40}], COSTS, 180, 60)
         self.assertEqual(wf["trials"], 2 * len(wf["folds"]))
         self.assertIn("total_return", wf["oos"])
 
@@ -182,7 +193,7 @@ class Research(unittest.TestCase):
         self.assertNotEqual(mk({"A": b1}).fingerprint(), mk({"A": b2}).fingerprint())
 
     def test_monte_carlo_shape(self):
-        mc = research.monte_carlo(run(market(300), strategies.buy_and_hold(["AAA", "BBB"], 1000), COSTS), n=50, block=10)
+        mc = research.monte_carlo(run(market(300), strategies.buy_and_hold(["AAA", "BBB"]), COSTS), n=50, block=10)
         self.assertLessEqual(mc["terminal_p05"], mc["terminal_p95"]); self.assertLessEqual(mc["mdd_p05"], 0)
 
 

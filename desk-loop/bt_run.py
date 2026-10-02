@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run one strategy through the Phase 2 framework and write a manifest to research_runs.
 Costs and provenance are REQUIRED flags (bt_costs.add_cost_args). Example:
-  python3 bt_run.py --strategy breakout20 --params '{"usd": 1000}' --snapshot state/md_2026-10.json \
+  python3 bt_run.py --strategy breakout20 --params '{}' --snapshot state/md_2026-10.json \
       --maker-fee 0.004 --taker-fee 0.008 --slippage 0.001 --venue kraken --tier 'base, assumed' --fit-days 365 --test-days 90
 """
 import argparse, json, os, subprocess, sys
@@ -22,6 +22,8 @@ p.add_argument("--symbols", default=None, help="comma list; default all")
 p.add_argument("--fit-days", type=int, default=365)
 p.add_argument("--test-days", type=int, default=90)
 p.add_argument("--start-cash", type=float, default=10_000)
+p.add_argument("--max-positions", type=int, default=10)
+p.add_argument("--gross-cap", type=float, default=1.0)
 p.add_argument("--no-store", action="store_true")
 add_cost_args(p)
 a = p.parse_args()
@@ -37,7 +39,7 @@ if not a.snapshot:
 market = load.load_snapshot(a.snapshot)
 params = json.loads(a.params)
 make = lambda **kw: strategies.REGISTRY[a.strategy](**{**params, **kw})
-full = run(market, make(), costs, start_cash=a.start_cash)
+full = run(market, make(), costs, start_cash=a.start_cash, max_positions=a.max_positions, gross_cap=a.gross_cap)
 metrics = summarize(full)
 grid = json.loads(a.grid) if a.grid else [params]
 wf = research.walk_forward(market, make, grid, costs, a.fit_days, a.test_days)
