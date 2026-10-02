@@ -15,7 +15,8 @@ def folds(start_t, end_t, fit_days, test_days, step_days=None):
     return out
 
 
-def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, select="sharpe"):
+def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, select="sharpe", sizing=None):
+    sizing = sizing or {}
     """For each fold: run every param set on the fit window, pick the best by `select`, run it on the test window.
     Returns per-fold picks and the concatenated out-of-sample trades/metrics. Trial count is recorded (multiple testing)."""
     times = sorted({b.t for s in market.symbols() for b in market.bars[s]})
@@ -25,11 +26,11 @@ def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, 
         best = None
         for params in param_grid:
             trials += 1
-            m = summarize(run(market, make_strategy(**params), costs, start_t=a, end_t=fe))
+            m = summarize(run(market, make_strategy(**params), costs, start_t=a, end_t=fe, **sizing))
             score = m.get(select) or -1e9
             if best is None or score > best[0]:
                 best = (score, params)
-        r = run(market, make_strategy(**best[1]), costs, start_t=ts, end_t=te)
+        r = run(market, make_strategy(**best[1]), costs, start_t=ts, end_t=te, **sizing)
         picks.append({"fit": (a, fe), "test": (ts, te), "params": best[1], "fit_score": best[0]})
         oos_trades += r["trades"]
         # chain equity multiplicatively across folds
@@ -39,19 +40,20 @@ def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, 
     return {"folds": picks, "oos": oos, "trials": trials}
 
 
-def robustness(market, make_strategy, params, costs, perturb=0.2):
+def robustness(market, make_strategy, params, costs, perturb=0.2, sizing=None):
+    sizing = sizing or {}
     """Fee stress, parameter neighbourhood, top-winner exclusion — the shape of the metric surface."""
-    base = summarize(run(market, make_strategy(**params), costs))
+    base = summarize(run(market, make_strategy(**params), costs, **sizing))
     out = {"base": base, "fees_x1.25": None, "fees_x1.5": None, "neighbours": []}
     for k, mult in (("fees_x1.25", 1.25), ("fees_x1.5", 1.5)):
         c2 = dataclasses.replace(costs, maker_fee=min(0.099, costs.maker_fee * mult), taker_fee=min(0.099, costs.taker_fee * mult), tier=f"{costs.tier} x{mult}")
-        out[k] = summarize(run(market, make_strategy(**params), c2))
+        out[k] = summarize(run(market, make_strategy(**params), c2, **sizing))
     for key, val in params.items():
         if isinstance(val, (int, float)) and not isinstance(val, bool):
             for f in (1 - perturb, 1 + perturb):
                 p2 = dict(params); p2[key] = type(val)(val * f) if isinstance(val, int) else val * f
                 try:
-                    out["neighbours"].append({"param": key, "value": p2[key], "metrics": summarize(run(market, make_strategy(**p2), costs))})
+                    out["neighbours"].append({"param": key, "value": p2[key], "metrics": summarize(run(market, make_strategy(**p2), costs, **sizing))})
                 except Exception as e:
                     out["neighbours"].append({"param": key, "value": p2[key], "error": str(e)})
     return out
@@ -97,14 +99,16 @@ def gate(oos, rob, trials, min_symbols=3):
     return {"verdict": "rejected" if failed else "accepted", "checks": checks, "failed": failed, "trials": trials}
 
 
-def manifest(strategy, params, market, costs, fill_rule, folds_info, seeds, metrics, rob, gate_result, code_sha=None, data_vintage=None, notes=None):
-    cfg = {"strategy": strategy, "params": params, "costs": costs.as_record(), "fill_rule": fill_rule}
+def manifest(strategy, params, market, costs, fill_rule, folds_info, seeds, metrics, rob, gate_result, code_sha=None, data_vintage=None, notes=None, sizing=None):
+    # sizing is part of the config hash: a 90% deployment strategy is economically different from a 100% one (R-H).
+    sizing = sizing or {"rule": "slot", "gross_cap": 1.0, "max_positions": 10}
+    cfg = {"strategy": strategy, "params": params, "costs": costs.as_record(), "fill_rule": fill_rule, "sizing": sizing}
     config_hash = hashlib.sha256(json.dumps(cfg, sort_keys=True, default=str).encode()).hexdigest()[:16]
     run_id = f"{strategy}-{config_hash}-{market.fingerprint()}-{int(time.time())}"
     return {
         "run_id": run_id, "strategy": strategy, "params": params, "config_hash": config_hash, "code_sha": code_sha,
         "data_hash": market.fingerprint(), "universe_hash": market.universe_fingerprint(), "data_vintage": data_vintage,
-        "costs": costs.as_record(), "fill_rule": fill_rule, "folds": folds_info, "seeds": seeds,
+        "costs": costs.as_record(), "fill_rule": fill_rule, "sizing": sizing, "folds": folds_info, "seeds": seeds,
         "trial_count": (gate_result or {}).get("trials"), "metrics": metrics, "robustness": rob, "gate": gate_result,
         "verdict": (gate_result or {}).get("verdict", "inconclusive"), "notes": notes,
     }

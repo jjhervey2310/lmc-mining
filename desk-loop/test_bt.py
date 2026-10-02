@@ -1,7 +1,7 @@
 import random, unittest
 from market_time import DAY, LookAheadError
 from bt_costs import CostModel
-from bt.data import Bar, Market
+from bt.data import Bar, Market, market_from_rows
 from bt.engine import Order, run
 from bt.metrics import summarize
 from bt import research, strategies
@@ -159,6 +159,37 @@ class StrategyHygiene(unittest.TestCase):
         import re, inspect
         src = inspect.getsource(strategies)
         self.assertIsNone(re.search(r"\b(market|_m\b|bar_opening_at|_ts|_bars\b)", src), "strategies.py must only use the AsOfView interface")
+
+
+class FailClosed(unittest.TestCase):
+    """R-H: a research loader never infers a universe from bars."""
+    def rows(self):
+        return [{"symbol": "AAA", "bar_time": T0 + i * DAY, "open": 1, "high": 1, "low": 1, "close": 1, "volume": 1} for i in range(3)]
+
+    def test_market_from_rows_requires_listings_by_default(self):
+        with self.assertRaises(ValueError):
+            market_from_rows(self.rows())
+        self.assertEqual(market_from_rows(self.rows(), infer_listings=True).listings["AAA"][0], T0)
+
+    def test_snapshot_without_listings_is_refused(self):
+        import json, tempfile, os
+        from bt import load
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "snap.json")
+            json.dump({"rows": self.rows()}, open(p, "w"))
+            with self.assertRaises(ValueError):
+                load.load_snapshot(p)
+            json.dump({"rows": self.rows(), "listings": {"AAA": [T0, None]}}, open(p, "w"))
+            self.assertEqual(load.load_snapshot(p).listings["AAA"], (T0, None))
+
+    def test_no_fill_reasons_and_sizing_in_manifest(self):
+        s = lambda view, pf: [Order(x, "buy", priority=p) for x, p in (("AAA", 1), ("BBB", 3), ("BTC", 2))] if view.t == T0 + DAY else []
+        r = run(market(10), s, COSTS, max_positions=2)
+        self.assertEqual(r["no_fill_reasons"], {"slots": 1})
+        man = research.manifest("x", {}, market(10), COSTS, "next_open", [], {}, {}, {}, None, sizing=r["sizing"])
+        self.assertEqual(man["sizing"]["gross_cap"], 1.0)
+        man2 = research.manifest("x", {}, market(10), COSTS, "next_open", [], {}, {}, {}, None, sizing={"rule": "slot", "gross_cap": 0.9, "max_positions": 2})
+        self.assertNotEqual(man["config_hash"], man2["config_hash"])
 
 
 class Research(unittest.TestCase):

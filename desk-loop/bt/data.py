@@ -79,7 +79,7 @@ class AsOfView:
         for s, bs in market.bars.items():
             i = market.completed_until(s, t)
             if i:
-                v._bars[s] = (bs, i)                     # list is never mutated; `i` is the visibility cut
+                v._bars[s] = (bs, i)                     # visibility-capped reference: the full series with cut `i`; the interface only serves bs[:i]. Not adversarially sealed (Python cannot) — the StrategyHygiene test is the guard
             a, d = market.listings.get(s, (None, None))
             fresh = i and bs[i - 1].t + market.bar_seconds > t - market.bar_seconds   # completed in the last interval
             if a is not None and a <= t and (d is None or t < d) and fresh:
@@ -106,8 +106,10 @@ class AsOfView:
         return None
 
 
-def market_from_rows(rows, bar_seconds=DAY, listings=None):
-    """rows: iterable of dicts with symbol, bar_time (ISO or epoch s), open, high, low, close, volume."""
+def market_from_rows(rows, bar_seconds=DAY, listings=None, *, infer_listings=False):
+    """rows: iterable of dicts with symbol, bar_time (ISO or epoch s), open, high, low, close, volume.
+    Listings are required; a research loader must never infer a universe from the bars (survivorship). Synthetic
+    tests opt in with infer_listings=True."""
     import datetime as dt
     out = {}
     for r in rows:
@@ -115,4 +117,4 @@ def market_from_rows(rows, bar_seconds=DAY, listings=None):
         if isinstance(t, str):
             t = int(dt.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp())
         out.setdefault(r["symbol"], []).append(Bar(int(t), float(r["open"]), float(r["high"]), float(r["low"]), float(r["close"]), float(r["volume"] or 0)))
-    return Market(out, listings, bar_seconds, infer_listings=listings is None)
+    return Market(out, listings, bar_seconds, infer_listings=infer_listings)

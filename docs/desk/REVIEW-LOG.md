@@ -163,3 +163,18 @@ Accepted verbatim. Strategies no longer size in dollars; the engine owns sizing.
 
 Note for Phase 4: the slot is a baseline, not a claim. Volatility-scaled or conviction-weighted sizing is a Phase 4 study
 run as an overlay against this baseline, not a change to the engine default.
+
+---
+
+## R-2026-10-02-H — ChatGPT review of PR #46 @ bd2979d (gross_cap default, fail-closed loader)
+
+| # | Claim | Action |
+|---|---|---|
+| Q1 | Keep `gross_cap=1.0` as the tournament default; a `no_fill: cash` after a round trip is economic information (slot frozen at the prior close, executed at the next open), not a defect. Lowering the default hides turnover cost | Accepted. Default stays 1.0. 1.00/0.95/0.90 are Phase 4 cash-buffer overlays. `sizing` (rule, gross_cap, max_positions) is now in the manifest and in the config hash, so a 90% run can never share an id with a 100% run (test). The sells-first unit test uses 0.9 only to isolate slot release; it is not a default |
+| BLOCKER | `market_from_rows()` inferred listings when a snapshot lacked them, reopening survivorship | `market_from_rows(rows, bar_seconds, listings=None, *, infer_listings=False)`; `load_snapshot` raises `ValueError` on a snapshot without listings. Tests: default raises; snapshot without listings refused; with listings loads |
+| LOW | `AsOfView` comment overstated "materialised" | Reworded: visibility-capped reference, interface serves `bs[:i]`, guard is the StrategyHygiene test |
+| Ask | Report the `no_fill` breakdown during the real-data reproduction | Engine result now carries `no_fill_reasons` {cash, slots, no bar, already held}; `bt_run.py` prints it with the run id |
+
+Phase 2 gate as agreed: fail-closed loader (done, 42/42) → reproduce the house breakout rule on the frozen real dataset with the
+`no_fill` breakdown reported → PASS/FAIL. The reproduction is blocked until `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` exist in the
+cloud environment (read-only data pull; never pasted in chat).

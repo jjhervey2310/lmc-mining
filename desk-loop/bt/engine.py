@@ -120,7 +120,18 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
             _close(pf, trades, s, (b.c if b else pf.positions[s].entry_px) * (1 - side_cost), t, "eod")
         equity[-1] = (t + bar, pf.cash)
     return {"equity": equity, "trades": trades, "events": events, "final_cash": pf.cash, "start_cash": start_cash, "sizing": {"rule": "slot", "gross_cap": gross_cap, "max_positions": max_positions},
-            "no_fills": sum(1 for e in events if e[2] == "no_fill")}
+            "no_fills": sum(1 for e in events if e[2] == "no_fill"),
+            "no_fill_reasons": _reason_counts(events)}
+
+
+def _reason_counts(events):
+    """no_fill breakdown by class: cash / slots / no bar / already held (the cash reason carries amounts; collapse it)."""
+    out = {}
+    for e in events:
+        if e[2] == "no_fill":
+            k = "cash" if e[3].startswith("cash") else e[3]
+            out[k] = out.get(k, 0) + 1
+    return dict(sorted(out.items()))
 
 
 def _close(pf, trades, s, px, t, reason):
