@@ -279,7 +279,7 @@ Sweep policy is a **parameter** because the right answer is empirical. Three can
 - **H-SWEEP-B (fixed):** `sweep_pct` of realized profit → BTC immediately, per milestone row.
 - **H-SWEEP-C (hybrid):** floor % always, multiplier rising with fear (e.g. 1× at F&G 50, 2× at 35, 4× at ≤25), plus a time cap — if the bucket has waited > N days, release a tranche regardless. Backtest: simulate 2021-26 growth-account equity paths (from tournament winners) under 5/10/20/25/50% and dynamic (by portfolio size, by BTC drawdown-from-ATH) sweeps. Metric: P(reach 5 BTC within N years) vs. growth-account terminal value. Monte Carlo on resampled returns, not just the one historical path.
 
-Hard rules: reserve BTC is never an input to any sizing or sell logic. Any strategy output that implies selling reserve BTC writes a `HUMAN_REVIEW_REQUIRED` flag and stops.
+Hard rules: reserve BTC is never an input to any sizing or sell logic, and **is never inventory for the §8b spot reverse grid** — reserve BTC and growth-account BTC live in separate ledgers (`btc_reserve_ledger` vs. positions) and no code path moves between them. Any strategy output that implies selling or lending reserve BTC writes a `HUMAN_REVIEW_REQUIRED` flag and stops.
 
 ---
 
@@ -293,7 +293,7 @@ Promote `backtest_audit.py`'s discipline into a shared Python package (`desk-loo
 - **Walk-forward:** rolling fit/test windows, not one split. Parameter sensitivity: report metric surface ±20% on each parameter; reject if edge collapses.
 - **Monte Carlo:** block-bootstrap of trade sequence and of return series; report 5th-percentile drawdown.
 - **Robustness report:** result excluding top 1/3/5 winners, per-regime breakdown, per-coin breakdown, per-year breakdown.
-- Every run writes to `research_runs` (config hash, universe snapshot id, data vintage, metrics, verdict). The research DB from the brief *is* this table plus `strategy_tournament` and `missed_opportunities`.
+- Every run writes to `research_runs` with an evidence manifest: code SHA, config hash, data snapshot hash, universe snapshot id and hash, data vintage/availability policy, `CostModel` (maker, taker, spread, slippage, venue, tier), fill rule, folds, seeds, metrics, failures, trial count and artifact checksums. A result without a complete manifest is not evidence. The research DB from the brief *is* this table plus `strategy_tournament`, `missed_opportunities` and `docs/desk/REVIEW-LOG.md` (external reviews answered item by item).
 
 Anti-overfitting gate (automated, applied to every run): REJECT if edge exists on < 3 coins, or in only one calendar year, or disappears at +25% fees, or Sharpe drops > 50% when top 3 winners removed, or parameter surface is a spike.
 
@@ -336,6 +336,8 @@ Automation ladder — each level requires the previous level's evidence:
 | 3 | Caps raised per milestone table; entries automated | ≥ 90 days live at level 2 with no limit breaches |
 
 Non-negotiable at every level: kill switch, trade-only keys, position limits enforced in code (not in the prompt), full decision log (`agent_decisions`: inputs, model, output, action, outcome). A reserve-BTC sell can never be automated at any level.
+
+**Human approval is a separate gate, not a consequence.** No research result, paper-trading record, elapsed time, or agreement between models authorises a real-money action. `research_accepted` (a strategy passed its tests) and `trade_approved` (Jacob approved a specific order) are different states held in different places. An approval binds the exact proposal revision, account, venue, pair, side, order type, quantity/notional cap, price/slippage bounds, protective-order plan and expiry; it is consumed once, atomically, after fresh risk/quote/position checks; any revision invalidates it; it is given through a verified human session with re-authentication — never a checkbox, a model-authored record, a PR merge, a GitHub comment, or possession of a shared admin secret. No AI agent ever holds `ADMIN_SECRET`, exchange keys or a service-role database key. Approval is permission, not a fill: an uncertain broker result is reconciled before any retry.
 
 **News trading.** Fast headline reaction is treated as a hypothesis expected to fail after fees and latency: by the time a pipeline reads, reasons and orders, the spike is priced. Slow catalysts (CEX listings, unlock schedules, regulatory rulings, protocol upgrades) play out over days and are tracked as catalyst features in `features_daily`. Both are tested in the tournament; neither is assumed.
 
