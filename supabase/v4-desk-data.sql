@@ -247,18 +247,19 @@ BEGIN
 END $$;
 
 -- kr_* collector watchdog (docs/COLLECTOR-UNKNOWN.md). Data-only: reads two tables, writes one row.
-CREATE OR REPLACE FUNCTION collector_health() RETURNS TABLE (status TEXT, heartbeat_age_s INT, data_age_s INT) LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE hb INT; da INT; st TEXT; prev TEXT;
+CREATE OR REPLACE FUNCTION collector_health() RETURNS TABLE(status TEXT, heartbeat_age_s INT, data_age_s INT) LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE hb INT; da INT; st TEXT;
 BEGIN
-  SELECT EXTRACT(EPOCH FROM now() - max(at))::INT INTO hb FROM kr_heartbeat;
-  SELECT EXTRACT(EPOCH FROM now() - max(collected_at))::INT INTO da FROM kr_ohlcv;
+  -- Market-data freshness (2026-10-03: the kr_* collector tables were dropped under the Free-plan quota; this watches
+  -- md_candles / md_backfill_cursor instead). hb = age of the newest daily head refresh; da = age of the newest completed daily bar.
+  SELECT EXTRACT(EPOCH FROM now() - max(head_synced_at))::INT INTO hb FROM md_backfill_cursor WHERE interval_minutes = 1440;
+  SELECT EXTRACT(EPOCH FROM now() - (max(bar_time) + interval '1 day'))::INT INTO da FROM md_candles WHERE venue = 'coinbase' AND interval_minutes = 1440;
   st := CASE WHEN hb IS NULL OR da IS NULL THEN 'unknown'
-             WHEN hb > 3600 OR da > 5400 THEN 'dead'
-             WHEN hb > 600 OR da > 4200 THEN 'degraded'
+             WHEN hb > 7200 OR da > 172800 THEN 'dead'
+             WHEN hb > 3600 OR da > 93600 THEN 'degraded'
              ELSE 'healthy' END;
-  SELECT d.status INTO prev FROM desk_health d WHERE d.component = 'kr_collector';
   INSERT INTO desk_health (component, status, heartbeat_age_s, data_age_s, detail, checked_at, changed_at)
-  VALUES ('kr_collector', st, hb, da, jsonb_build_object('host', (SELECT host FROM kr_heartbeat ORDER BY at DESC LIMIT 1)), now(), now())
+  VALUES ('market_data', st, hb, da, jsonb_build_object('source', 'md_candles coinbase 1440 / md_backfill_cursor heads'), now(), now())
   ON CONFLICT (component) DO UPDATE SET status = EXCLUDED.status, heartbeat_age_s = EXCLUDED.heartbeat_age_s, data_age_s = EXCLUDED.data_age_s,
     detail = EXCLUDED.detail, checked_at = now(), changed_at = CASE WHEN desk_health.status IS DISTINCT FROM EXCLUDED.status THEN now() ELSE desk_health.changed_at END;
   RETURN QUERY SELECT st, hb, da;

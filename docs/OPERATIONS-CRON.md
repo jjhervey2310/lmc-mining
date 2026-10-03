@@ -46,7 +46,7 @@ nothing calls it.
 
 | jobid | job | schedule (UTC) | target | status |
 |---|---|---|---|---|
-| 15 | collector-health | `*/15 * * * *` | `select collector_health()` → `desk_health` | **active** |
+| 15 | collector-health (now market_data freshness: md_candles + head refresh; kr_* dropped 2026-10-03) | `*/15 * * * *` | `select collector_health()` → `desk_health` | **active** |
 | 16 | features-daily | `40 0 * * *` | `select compute_features_daily()` → `features_daily` | **active** |
 | 18 | universe-sync | `10 0 * * *` | `/api/cron/universe-sync` | live 2026-10-02; ran `*/10` during the backfill, normalised 06:40 UTC |
 | 17 | md-backfill | `*/30 * * * *` | `/api/cron/md-backfill` (40 chunks + 20 heads per run) | live 2026-10-02; backlog cleared 18:44 UTC with 0 errors (daily 489/489 cursors, 498,756 bars; hourly 401/401, 3.5M bars); ran `*/2` during the backlog, now forward-fill only. 2026-10-03: hourly cursors and bars deleted (Free-plan 500 MB quota incident); daily + 4h only |
@@ -77,3 +77,10 @@ rows → drop 20 `kr_*` Kraken-collector tables (Jacob's decision; the Mac colle
 `vacuum full md_candles` alone in the editor (VACUUM cannot run inside the editor's transaction). Result: 1,014 MB → 156 MB,
 read-only off, writes verified 2026-10-03. Rule going forward: daily and 4h bars only; check `pg_database_size` before any
 bulk load; the plan decision (Free vs Pro) is Jacob's and is recorded in CLAUDE.md.
+
+### 2026-10-03 freshness fixes
+- `collector_health()` rewritten: the kr_* tables it read were dropped; it now reports component `market_data` from `md_candles`
+  (newest completed daily bar) and `md_backfill_cursor.head_synced_at` (newest head refresh).
+- `md-backfill` (job 17): `*/15` with `?heads=150` (route cap raised 40 → 200) so all ~420 daily heads refresh within the
+  hour after the 00:00 UTC close; previously 20 heads per 30 min left `features_daily` with 28 rows at 00:40.
+- `features-daily` (job 16) moved to 01:00 UTC; `features-daily-recheck` (job 21) recomputes at 03:00 UTC (idempotent upsert).
