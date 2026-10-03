@@ -276,3 +276,20 @@ Both notes implemented the same day (PR #46):
 
 49/49 tests. Neither change alters the Phase 2 verdict (both cells were negative before sizing); the attribution table is
 re-run below for the record.
+
+---
+
+## R-2026-10-03-P — ChatGPT review of the Phase 3 regime design v1 (PR #47)
+
+All seven points accepted; design revised to v2 in `docs/desk/REGIME-DESIGN.md` before any code.
+
+| # | Finding | v2 change |
+|---|---|---|
+| 1 BLOCKER | thresholds selected per strategy made regime a strategy parameter | one canonical pair frozen (band 0.02, vol_pct 0.90) shared by every strategy; other five pairs robustness-only, never chosen after seeing results (§4) |
+| 2 BLOCKER | vol shock was a −1 vote, could be outvoted; fast-fail claim false | hard vetoes first (volpct ≥ vol_pct, dd ≤ −0.50 → raw risk_off), then trend + breadth classifier; breadth aggregates, not a veto (§3) |
+| 3 HIGH | layer-pass rule "3 of 4" over six pairs; B&H a start-date test | B&H removed as acceptance test; layer described by strategy-independent OOS diagnostics (forward 1d/7d/30d BTC returns, forward DD, time in state) per label; Phase 4 decides per candidate (§9) |
+| 4 HIGH | leaving `unknown` ambiguous | requires 3 consecutive fresh bars with the same raw state; counter resets to 1 on any change; hard veto fast-fails from `unknown` after 1 bar (§6) |
+| 5 HIGH | breadth denominator/freshness undefined | `breadth_eligible` (listed, ≥50 bars), `fresh`, coverage; unknown if <20 eligible or coverage <60%; new listings never count as missing (§2a) |
+| 6 MEDIUM | math not frozen | slope = SMA50_t/SMA50_{t−20} − 1 (0 non-positive); volpct includes current obs, (count ≤)/365; explicit 385-bar startup → unknown (§2) |
+| 7 MEDIUM | "same order of magnitude" subjective | filtered trades ≥ 50% of unfiltered and ≥ 100 absolute; must also improve avg net trade return or profit factor (§10) |
+| Q2 | `neutral_ok` | dropped; neutral blocks all entries in Phase 3; mean-reversion-in-neutral is a pre-registered Phase 4 overlay study (§1) |
