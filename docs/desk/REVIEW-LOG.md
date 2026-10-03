@@ -409,3 +409,14 @@ not_single_year, not_top3_dependent; all pass ≥100 trades, scale invariance, d
 trigger) and boundary dependency (chained vs continuous within 20%, no sign flip). Negative control breakout20 −64.9%,
 now boundary-clean. Benchmarks unchanged: BTC B&H +2.3% equity from one 10% slot (BTC price +23.8%), cash 0%. Verdicts per
 frozen rules: three REJECTED. Sent unchanged for independent final verdicts.
+
+> **R-V — Corrected Phase 4 tournament table VALID after R-U universe-threading fix. `sma_trend`, `momentum_top`, and
+> `mean_reversion` are independently REJECTED. No candidate advances to Phase 5 or Phase 10. Round 2 design may begin
+> under a new pre-registration. Before any future positive candidate can be accepted, held-position temporary missing
+> bars must mark to the last known completed close rather than entry price, with stale marks surfaced in the evidence record.**
+
+Nuances recorded with the table: `delisting_canonical=✓` in round 1 means the stress was not triggered (exposure 3–8%,
+below 10%), not that the strategies survived the haircut. Hardening item implemented the same day: `Position.last_mark`
+holds the last completed close; `Portfolio.equity()` marks a held name with no bar today at that close, never at entry
+price; each such bar-day is an engine event `stale_mark` and the run result carries `stale_marks`. Test
+`StaleMarks.test_missing_bar_marks_at_last_close_not_entry`. 83/83.
