@@ -1,6 +1,6 @@
 # Phase 3 — Regime engine design, revision 2 (for acceptance before code)
 
-Status: DRAFT v2 after independent review R-P (ChatGPT, 2026-10-03). No code until accepted. Architecture doc §3.
+Status: v2 ACCEPTED for implementation (ChatGPT, R-Q, 2026-10-03) after the two clarifications marked [R-Q]. Architecture doc §3.
 Changes from v1 are marked **[R-P n]**.
 
 ## 0. What it is and is not
@@ -100,7 +100,10 @@ This describes what the labels mean out of sample. It does not accept or reject 
 candidate, whether filtering helps (§10). BTC buy-and-hold and cash remain mandatory benchmark rows in every report.
 
 ## 10. Phase 4 use and the hindsight rule **[R-P 7]**
-- Order is fixed: unfiltered Phase 2 gate first. Only candidates that pass, or miss by exactly one check, are run filtered.
+- Order is fixed: unfiltered Phase 2 gate first. A filtered variant may be evaluated only if the unfiltered candidate passes
+  the core checks `oos_positive`, `survives_fees_x1.25` and `survives_fees_x1.25_oos`. It may miss at most one NON-core
+  check (`symbols>=min`, `not_single_year`, `not_top3_dependent`, `param_surface_smooth`). A strategy that loses money
+  unfiltered is never run filtered: regime is an overlay, not a rehabilitation mechanism **[R-Q 1]**.
 - Filtered beats unfiltered only if ALL hold on the same OOS folds: (a) higher OOS total return, (b) smaller OOS max
   drawdown, (c) filtered OOS trade count ≥ 50% of unfiltered, (d) filtered OOS trade count ≥ 100 (minimum absolute
   evidence), (e) improvement in at least one exposure-independent statistic: average net trade return or profit factor.
@@ -117,7 +120,9 @@ first_label_t, transitions_count, pct_time: {risk_on, neutral, risk_off, unknown
 ## 12. Tests (all before the engine is wired in)
 - boundary: label at t uses only bars with t_bar + 1d ≤ t; a 50× spike in the bar opening at t cannot change it
 - same-bar leakage: votes/vetoes at t on a truncated market equal the precomputed series at t, for every t
-- startup: all labels are `unknown` until the longest lookback (385 bars) exists; first label appears exactly then
+- startup: all labels are `unknown` before 385 BTC bars; at 385+ bars a label may become non-`unknown` only if the breadth
+  gates (§2a) also pass. Synthetic case with ≥ 20 breadth-eligible names: the earliest non-`unknown` label occurs exactly at
+  bar 385; the same path with 19 eligible names stays `unknown` **[R-Q 2]**
 - veto precedence: trend +1 and breadth +1 with volpct ≥ 0.90 → raw `risk_off`; same with dd ≤ −0.50 → raw `risk_off`
 - flip control: daily oscillation around SMA200 → no transition; a single cross → exactly 1 transition, 3 bars after
 - counter reset: raw sequence on, on, neutral, on, on, on → publishes at the 6th bar, not the 3rd

@@ -293,3 +293,16 @@ All seven points accepted; design revised to v2 in `docs/desk/REGIME-DESIGN.md` 
 | 6 MEDIUM | math not frozen | slope = SMA50_t/SMA50_{t−20} − 1 (0 non-positive); volpct includes current obs, (count ≤)/365; explicit 385-bar startup → unknown (§2) |
 | 7 MEDIUM | "same order of magnitude" subjective | filtered trades ≥ 50% of unfiltered and ≥ 100 absolute; must also improve avg net trade return or profit factor (§10) |
 | Q2 | `neutral_ok` | dropped; neutral blocks all entries in Phase 3; mean-reversion-in-neutral is a pre-registered Phase 4 overlay study (§1) |
+
+---
+
+## R-2026-10-03-Q — ChatGPT acceptance of the Phase 3 regime design v2
+
+> R-Q — Phase 3 regime design ACCEPTED for implementation, subject to two final clarifications: filtered evaluation
+> requires unfiltered OOS-positive + fee-stress survival; startup label is earliest-at-385, conditional on breadth
+> readiness. No additional architecture changes required before coding.
+
+Both clarifications applied in `REGIME-DESIGN.md` §10 and §12 before any code: filtered variants only for candidates
+that pass `oos_positive` and both fee-stress checks unfiltered (at most one non-core miss); startup test is
+"unknown before 385 BTC bars; non-unknown at 385+ only if breadth gates pass", with the ≥20-names-at-385 and
+19-names-stays-unknown synthetic cases. Implementation starts from this revision.
