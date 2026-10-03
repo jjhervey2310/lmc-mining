@@ -420,3 +420,43 @@ below 10%), not that the strategies survived the haircut. Hardening item impleme
 holds the last completed close; `Portfolio.equity()` marks a held name with no bar today at that close, never at entry
 price; each such bar-day is an engine event `stale_mark` and the run result carries `stale_marks`. Test
 `StaleMarks.test_missing_bar_marks_at_last_close_not_entry`. 83/83.
+
+---
+
+## R-2026-10-03-W — ChatGPT review of the round-2 pre-registration draft v1 (four blockers, one HIGH, two fixes, three answers)
+
+All accepted; draft v2 written before any round-2 code (`PHASE4-ROUND2-PREREGISTRATION.md`). Fact found while answering
+#3 that the reviewer must rule on: the F&G table holds 2 live rows (2026-10-02/03), no history over the OOS span.
+
+| # | Severity | Claim | Verdict | Action in v2 |
+|---|---|---|---|---|
+| 1 | BLOCKER | A and B are responses to observed round-1 results; the 2021–2026 span is no longer untouched for them; round-2 historical results cannot confer `research_accepted` | **Correct.** | Evidence status rule at the top of v2: round 2 = post-Round-1 hypothesis screening; outcomes `historical_survivor` / `historical_rejected` / `inconclusive`; survivors advance only to a forward-validation stage on bars after the freeze; that stage is pre-registered and reviewed BEFORE the round-2 table is run; only it can confer `research_accepted`. A and B carry explicit provenance lines ("post-Round-1 decomposition hypothesis", "post-Round-1 response"). Heading rewritten as recommended. |
+| 2 | BLOCKER | Inherited ≥100-trade, `symbols>=min` and symbol-concentration gates are structurally impossible for BTC-only A and C; pre-register candidate-class gates and an episode minimum now | **Correct.** | §0 classes: S (A, C) — positive continuous OOS, positive ×1.25, ≥2/3 thirds, positive P&L in ≥2 calendar years, scale invariant, no boundary dependency, P&L ex-top-3 trades > 50% of total, own falsifier; episode minimums frozen: A ≥ 10 completed round trips, C ≥ 8 completed non-overlapping episodes, fewer ⇒ `inconclusive`. X (B) keeps the full 11-boolean round-1 gate and ≥100 trades. Numbers offered for the reviewer to confirm or replace (Q1). |
+| 3 | BLOCKER | C as written ("another slot every 7 days") cannot execute on a one-position-per-symbol engine; choose Option I (timing) or II (lot-aware accumulation) before coding | **Correct.** Option I adopted. | Rule: when flat and the usable reading ≤ threshold, buy next open, hold exactly 90 bars, sell next open, ignore readings while holding, no stop; verdict at 1 slot = 100%; Option II deferred to the accumulation phase. Falsifier uses the same non-overlapping executed signals; all-fear-days event study is descriptive only. |
+| 3b | BLOCKER | "F&G dated D is known at D's close" cannot be assumed; store `observed_for_date`, `available_at`, `value`, `source`; a decision at t may use a reading only if `available_at ≤ t`; no provenance ⇒ not trustworthy | **Correct, and it bites harder than the draft knew.** `market_sentiment_daily` (snapshot_date, fear_greed, classification, source, observed_at) holds 2 rows, both live captures at 00:20 UTC of the dated day; there is no F&G history over 2021–2026 at all. A backfill from alternative.me gives date and value, not publication time. | v2 freezes the availability rule, `available_at` = collector capture for live rows, NULL (unusable) for backfilled rows, so C's verified-availability coverage of the OOS span is 0% ⇒ `inconclusive` by rule. Two pre-registered options for the reviewer (Q2): (i) C forward-only; (ii) a declared assumed-availability screening run (reading dated D usable from the close of D+1, ~47 h beyond the observed live lag, `evidence_class = assumed_availability`, best outcome `historical_survivor (assumed availability)`, still needing forward validation). Live collection continues daily meanwhile. |
+| 4 | HIGH | B's floor/no-floor comparison must share the exact parameter picks per fold; select on the floor candidate; breadth from the contemporaneous top-20 only, not Phase-3 breadth; fail closed to cash on a missing constituent | **Correct.** | Paired twin runs the same selected parameters over the same OOS windows and continuous schedule; selection on the floor variant. Breadth = top-20 members above own SMA50 / members, computed at the rebalance close; fail closed to cash when membership < 20 or any member's bar is missing (`breadth_fail_closed` counted). Falsifier unchanged: return AND max DD AND PF. |
+| Q1 | — | A at max_positions = 1? | Yes | Verdict run 100% BTC; 10-slot version is a sizing sensitivity; benchmarks 100% BTC B&H and cash (10%-slot B&H kept for continuity). |
+| Q2 | — | B breadth source? | Top-20 only | As #4. |
+| Q3 | — | C coverage < 80%? | Yes, plus any unexplained contiguous gap > 30 days; "usable" = verified `available_at ≤ decision close`; never forward-fill | Frozen verbatim. |
+| fix | — | A's falsifier too loose | **Correct.** | R_A ≥ R_BH, or (R_A ≥ 0.70 × R_BH and DD_A ≤ 0.70 × DD_BH); positive after canonical and stress costs independently. |
+| fix | — | C's hypothesis says 90 d but H includes 30 | **Correct.** | 90 d is the primary structural horizon and the only H in the grid; 30 d is a pre-registered sensitivity. |
+
+No round-2 code written (handoff rule); build starts on `claude/phase-4-round2` after written acceptance of v2 and a
+reviewed forward-validation pre-registration. Branch-keeping note: a parallel cloud session, unaware of PR #49, rebuilt
+the round-1 infrastructure as PR #50; it was closed as superseded the same day, nothing from it is used.
+
+---
+
+## R-2026-10-03-X — ChatGPT acceptance of the round-2 pre-registration v2 (FROZEN)
+
+> R-X — Phase 4 Round 2 pre-registration v2 ACCEPTED AND FROZEN at PR #51 @ `8a52e079`. Episode minimums A ≥10 and C ≥8
+> accepted. Candidate C may run the pre-registered D+1 assumed-availability historical screening, explicitly labelled
+> `assumed_availability`; it cannot confer research acceptance. Historical Round-2 results can only be
+> `historical_survivor`, `historical_rejected`, or `inconclusive`. No Round-2 historical survivor may become
+> `research_accepted` without the separately pre-registered fresh forward-validation stage.
+
+Recorded verbatim; the three answers (Accept / ii / Freeze) are written into the frozen document's header. Reviewer's
+procedural requirement applied: `docs/desk/PHASE4-FORWARD-VALIDATION.md` v1 is pre-registered and sent for review before
+the round-2 historical table is run. Round-2 code build starts on `claude/phase-4-round2` (allowed from this acceptance);
+the table is NOT run until the forward-validation stage is accepted.
+
