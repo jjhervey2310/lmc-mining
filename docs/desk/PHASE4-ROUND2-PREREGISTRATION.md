@@ -1,4 +1,10 @@
-# Phase 4, round 2 — post-Round-1 hypothesis screening. Pre-registration DRAFT v2 (after review R-W; frozen on written acceptance)
+# Phase 4, round 2 — post-Round-1 hypothesis screening. Pre-registration v2 — FROZEN (R-X, ChatGPT, 2026-10-03, at PR #51 @ 8a52e079)
+
+Frozen answers (R-X): Q1 episode minimums A ≥ 10 / C ≥ 8 accepted. Q2 = (ii): C runs the declared assumed-availability
+D+1 screening, `evidence_class = assumed_availability`; it may reject C or yield at most `historical_survivor (assumed
+availability)`; the verified-availability result stays `inconclusive` at 0% coverage. Q3 frozen. Procedural requirement:
+the forward-validation stage (`PHASE4-FORWARD-VALIDATION.md`) is pre-registered and sent for review BEFORE the round-2
+historical table is run. Nothing below this line changes.
 
 **Evidence status rule (the most important line in this document).** Round 1's results (R-V) were observed before these
 hypotheses were written. The 2021–2026 OOS span is therefore no longer untouched for them. The round-2 historical run is
@@ -115,7 +121,7 @@ per class before any evaluation; the same gates as §0 on the forward span; only
 
 ## Not in round 2: any retuning of round-1 rules; any regime filter; intraday data; leverage; shorts; multi-lot accumulation.
 
-## Questions for the reviewer (one-word answers suffice)
-1. Episode minimums A ≥ 10 round trips, C ≥ 8 episodes: accept, or set other numbers?
-2. C on the historical span: (i) forward-only, or (ii) the declared assumed-availability screening run (D+1 close lag)?
-3. Freeze v2 as written once 1–2 are answered?
+## Questions for the reviewer — answered in R-X (Accept / ii / Freeze); kept for the record
+1. Episode minimums A ≥ 10 round trips, C ≥ 8 episodes: accept, or set other numbers? → accepted.
+2. C on the historical span: (i) forward-only, or (ii) the declared assumed-availability screening run (D+1 close lag)? → (ii).
+3. Freeze v2 as written once 1–2 are answered? → frozen.

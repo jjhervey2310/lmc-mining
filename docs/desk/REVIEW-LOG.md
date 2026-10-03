@@ -445,3 +445,18 @@ No round-2 code written (handoff rule); build starts on `claude/phase-4-round2` 
 reviewed forward-validation pre-registration. Branch-keeping note: a parallel cloud session, unaware of PR #49, rebuilt
 the round-1 infrastructure as PR #50; it was closed as superseded the same day, nothing from it is used.
 
+---
+
+## R-2026-10-03-X — ChatGPT acceptance of the round-2 pre-registration v2 (FROZEN)
+
+> R-X — Phase 4 Round 2 pre-registration v2 ACCEPTED AND FROZEN at PR #51 @ `8a52e079`. Episode minimums A ≥10 and C ≥8
+> accepted. Candidate C may run the pre-registered D+1 assumed-availability historical screening, explicitly labelled
+> `assumed_availability`; it cannot confer research acceptance. Historical Round-2 results can only be
+> `historical_survivor`, `historical_rejected`, or `inconclusive`. No Round-2 historical survivor may become
+> `research_accepted` without the separately pre-registered fresh forward-validation stage.
+
+Recorded verbatim; the three answers (Accept / ii / Freeze) are written into the frozen document's header. Reviewer's
+procedural requirement applied: `docs/desk/PHASE4-FORWARD-VALIDATION.md` v1 is pre-registered and sent for review before
+the round-2 historical table is run. Round-2 code build starts on `claude/phase-4-round2` (allowed from this acceptance);
+the table is NOT run until the forward-validation stage is accepted.
+
