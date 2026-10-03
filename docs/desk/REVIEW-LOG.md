@@ -345,3 +345,19 @@ inconclusive rule; (4) four-cell attribution dropped for Phase 4, gross_cap 0.95
 canonical delisting case 10×/−50% triggered at ≥ 10% of OOS P&L or trades, mild and tail cases reported. mean_reversion
 `n` confirmed as the MA lookback; breakout20 negative control never enters selection or trial accounting. Awaiting
 acceptance to freeze.
+
+---
+
+## R-2026-10-03-S (acceptance) — Phase 4 pre-registration v2 FROZEN
+
+> R-S — Phase 4 strategy-tournament pre-registration v2 ACCEPTED AND FROZEN at `0665068`. Implementation may begin. No
+> candidate, parameter grid, universe rule, exclusion map, cost assumption, sizing rule, robustness threshold, or
+> advancement criterion may change after tournament results begin. Any change requires a new pre-registration/version and
+> cannot retroactively replace this tournament.
+
+Implementation clarification (not a design change): the manifest persists the exact advancement booleans rather than a
+recomputed "core" category — `oos_positive`, `survives_fees_x1.25`, `survives_fees_x1.25_oos`, `oos_trades>=100`,
+`thirds_2_of_3`, `scale_invariant`, `symbols>=min`, `not_single_year`, `not_top3_dependent`, `delisting_canonical`
+(with its trigger share), `boundary_dependency_ok`. Build order: universe builder → continuous OOS runner → cost sets →
+delisting stress → manifest/gate fields → synthetic tests → one real frozen-snapshot tournament run → complete table to the
+independent reviewer unchanged. Nothing is promoted to `research_accepted` before that review.
