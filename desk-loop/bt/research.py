@@ -2,6 +2,7 @@
 import dataclasses, hashlib, json, random, statistics as st, time
 from .engine import run
 from .metrics import summarize
+from . import regime as regime_mod
 
 
 def folds(start_t, end_t, fit_days, test_days, step_days=None):
@@ -15,7 +16,7 @@ def folds(start_t, end_t, fit_days, test_days, step_days=None):
     return out
 
 
-def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, select="sharpe", sizing=None, fee_stress=1.25):
+def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, select="sharpe", sizing=None, fee_stress=1.25, regime=None, gate_fn=None):
     sizing = sizing or {}
     stressed = dataclasses.replace(costs, maker_fee=min(0.099, costs.maker_fee * fee_stress), taker_fee=min(0.099, costs.taker_fee * fee_stress), tier=f"{costs.tier} x{fee_stress}")
     """For each fold: run every param set on the fit window, pick the best by `select`, run it on the test window.
@@ -24,6 +25,7 @@ def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, 
     fs = folds(times[0], times[-1] + market.bar_seconds, fit_days, test_days)
     picks, oos_equity, oos_trades, trials = [], [], [], 0
     st_equity, st_trades = [], []            # the same OOS procedure under stressed fees (R-O): selection still on base costs
+    f_equity, f_trades, fs_equity, fs_trades = [], [], [], []   # Phase 3: regime-filtered twin on the SAME picks and folds (design §8/§10)
     for (a, fe, ts, te) in fs:
         best = None
         for params in param_grid:
@@ -42,9 +44,63 @@ def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, 
         st_trades += r2["trades"]
         scale2 = st_equity[-1][1] / r2["equity"][0][1] if st_equity else 1.0
         st_equity += [(t, e * scale2) for t, e in r2["equity"]]
+        if regime is not None:
+            gated = (gate_fn or (lambda f: f))(make_strategy(**best[1]))
+            r3 = run(market, gated, costs, start_t=ts, end_t=te, regime=regime, **sizing)
+            f_trades += r3["trades"]; sc3 = f_equity[-1][1] / r3["equity"][0][1] if f_equity else 1.0
+            f_equity += [(t, e * sc3) for t, e in r3["equity"]]
+            r4 = run(market, (gate_fn or (lambda f: f))(make_strategy(**best[1])), stressed, start_t=ts, end_t=te, regime=regime, **sizing)
+            fs_trades += r4["trades"]; sc4 = fs_equity[-1][1] / r4["equity"][0][1] if fs_equity else 1.0
+            fs_equity += [(t, e * sc4) for t, e in r4["equity"]]
     oos = summarize({"equity": oos_equity, "trades": oos_trades}) if oos_equity else {"error": "no folds"}
     oos_stress = summarize({"equity": st_equity, "trades": st_trades}) if st_equity else {"error": "no folds"}
-    return {"folds": picks, "oos": oos, "oos_fee_stress": oos_stress, "fee_stress": fee_stress, "trials": trials}
+    out = {"folds": picks, "oos": oos, "oos_fee_stress": oos_stress, "fee_stress": fee_stress, "trials": trials, "test_windows": [(ts, te) for (_, _, ts, te) in fs]}
+    if regime is not None:
+        out["oos_filtered"] = summarize({"equity": f_equity, "trades": f_trades}) if f_equity else {"error": "no folds"}
+        out["oos_filtered_fee_stress"] = summarize({"equity": fs_equity, "trades": fs_trades}) if fs_equity else {"error": "no folds"}
+        out["regime"] = {"band": regime.band, "vol_pct": regime.vol_pct}
+    return out
+
+
+CORE_CHECKS = ("oos_positive", "survives_fees_x1.25", "survives_fees_x1.25_oos")
+NON_CORE_CHECKS = ("symbols>=min", "not_single_year", "not_top3_dependent", "param_surface_smooth")
+
+
+def overlay_eligible(gate_result):
+    """Design §10 / R-Q: a filtered variant may be evaluated only if the UNFILTERED candidate passes every core check
+    and misses at most one non-core check. A strategy that loses money unfiltered is never run filtered."""
+    c = (gate_result or {}).get("checks", {})
+    if not all(c.get(k) is True for k in CORE_CHECKS):
+        return False, "fails a core check unfiltered (oos_positive / fee stress)"
+    misses = [k for k in NON_CORE_CHECKS if c.get(k) is False]
+    return (len(misses) <= 1), (f"non-core misses: {misses}" if misses else "passes")
+
+
+def overlay_verdict(oos, oos_filtered, min_trades=100, min_trade_ratio=0.5):
+    """Design §10 (a)–(e): filtered beats unfiltered only if ALL hold. Returns {"wins": bool, "checks": {...}}."""
+    if not oos or not oos_filtered or "error" in oos or "error" in oos_filtered:
+        return {"wins": False, "checks": {"evidence": "missing"}}
+    pf = lambda m: m.get("profit_factor") if m.get("profit_factor") not in (None, float("inf")) else (float("inf") if m.get("profit_factor") == float("inf") else -1)
+    checks = {
+        "higher_oos_return": oos_filtered["total_return"] > oos["total_return"],
+        "smaller_oos_drawdown": oos_filtered["max_drawdown"] > oos["max_drawdown"],
+        "trade_ratio>=0.5": oos_filtered["trades"] >= min_trade_ratio * oos["trades"],
+        "trades>=100": oos_filtered["trades"] >= min_trades,
+        "exposure_independent_improvement": ((oos_filtered.get("avg_trade_ret") or -1) > (oos.get("avg_trade_ret") or -1)) or (pf(oos_filtered) > pf(oos)),
+    }
+    return {"wins": all(checks.values()), "checks": checks, "note": None if checks["exposure_independent_improvement"] else "filter wins only by sitting in cash: not evidence"}
+
+
+def regime_sensitivity(market, make_strategy, params, costs, fit_days, test_days, sizing=None, gate_fn=None, pairs=None):
+    """Design §4: the five non-canonical pairs, descriptive only; never used to choose anything."""
+    out = {}
+    for band, vol_pct in (pairs or regime_mod.PAIRS):
+        if (band, vol_pct) == (regime_mod.CANONICAL["band"], regime_mod.CANONICAL["vol_pct"]):
+            continue
+        series = regime_mod.compute_series(market, band, vol_pct)
+        wf = walk_forward(market, make_strategy, [params], costs, fit_days, test_days, sizing=sizing, regime=series, gate_fn=gate_fn)
+        out[f"band={band},vol_pct={vol_pct}"] = {k: wf["oos_filtered"].get(k) for k in ("total_return", "max_drawdown", "trades", "profit_factor")} if "error" not in wf["oos_filtered"] else wf["oos_filtered"]
+    return out
 
 
 def robustness(market, make_strategy, params, costs, perturb=0.2, sizing=None):
@@ -111,16 +167,16 @@ def gate(oos, rob, trials, min_symbols=3, oos_stress=None):
     return {"verdict": "rejected" if failed else "accepted", "checks": checks, "failed": failed, "trials": trials}
 
 
-def manifest(strategy, params, market, costs, fill_rule, folds_info, seeds, metrics, rob, gate_result, code_sha=None, data_vintage=None, notes=None, sizing=None):
+def manifest(strategy, params, market, costs, fill_rule, folds_info, seeds, metrics, rob, gate_result, code_sha=None, data_vintage=None, notes=None, sizing=None, regime=None):
     # sizing is part of the config hash: a 90% deployment strategy is economically different from a 100% one (R-H).
     sizing = sizing or {"rule": "slot", "gross_cap": 1.0, "max_positions": 10}
-    cfg = {"strategy": strategy, "params": params, "costs": costs.as_record(), "fill_rule": fill_rule, "sizing": sizing}
+    cfg = {"strategy": strategy, "params": params, "costs": costs.as_record(), "fill_rule": fill_rule, "sizing": sizing, "regime": regime}
     config_hash = hashlib.sha256(json.dumps(cfg, sort_keys=True, default=str).encode()).hexdigest()[:16]
     run_id = f"{strategy}-{config_hash}-{market.fingerprint()}-{int(time.time())}"
     return {
         "run_id": run_id, "strategy": strategy, "params": params, "config_hash": config_hash, "code_sha": code_sha,
         "data_hash": market.fingerprint(), "universe_hash": market.universe_fingerprint(), "data_vintage": data_vintage,
-        "costs": costs.as_record(), "fill_rule": fill_rule, "sizing": sizing, "folds": folds_info, "seeds": seeds,
+        "costs": costs.as_record(), "fill_rule": fill_rule, "sizing": sizing, "regime": regime, "folds": folds_info, "seeds": seeds,
         "trial_count": (gate_result or {}).get("trials"), "metrics": metrics, "robustness": rob, "gate": gate_result,
         "verdict": (gate_result or {}).get("verdict", "inconclusive"), "notes": notes,
     }

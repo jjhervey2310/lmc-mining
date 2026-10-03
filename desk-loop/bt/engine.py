@@ -61,7 +61,7 @@ class Portfolio:
         return self.cash + sum(p.units * prices.get(s, p.entry_px) for s, p in self.positions.items())
 
 
-def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10, gross_cap=1.0, fixed_usd=None):
+def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10, gross_cap=1.0, fixed_usd=None, regime=None):
     """fixed_usd: DIAGNOSTIC ONLY (sizing attribution, review R-I). Every fill is exactly fixed_usd regardless of
     equity — the legacy house convention. Never a research configuration; results so sized are not evidence."""
     bar = market.bar_seconds
@@ -127,7 +127,7 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
                 prices[s] = b.c
         equity.append((t + bar, pf.equity(prices))); cash_curve.append((t + bar, pf.cash))
         # (4) decide on the completed bar
-        pending = list(strategy(market.as_of(t + bar), pf) or [])
+        pending = list(strategy(market.as_of(t + bar, regime), pf) or [])
     if times:
         t = times[-1]
         for s in list(pf.positions):
@@ -136,6 +136,7 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
         equity[-1] = (t + bar, pf.cash); cash_curve[-1] = (t + bar, pf.cash)
     return {"equity": equity, "trades": trades, "events": events, "final_cash": pf.cash, "start_cash": start_cash, "cash_curve": cash_curve,
             "sizing": {"rule": "fixed-usd DIAGNOSTIC", "fixed_usd": fixed_usd} if fixed_usd else {"rule": "slot", "gross_cap": gross_cap, "max_positions": max_positions},
+            "regime_filtered": regime is not None,
             "no_fills": sum(1 for e in events if e[2] == "no_fill"),
             "no_fill_reasons": _reason_counts(events)}
 

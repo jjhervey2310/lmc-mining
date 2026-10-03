@@ -156,5 +156,17 @@ def breakout_legacy(lookback=20, vol_mult=1.5, max_ext=0.15, trail_major=0.12, t
     return s
 
 
+def regime_gate(strategy):
+    """Canonical Phase 3 entry rule (design §1/§8): new long entries only when the published label is risk_on. Sells
+    always pass. A run without a regime series attached (view.regime() is None) is unfiltered and unchanged."""
+    def s(view, pf):
+        out = list(strategy(view, pf) or [])
+        r = view.regime()
+        if r is None or r[0] == "risk_on":
+            return out
+        return [o for o in out if o.side == "sell"]
+    return s
+
+
 REGISTRY = {
     "breakout_legacy": breakout_legacy,"buy_and_hold": buy_and_hold, "cash": cash, "dca": dca, "sma_trend": sma_trend, "breakout20": breakout20, "momentum_top": momentum_top, "mean_reversion": mean_reversion}

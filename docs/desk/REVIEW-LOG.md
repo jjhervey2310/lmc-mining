@@ -276,3 +276,72 @@ Both notes implemented the same day (PR #46):
 
 49/49 tests. Neither change alters the Phase 2 verdict (both cells were negative before sizing); the attribution table is
 re-run below for the record.
+
+---
+
+## R-2026-10-03-P — ChatGPT review of the Phase 3 regime design v1 (PR #47)
+
+All seven points accepted; design revised to v2 in `docs/desk/REGIME-DESIGN.md` before any code.
+
+| # | Finding | v2 change |
+|---|---|---|
+| 1 BLOCKER | thresholds selected per strategy made regime a strategy parameter | one canonical pair frozen (band 0.02, vol_pct 0.90) shared by every strategy; other five pairs robustness-only, never chosen after seeing results (§4) |
+| 2 BLOCKER | vol shock was a −1 vote, could be outvoted; fast-fail claim false | hard vetoes first (volpct ≥ vol_pct, dd ≤ −0.50 → raw risk_off), then trend + breadth classifier; breadth aggregates, not a veto (§3) |
+| 3 HIGH | layer-pass rule "3 of 4" over six pairs; B&H a start-date test | B&H removed as acceptance test; layer described by strategy-independent OOS diagnostics (forward 1d/7d/30d BTC returns, forward DD, time in state) per label; Phase 4 decides per candidate (§9) |
+| 4 HIGH | leaving `unknown` ambiguous | requires 3 consecutive fresh bars with the same raw state; counter resets to 1 on any change; hard veto fast-fails from `unknown` after 1 bar (§6) |
+| 5 HIGH | breadth denominator/freshness undefined | `breadth_eligible` (listed, ≥50 bars), `fresh`, coverage; unknown if <20 eligible or coverage <60%; new listings never count as missing (§2a) |
+| 6 MEDIUM | math not frozen | slope = SMA50_t/SMA50_{t−20} − 1 (0 non-positive); volpct includes current obs, (count ≤)/365; explicit 385-bar startup → unknown (§2) |
+| 7 MEDIUM | "same order of magnitude" subjective | filtered trades ≥ 50% of unfiltered and ≥ 100 absolute; must also improve avg net trade return or profit factor (§10) |
+| Q2 | `neutral_ok` | dropped; neutral blocks all entries in Phase 3; mean-reversion-in-neutral is a pre-registered Phase 4 overlay study (§1) |
+
+---
+
+## R-2026-10-03-Q — ChatGPT acceptance of the Phase 3 regime design v2
+
+> R-Q — Phase 3 regime design ACCEPTED for implementation, subject to two final clarifications: filtered evaluation
+> requires unfiltered OOS-positive + fee-stress survival; startup label is earliest-at-385, conditional on breadth
+> readiness. No additional architecture changes required before coding.
+
+Both clarifications applied in `REGIME-DESIGN.md` §10 and §12 before any code: filtered variants only for candidates
+that pass `oos_positive` and both fee-stress checks unfiltered (at most one non-core miss); startup test is
+"unknown before 385 BTC bars; non-unknown at 385+ only if breadth gates pass", with the ≥20-names-at-385 and
+19-names-stays-unknown synthetic cases. Implementation starts from this revision.
+
+---
+
+## R-2026-10-03-R — Phase 3 implemented and run on the real snapshot (PR #47 @ 7b84ea7)
+
+Engine: `desk-loop/bt/regime.py` (no Portfolio/Order/cost references, grep-tested), `AsOfView.regime()`,
+`strategies.regime_gate`, `walk_forward(regime=…)` filtered twin on the same picks/folds, `overlay_eligible`,
+`overlay_verdict` (a–e), `regime_sensitivity`, `forward_diagnostics`, `bt_run --regime`. 72/72 tests incl. the §12 list.
+Result: `docs/desk/PHASE3-REGIME-RESULTS.md`. Canonical labels: risk_on 19.5% / neutral 14.8% / risk_off 49.6% /
+unknown 16.1%, first label 2021-03-31, 62 transitions. OOS diagnostics do not support the layer: risk_on bars have the
+weakest forward 30d BTC return (+0.45%, hit 44%) versus neutral (+2.40%) and risk_off (+1.92%); forward drawdowns equal
+across states. Verdict: regime layer NOT EVIDENCED; Phase 4 runs unfiltered by default, labels recorded and reported per
+state; no post-hoc threshold change (would be the forbidden optimisation). Overlay illustration on a losing sma_trend run
+shows the hindsight rule rejecting a +8.8%-filtered / −30.2%-unfiltered rescue, as designed. Awaiting independent review.
+
+---
+
+## R-2026-10-03-R (verdict) — ChatGPT independent verdict on Phase 3
+
+> R-R — Phase 3 PASS as engineering; canonical regime NOT EVIDENCED as a useful filter. Phase 4 proceeds unfiltered by
+> default. Existing labels remain descriptive only. No post-hoc threshold/input changes permitted.
+
+Recorded verbatim. Engine PASS (completed-bar inputs, exact breadth freshness, hard vetoes, deterministic hysteresis,
+immediate unknown, shared series, label materialised into the view). Empirical PASS on "not evidenced; run unfiltered".
+
+---
+
+## R-2026-10-03-S — ChatGPT review of the Phase 4 pre-registration v1
+
+All five changes accepted into `docs/desk/PHASE4-PREREGISTRATION.md` v2: (1) dynamic point-in-time top-20 dollar-volume
+universe with frozen monthly mechanics and a frozen stablecoin/wrapped-asset exclusion map; (2) canonical cost = Kraken
+taker tier + frozen spread/slippage (0.50%/side assumed until the live tier is read), stress ×1.25 full-sample and OOS,
+legacy 0.95% as severe sensitivity only, Coinbase-history/Kraken-execution limitation in every manifest; (3) fold results
+as selection evidence only, a continuous frozen-parameter OOS run as the verdict curve, boundary-exit count with a 20%/sign
+inconclusive rule; (4) four-cell attribution dropped for Phase 4, gross_cap 0.95/0.90 as the only sizing sensitivities;
+(5) eight-condition advancement rule, Phase 5 on research_accepted, Phase 10 additionally on Kraken paper reproduction;
+canonical delisting case 10×/−50% triggered at ≥ 10% of OOS P&L or trades, mild and tail cases reported. mean_reversion
+`n` confirmed as the MA lookback; breakout20 negative control never enters selection or trial accounting. Awaiting
+acceptance to freeze.
