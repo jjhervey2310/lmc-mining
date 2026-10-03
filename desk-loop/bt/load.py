@@ -53,3 +53,27 @@ def load_snapshot(path, bar_seconds=DAY):
         raise ValueError(f"{path}: snapshot has no listings (universe_history) — refusing to infer a universe from bars")
     listings = {k: tuple(v) for k, v in j["listings"].items()}
     return market_from_rows(j["rows"], bar_seconds, listings)
+
+
+def load_sentiment(page=1000):
+    """market_sentiment_daily with the point-in-time columns (round 2, R-W #3b). Publishable key + SELECT policy."""
+    rows, off = [], 0
+    while True:
+        chunk = sb_get("market_sentiment_daily", f"select=snapshot_date,fear_greed,classification,source,observed_at,available_at&order=snapshot_date&limit={page}&offset={off}")
+        rows += chunk
+        if len(chunk) < page:
+            return rows
+        off += page
+
+
+def snapshot_sentiment(rows, path):
+    with open(path, "w") as f:
+        json.dump({"sentiment": rows}, f)
+
+
+def load_sentiment_snapshot(path):
+    with open(path) as f:
+        j = json.load(f)
+    if "sentiment" not in j:
+        raise ValueError(f"{path}: not a sentiment snapshot")
+    return j["sentiment"]
