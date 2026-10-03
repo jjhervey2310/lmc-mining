@@ -395,3 +395,17 @@ gate), so those ran on the full listed universe. Implementation correction, not 
 (never top-N) appears in the unthreaded run's P&L and never in the threaded selection, OOS, fee-stress, robustness or
 continuous results. 82/82 tests. The first table (65974d2) is marked INVALID for integrity; provisional FAILs stand pending
 the single corrected rerun on the same snapshot, costs, grids and rules.
+
+---
+
+## R-2026-10-03-V — Phase 4 tournament, corrected rerun (first VALID table; UNREVIEWED; nothing promoted)
+
+Table: `docs/desk/PHASE4-TABLE-2026-10-03-rerun.{md,json}`. Same snapshot (data_hash `8df7990c93dcc632`, universe_hash
+`64e00348d99bb713`), same membership_hash `99c437c3e40dbb57`, same costs, grids, sizing and rules; only change is R-U
+(frozen universe threaded through selection, fee stress and robustness). Continuous OOS 2021-03-08 → 2026-08-09:
+sma_trend −80.5% (×1.25 −81.7%, DD −92.9%, 305 trades, PF 0.53); momentum_top −90.5% (−90.9%, DD −91.8%, 219, PF 0.39);
+mean_reversion −91.3% (−92.9%, DD −93.7%, 1,064, PF 0.75). All three fail oos_positive, both fee-stress checks, thirds,
+not_single_year, not_top3_dependent; all pass ≥100 trades, scale invariance, delisting (exposure 3–8%, below the 10%
+trigger) and boundary dependency (chained vs continuous within 20%, no sign flip). Negative control breakout20 −64.9%,
+now boundary-clean. Benchmarks unchanged: BTC B&H +2.3% equity from one 10% slot (BTC price +23.8%), cash 0%. Verdicts per
+frozen rules: three REJECTED. Sent unchanged for independent final verdicts.
