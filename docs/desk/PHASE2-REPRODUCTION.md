@@ -32,16 +32,20 @@ Code: PR #46 @ 3264acc.
 
 ## Reproduction (bt_run.py --strategy breakout_legacy, slot sizing gross_cap 1.0, max_positions 10, start $10,000)
 
+Revision 2 (2026-10-03, after R-O: weekly cap counted on engine-reported fills; fee stress also run through the OOS
+walk-forward). Revision 1 numbers (596/546 trades, −81.6%/−84.1%) are superseded; same snapshot, same verdict.
+
 ```
-run_id breakout_legacy-4509a3eae48cae50-8df7990c93dcc632-1790974180   (identifier only; not stored)
+run_id breakout_legacy-4509a3eae48cae50-8df7990c93dcc632-1791002373   (identifier only; not stored)
 verdict  rejected          trial_count 22
-no_fills 25  {"cash": 25}
+no_fills 151  {"cash": 151}
 
-in_sample  total_return -81.6%  max_drawdown -92.1%  sharpe -0.45  trades 596
-oos        total_return -84.1%  max_drawdown -88.0%  sharpe -0.75  trades 546
+in_sample       total_return -83.5%  max_drawdown -92.6%  sharpe -0.50  trades 604
+oos             total_return -83.6%  max_drawdown -87.6%  sharpe -0.73  trades 551
+oos_fee_stress  total_return -87.3%  max_drawdown -90.4%  sharpe -0.86  trades 551   (fees ×1.25, same folds)
 
-gate  oos_positive FAIL · symbols>=min PASS · not_single_year FAIL · survives_fees_x1.25 FAIL ·
-      not_top3_dependent FAIL · param_surface_smooth PASS · trials_recorded PASS
+gate  oos_positive FAIL · symbols>=min PASS · not_single_year PASS · survives_fees_x1.25 FAIL ·
+      survives_fees_x1.25_oos FAIL · not_top3_dependent FAIL · param_surface_smooth PASS · trials_recorded PASS
 ```
 
 ## Sizing attribution (NOT RESEARCH EVIDENCE — sizing attribution only; full text in ATTRIBUTION-2026-10-02.txt)
@@ -49,24 +53,25 @@ gate  oos_positive FAIL · symbols>=min PASS · not_single_year FAIL · survives
 | cell | trades | total | avg/trade | max DD | win | PF | exposure | avg cash | no_fill |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 legacy logic + legacy $100 fixed | 619 | -11.3% | -1.83% | -18.8% | 28% | 0.83 | 4.1% | 95.9% | n/a |
-| 2 honest engine + legacy $100 fixed | 607 | -11.5% | -1.90% | -19.7% | 28% | 0.82 | 4.2% | 95.8% | slots 14 |
-| 3 honest engine + slot, gross_cap 1.00 | 596 | -81.6% | -2.19% | -92.1% | 27% | 0.81 | 38.5% | 61.5% | cash 25 |
-| 4 honest engine + slot, 0.95 (sensitivity) | 602 | -76.0% | -1.86% | -89.3% | 28% | 0.82 | 36.8% | 63.2% | cash 13, slots 6 |
+| 2 honest engine + legacy $100 fixed | 612 | -12.0% | -1.96% | -20.5% | 27% | 0.82 | 4.2% | 95.8% | slots 81 |
+| 3 honest engine + slot, gross_cap 1.00 | 604 | -83.5% | -2.36% | -92.6% | 27% | 0.81 | 38.7% | 61.3% | cash 151 |
+| 4 honest engine + slot, 0.95 (sensitivity) | 608 | -74.1% | -1.70% | -89.1% | 28% | 0.83 | 37.1% | 62.9% | cash 77, slots 38 |
 
 Delisting treatment: legacy-symmetric in every cell (R-J). Rule in every cell: legacy "no take-profit: trail 12/18 only,
-2/wk" (the engine has no partial sells).
+2/wk" (the engine has no partial sells). The remaining cell 1 → 2 gap (7 trades) is the honest engine's 10-position cap,
+which legacy did not have (81 `slots` refusals).
 
 ## Reading
 
-- **#1 vs #2 (correctness impact): small.** Trade count 619 → 607, average trade -1.83% → -1.90%, win rate and profit factor
+- **#1 vs #2 (correctness impact): small.** Trade count 619 → 612, average trade -1.83% → -1.96%, win rate and profit factor
   unchanged. The honest chronology, listing windows and all-or-none fills do not change what the rule is: a negative-expectancy
   entry with a 28% win rate and a profit factor below 1 across 6.5 years and 419 names. The legacy script's own headline
   (-0.91%/trade "best cell") was already saying this.
-- **#2 vs #3 (allocator impact): large, and it is exposure, not edge.** Per-trade numbers barely move (-1.90% → -2.19%, PF
+- **#2 vs #3 (allocator impact): large, and it is exposure, not edge.** Per-trade numbers barely move (-1.96% → -2.36%, PF
   0.82 → 0.81). What changes is deployment: the slot allocator puts ~38% of equity to work instead of ~4%, so the same losing
   rule compounds its losses ten times harder. The legacy $100/trade result looked survivable only because 96% of capital sat idle.
-- **Capital starvation:** 25 `no_fill: cash` events at gross_cap 1.0; the rule wanted more exposure than it had.
-- **Gate:** 4 of 7 checks fail, including both that matter most (OOS positive, survives +25% fees).
+- **Capital starvation:** 151 `no_fill: cash` events at gross_cap 1.0; the rule wanted more exposure than it had.
+- **Gate:** 4 of 8 checks fail, including the three that matter most (OOS positive, survives +25% fees full-sample, survives +25% fees OOS).
 
 ## Verdict
 
