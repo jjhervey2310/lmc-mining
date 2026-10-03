@@ -367,3 +367,18 @@ independent reviewer unchanged. Nothing is promoted to `research_accepted` befor
 > robustness threshold, or advancement criterion may change after tournament results begin. Any later change requires a new
 > pre-registration/version and cannot retroactively replace this tournament. The first real frozen-snapshot tournament table
 > must be sent unchanged to ChatGPT for independent review before any candidate is marked `research_accepted`.**
+
+---
+
+## R-2026-10-03-T — Phase 4 tournament, first frozen-snapshot run (UNREVIEWED; nothing promoted)
+
+Table: `docs/desk/PHASE4-TABLE-2026-10-03.{md,json}` @ 65974d2. Snapshot data_hash `8df7990c93dcc632`, universe_hash
+`64e00348d99bb713`, membership_hash `99c437c3e40dbb57`, 77 monthly rankings, OOS span 2021-03-08 → 2026-08-09 (22 folds).
+All three candidates REJECTED on the frozen booleans: sma_trend continuous OOS −69.6% (×1.25 −71.4%, DD −89.2%, 289 trades,
+PF 0.65); momentum_top −91.0% (−91.5%, DD −93.7%, 231, PF 0.43); mean_reversion −94.9% (−95.9%, DD −96.3%, 1,163, PF 0.73).
+Every candidate fails oos_positive, both fee-stress checks, thirds, not_single_year and not_top3_dependent; all pass
+scale invariance, ≥100 trades, delisting (not triggered) and boundary dependency. Negative control breakout20 −64.9%
+(boundary-dependent). Benchmarks: BTC buy-and-hold +2.3% equity from a single 10% slot; BTC price itself +23.8% over the
+span (52,415 → 64,909, peak 124,720); cash 0%. Sent unchanged to the independent reviewer. Observation for the reviewer,
+not a rule change: under the frozen allocator the buy_and_hold benchmark deploys one engine slot, so its equity return
+understates the asset's price return; both numbers are reported.
