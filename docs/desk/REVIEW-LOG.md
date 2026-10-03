@@ -361,3 +361,9 @@ recomputed "core" category — `oos_positive`, `survives_fees_x1.25`, `survives_
 (with its trigger share), `boundary_dependency_ok`. Build order: universe builder → continuous OOS runner → cost sets →
 delisting stress → manifest/gate fields → synthetic tests → one real frozen-snapshot tournament run → complete table to the
 independent reviewer unchanged. Nothing is promoted to `research_accepted` before that review.
+
+> **R-S FINAL — Phase 4 strategy-tournament pre-registration v2 ACCEPTED AND FROZEN after Phase 3 merge. Claude may build
+> the tournament infrastructure. No candidate, parameter grid, universe rule, exclusion map, cost assumption, sizing rule,
+> robustness threshold, or advancement criterion may change after tournament results begin. Any later change requires a new
+> pre-registration/version and cannot retroactively replace this tournament. The first real frozen-snapshot tournament table
+> must be sent unchanged to ChatGPT for independent review before any candidate is marked `research_accepted`.**
