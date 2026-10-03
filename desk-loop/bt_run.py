@@ -6,7 +6,7 @@ Costs and provenance are REQUIRED flags (bt_costs.add_cost_args). Example:
 """
 import argparse, json, os, subprocess, sys
 from bt_costs import add_cost_args, from_args
-from bt import load, research, strategies, store
+from bt import load, research, strategies, store, regime as regime_mod
 from bt.engine import run
 from bt.metrics import summarize
 
@@ -25,6 +25,7 @@ p.add_argument("--start-cash", type=float, default=10_000)
 p.add_argument("--max-positions", type=int, default=10)
 p.add_argument("--gross-cap", type=float, default=1.0)
 p.add_argument("--no-store", action="store_true")
+p.add_argument("--regime", action="store_true", help="Phase 3: also run the canonical regime-filtered twin, the five sensitivity pairs and the layer diagnostics")
 add_cost_args(p)
 a = p.parse_args()
 
@@ -43,15 +44,27 @@ sizing = {"max_positions": a.max_positions, "gross_cap": a.gross_cap}
 full = run(market, make(), costs, start_cash=a.start_cash, **sizing)
 metrics = summarize(full)
 grid = json.loads(a.grid) if a.grid else [params]
-wf = research.walk_forward(market, make, grid, costs, a.fit_days, a.test_days, sizing=sizing)
+series = regime_mod.compute_series(market) if a.regime else None
+wf = research.walk_forward(market, make, grid, costs, a.fit_days, a.test_days, sizing=sizing, regime=series, gate_fn=strategies.regime_gate)
 rob = research.robustness(market, make, params, costs, sizing=sizing)
 mc = research.monte_carlo(full)
 g = research.gate(wf["oos"], rob, wf["trials"], oos_stress=wf["oos_fee_stress"])
+reg_block = None
+if series is not None:
+    eligible, why = research.overlay_eligible(g)
+    reg_block = {**series.manifest(market), "overlay_eligible": eligible, "overlay_eligibility_reason": why,
+                 "overlay": research.overlay_verdict(wf["oos"], wf["oos_filtered"]) if eligible else {"wins": False, "checks": {"skipped": why}},
+                 "diagnostics_oos": regime_mod.forward_diagnostics(market, series, windows=wf["test_windows"]),
+                 "sensitivity": research.regime_sensitivity(market, make, params, costs, a.fit_days, a.test_days, sizing=sizing, gate_fn=strategies.regime_gate)}
 try:
     sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
 except Exception:
     sha = None
-man = research.manifest(a.strategy, params, market, costs, FILL_RULE, wf["folds"], {"monte_carlo": 7}, {"in_sample": metrics, "oos": wf["oos"], "oos_fee_stress": wf["oos_fee_stress"], "monte_carlo": mc}, rob, g, code_sha=sha, data_vintage=os.path.basename(a.snapshot), sizing=full["sizing"])
+man = research.manifest(a.strategy, params, market, costs, FILL_RULE, wf["folds"], {"monte_carlo": 7}, {"in_sample": metrics, "oos": wf["oos"], "oos_fee_stress": wf["oos_fee_stress"], "monte_carlo": mc}, rob, g, code_sha=sha, data_vintage=os.path.basename(a.snapshot), sizing=full["sizing"], regime=reg_block)
+if reg_block:
+    print(json.dumps({"regime": {k: reg_block[k] for k in ("band", "vol_pct", "pct_time", "transitions_count", "first_label_t", "overlay_eligible", "overlay")},
+                      "oos_filtered": {k: wf["oos_filtered"].get(k) for k in ("total_return", "max_drawdown", "sharpe", "trades", "profit_factor")},
+                      "diagnostics_oos": reg_block["diagnostics_oos"], "sensitivity": reg_block["sensitivity"]}, indent=1, default=str))
 print(json.dumps({**{k: man[k] for k in ("run_id", "verdict", "trial_count", "sizing")}, "no_fills": full["no_fills"], "no_fill_reasons": full["no_fill_reasons"]}, indent=1))
 print(json.dumps({"in_sample": {k: metrics[k] for k in ("total_return", "max_drawdown", "sharpe", "trades")}, "oos": {k: wf["oos"].get(k) for k in ("total_return", "max_drawdown", "sharpe", "trades")}, "oos_fee_stress": {k: wf["oos_fee_stress"].get(k) for k in ("total_return", "max_drawdown", "sharpe", "trades")}, "gate": g["checks"]}, indent=1, default=str))
 if not a.no_store:
