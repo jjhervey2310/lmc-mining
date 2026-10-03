@@ -258,3 +258,21 @@ excluded (truncated snapshot; stale listing proxies). Verified snapshot: 444,684
 2020-03-08 → 2026-10-01, data_hash `8df7990c93dcc632`, universe_hash `64e00348d99bb713`. Framework reproduces the legacy
 script within 2% (619 vs 607 trades, PF 0.83 vs 0.82). House breakout rule: rejected (OOS −84%, PF 0.81, 4/7 gate checks
 fail). Allocator impact is exposure (4% → 38%), not edge. Nothing written to `research_runs`. Awaiting independent verdict.
+
+---
+
+## R-2026-10-03-O — ChatGPT independent verdict on the Phase 2 reproduction
+
+> Independent R-N — Phase 2 framework PASS. House breakout REJECTED. Phase 3 may proceed. Before any Phase 4 strategy can
+> receive an ACCEPTED verdict, move fee-stress gating to OOS walk-forward evidence and resolve/document proposal-vs-fill
+> weekly-cap accounting.
+
+Both notes implemented the same day (PR #46):
+
+| # | Finding | Action |
+|---|---|---|
+| 1 | `breakout_legacy` weekly cap counted proposals; legacy counted taken trades, so a refused proposal could suppress a later signal | Cap now counts fills: a proposal is credited to its signal week when the symbol appears in `pf.positions` at the next decision; refused proposals consume nothing. Test: with `max_positions=1` refusals occur and later signals are still proposed. Synthetic parity test (cell 1 vs 2) still exact |
+| 2 | `survives_fees_x1.25` used the full-sample robustness run only | `walk_forward` now also runs every OOS test window under ×1.25 fees (selection still on base costs) and returns `oos_fee_stress`; `gate` requires BOTH full-sample and OOS fee survival, and a missing OOS stress result fails the check. `bt_run` prints and records `oos_fee_stress`. Tests: OOS-negative under stress → rejected; missing → check False |
+
+49/49 tests. Neither change alters the Phase 2 verdict (both cells were negative before sizing); the attribution table is
+re-run below for the record.

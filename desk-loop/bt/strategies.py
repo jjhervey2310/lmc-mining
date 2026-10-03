@@ -120,21 +120,25 @@ def breakout_legacy(lookback=20, vol_mult=1.5, max_ext=0.15, trail_major=0.12, t
     """The house breakout rule EXACTLY as desk-loop/backtest_breakout_full.py ran it (variant 'no take-profit: trail
     12/18 only, 2/wk'), re-expressed on the AsOfView: entry close > prior 20d close-high, volume >= 1.5x prior 20d avg,
     7d return > BTC's, <= 15% above the high; stop = max(prior 20d low, entry*(1-trail)) ratcheting on closing highs;
-    at most `per_week` new entries per ISO week (UTC), first-come by date then symbol; one open trade per symbol.
+    at most `per_week` new entries per ISO week (UTC), first-come by date then symbol; one open trade per symbol. The
+    weekly cap counts TAKEN trades (fills observed in pf.positions at the next decision), attributed to the week of the
+    signal bar, exactly as the legacy script counted; a refused proposal does not consume an opportunity (R-O).
     No partial take-profit (the engine has no partial sells; the legacy half-off variant is therefore out of scope)."""
     import datetime as dt
-    state = {"wk": None, "n": 0}
+    taken, pending = {}, []                  # taken[week] = fills credited to that week; pending = (symbol, week) proposed last bar
     def s(view, pf):
         wk = dt.datetime.fromtimestamp(view.t - 1, dt.timezone.utc).isocalendar()[:2]   # the completed bar's week
-        if wk != state["wk"]:
-            state["wk"], state["n"] = wk, 0
+        for sym, w in pending:                 # a proposal that filled at this bar's open is a taken trade of its signal week
+            if sym in pf.positions:
+                taken[w] = taken.get(w, 0) + 1
+        pending.clear()
         bc = view.closes(btc, 8)
         if len(bc) < 8:
             return []
         btc7 = bc[-1] / bc[-8] - 1
         out = []
         for sym in sorted(view.universe()):
-            if sym in pf.positions or state["n"] >= per_week:
+            if sym in pf.positions or taken.get(wk, 0) + sum(1 for _, w in pending if w == wk) >= per_week:
                 continue
             bars = view.bars(sym, lookback + 8)
             if len(bars) < lookback + 8:
@@ -146,7 +150,7 @@ def breakout_legacy(lookback=20, vol_mult=1.5, max_ext=0.15, trail_major=0.12, t
             r7 = c / bars[-8].c - 1
             if c > hi and v >= vol_mult * avgv and r7 > btc7 and c / hi - 1 <= max_ext:
                 out.append(Order(sym, "buy", stop=lo, trail=trail_major if sym in majors else trail_other, tag="legacy"))
-                state["n"] += 1          # counts proposals (legacy counted taken trades; differs only when a fill is refused)
+                pending.append((sym, wk))
         return out
     return s
 

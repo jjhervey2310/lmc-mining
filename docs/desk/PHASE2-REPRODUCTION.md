@@ -78,4 +78,4 @@ in place and no look-ahead path left open.
 chronology, and it loses more the more capital it is given. It does not advance to Phase 4 as a baseline; it stays in the
 tournament only as a documented negative control.
 
-Independent review by ChatGPT pending before either line is treated as final.
+**Independent review (ChatGPT, 2026-10-03, REVIEW-LOG R-O): framework PASS with one required Phase 4 gate correction (fee stress on OOS walk-forward, implemented same day); house breakout REJECTED. Phase 3 may proceed.**

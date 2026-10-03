@@ -203,13 +203,17 @@ class Research(unittest.TestCase):
         m = market(400)
         wf = research.walk_forward(m, lambda **kw: strategies.sma_trend(["AAA", "BBB"], **kw), [{"fast": 20, "slow": 50}, {"fast": 10, "slow": 40}], COSTS, 180, 60)
         self.assertEqual(wf["trials"], 2 * len(wf["folds"]))
-        self.assertIn("total_return", wf["oos"])
+        self.assertIn("total_return", wf["oos"]); self.assertIn("total_return", wf["oos_fee_stress"])
+        self.assertLessEqual(wf["oos_fee_stress"]["total_return"], wf["oos"]["total_return"] + 1e-9)   # higher fees never help
 
     def test_gate_rejects_single_symbol_edge_and_accepts_broad(self):
         bad = {"total_return": 0.5, "symbols_with_profit": 1, "pnl_by_year": {2024: 10, 2025: 5}, "pnl_ex_top": {3: 1}}
-        self.assertEqual(research.gate(bad, {"fees_x1.25": {"total_return": 0.3}, "neighbours": []}, 4)["verdict"], "rejected")
+        self.assertEqual(research.gate(bad, {"fees_x1.25": {"total_return": 0.3}, "neighbours": []}, 4, oos_stress={"total_return": 0.1})["verdict"], "rejected")
         good = {"total_return": 0.5, "symbols_with_profit": 5, "pnl_by_year": {2024: 10, 2025: 5}, "pnl_ex_top": {3: 12}}
-        self.assertEqual(research.gate(good, {"fees_x1.25": {"total_return": 0.3}, "neighbours": []}, 4)["verdict"], "accepted")
+        self.assertEqual(research.gate(good, {"fees_x1.25": {"total_return": 0.3}, "neighbours": []}, 4, oos_stress={"total_return": 0.1})["verdict"], "accepted")
+        # R-O: full-sample fee survival alone never passes; OOS fee stress must be positive too, and missing fails
+        self.assertEqual(research.gate(good, {"fees_x1.25": {"total_return": 0.3}, "neighbours": []}, 4, oos_stress={"total_return": -0.1})["verdict"], "rejected")
+        self.assertFalse(research.gate(good, {"fees_x1.25": {"total_return": 0.3}, "neighbours": []}, 4)["checks"]["survives_fees_x1.25"])
         self.assertEqual(research.gate(None, None, None)["verdict"], "inconclusive")
 
     def test_manifest_hashes_are_deterministic(self):
@@ -284,6 +288,18 @@ class Attribution(unittest.TestCase):
         r = run(m, s, COSTS); tr = r["trades"][0]
         self.assertEqual(tr.reason, "delisted"); self.assertEqual(tr.exit_t, T0 + 5 * DAY)
         self.assertAlmostEqual(tr.exit_px, 100 * (1 - COSTS.per_side()), places=9)
+
+    def test_weekly_cap_counts_fills_not_refused_proposals(self):
+        """R-O: a proposal refused by the engine must not consume one of the week's two opportunities."""
+        m = self.vol_market()
+        s = strategies.breakout_legacy(per_week=2)
+        proposals = []
+        def spy(view, pf):
+            out = s(view, pf); proposals.extend(o.symbol for o in out); return out
+        r = run(m, spy, COSTS, start_cash=10_000, max_positions=1)     # one slot → many refusals (slots)
+        refused = r["no_fill_reasons"].get("slots", 0)
+        self.assertGreater(refused, 0)
+        self.assertGreater(len(proposals), len(r["trades"]))              # refusals happened, and later signals were still proposed
 
     def test_legacy_strategy_caps_two_entries_per_week_and_attrib_report_runs(self):
         import bt_attrib

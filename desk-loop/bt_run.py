@@ -46,13 +46,13 @@ grid = json.loads(a.grid) if a.grid else [params]
 wf = research.walk_forward(market, make, grid, costs, a.fit_days, a.test_days, sizing=sizing)
 rob = research.robustness(market, make, params, costs, sizing=sizing)
 mc = research.monte_carlo(full)
-g = research.gate(wf["oos"], rob, wf["trials"])
+g = research.gate(wf["oos"], rob, wf["trials"], oos_stress=wf["oos_fee_stress"])
 try:
     sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
 except Exception:
     sha = None
-man = research.manifest(a.strategy, params, market, costs, FILL_RULE, wf["folds"], {"monte_carlo": 7}, {"in_sample": metrics, "oos": wf["oos"], "monte_carlo": mc}, rob, g, code_sha=sha, data_vintage=os.path.basename(a.snapshot), sizing=full["sizing"])
+man = research.manifest(a.strategy, params, market, costs, FILL_RULE, wf["folds"], {"monte_carlo": 7}, {"in_sample": metrics, "oos": wf["oos"], "oos_fee_stress": wf["oos_fee_stress"], "monte_carlo": mc}, rob, g, code_sha=sha, data_vintage=os.path.basename(a.snapshot), sizing=full["sizing"])
 print(json.dumps({**{k: man[k] for k in ("run_id", "verdict", "trial_count", "sizing")}, "no_fills": full["no_fills"], "no_fill_reasons": full["no_fill_reasons"]}, indent=1))
-print(json.dumps({"in_sample": {k: metrics[k] for k in ("total_return", "max_drawdown", "sharpe", "trades")}, "oos": {k: wf["oos"].get(k) for k in ("total_return", "max_drawdown", "sharpe", "trades")}, "gate": g["checks"]}, indent=1, default=str))
+print(json.dumps({"in_sample": {k: metrics[k] for k in ("total_return", "max_drawdown", "sharpe", "trades")}, "oos": {k: wf["oos"].get(k) for k in ("total_return", "max_drawdown", "sharpe", "trades")}, "oos_fee_stress": {k: wf["oos_fee_stress"].get(k) for k in ("total_return", "max_drawdown", "sharpe", "trades")}, "gate": g["checks"]}, indent=1, default=str))
 if not a.no_store:
     store.save_run(man); print("stored research_runs", man["run_id"])

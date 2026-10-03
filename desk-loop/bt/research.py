@@ -15,13 +15,15 @@ def folds(start_t, end_t, fit_days, test_days, step_days=None):
     return out
 
 
-def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, select="sharpe", sizing=None):
+def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, select="sharpe", sizing=None, fee_stress=1.25):
     sizing = sizing or {}
+    stressed = dataclasses.replace(costs, maker_fee=min(0.099, costs.maker_fee * fee_stress), taker_fee=min(0.099, costs.taker_fee * fee_stress), tier=f"{costs.tier} x{fee_stress}")
     """For each fold: run every param set on the fit window, pick the best by `select`, run it on the test window.
     Returns per-fold picks and the concatenated out-of-sample trades/metrics. Trial count is recorded (multiple testing)."""
     times = sorted({b.t for s in market.symbols() for b in market.bars[s]})
     fs = folds(times[0], times[-1] + market.bar_seconds, fit_days, test_days)
     picks, oos_equity, oos_trades, trials = [], [], [], 0
+    st_equity, st_trades = [], []            # the same OOS procedure under stressed fees (R-O): selection still on base costs
     for (a, fe, ts, te) in fs:
         best = None
         for params in param_grid:
@@ -36,8 +38,13 @@ def walk_forward(market, make_strategy, param_grid, costs, fit_days, test_days, 
         # chain equity multiplicatively across folds
         scale = oos_equity[-1][1] / r["equity"][0][1] if oos_equity else 1.0
         oos_equity += [(t, e * scale) for t, e in r["equity"]]
+        r2 = run(market, make_strategy(**best[1]), stressed, start_t=ts, end_t=te, **sizing)
+        st_trades += r2["trades"]
+        scale2 = st_equity[-1][1] / r2["equity"][0][1] if st_equity else 1.0
+        st_equity += [(t, e * scale2) for t, e in r2["equity"]]
     oos = summarize({"equity": oos_equity, "trades": oos_trades}) if oos_equity else {"error": "no folds"}
-    return {"folds": picks, "oos": oos, "trials": trials}
+    oos_stress = summarize({"equity": st_equity, "trades": st_trades}) if st_equity else {"error": "no folds"}
+    return {"folds": picks, "oos": oos, "oos_fee_stress": oos_stress, "fee_stress": fee_stress, "trials": trials}
 
 
 def robustness(market, make_strategy, params, costs, perturb=0.2, sizing=None):
@@ -79,8 +86,10 @@ def monte_carlo(result, n=500, block=20, seed=7):
     return {"n": n, "block": block, "seed": seed, "terminal_p05": q(terms, .05), "terminal_p50": q(terms, .5), "terminal_p95": q(terms, .95), "mdd_p05": q(mdds, .05), "mdd_p50": q(mdds, .5)}
 
 
-def gate(oos, rob, trials, min_symbols=3):
-    """Anti-overfit rules (architecture §11). Any failing rule rejects; missing evidence is inconclusive."""
+def gate(oos, rob, trials, min_symbols=3, oos_stress=None):
+    """Anti-overfit rules (architecture §11). Any failing rule rejects; missing evidence is inconclusive.
+    Fee stress must survive BOTH the full-sample robustness run and the OOS walk-forward under stressed fees (R-O);
+    a missing OOS stress result fails the check, it never passes by omission."""
     checks = {}
     if not oos or "error" in oos:
         return {"verdict": "inconclusive", "checks": {"oos": "missing"}}
@@ -89,7 +98,10 @@ def gate(oos, rob, trials, min_symbols=3):
     yrs = [v for v in oos.get("pnl_by_year", {}).values()]
     checks["not_single_year"] = len(yrs) >= 2 and sum(1 for v in yrs if v > 0) >= 2 if yrs else False
     total_pnl = sum(yrs) if yrs else 0
-    checks["survives_fees_x1.25"] = bool(rob and rob.get("fees_x1.25") and rob["fees_x1.25"]["total_return"] > 0)
+    full_ok = bool(rob and rob.get("fees_x1.25") and rob["fees_x1.25"]["total_return"] > 0)
+    oos_ok = bool(oos_stress and "error" not in oos_stress and oos_stress["total_return"] > 0)
+    checks["survives_fees_x1.25"] = full_ok and oos_ok
+    checks["survives_fees_x1.25_oos"] = oos_ok
     ex3 = oos.get("pnl_ex_top", {}).get(3)
     checks["not_top3_dependent"] = (ex3 is not None and total_pnl > 0 and ex3 > 0.5 * total_pnl)
     nb = [x["metrics"]["total_return"] for x in (rob or {}).get("neighbours", []) if "metrics" in x]
