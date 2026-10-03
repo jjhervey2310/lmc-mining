@@ -121,15 +121,16 @@ def breakout_legacy(lookback=20, vol_mult=1.5, max_ext=0.15, trail_major=0.12, t
     12/18 only, 2/wk'), re-expressed on the AsOfView: entry close > prior 20d close-high, volume >= 1.5x prior 20d avg,
     7d return > BTC's, <= 15% above the high; stop = max(prior 20d low, entry*(1-trail)) ratcheting on closing highs;
     at most `per_week` new entries per ISO week (UTC), first-come by date then symbol; one open trade per symbol. The
-    weekly cap counts TAKEN trades (fills observed in pf.positions at the next decision), attributed to the week of the
+    weekly cap counts TAKEN trades (fills reported by the engine in pf.last_fills at the next decision), attributed to the week of the
     signal bar, exactly as the legacy script counted; a refused proposal does not consume an opportunity (R-O).
     No partial take-profit (the engine has no partial sells; the legacy half-off variant is therefore out of scope)."""
     import datetime as dt
     taken, pending = {}, []                  # taken[week] = fills credited to that week; pending = (symbol, week) proposed last bar
     def s(view, pf):
         wk = dt.datetime.fromtimestamp(view.t - 1, dt.timezone.utc).isocalendar()[:2]   # the completed bar's week
-        for sym, w in pending:                 # a proposal that filled at this bar's open is a taken trade of its signal week
-            if sym in pf.positions:
+        filled = set(getattr(pf, "last_fills", ()))
+        for sym, w in pending:                 # a proposal that filled at this bar's open is a taken trade of its signal week, even if stopped the same bar
+            if sym in filled:
                 taken[w] = taken.get(w, 0) + 1
         pending.clear()
         bc = view.closes(btc, 8)

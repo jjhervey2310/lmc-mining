@@ -7,9 +7,9 @@ ASSUMPTIONS | costs={'maker_fee': 0.0095, 'taker_fee': 0.0095, 'venue': 'coinbas
 
 cell                                                 trades     total   avg/trd    maxDD    win     PF  exposure  avg cash  no_fill_reasons
 1 legacy logic + legacy $100 fixed                      619    -11.3%    -1.83%   -18.8%    28%   0.83      4.1%     95.9%  "n/a \u2014 legacy has no cash or slot constraint"
-2 honest engine + legacy $100 fixed                     607    -11.5%    -1.90%   -19.7%    28%   0.82      4.2%     95.8%  {"slots": 14}
-3 honest engine + slot, gross_cap 1.00                  596    -81.6%    -2.19%   -92.1%    27%   0.81     38.5%     61.5%  {"cash": 25}
-4 honest engine + slot, gross_cap 0.95 (sensitivity)    602    -76.0%    -1.86%   -89.3%    28%   0.82     36.8%     63.2%  {"cash": 13, "slots": 6}
+2 honest engine + legacy $100 fixed                     612    -12.0%    -1.96%   -20.5%    27%   0.82      4.2%     95.8%  {"slots": 81}
+3 honest engine + slot, gross_cap 1.00                  604    -83.5%    -2.36%   -92.6%    27%   0.81     38.7%     61.3%  {"cash": 151}
+4 honest engine + slot, gross_cap 0.95 (sensitivity)    608    -74.1%    -1.70%   -89.1%    28%   0.83     37.1%     62.9%  {"cash": 77, "slots": 38}
 
 read: #1 vs #2 = correctness impact; #2 vs #3 = allocator impact; #4 is a cash-buffer sensitivity, not part of the core reproduction
 NOT RESEARCH EVIDENCE — sizing attribution only

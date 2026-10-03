@@ -55,6 +55,7 @@ class Portfolio:
     def __init__(self, cash):
         self.cash = cash
         self.positions = {}
+        self.last_fills = []     # symbols whose BUY filled at the most recent open (reset every bar; strategies may read it)
 
     def equity(self, prices):
         return self.cash + sum(p.units * prices.get(s, p.entry_px) for s, p in self.positions.items())
@@ -75,6 +76,7 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
     for t in times:
         # (1) sells first, then buys as a batch against post-sell cash and slots
         slot_usd = fixed_usd if fixed_usd else (equity[-1][1] if equity else start_cash) * gross_cap / max_positions   # sized off the last close mark
+        pf.last_fills = []
         sells = [o for o in pending if o.side == "sell"]
         buys = sorted((o for o in pending if o.side == "buy"), key=lambda o: (-o.priority, o.symbol))
         for o in sells:
@@ -99,7 +101,7 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
             if o.trail:
                 stop = max(stop if stop is not None else 0.0, px * (1 - o.trail))   # structural stop, never wider than the trail
             pf.positions[o.symbol] = Position(o.symbol, slot_usd / px, px, t, stop, o.target, b.o, o.tag, o.trail, b.c)
-            events.append((t, o.symbol, "fill", f"{slot_usd:.2f}", o.tag))
+            events.append((t, o.symbol, "fill", f"{slot_usd:.2f}", o.tag)); pf.last_fills.append(o.symbol)
         pending = []
         # (2) stops / targets on this bar's range, entry bar included (R-F #2)
         for s in list(pf.positions):
