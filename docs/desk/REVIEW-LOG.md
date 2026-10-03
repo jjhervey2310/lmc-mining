@@ -345,3 +345,20 @@ inconclusive rule; (4) four-cell attribution dropped for Phase 4, gross_cap 0.95
 canonical delisting case 10×/−50% triggered at ≥ 10% of OOS P&L or trades, mild and tail cases reported. mean_reversion
 `n` confirmed as the MA lookback; breakout20 negative control never enters selection or trial accounting. Awaiting
 acceptance to freeze.
+
+---
+
+## R-2026-10-03-T — Phase 4 infrastructure built (awaiting the v2 acceptance before any run)
+
+Everything the v2 pre-registration needs exists and is tested; **no table has been run** because the written acceptance
+of v2 (R-S) has not been logged. Built: `bt/universe.py` (monthly top-20 dollar-volume universe, frozen exclusion map,
+membership hash), `bt/phase4.py` (every constant: three cost sets 0.50% / 0.625% / 0.95%, gross_cap 1.0 with 0.95 / 0.90,
+365/90 windows, the four grids, delisting cells 10×/−50% · 5×/−25% · 20×/−100% + 3×3 grid, eight-condition advancement),
+`research.continuous_oos` (frozen-parameter single run, positions carry), `boundary_dependency` (20% / sign rule),
+`scale_invariance` ($10k vs $100k, 1e-6), `chronological_thirds`, `delisting_exposure`, `regime_attribution` (filter off),
+`advancement`; engine hooks `universe=` and `delisting=` (R-K floor, R-J haircut, `delisted_unrecoverable` when no bar
+qualifies); `bt_costs.scaled` so ×1.25 hits spread and slippage too; `bt_phase4.py` with `--expect-data-hash` and no
+store option. 98/98 tests. The mechanical choices the text left open are listed in `docs/desk/PHASE4-IMPLEMENTATION.md`
+for the reviewer to confirm with the acceptance — the two that matter: interior-only boundary accounting (the sample
+end is liquidated by both curves) and gross-absolute P&L share for delisting exposure. Nothing in `research_runs`.
+

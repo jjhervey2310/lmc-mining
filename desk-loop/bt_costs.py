@@ -38,6 +38,13 @@ class CostModel:
         return dataclasses.asdict(self)
 
 
+def scaled(c: CostModel, mult: float) -> CostModel:
+    """The same model with EVERY per-side component (fees, half-spread, slippage) multiplied by `mult`, so a x1.25
+    stress on 0.50%/side is exactly 0.625%/side (Phase 4 §2). Components are capped below the 10% validity bound."""
+    cap = lambda v: min(0.099, v * mult)
+    return dataclasses.replace(c, maker_fee=cap(c.maker_fee), taker_fee=cap(c.taker_fee), spread=cap(c.spread), slippage=cap(c.slippage), tier=f"{c.tier} x{mult}")
+
+
 LEGACY_UNIVERSE = "today's universe.json (survivorship-biased) — DIAGNOSTIC ONLY, not approval evidence"
 
 

@@ -1,8 +1,17 @@
-"""Load bars from Supabase md_candles (paged, service key from env) or from a JSON export. Snapshot the result
-to disk so a run's data_hash is reproducible even after the forward fill adds bars."""
+"""Load bars from Supabase md_candles (paged) or from a JSON export. Snapshot the result to disk so a run's data_hash
+is reproducible even after the forward fill adds bars. Research exports use the PUBLISHABLE key under read-only
+SELECT policies (R-L): set SUPABASE_PUBLISHABLE_KEY (+ SUPABASE_URL) and the service key is never touched."""
 import json, os
-from common import sb_get
+import common
 from .data import market_from_rows, DAY
+
+
+def sb_get(table, query=""):
+    key = os.environ.get("SUPABASE_PUBLISHABLE_KEY")
+    if key:
+        url = os.environ.get("SUPABASE_URL", "").rstrip("/") or common.SB
+        return common._req(f"{url}/rest/v1/{table}?{query}", headers={"apikey": key, "Authorization": f"Bearer {key}"})
+    return common.sb_get(table, query)
 
 
 def load_md_candles(symbols=None, venue="coinbase", interval_minutes=1440, start=None, page=1000, counts=None):

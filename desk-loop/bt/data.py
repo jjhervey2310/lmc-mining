@@ -38,8 +38,8 @@ class Market:
         """Index one past the last bar completed by t (bars[:i] are visible at t)."""
         return bisect.bisect_right(self._ts.get(sym, []), t - self.bar_seconds)
 
-    def as_of(self, t, regime=None):
-        return AsOfView.build(self, int(t), regime)
+    def as_of(self, t, regime=None, universe=None):
+        return AsOfView.build(self, int(t), regime, universe)
 
     def bar_opening_at(self, sym, t):
         """The engine's fill bar: the bar whose open time is exactly t, else None. Not exposed to strategies."""
@@ -71,10 +71,11 @@ class AsOfView:
     __slots__ = ("t", "_bars", "_universe", "_bar_seconds", "_regime")
 
     @classmethod
-    def build(cls, market, t, regime=None):
+    def build(cls, market, t, regime=None, universe=None):
         v = cls.__new__(cls)
         v.t, v._bar_seconds = t, market.bar_seconds
         v._regime = regime.at(t) if regime is not None else None      # Phase 3: the published label at the last decision time <= t, materialised (no series reference)
+        members = universe.at(t) if universe is not None else None    # Phase 4: dynamic membership published at the last ranking time <= t; None = every listed name
         v._bars = {}
         uni = []
         for s, bs in market.bars.items():
@@ -83,7 +84,7 @@ class AsOfView:
                 v._bars[s] = (bs, i)                     # visibility-capped reference: the full series with cut `i`; the interface only serves bs[:i]. Not adversarially sealed (Python cannot) — the StrategyHygiene test is the guard
             a, d = market.listings.get(s, (None, None))
             fresh = i and bs[i - 1].t + market.bar_seconds > t - market.bar_seconds   # completed in the last interval
-            if a is not None and a <= t and (d is None or t < d) and fresh:
+            if a is not None and a <= t and (d is None or t < d) and fresh and (members is None or s in members):
                 uni.append(s)
         v._universe = tuple(sorted(uni))
         return v
@@ -96,6 +97,8 @@ class AsOfView:
         return [b.c for b in self.bars(sym, n)]
 
     def universe(self):
+        """Names a strategy may ENTER at t: listed, fresh, and (Phase 4) members of the dynamic universe. Bars of a held
+        name that left the universe are still served by bars()/closes(), so its exit rule keeps running."""
         return list(self._universe)
 
     def regime(self):

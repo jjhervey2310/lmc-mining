@@ -61,9 +61,14 @@ class Portfolio:
         return self.cash + sum(p.units * prices.get(s, p.entry_px) for s, p in self.positions.items())
 
 
-def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10, gross_cap=1.0, fixed_usd=None, regime=None):
+def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, end_t=None, max_positions=10, gross_cap=1.0, fixed_usd=None, regime=None, universe=None, delisting=None):
     """fixed_usd: DIAGNOSTIC ONLY (sizing attribution, review R-I). Every fill is exactly fixed_usd regardless of
-    equity — the legacy house convention. Never a research configuration; results so sized are not evidence."""
+    equity — the legacy house convention. Never a research configuration; results so sized are not evidence.
+    universe: Phase 4 dynamic membership series (bt.universe); the view's universe() is cut to its members at t.
+    delisting: Phase 4 stress {"mult", "floor_usd", "haircut"} (R-K / R-J). A name delisted while held exits at the
+    close of the last completed bar since entry whose 3-day median dollar volume >= max(floor_usd, mult * slot_usd),
+    times (1 - haircut); no such bar => the position is unrecoverable (exit price 0). None = legacy-symmetric exit at
+    the last available close (Phase 2 / 3 behaviour)."""
     bar = market.bar_seconds
     times = sorted({t for s in market.symbols() for t in market._ts[s]})
     if start_t is not None:
@@ -110,7 +115,15 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
             if b is None:
                 d = market.listings.get(s, (None, None))[1]
                 if d is not None and t >= d:                 # delisted while held: out at the last available close (legacy did the same)
-                    _close(pf, trades, s, market.bars[s][-1].c * (1 - side_cost), t, "delisted")
+                    if delisting is None:
+                        _close(pf, trades, s, market.bars[s][-1].c * (1 - side_cost), t, "delisted")
+                    else:
+                        floor = max(delisting["floor_usd"], delisting["mult"] * slot_usd)
+                        px = last_reliable_close(market, s, p.entry_t, d, floor)
+                        if px is None:
+                            _close(pf, trades, s, 0.0, t, "delisted_unrecoverable")
+                        else:
+                            _close(pf, trades, s, px * (1 - delisting["haircut"]) * (1 - side_cost), t, "delisted_stress")
                 continue
             if p.stop is not None and b.l <= p.stop:
                 _close(pf, trades, s, min(p.stop, b.o) * (1 - side_cost), t, "stop"); continue
@@ -127,7 +140,7 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
                 prices[s] = b.c
         equity.append((t + bar, pf.equity(prices))); cash_curve.append((t + bar, pf.cash))
         # (4) decide on the completed bar
-        pending = list(strategy(market.as_of(t + bar, regime), pf) or [])
+        pending = list(strategy(market.as_of(t + bar, regime, universe), pf) or [])
     if times:
         t = times[-1]
         for s in list(pf.positions):
@@ -136,9 +149,25 @@ def run(market, strategy, costs: CostModel, start_cash=10_000.0, start_t=None, e
         equity[-1] = (t + bar, pf.cash); cash_curve[-1] = (t + bar, pf.cash)
     return {"equity": equity, "trades": trades, "events": events, "final_cash": pf.cash, "start_cash": start_cash, "cash_curve": cash_curve,
             "sizing": {"rule": "fixed-usd DIAGNOSTIC", "fixed_usd": fixed_usd} if fixed_usd else {"rule": "slot", "gross_cap": gross_cap, "max_positions": max_positions},
-            "regime_filtered": regime is not None,
+            "regime_filtered": regime is not None, "universe": "dynamic" if universe is not None else "static", "delisting": delisting,
             "no_fills": sum(1 for e in events if e[2] == "no_fill"),
             "no_fill_reasons": _reason_counts(events)}
+
+
+def last_reliable_close(market, sym, entry_t, delisted_t, floor_usd, window=3):
+    """R-K: close of the last completed bar in [entry_t, delisted_t) whose rolling `window`-bar median dollar volume
+    (close x volume, never token volume) is >= floor_usd. A rolling median, never a single print: bars with fewer
+    than `window` predecessors in the symbol's history cannot qualify. None when no bar qualifies."""
+    import statistics
+    bars = market.bars.get(sym, [])
+    for j in range(len(bars) - 1, window - 2, -1):
+        b = bars[j]
+        if b.t >= delisted_t or b.t < entry_t:
+            continue
+        dv = [x.c * x.v for x in bars[j - window + 1:j + 1]]
+        if statistics.median(dv) >= floor_usd:
+            return b.c
+    return None
 
 
 def _reason_counts(events):
