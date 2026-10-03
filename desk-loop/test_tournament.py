@@ -134,3 +134,31 @@ class Table(unittest.TestCase):
         self.assertEqual(T.DELIST["canonical"], (10, 0.50)); self.assertEqual(T.MIN_OOS_TRADES, 100)
         self.assertEqual(len(T.CANDIDATES["momentum_top"][1]), 4); self.assertEqual(len(T.CANDIDATES["mean_reversion"][1]), 4)
         self.assertIn("USDT", T.EXCLUDE); self.assertIn("WBTC", T.EXCLUDE)
+
+
+class UniverseThreading(unittest.TestCase):
+    """R-U: parameter selection, OOS, fee stress and robustness must all run on the frozen monthly schedule. A strong
+    name OUTSIDE the top-N must not be able to change the selected parameters or the gate."""
+    def test_outsider_cannot_influence_selection_or_gate(self):
+        from bt import research
+        n = 800
+        bars = {"BTC": bars_from(path(n), vol=1000.0)}; L = {"BTC": (T0, None)}
+        for j in range(3):                                                   # the top-3 universe: BTC + two dull names
+            bars[f"S{j}"] = bars_from([100.0] * n, vol=500.0 - j); L[f"S{j}"] = (T0, None)
+        # OUT: tiny volume (never top-3) but a perfect trend that sma_trend(5,20) would love
+        bars["OUT"] = bars_from(path(n, drift=0.01), vol=0.001); L["OUT"] = (T0, None)
+        m = Market(bars, L)
+        u = T.monthly_universe(m, top=3)
+        self.assertTrue(all("OUT" not in mem for mem in u.members))
+        grid = [{"fast": 5, "slow": 20}, {"fast": 50, "slow": 200}]
+        with_u = research.walk_forward(m, lambda **kw: strategies.sma_trend(None, **kw), grid, COSTS, 365, 90, universe=u)
+        without = research.walk_forward(m, lambda **kw: strategies.sma_trend(None, **kw), grid, COSTS, 365, 90)
+        self.assertIn("OUT", without["oos"]["pnl_by_symbol"])                            # the unthreaded run trades the outsider …
+        self.assertNotIn("OUT", with_u["oos"]["pnl_by_symbol"])                           # … the frozen-universe run never can
+        self.assertNotIn("OUT", with_u["oos_fee_stress"]["pnl_by_symbol"])
+        self.assertNotEqual(without["oos"]["total_return"], with_u["oos"]["total_return"])
+        rob = research.robustness(m, lambda **kw: strategies.sma_trend(None, **kw), grid[0], COSTS, universe=u)
+        self.assertNotIn("OUT", rob["base"]["pnl_by_symbol"]); self.assertNotIn("OUT", rob["fees_x1.25"]["pnl_by_symbol"])
+        rec = T.evaluate(m, "sma_trend", u, regime.compute_series(m))
+        self.assertNotIn("OUT", rec["oos_chained"]["pnl_by_symbol"]); self.assertNotIn("OUT", rec["pnl_by_symbol_top"])
+        self.assertNotIn("OUT", rec["oos_continuous"]["pnl_by_symbol"])

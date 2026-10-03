@@ -181,7 +181,7 @@ def evaluate(market, name, universe, series, costs=None, sizing=None, fit_days=F
     factory, grid, role = CANDIDATES[name]
     costs = costs or COSTS["canonical"]; sizing = sizing or SIZING["canonical"]
     make = lambda **kw: factory(**kw)
-    wf = research.walk_forward(market, make, grid, costs, fit_days, test_days, sizing=sizing)
+    wf = research.walk_forward(market, make, grid, costs, fit_days, test_days, sizing=sizing, universe=universe)   # selection, OOS and stress all on the frozen schedule
     rec = {"candidate": name, "role": role, "grid": grid, "trials": wf["trials"], "folds": wf["folds"], "oos_chained": wf["oos"], "oos_chained_fee_stress": wf["oos_fee_stress"]}
     if not wf["folds"]:
         rec["verdict"] = "inconclusive"; rec["reason"] = "no folds"; return rec
@@ -196,7 +196,7 @@ def evaluate(market, name, universe, series, costs=None, sizing=None, fit_days=F
     c100 = continuous_oos(market, make, wf["folds"], costs, sizing, START_CASH[1], universe)
     cst = continuous_oos(market, make, wf["folds"], stressed, sizing, START_CASH[0], universe)
     m10, mst = summarize(c10), summarize(cst)
-    rob = research.robustness(market, make, wf["folds"][-1]["params"], costs, sizing=sizing)
+    rob = research.robustness(market, make, wf["folds"][-1]["params"], costs, sizing=sizing, universe=universe)
     gate = research.gate(m10, rob, wf["trials"], oos_stress=mst)
     bd = boundary_dependency(wf["oos"], m10, eod)
     th = thirds(c10["equity"]); sc = scale_invariance(c10["equity"], c100["equity"])

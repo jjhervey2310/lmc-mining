@@ -382,3 +382,16 @@ scale invariance, ≥100 trades, delisting (not triggered) and boundary dependen
 span (52,415 → 64,909, peak 124,720); cash 0%. Sent unchanged to the independent reviewer. Observation for the reviewer,
 not a rule change: under the frozen allocator the buy_and_hold benchmark deploys one engine slot, so its equity return
 understates the asset's price return; both numbers are reported.
+
+---
+
+## R-2026-10-03-U — ChatGPT integrity review of the first Phase 4 table: FAIL, rerun required
+
+Finding accepted: `evaluate()` passed the frozen monthly universe to the continuous verdict run but not to
+`research.walk_forward` (parameter selection, chained OOS, OOS fee stress) nor to `research.robustness` (full-sample fee
+gate), so those ran on the full listed universe. Implementation correction, not a rule change: `walk_forward` and
+`robustness` now take `universe=` and apply it to every run; `evaluate()` passes it to both. Regression test
+`UniverseThreading.test_outsider_cannot_influence_selection_or_gate`: a perfectly trending name with negligible volume
+(never top-N) appears in the unthreaded run's P&L and never in the threaded selection, OOS, fee-stress, robustness or
+continuous results. 82/82 tests. The first table (65974d2) is marked INVALID for integrity; provisional FAILs stand pending
+the single corrected rerun on the same snapshot, costs, grids and rules.
