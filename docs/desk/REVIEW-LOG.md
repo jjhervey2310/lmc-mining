@@ -320,3 +320,28 @@ weakest forward 30d BTC return (+0.45%, hit 44%) versus neutral (+2.40%) and ris
 across states. Verdict: regime layer NOT EVIDENCED; Phase 4 runs unfiltered by default, labels recorded and reported per
 state; no post-hoc threshold change (would be the forbidden optimisation). Overlay illustration on a losing sma_trend run
 shows the hindsight rule rejecting a +8.8%-filtered / −30.2%-unfiltered rescue, as designed. Awaiting independent review.
+
+---
+
+## R-2026-10-03-R (verdict) — ChatGPT independent verdict on Phase 3
+
+> R-R — Phase 3 PASS as engineering; canonical regime NOT EVIDENCED as a useful filter. Phase 4 proceeds unfiltered by
+> default. Existing labels remain descriptive only. No post-hoc threshold/input changes permitted.
+
+Recorded verbatim. Engine PASS (completed-bar inputs, exact breadth freshness, hard vetoes, deterministic hysteresis,
+immediate unknown, shared series, label materialised into the view). Empirical PASS on "not evidenced; run unfiltered".
+
+---
+
+## R-2026-10-03-S — ChatGPT review of the Phase 4 pre-registration v1
+
+All five changes accepted into `docs/desk/PHASE4-PREREGISTRATION.md` v2: (1) dynamic point-in-time top-20 dollar-volume
+universe with frozen monthly mechanics and a frozen stablecoin/wrapped-asset exclusion map; (2) canonical cost = Kraken
+taker tier + frozen spread/slippage (0.50%/side assumed until the live tier is read), stress ×1.25 full-sample and OOS,
+legacy 0.95% as severe sensitivity only, Coinbase-history/Kraken-execution limitation in every manifest; (3) fold results
+as selection evidence only, a continuous frozen-parameter OOS run as the verdict curve, boundary-exit count with a 20%/sign
+inconclusive rule; (4) four-cell attribution dropped for Phase 4, gross_cap 0.95/0.90 as the only sizing sensitivities;
+(5) eight-condition advancement rule, Phase 5 on research_accepted, Phase 10 additionally on Kraken paper reproduction;
+canonical delisting case 10×/−50% triggered at ≥ 10% of OOS P&L or trades, mild and tail cases reported. mean_reversion
+`n` confirmed as the MA lookback; breakout20 negative control never enters selection or trial accounting. Awaiting
+acceptance to freeze.
