@@ -16,7 +16,7 @@ async function handle(req: Request) {
   if (!sb) return NextResponse.json({ error: 'db unavailable' }, { status: 503 })
   const url = new URL(req.url)
   const chunks = Math.min(60, Math.max(1, Number(url.searchParams.get('chunks')) || 40))
-  const heads = Math.min(40, Math.max(0, Number(url.searchParams.get('heads')) || 20))
+  const heads = Math.min(200, Math.max(0, Number(url.searchParams.get('heads')) || 20))   // 150 heads ≈ 20s at 3-per-400ms; the daily close needs ~420 heads within the hour
   try {
     const started = Date.now()
     const r = await runBackfillBatch(sb, { chunks, heads })
