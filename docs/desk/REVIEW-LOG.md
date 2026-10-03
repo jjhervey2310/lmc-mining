@@ -306,3 +306,17 @@ Both clarifications applied in `REGIME-DESIGN.md` §10 and §12 before any code:
 that pass `oos_positive` and both fee-stress checks unfiltered (at most one non-core miss); startup test is
 "unknown before 385 BTC bars; non-unknown at 385+ only if breadth gates pass", with the ≥20-names-at-385 and
 19-names-stays-unknown synthetic cases. Implementation starts from this revision.
+
+---
+
+## R-2026-10-03-R — Phase 3 implemented and run on the real snapshot (PR #47 @ 7b84ea7)
+
+Engine: `desk-loop/bt/regime.py` (no Portfolio/Order/cost references, grep-tested), `AsOfView.regime()`,
+`strategies.regime_gate`, `walk_forward(regime=…)` filtered twin on the same picks/folds, `overlay_eligible`,
+`overlay_verdict` (a–e), `regime_sensitivity`, `forward_diagnostics`, `bt_run --regime`. 72/72 tests incl. the §12 list.
+Result: `docs/desk/PHASE3-REGIME-RESULTS.md`. Canonical labels: risk_on 19.5% / neutral 14.8% / risk_off 49.6% /
+unknown 16.1%, first label 2021-03-31, 62 transitions. OOS diagnostics do not support the layer: risk_on bars have the
+weakest forward 30d BTC return (+0.45%, hit 44%) versus neutral (+2.40%) and risk_off (+1.92%); forward drawdowns equal
+across states. Verdict: regime layer NOT EVIDENCED; Phase 4 runs unfiltered by default, labels recorded and reported per
+state; no post-hoc threshold change (would be the forbidden optimisation). Overlay illustration on a losing sma_trend run
+shows the hindsight rule rejecting a +8.8%-filtered / −30.2%-unfiltered rescue, as designed. Awaiting independent review.
