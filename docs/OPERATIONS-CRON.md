@@ -48,9 +48,9 @@ nothing calls it.
 |---|---|---|---|---|
 | 15 | collector-health | `*/15 * * * *` | `select collector_health()` → `desk_health` | **active** |
 | 16 | features-daily | `40 0 * * *` | `select compute_features_daily()` → `features_daily` | **active** |
-| — | universe-sync | `10 0 * * *` | `/api/cron/universe-sync` | scheduled after PR #43 deploys |
-| — | md-backfill | `*/2 * * * *` | `/api/cron/md-backfill` (40 chunks + 20 heads per run) | scheduled after PR #43 deploys; drops to `*/30` once the backlog is gone |
-| — | fund-snapshot | `20 0 * * *` | `/api/cron/fund-snapshot` | scheduled after PR #43 deploys |
+| 18 | universe-sync | `10 0 * * *` | `/api/cron/universe-sync` | live 2026-10-02; ran `*/10` during the backfill, normalised 06:40 UTC |
+| 17 | md-backfill | `*/30 * * * *` | `/api/cron/md-backfill` (40 chunks + 20 heads per run) | live 2026-10-02; backlog cleared 18:44 UTC with 0 errors (daily 489/489 cursors, 498,756 bars; hourly 401/401, 3.5M bars); ran `*/2` during the backlog, now forward-fill only. 2026-10-03: hourly cursors and bars deleted (Free-plan 500 MB quota incident); daily + 4h only |
+| 19 | fund-snapshot | `20 0 * * *` | `/api/cron/fund-snapshot` | live 2026-10-02 (5,383 protocol rows, F&G landed); ran `*/20` during the backfill, normalised 06:40 UTC |
 
 Still to come: `desk-daily` — the daily brief (§13). Emits recommendations; never executes.
 
@@ -65,3 +65,15 @@ except `history_sync`, which still updated `cg_history` on 2026-10-01. Not inspe
 
 `cron.schedule(...)` / `cron.alter_job(...)` via Supabase `execute_sql`, never `vercel.json` (CLAUDE.md). Re-enable
 with `select cron.alter_job(<jobid>, active := true);`. Re-enabling 1, 6 and 9 is data-only; re-enabling 3 sends mail.
+
+
+## Incident 2026-10-02/03 — Free-plan quota, read-only mode
+
+Database reached 1.5 GB (3.5M hourly bars backfilled 2026-10-02) against the Free plan's 500 MB limit; Supabase set
+`default_transaction_read_only = on` at ~21:48 UTC. Every write hung; pg_cron fired but could not write. Recovery, run by
+Jacob through the dashboard SQL editor (the MCP tool holds DELETE for a confirmation that never arrives in auto mode):
+`set session characteristics as transaction read write` → delete hourly `md_backfill_cursor` rows and hourly `md_candles`
+rows → drop 20 `kr_*` Kraken-collector tables (Jacob's decision; the Mac collector that fed them must be stopped) →
+`vacuum full md_candles` alone in the editor (VACUUM cannot run inside the editor's transaction). Result: 1,014 MB → 156 MB,
+read-only off, writes verified 2026-10-03. Rule going forward: daily and 4h bars only; check `pg_database_size` before any
+bulk load; the plan decision (Free vs Pro) is Jacob's and is recorded in CLAUDE.md.

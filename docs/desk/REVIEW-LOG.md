@@ -120,3 +120,159 @@ P1 intrabar fill moved to the next completed 5m bar after the trigger bar · `mo
 Verification run (below in this log once executed): ordinary insert/update, rejected symbol and thesis_id mutation, DELETE, TRUNCATE, direct revision tampering, under `service_role` and `postgres`.
 
 **R-D verification (desk_selftest(), 2026-10-02 06:1x UTC):** `update_audited:t symbol_change:rejected tid_change:rejected delete:rejected rev_update:rejected rev_delete:rejected svc_rev_insert:rejected svc_sel_delete:rejected` — the last two under `SET LOCAL ROLE service_role`. TRUNCATE rejection is enforced by trigger + revoke but was not exercised in the selftest (no safe way to attempt it inside a function without a savepoint on a DDL-class statement); open item. Concurrency/rollback tests: open item for the Phase 2 test harness.
+
+---
+
+## R-2026-10-02-E — ChatGPT: TRUNCATE and concurrency test designs
+Adopted verbatim as `docs/desk/TEST-PLAN.md` T1 and T2. Attempted T1 through the Supabase MCP tool: the tool hangs on
+explicit `BEGIN … ROLLBACK` blocks (three attempts), fingerprints before/after identical (rows untouched). Execution moves
+to the Phase 2 harness via psql. The point that the service_role test proves the REVOKE and only the owner test proves
+the trigger is recorded in T1.
+
+---
+
+## R-2026-10-02-F — ChatGPT review of the backtest engine (PR #46 @ eb1cc85)
+
+All ten accepted; #1, #2, #3, #5 were Phase 2 blockers and are fixed in the same PR.
+
+| # | Claim | Action |
+|---|---|---|
+| 1 BLOCKER | `end_t` filtered bar labels, letting a fit window decide on the bar that opens at the fold boundary | `end_t` now bounds information: a bar is processed only if `t + bar <= end_t`. Test: a 50× spike in the bar opening exactly at the boundary cannot change the fit run |
+| 2 HIGH | stops skipped on the entry bar | Stops/targets live from the fill; stop before target; gap below the stop at the open → entry at open+cost then stop at the open. Test: entry 100, low 80, stop 90, close 120 → stopped same bar |
+| 3 HIGH | list-order capital/slot bias; buys processed before same-open sells | Sells first, then buys as a batch sorted by (priority desc, symbol asc). Test: reversed order → identical holdings and cash |
+| 4 HIGH | silent partial fills | All-or-none; every refusal is an event (`no_fill`, reason cash/slots/no bar/already held); `no_fills` count in the result |
+| 5 HIGH | `view._m` exposed the whole market | `AsOfView` is built with no Market reference (`__slots__`, materialised visibility cuts); plus a hygiene test that greps `strategies.py` for raw-market access. Claim softened in docs: enforced by interface + test, not by the language |
+| 6 HIGH | ghost assets in the default universe | `listings` required (synthetic tests opt in with `infer_listings=True`); universe requires a bar completed in the immediately preceding interval. Test: stale DEAD excluded before its delisting date |
+| 7 MEDIUM | equity stamped with the open time | Stamped `t + bar` (the close). Test added |
+| 8 MEDIUM | fingerprint missed H/L/O/V | Hash over canonical OHLCV rows + listings. Test: a changed high changes the hash |
+| 9 MEDIUM | missing fill bar silently lapsed | Recorded as `no_fill: no bar` event |
+| 10 LOW | `next_bar` public | Renamed `bar_opening_at`, documented engine-only; covered by the hygiene test |
+
+---
+
+## R-2026-10-02-G — ChatGPT: slot allocator (PR #46)
+
+Accepted verbatim. Strategies no longer size in dollars; the engine owns sizing.
+
+| Requirement | Action |
+|---|---|
+| Equity-scaled equal slots, not fixed dollars | `slot_usd = equity_at_last_close × gross_cap / max_positions` (`run(..., max_positions=10, gross_cap=1.0)`; CLI `--max-positions`, `--gross-cap`). Result carries `sizing` |
+| Keep all-or-none, `no_fill` events, starvation visible | Unchanged; a slot that does not fit cash is a `no_fill: cash` event, never a partial |
+| Strategies rank simultaneous signals | `Order.priority` set by every house strategy (volume ratio, momentum score, dip depth); ties broken by symbol |
+| $10k vs $100k regression | Test: identical price path, `sma_trend` from 10k and 100k → normalised equity curves equal to 1e-9; each fill = 10% of last-close equity |
+
+Note for Phase 4: the slot is a baseline, not a claim. Volatility-scaled or conviction-weighted sizing is a Phase 4 study
+run as an overlay against this baseline, not a change to the engine default.
+
+---
+
+## R-2026-10-02-H — ChatGPT review of PR #46 @ bd2979d (gross_cap default, fail-closed loader)
+
+| # | Claim | Action |
+|---|---|---|
+| Q1 | Keep `gross_cap=1.0` as the tournament default; a `no_fill: cash` after a round trip is economic information (slot frozen at the prior close, executed at the next open), not a defect. Lowering the default hides turnover cost | Accepted. Default stays 1.0. 1.00/0.95/0.90 are Phase 4 cash-buffer overlays. `sizing` (rule, gross_cap, max_positions) is now in the manifest and in the config hash, so a 90% run can never share an id with a 100% run (test). The sells-first unit test uses 0.9 only to isolate slot release; it is not a default |
+| BLOCKER | `market_from_rows()` inferred listings when a snapshot lacked them, reopening survivorship | `market_from_rows(rows, bar_seconds, listings=None, *, infer_listings=False)`; `load_snapshot` raises `ValueError` on a snapshot without listings. Tests: default raises; snapshot without listings refused; with listings loads |
+| LOW | `AsOfView` comment overstated "materialised" | Reworded: visibility-capped reference, interface serves `bs[:i]`, guard is the StrategyHygiene test |
+| Ask | Report the `no_fill` breakdown during the real-data reproduction | Engine result now carries `no_fill_reasons` {cash, slots, no bar, already held}; `bt_run.py` prints it with the run id |
+
+Phase 2 gate as agreed: fail-closed loader (done, 42/42) → reproduce the house breakout rule on the frozen real dataset with the
+`no_fill` breakdown reported → PASS/FAIL. The reproduction is blocked until `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` exist in the
+cloud environment (read-only data pull; never pasted in chat).
+
+---
+
+## R-2026-10-02-I — ChatGPT: sizing-attribution protocol (one-off, before interpreting any changed edge)
+
+Accepted as specified. Tool: `desk-loop/bt_attrib.py`, banner `NOT RESEARCH EVIDENCE — sizing attribution only`,
+never imports `bt.store`, writes a text report only.
+
+| Requirement | Action |
+|---|---|
+| Four cells on one frozen snapshot: legacy logic + legacy $ / honest engine + legacy $ / honest + slot 1.00 / honest + slot 0.95 (sensitivity) | Implemented. Legacy signals/trade/run ported verbatim from `backtest_breakout_full.py`; `run(fixed_usd=100)` is a diagnostic-only engine mode that never scales with equity |
+| Same fees, dataset, universe, signal, stop rules, windows; only sizing differs | Costs fixed at the legacy 0.95%/side; same snapshot symbols; `strategies.breakout_legacy` = the legacy rule on the AsOfView (20d close-high, 1.5× volume, 7d RS > BTC, ≤15% ext, stop = max(20d low, entry×(1−trail)), trail 12/18 on closing highs, 2 entries per ISO week) |
+| Freeze the dollar amount to the old house value | `SIZE = 100.0`, `COST_SIDE = 0.0095` copied from `backtest_house.py` |
+| Output `trades | total | avg trade | max DD | win | PF | no_fill_reasons | exposure % | avg cash %` | All nine columns; exposure from a per-bar cash curve the engine now emits |
+| Label clearly, never write `research_runs` | Banner at top and bottom of every report; no store import |
+
+Deviation, stated: the legacy "half off at +25%" variant cannot be reproduced identically in the engine (no partial sells),
+so ALL four cells run the legacy "no take-profit: trail 12/18 only, 2/wk" variant. Legacy counted taken trades toward the
+weekly cap; the honest strategy counts proposals (differs only when a fill is refused, which the `no_fill` column shows).
+
+Engine additions this review forced: `Order.trail` (ratchets on closing highs only, entry close is the seed), delisted
+holdings close at the last available close with reason `delisted` (legacy did the same; the engine previously carried a
+ghost mark), `cash_curve` in the result. Parity test: on a synthetic path where cash and listings never bind, cell 1 and
+cell 2 agree on trades, win rate, average trade, profit factor and total return to 1e-6. 47/47.
+
+Real-data run: blocked on `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` in the cloud environment (read-only pull for the frozen snapshot).
+
+---
+
+## R-2026-10-02-J — ChatGPT: delisting treatment stays constant in the attribution run
+
+Accepted. No haircut in the Phase 2 reproduction or the attribution table: every cell exits a delisted holding at its
+last available close minus one side of cost, exactly as the legacy script did. The report now carries the line
+"delisting: legacy-symmetric treatment for attribution only". Reason recorded: one variable at a time — a harsher
+terminal treatment introduced alongside the engine and allocator changes would make the #1→#2→#3 deltas unattributable.
+
+Phase 4 robustness axis (committed, to be built when Phase 4 opens), run per strategy against the baseline:
+1. legacy/symmetric (last close − cost) — the attribution reference
+2. conservative forced exit at the last reliable executable price (last bar with volume above a liquidity floor, not the last print)
+3. recovery haircuts from the last reliable mark: −25%, −50%, −100% (venue untradeable, no executable exit)
+For any strategy whose edge depends materially on low-cap alts, cases 2–3 are part of the robustness GATE, not a footnote:
+the manifest records the delisting treatment, and `research_runs` carries the edge that survives each case.
+
+---
+
+## R-2026-10-02-K — ChatGPT: liquidity floor for the conservative delisting exit (Phase 4 axis 2)
+
+Accepted verbatim. Definition recorded for Phase 4 (not built yet; nothing in Phase 2 uses it):
+
+- **Last reliable executable price** = close of the last completed bar before delisting whose **3-day median dollar
+  volume** (close × volume, daily bars) ≥ **max($50,000, 10 × slot_usd)**. Dollar volume, never token volume; a rolling
+  median, never a single print.
+- slot_usd is the engine slot at that bar (equity × gross_cap / max_positions), so the floor scales with what we would
+  actually have to sell: $1k or $5k slot → $50k/day; $10k slot → $100k/day; $50k slot → $500k/day.
+- Robustness surface, not a single assumption: multiples **5× / 10× / 20×** slot_usd, crossed with the recovery
+  haircuts from R-J (−25% / −50% / −100%). The manifest records multiple, absolute floor and haircut; `research_runs`
+  carries the surviving edge per cell.
+- Phase 2 attribution and reproduction remain legacy-symmetric (R-J); this rule is Phase 4 only.
+
+---
+
+## R-2026-10-02-L — ChatGPT: Phase 2 evidence chain and the no-store rule
+
+Accepted. Research reads use the publishable key under explicit SELECT policies (`md_candles`, `universe_history`);
+the service-role key stays out of every agent path. Jacob runs `export → frozen snapshot → bt_run breakout_legacy →
+bt_attrib` in Terminal himself. The reproduction run uses `--no-store`: no `research_runs` row is written until the
+reproduction is reviewed and accepted (the printed run_id is an identifier only). `PHASE2-REPRODUCTION.md` records:
+snapshot data_hash, universe_hash, symbol count, delisted count, date span, fee model, fit/test windows, in-sample
+metrics, OOS metrics, gate checks, trial count, no-fill breakdown, four-row attribution table. The repo/Vercel rename is
+operationally separate from the verdict.
+
+---
+
+## R-2026-10-02-N — Phase 2 reproduction executed (PR #46 @ 3264acc)
+
+Result in `docs/desk/PHASE2-REPRODUCTION.md` and `docs/desk/ATTRIBUTION-2026-10-02.txt`. Two invalid runs recorded and
+excluded (truncated snapshot; stale listing proxies). Verified snapshot: 444,684 rows = DB count, 419 symbols, 88 delisted,
+2020-03-08 → 2026-10-01, data_hash `8df7990c93dcc632`, universe_hash `64e00348d99bb713`. Framework reproduces the legacy
+script within 2% (619 vs 607 trades, PF 0.83 vs 0.82). House breakout rule: rejected (OOS −84%, PF 0.81, 4/7 gate checks
+fail). Allocator impact is exposure (4% → 38%), not edge. Nothing written to `research_runs`. Awaiting independent verdict.
+
+---
+
+## R-2026-10-03-O — ChatGPT independent verdict on the Phase 2 reproduction
+
+> Independent R-N — Phase 2 framework PASS. House breakout REJECTED. Phase 3 may proceed. Before any Phase 4 strategy can
+> receive an ACCEPTED verdict, move fee-stress gating to OOS walk-forward evidence and resolve/document proposal-vs-fill
+> weekly-cap accounting.
+
+Both notes implemented the same day (PR #46):
+
+| # | Finding | Action |
+|---|---|---|
+| 1 | `breakout_legacy` weekly cap counted proposals; legacy counted taken trades, so a refused proposal could suppress a later signal | Cap now counts fills: a proposal is credited to its signal week when the symbol appears in `pf.positions` at the next decision; refused proposals consume nothing. Test: with `max_positions=1` refusals occur and later signals are still proposed. Synthetic parity test (cell 1 vs 2) still exact |
+| 2 | `survives_fees_x1.25` used the full-sample robustness run only | `walk_forward` now also runs every OOS test window under ×1.25 fees (selection still on base costs) and returns `oos_fee_stress`; `gate` requires BOTH full-sample and OOS fee survival, and a missing OOS stress result fails the check. `bt_run` prints and records `oos_fee_stress`. Tests: OOS-negative under stress → rejected; missing → check False |
+
+49/49 tests. Neither change alters the Phase 2 verdict (both cells were negative before sizing); the attribution table is
+re-run below for the record.
